@@ -5529,6 +5529,23 @@ FF
                             white-space: nowrap;
                         }
                         .colab-btn-nuevo:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(27,94,32,.55); }
+                        .colab-btn-masiva {
+                            background: linear-gradient(135deg, #4a148c, #7b1fa2);
+                            color: #fff;
+                            border: none;
+                            border-radius: 12px;
+                            padding: .72rem 1.35rem;
+                            font-weight: 700;
+                            font-size: .9rem;
+                            cursor: pointer;
+                            display: flex;
+                            align-items: center;
+                            gap: .45rem;
+                            transition: all .22s ease;
+                            box-shadow: 0 4px 18px rgba(74,20,140,.4);
+                            white-space: nowrap;
+                        }
+                        .colab-btn-masiva:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(74,20,140,.55); }
 
                         /* --- TABLA COMPLETA --- */
                         #colabTablaModal .modal-header { background: linear-gradient(135deg,#0d2152,#1565c0); }
@@ -6050,6 +6067,22 @@ FF
                         /* Modal batch de cursos */
                         #colabBatchCursosModal .modal-header { background: linear-gradient(135deg,#0f4c81,#1565c0); }
                         #colabBatchCursosModal .modal-body  { background:#f8faff; }
+                        /* Modal asignación masiva multi-empleado */
+                        #colabMasivaCursosModal .modal-header { background: linear-gradient(135deg,#4a148c,#7b1fa2); }
+                        #colabMasivaCursosModal .modal-body  { background:#f8faff; }
+                        .cmm-dropzone { border:2.5px dashed #b39ddb; border-radius:12px; background:#f3e5f5; padding:1.4rem 1rem; text-align:center; cursor:pointer; transition:border-color .2s,background .2s; color:#6a1b9a; }
+                        .cmm-dropzone.drag-over { border-color:#7b1fa2; background:#e8d5f5; }
+                        .cmm-dropzone i { font-size:2rem; margin-bottom:.4rem; }
+                        .cmm-dropzone strong { color:#4a148c; }
+                        .cmm-dropzone small { display:block; color:#94a3b8; font-size:.74rem; margin-top:.2rem; }
+                        .cmm-file-row { display:grid; grid-template-columns:2rem 1.4fr 1.2fr 1.4fr 1.4fr auto; gap:.4rem; align-items:start; padding:.42rem .5rem; background:#fff; border:1px solid #e2e8f0; border-radius:8px; margin-bottom:.3rem; font-size:.8rem; }
+                        .cmm-file-row.cmm-ok  { border-color:#86efac; background:#f0fdf4; }
+                        .cmm-file-row.cmm-err { border-color:#fca5a5; background:#fff1f2; }
+                        .cmm-file-row.cmm-skipped { opacity:.5; }
+                        .cmm-matched-badge { font-size:.7rem; font-weight:600; color:#1b5e20; background:#dcfce7; border-radius:10px; padding:.15rem .5rem; display:inline-block; }
+                        .cmm-unmatched-badge { font-size:.7rem; font-weight:600; color:#b91c1c; background:#fee2e2; border-radius:10px; padding:.15rem .5rem; display:inline-block; }
+                        .cmm-status-icon { font-size:1rem; width:1.2rem; text-align:center; padding-top:.2rem; }
+                        .cmm-rec-row { display:flex; align-items:center; gap:.35rem; flex-wrap:wrap; margin-top:.28rem; }
                         .cbm-file-row { display:grid; grid-template-columns:1fr 1fr auto; gap:.4rem; align-items:center; padding:.45rem .6rem; background:#fff; border:1px solid #e2e8f0; border-radius:8px; margin-bottom:.35rem; font-size:.82rem; }
                         .cbm-file-row.cbm-ok   { border-color:#86efac; background:#f0fdf4; }
                         .cbm-file-row.cbm-err  { border-color:#fca5a5; background:#fff1f2; }
@@ -6135,6 +6168,11 @@ FF
                                 </button>
                                 <button class="colab-btn-nuevo d-none" id="colab-btn-nuevo" onclick="colabAbrirNuevo()" aria-label="Agregar nuevo colaborador">
                                     <i class="fas fa-user-plus" aria-hidden="true"></i> Nuevo
+                                </button>
+                                <button class="colab-btn-masiva d-none" id="colab-btn-masiva-cursos"
+                                        onclick="colabMasivaAbrirModal()" aria-label="Asignación masiva de cursos"
+                                        title="Asignar cursos a múltiples colaboradores desde una carpeta">
+                                    <i class="fas fa-graduation-cap" aria-hidden="true"></i> Asignar Cursos
                                 </button>
                             </div>
                         </div>
@@ -10373,6 +10411,8 @@ FF
                         function colabActualizarBotonesAdmin() {
                             const btnNuevo = document.getElementById('colab-btn-nuevo');
                             if (btnNuevo) btnNuevo.classList.toggle('d-none', !colabCanEdit());
+                            const btnMasiva = document.getElementById('colab-btn-masiva-cursos');
+                            if (btnMasiva) btnMasiva.classList.toggle('d-none', !colabCanEdit());
                         }
 
                         /* --------------------------------------------------------------
@@ -11743,6 +11783,324 @@ FF
 
                         /* -- Mostrar/ocultar drop zone según permisos -- */
                         function colabCursosToggleDropzone() {
+
+                        /* ================================================================
+                           ASIGNACIÓN MASIVA DE CURSOS — multi-empleado
+                           Flujo: 1) Abrir modal  2) Arrastrar/seleccionar carpeta de PDFs
+                                  3) Parsear nombres → emparejar con colabCache por num
+                                  4) Editar nombre/fecha/recurrencia por fila
+                                  5) Confirmar → insert+upload para cada archivo
+                           Formato de nombre de archivo:
+                             {num_empleado}_{Nombre}_{Apellidos...}.pdf
+                             Ej: 31_David_Jesus_Pacheco_Angel.pdf
+                        ================================================================ */
+                        let _ccMasivaFiles = [];
+                        let _ccMasivaItems = [];
+
+                        window.colabMasivaAbrirModal = function() {
+                            if (!colabCanEdit()) return;
+                            _ccMasivaFiles = [];
+                            _ccMasivaItems = [];
+                            const panel  = document.getElementById('cmm-preview-panel');
+                            const footer = document.getElementById('cmm-footer');
+                            const status = document.getElementById('cmm-status');
+                            const pw     = document.getElementById('cmm-progress-wrap');
+                            const pb     = document.getElementById('cmm-progress-bar');
+                            const list   = document.getElementById('cmm-list');
+                            const btn    = document.getElementById('cmm-btn-save');
+                            const dropzone = document.getElementById('cmm-dropzone');
+                            if (panel)  panel.classList.add('d-none');
+                            if (footer) footer.classList.add('d-none');
+                            if (status) status.innerHTML = '';
+                            if (pw)     pw.classList.add('d-none');
+                            if (pb)     pb.style.width = '0%';
+                            if (list)   list.innerHTML = '';
+                            if (btn)    { btn.disabled = false; btn.innerHTML = '<i class="fas fa-upload me-1"></i>Subir todos'; }
+                            if (dropzone) dropzone.classList.remove('drag-over');
+                            const fi  = document.getElementById('cmm-folder-input');
+                            const fi2 = document.getElementById('cmm-files-input');
+                            if (fi)  fi.value  = '';
+                            if (fi2) fi2.value = '';
+                            const fechaG = document.getElementById('cmm-fecha-global');
+                            if (fechaG) fechaG.value = new Date().toISOString().slice(0, 10);
+                            colabMasivaInitDropzone();
+                            new bootstrap.Modal(document.getElementById('colabMasivaCursosModal')).show();
+                        };
+
+                        function colabMasivaInitDropzone() {
+                            const dz = document.getElementById('cmm-dropzone');
+                            if (!dz || dz.dataset.dzInit) return;
+                            dz.dataset.dzInit = '1';
+                            dz.addEventListener('dragenter', e => { e.preventDefault(); dz.classList.add('drag-over'); });
+                            dz.addEventListener('dragover',  e => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; dz.classList.add('drag-over'); });
+                            dz.addEventListener('dragleave', e => { if (!dz.contains(e.relatedTarget)) dz.classList.remove('drag-over'); });
+                            dz.addEventListener('drop', async e => {
+                                e.preventDefault();
+                                dz.classList.remove('drag-over');
+                                const items = e.dataTransfer.items;
+                                if (items && items.length) {
+                                    const entries = Array.from(items).map(i => i.webkitGetAsEntry?.()).filter(Boolean);
+                                    const hasDir  = entries.some(en => en.isDirectory);
+                                    if (hasDir) {
+                                        let allFiles = [];
+                                        for (const entry of entries) {
+                                            if (entry.isDirectory) {
+                                                const sub = await colabCursosReadFolder(entry);
+                                                allFiles.push(...sub);
+                                            } else if (entry.isFile) {
+                                                await new Promise(res => entry.file(f => {
+                                                    if (f.type === 'application/pdf') allFiles.push(f);
+                                                    res();
+                                                }));
+                                            }
+                                        }
+                                        if (!allFiles.length) { alert('No se encontraron PDFs en la carpeta.'); return; }
+                                        colabMasivaParsearArchivos(allFiles);
+                                        return;
+                                    }
+                                }
+                                const files = Array.from(e.dataTransfer.files).filter(f => f.type === 'application/pdf');
+                                if (!files.length) { alert('Solo se aceptan archivos PDF.'); return; }
+                                colabMasivaParsearArchivos(files);
+                            });
+                        }
+
+                        window.colabMasivaParsearArchivos = function(fileList) {
+                            const files = Array.from(fileList).filter(f => f.type === 'application/pdf');
+                            if (!files.length) { alert('No se encontraron PDFs.'); return; }
+                            const fi  = document.getElementById('cmm-folder-input');
+                            const fi2 = document.getElementById('cmm-files-input');
+                            if (fi)  fi.value  = '';
+                            if (fi2) fi2.value = '';
+                            _ccMasivaFiles = files;
+
+                            // Construir mapa num_empleado → fila
+                            const byNum = {};
+                            if (colabCache && colabCache.length) {
+                                for (const row of colabCache) {
+                                    const numV = String(gc(row, 'num') || '').trim();
+                                    if (numV) byNum[numV] = row;
+                                }
+                            }
+
+                            const freqOpts = (sel = '365') => ['365','180','730','90','custom'].map(v => {
+                                const lbl = { 365:'Anual (1 año)', 180:'Semestral (6 m)', 730:'Bianual (2 años)', 90:'Trimestral (3 m)', custom:'Personalizado' }[v];
+                                return `<option value="${v}"${sel === v ? ' selected' : ''}>${lbl}</option>`;
+                            }).join('');
+
+                            const today = new Date().toISOString().slice(0, 10);
+                            _ccMasivaItems = files.map((f, i) => {
+                                const baseName  = f.name.replace(/\.pdf$/i, '');
+                                const parts     = baseName.split('_');
+                                const numEmpl   = parts[0].replace(/\D/g, ''); // solo dígitos
+                                const nameRest  = parts.slice(1).join(' ').trim() || baseName;
+                                const matched   = numEmpl ? (byNum[numEmpl] || null) : null;
+                                const matchName = matched ? (String(gc(matched, 'nombre') || '').trim() || `#${numEmpl}`) : null;
+                                const tooBig    = f.size > 15 * 1024 * 1024;
+                                return { file: f, numEmpl, nameRest, matched, matchName, tooBig, idx: i };
+                            });
+
+                            const listEl = document.getElementById('cmm-list');
+                            if (listEl) {
+                                listEl.innerHTML = _ccMasivaItems.map((item, i) => {
+                                    const sizeKb = (item.file.size / 1024).toFixed(0);
+                                    const matchBadge = item.matched
+                                        ? `<span class="cmm-matched-badge"><i class="fas fa-check me-1"></i>${item.matchName}</span>`
+                                        : item.numEmpl
+                                            ? `<span class="cmm-unmatched-badge"><i class="fas fa-question me-1"></i>No encontrado (#${item.numEmpl})</span>`
+                                            : `<span class="cmm-unmatched-badge"><i class="fas fa-times me-1"></i>Sin número</span>`;
+                                    const dis = (item.tooBig || !item.matched) ? 'disabled' : '';
+                                    return `<div class="cmm-file-row${item.tooBig ? ' cmm-err' : !item.matched ? ' cmm-skipped' : ''}" id="cmm-row-${i}">
+                                        <div style="padding-top:.15rem">
+                                            <input type="checkbox" class="form-check-input" id="cmm-chk-${i}"
+                                                   ${item.matched && !item.tooBig ? 'checked' : ''} ${dis}>
+                                        </div>
+                                        <div>
+                                            <div class="cbm-fname" title="${item.file.name}"><i class="fas fa-file-pdf text-danger me-1"></i>${item.file.name}</div>
+                                            <div style="font-size:.68rem;color:#94a3b8">${sizeKb} KB${item.tooBig ? ' · <span class="text-danger fw-bold">supera 15 MB</span>' : ''}</div>
+                                        </div>
+                                        <div>${matchBadge}</div>
+                                        <div>
+                                            <input type="text" class="form-control form-control-sm" id="cmm-nombre-${i}"
+                                                   value="" placeholder="Nombre del curso" ${dis}>
+                                            <input type="text" class="form-control form-control-sm mt-1" id="cmm-cat-${i}"
+                                                   list="colab-cursos-cat-list" placeholder="Carpeta (opcional)"
+                                                   style="font-size:.74rem" ${dis}>
+                                        </div>
+                                        <div>
+                                            <input type="date" class="form-control form-control-sm" id="cmm-date-${i}"
+                                                   value="${today}" style="max-width:145px;font-size:.76rem" ${dis}>
+                                            <div class="cmm-rec-row">
+                                                <div class="form-check form-check-inline mb-0">
+                                                    <input class="form-check-input" type="checkbox" id="cmm-rec-${i}"
+                                                           onchange="colabMasivaToggleFreq(${i},this)" ${dis}>
+                                                    <label class="form-check-label" for="cmm-rec-${i}" style="font-size:.75rem">¿Recurrente?</label>
+                                                </div>
+                                                <select class="form-select form-select-sm" id="cmm-freq-${i}"
+                                                        style="display:none;max-width:155px;font-size:.74rem"
+                                                        onchange="colabMasivaToggleCustomFreq(${i},this)">${freqOpts()}</select>
+                                                <input type="number" min="1" id="cmm-freq-custom-${i}"
+                                                       class="form-control form-control-sm" placeholder="días"
+                                                       style="display:none;max-width:75px;font-size:.74rem">
+                                            </div>
+                                        </div>
+                                        <div class="cmm-status-icon" id="cmm-icon-${i}">
+                                            ${item.tooBig ? '<i class="fas fa-times-circle text-danger" title="Archivo muy grande"></i>' : ''}
+                                        </div>
+                                    </div>`;
+                                }).join('');
+                            }
+
+                            const matched = _ccMasivaItems.filter(it => it.matched && !it.tooBig).length;
+                            const countEl = document.getElementById('cmm-count');
+                            if (countEl) countEl.textContent = `${files.length} PDF${files.length !== 1 ? 's' : ''} · ${matched} coincidencia${matched !== 1 ? 's' : ''}`;
+
+                            document.getElementById('cmm-preview-panel')?.classList.remove('d-none');
+                            document.getElementById('cmm-footer')?.classList.remove('d-none');
+
+                            const btn = document.getElementById('cmm-btn-save');
+                            if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-upload me-1"></i>Subir todos'; }
+                            document.getElementById('cmm-progress-wrap')?.classList.add('d-none');
+                            const pb = document.getElementById('cmm-progress-bar');
+                            if (pb) pb.style.width = '0%';
+                            const st = document.getElementById('cmm-status');
+                            if (st) st.innerHTML = '';
+                        };
+
+                        window.colabMasivaToggleFreq = function(i, chk) {
+                            const sel = document.getElementById('cmm-freq-' + i);
+                            const cw  = document.getElementById('cmm-freq-custom-' + i);
+                            if (sel) sel.style.display = chk?.checked ? '' : 'none';
+                            if (cw && !chk?.checked) cw.style.display = 'none';
+                        };
+                        window.colabMasivaToggleCustomFreq = function(i, sel) {
+                            const cw = document.getElementById('cmm-freq-custom-' + i);
+                            if (cw) cw.style.display = sel?.value === 'custom' ? '' : 'none';
+                        };
+                        window.colabMasivaApplyNombre = function() {
+                            const v = (document.getElementById('cmm-nombre-global')?.value || '').trim();
+                            _ccMasivaItems.forEach((_, i) => {
+                                const inp = document.getElementById(`cmm-nombre-${i}`);
+                                if (inp && !inp.disabled) inp.value = v;
+                            });
+                        };
+                        window.colabMasivaApplyDate = function() {
+                            const v = document.getElementById('cmm-fecha-global')?.value;
+                            if (!v) return;
+                            _ccMasivaItems.forEach((_, i) => {
+                                const d = document.getElementById(`cmm-date-${i}`);
+                                if (d && !d.disabled) d.value = v;
+                            });
+                        };
+                        window.colabMasivaApplyCat = function() {
+                            const v = (document.getElementById('cmm-cat-global')?.value || '').trim();
+                            _ccMasivaItems.forEach((_, i) => {
+                                const inp = document.getElementById(`cmm-cat-${i}`);
+                                if (inp && !inp.disabled) inp.value = v;
+                            });
+                        };
+                        window.colabMasivaCancel = function() { _ccMasivaFiles = []; _ccMasivaItems = []; };
+
+                        window.colabMasivaSubirTodos = async function() {
+                            if (!_ccMasivaItems.length) return;
+                            if (!colabCanEdit()) return;
+                            const sb = window.supabaseClient;
+                            if (!sb) { alert('Supabase no disponible.'); return; }
+                            const userObj  = JSON.parse(sessionStorage.getItem('user') || '{}');
+                            const userName = userObj.user_metadata?.full_name || userObj.email || 'Sistema';
+
+                            const btn = document.getElementById('cmm-btn-save');
+                            const pw  = document.getElementById('cmm-progress-wrap');
+                            const pb  = document.getElementById('cmm-progress-bar');
+                            const st  = document.getElementById('cmm-status');
+                            if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Subiendo…'; }
+                            if (pw)  pw.classList.remove('d-none');
+
+                            const valid = _ccMasivaItems.map((item, i) => {
+                                const checked  = !!document.getElementById(`cmm-chk-${i}`)?.checked;
+                                const nombre   = (document.getElementById(`cmm-nombre-${i}`)?.value || '').trim();
+                                const fecha    = document.getElementById(`cmm-date-${i}`)?.value || null;
+                                const esRec    = !!document.getElementById(`cmm-rec-${i}`)?.checked;
+                                const freqSel  = document.getElementById(`cmm-freq-${i}`)?.value || '365';
+                                const cat      = (document.getElementById(`cmm-cat-${i}`)?.value || document.getElementById('cmm-cat-global')?.value || '').trim() || null;
+                                let frecDias   = null;
+                                if (esRec) {
+                                    if (freqSel === 'custom') {
+                                        const cv = parseInt(document.getElementById(`cmm-freq-custom-${i}`)?.value || '0', 10);
+                                        frecDias = cv > 0 ? cv : 365;
+                                    } else {
+                                        frecDias = parseInt(freqSel, 10);
+                                    }
+                                }
+                                const skip = !checked || item.tooBig || !item.matched || !nombre;
+                                return { ...item, nombre, fecha, esRec, frecDias, cat, skip };
+                            });
+
+                            const toProcess = valid.filter(v => !v.skip);
+                            if (!toProcess.length) {
+                                if (st) st.innerHTML = '<span class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i>Ningún archivo listo para subir. Revisa que cada fila tenga nombre de curso y colaborador identificado.</span>';
+                                if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-upload me-1"></i>Subir todos'; }
+                                if (pw) pw.classList.add('d-none');
+                                return;
+                            }
+
+                            let ok = 0, fail = 0;
+                            const total = toProcess.length;
+                            for (const item of valid) {
+                                const iconEl = document.getElementById(`cmm-icon-${item.idx}`);
+                                const rowEl  = document.getElementById(`cmm-row-${item.idx}`);
+                                if (item.skip) continue;
+                                if (iconEl) iconEl.innerHTML = '<span class="spinner-border spinner-border-sm text-primary"></span>';
+                                try {
+                                    const numEmpl = String(item.numEmpl);
+                                    const { data: ins, error: insErr } = await sb.from('colab_cursos').insert({
+                                        num_empleado:      numEmpl,
+                                        nombre:            item.nombre,
+                                        fecha_realizacion: item.fecha || null,
+                                        es_recurrente:     item.esRec,
+                                        frecuencia_dias:   item.frecDias,
+                                        categoria:         item.cat,
+                                        creado_por:        userName,
+                                    }).select('id').single();
+                                    if (insErr) throw insErr;
+                                    const path = `${numEmpl}/${ins.id}.pdf`;
+                                    const { error: upErr } = await sb.storage
+                                        .from(COLAB_CURSOS_BUCKET)
+                                        .upload(path, item.file, { upsert: true, contentType: 'application/pdf' });
+                                    if (upErr) throw upErr;
+                                    const pdfUrl = COLAB_CURSOS_BUCKET_URL + path;
+                                    await sb.from('colab_cursos').update({ pdf_url: pdfUrl }).eq('id', ins.id);
+                                    ok++;
+                                    if (iconEl) iconEl.innerHTML = '<i class="fas fa-check-circle text-success"></i>';
+                                    if (rowEl)  rowEl.classList.add('cmm-ok');
+                                } catch (err) {
+                                    fail++;
+                                    if (iconEl) iconEl.innerHTML = `<i class="fas fa-times-circle text-danger" title="${(err.message || '').replace(/"/g, '')}"></i>`;
+                                    if (rowEl)  rowEl.classList.add('cmm-err');
+                                    console.error('[Masiva cursos] Error en', item.file.name, err);
+                                }
+                                const done = ok + fail;
+                                if (pb) pb.style.width = `${Math.round((done / total) * 100)}%`;
+                            }
+
+                            if (st) {
+                                st.innerHTML = fail === 0
+                                    ? `<span class="text-success"><i class="fas fa-check-circle me-1"></i>${ok} curso${ok !== 1 ? 's' : ''} asignado${ok !== 1 ? 's' : ''} correctamente.</span>`
+                                    : `<span class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i>${ok} correcto${ok !== 1 ? 's' : ''}, ${fail} con error.</span>`;
+                            }
+                            if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-check me-1"></i>Listo'; }
+                            if (fail === 0) {
+                                setTimeout(() => {
+                                    bootstrap.Modal.getInstance(document.getElementById('colabMasivaCursosModal'))?.hide();
+                                    _ccMasivaFiles = [];
+                                    _ccMasivaItems = [];
+                                }, 1800);
+                            }
+                        };
+                        /* ---- /ASIGNACIÓN MASIVA DE CURSOS ---- */
+
+                        /* -- Mostrar/ocultar drop zone según permisos -- */
+                        function colabCursosToggleDropzone() {
                             const dz = document.getElementById('colab-cursos-dropzone');
                             if (!dz) return;
                             dz.classList.toggle('d-none', !colabCanEdit());
@@ -12054,6 +12412,119 @@ FF
                         </div>
                     </div>
                     <!-- /colabBatchCursosModal -->
+
+                    <!-- ====== MODAL ASIGNACIÓN MASIVA DE CURSOS (multi-empleado) ====== -->
+                    <div class="modal fade" id="colabMasivaCursosModal" tabindex="-1"
+                         aria-labelledby="colabMasivaCursosModalLabel" aria-hidden="true"
+                         data-bs-backdrop="static">
+                        <div class="modal-dialog modal-dialog-centered modal-xl">
+                            <div class="modal-content">
+                                <div class="modal-header py-2">
+                                    <h5 class="modal-title text-white mb-0" id="colabMasivaCursosModalLabel">
+                                        <i class="fas fa-graduation-cap me-2"></i>Asignación Masiva de Cursos
+                                    </h5>
+                                    <button type="button" class="btn-close btn-close-white"
+                                            data-bs-dismiss="modal" onclick="colabMasivaCancel()"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <!-- Zona de arrastre -->
+                                    <div id="cmm-dropzone" class="cmm-dropzone mb-3"
+                                         role="button" tabindex="0"
+                                         aria-label="Arrastra aquí la carpeta de cursos">
+                                        <i class="fas fa-folder-open"></i>
+                                        <div><strong>Arrastra una carpeta de PDFs aquí</strong></div>
+                                        <small>Cada PDF debe llamarse <code style="background:#e9d8f5;border-radius:4px;padding:0 .3rem">{num_empleado}_Nombre_Apellidos.pdf</code> &nbsp;·&nbsp; Máx. 15 MB por archivo</small>
+                                        <div class="colab-dz-btns mt-2">
+                                            <button type="button" class="colab-dz-btn"
+                                                    style="border-color:#7b1fa2;color:#4a148c"
+                                                    onclick="event.stopPropagation();document.getElementById('cmm-folder-input').click()">
+                                                <i class="fas fa-folder-open"></i> Seleccionar carpeta
+                                            </button>
+                                            <button type="button" class="colab-dz-btn"
+                                                    style="border-color:#7b1fa2;color:#4a148c"
+                                                    onclick="event.stopPropagation();document.getElementById('cmm-files-input').click()">
+                                                <i class="fas fa-file-pdf"></i> Seleccionar PDFs
+                                            </button>
+                                        </div>
+                                        <input type="file" id="cmm-folder-input" accept="application/pdf"
+                                               webkitdirectory multiple style="display:none"
+                                               onchange="colabMasivaParsearArchivos(this.files)">
+                                        <input type="file" id="cmm-files-input" accept="application/pdf"
+                                               multiple style="display:none"
+                                               onchange="colabMasivaParsearArchivos(this.files)">
+                                    </div>
+
+                                    <!-- Panel de previsualización (oculto hasta cargar archivos) -->
+                                    <div id="cmm-preview-panel" class="d-none">
+                                        <!-- Controles globales -->
+                                        <div class="row g-2 mb-2 align-items-end">
+                                            <div class="col-12 col-md-auto">
+                                                <label class="form-label mb-1" style="font-size:.8rem;font-weight:600">Nombre del curso (aplica a todos)</label>
+                                                <div class="d-flex gap-1">
+                                                    <input type="text" id="cmm-nombre-global" class="form-control form-control-sm"
+                                                           placeholder="Ej: Curso de Seguridad 2025" style="max-width:240px">
+                                                    <button type="button" class="btn btn-outline-secondary btn-sm"
+                                                            onclick="colabMasivaApplyNombre()">
+                                                        <i class="fas fa-pen me-1"></i>Aplicar
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div class="col-12 col-md-auto">
+                                                <label class="form-label mb-1" style="font-size:.8rem;font-weight:600">Fecha de realización</label>
+                                                <div class="d-flex gap-1">
+                                                    <input type="date" id="cmm-fecha-global" class="form-control form-control-sm" style="max-width:165px">
+                                                    <button type="button" class="btn btn-outline-secondary btn-sm"
+                                                            onclick="colabMasivaApplyDate()">
+                                                        <i class="fas fa-calendar-check me-1"></i>Aplicar
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div class="col-12 col-md-auto">
+                                                <label class="form-label mb-1" style="font-size:.8rem;font-weight:600"><i class="fas fa-folder me-1 text-warning"></i>Carpeta</label>
+                                                <div class="d-flex gap-1">
+                                                    <input type="text" id="cmm-cat-global" class="form-control form-control-sm"
+                                                           list="colab-cursos-cat-list" placeholder="Carpeta opcional" style="max-width:200px">
+                                                    <button type="button" class="btn btn-outline-secondary btn-sm"
+                                                            onclick="colabMasivaApplyCat()">
+                                                        <i class="fas fa-folder-open me-1"></i>Aplicar
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div class="col text-end text-muted" style="font-size:.78rem">
+                                                <span id="cmm-count"></span>
+                                            </div>
+                                        </div>
+                                        <!-- Cabecera tabla -->
+                                        <div style="display:grid;grid-template-columns:2rem 1.4fr 1.2fr 1.4fr 1.4fr auto;gap:.4rem;padding:0 .5rem .3rem;font-size:.72rem;font-weight:700;color:#64748b;text-transform:uppercase;border-bottom:1px solid #e2e8f0;margin-bottom:.35rem">
+                                            <span></span>
+                                            <span>Archivo PDF</span>
+                                            <span>Colaborador</span>
+                                            <span>Nombre del Curso · Carpeta</span>
+                                            <span>Fecha · Recurrencia</span>
+                                            <span></span>
+                                        </div>
+                                        <!-- Lista de archivos -->
+                                        <div id="cmm-list" style="max-height:360px;overflow-y:auto;padding-right:2px"></div>
+                                        <!-- Barra de progreso -->
+                                        <div class="cbm-progress d-none" id="cmm-progress-wrap">
+                                            <div class="cbm-progress-bar" id="cmm-progress-bar"></div>
+                                        </div>
+                                        <div id="cmm-status" class="mt-2" style="font-size:.82rem;min-height:1.2rem"></div>
+                                    </div>
+                                </div>
+                                <div class="modal-footer d-none" id="cmm-footer">
+                                    <button type="button" class="btn btn-secondary btn-sm"
+                                            data-bs-dismiss="modal" onclick="colabMasivaCancel()">Cancelar</button>
+                                    <button type="button" class="btn btn-sm" id="cmm-btn-save"
+                                            style="background:linear-gradient(135deg,#4a148c,#7b1fa2);color:#fff;border:none"
+                                            onclick="colabMasivaSubirTodos()">
+                                        <i class="fas fa-upload me-1"></i>Subir todos
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- /colabMasivaCursosModal -->
 
                     <div class="modal fade" id="colabDropCursoModal" tabindex="-1"
                          aria-labelledby="colabDropCursoModalLabel" aria-hidden="true"
