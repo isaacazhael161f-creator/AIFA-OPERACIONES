@@ -11919,7 +11919,7 @@ FF
                                         <div>${matchBadge}</div>
                                         <div>
                                             <input type="text" class="form-control form-control-sm" id="cmm-nombre-${i}"
-                                                   value="" placeholder="Nombre del curso" ${dis}>
+                                                   value="${item.nameRest.replace(/"/g, '&quot;')}" placeholder="Nombre del curso" ${dis}>
                                             <input type="text" class="form-control form-control-sm mt-1" id="cmm-cat-${i}"
                                                    list="colab-cursos-cat-list" placeholder="Carpeta (opcional)"
                                                    style="font-size:.74rem" ${dis}>
