@@ -10663,12 +10663,13 @@ FF
                             if (!client) throw new Error('Supabase no disponible');
                             const numCol = colabCols?.num;
                             if (!numCol) throw new Error('Columna num_empleado no detectada');
-                            const safeCol = /[\s.]/.test(numCol) ? `"${numCol}"` : numCol;
-                            const { error } = await client
+                            const { data, error } = await client
                                 .from('agenda_2026')
                                 .update({ vacaciones: arr })
-                                .eq(safeCol, numEmpl);
+                                .eq(numCol, numEmpl)
+                                .select('vacaciones');
                             if (error) throw error;
+                            if (!data || data.length === 0) throw new Error(`No se encontró el colaborador ${numEmpl} para guardar vacaciones.`);
                         }
 
                         /** Carga y renderiza los períodos de vacaciones del colaborador activo */
