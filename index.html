@@ -5659,7 +5659,62 @@ FF
                         .vac-day.has-vac.vac-disfrutado { background: #81c784; color: #1b5e20; font-weight: 700; }
                         .vac-day.has-vac.vac-cancelado  { background: #ef9a9a; color: #b71c1c; font-weight: 600; text-decoration: line-through; }
                         .vac-day.has-vac.has-multi { background: linear-gradient(135deg, #4fc3f7 50%, #81c784 50%); color: #01579b; font-weight: 700; }
-                        .vac-day.has-vac:hover { opacity: .75; cursor: default; }
+                        .vac-day.has-vac { cursor: pointer; }
+                        .vac-day.has-vac:hover { opacity: .85; cursor: pointer; transform: scale(1.18); transition: transform .1s, opacity .1s; z-index: 2; position: relative; }
+                        /* ── Tooltip flotante rich ── */
+                        #vac-day-tip {
+                            position: fixed; z-index: 9990;
+                            background: #1a2540; color: #fff;
+                            border-radius: 12px; padding: .65rem .85rem;
+                            font-size: .78rem; max-width: 270px; min-width: 160px;
+                            box-shadow: 0 8px 32px rgba(0,0,0,.4), 0 2px 6px rgba(0,0,0,.2);
+                            pointer-events: none; opacity: 0;
+                            transition: opacity .12s; line-height: 1.45;
+                            border: 1px solid rgba(255,255,255,.1);
+                        }
+                        #vac-day-tip.visible { opacity: 1; }
+                        #vac-day-tip .tip-date { font-weight: 700; font-size: .8rem; color: #90caf9; margin-bottom: .32rem; padding-bottom: .28rem; border-bottom: 1px solid rgba(255,255,255,.12); }
+                        #vac-day-tip .tip-row { display: flex; align-items: center; gap: .38rem; margin-top: .26rem; }
+                        #vac-day-tip .tip-dot { width: .52rem; height: .52rem; border-radius: 50%; flex-shrink: 0; }
+                        #vac-day-tip .tip-dot.programado { background: #4fc3f7; }
+                        #vac-day-tip .tip-dot.disfrutado { background: #81c784; }
+                        #vac-day-tip .tip-dot.cancelado  { background: #ef9a9a; }
+                        #vac-day-tip .tip-name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px; }
+                        #vac-day-tip .tip-more { font-size: .7rem; color: #90a4ae; margin-top: .22rem; }
+                        #vac-day-tip .tip-overlap { margin-top: .42rem; background: rgba(255,167,38,.16); border: 1px solid rgba(255,167,38,.4); border-radius: 6px; padding: .2rem .42rem; font-size: .7rem; color: #ffcc80; font-weight: 700; }
+                        #vac-day-tip .tip-hint { margin-top: .3rem; font-size: .68rem; color: #78909c; font-style: italic; }
+                        /* ── Popup de día ── */
+                        #vac-day-popup {
+                            position: fixed; z-index: 9995;
+                            background: #fff; border-radius: 14px;
+                            box-shadow: 0 16px 50px rgba(0,0,0,.22), 0 3px 12px rgba(0,0,0,.1);
+                            min-width: 290px; max-width: 350px;
+                            border: 1.5px solid #e0f0ff;
+                            display: none; animation: vdpIn .15s ease;
+                        }
+                        @keyframes vdpIn { from { opacity:0; transform:translateY(-6px) scale(.97); } to { opacity:1; transform:none; } }
+                        #vac-day-popup.visible { display: block; }
+                        #vac-day-popup .vdp-header { background: linear-gradient(135deg, #0277bd, #0097a7); color: #fff; padding: .7rem 1rem .65rem; border-radius: 13px 13px 0 0; display: flex; justify-content: space-between; align-items: center; }
+                        #vac-day-popup .vdp-title { font-weight: 700; font-size: .9rem; }
+                        #vac-day-popup .vdp-title small { display: block; font-size: .72rem; font-weight: 500; opacity: .8; }
+                        #vac-day-popup .vdp-close { background: none; border: none; color: rgba(255,255,255,.7); font-size: 1.1rem; cursor: pointer; padding: .1rem .3rem; line-height: 1; border-radius: 5px; transition: color .15s; }
+                        #vac-day-popup .vdp-close:hover { color: #fff; }
+                        #vac-day-popup .vdp-body { padding: .7rem .9rem .8rem; max-height: 340px; overflow-y: auto; }
+                        #vac-day-popup .vdp-overlap { background: #fff8e1; border: 1.5px solid #ffc107; border-radius: 8px; padding: .38rem .65rem; font-size: .75rem; font-weight: 700; color: #7d5a00; margin-bottom: .55rem; display: flex; align-items: center; gap: .4rem; }
+                        #vac-day-popup .vdp-colab { display: flex; align-items: flex-start; gap: .6rem; padding: .5rem 0; border-bottom: 1px solid #f0f5ff; }
+                        #vac-day-popup .vdp-colab:last-child { border-bottom: none; }
+                        #vac-day-popup .vdp-avatar { width: 2.3rem; height: 2.3rem; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: .8rem; flex-shrink: 0; background: linear-gradient(135deg, #e3f2fd, #b3e5fc); color: #0277bd; border: 2px solid #b3e5fc; overflow: hidden; }
+                        #vac-day-popup .vdp-avatar img { width: 100%; height: 100%; object-fit: cover; }
+                        #vac-day-popup .vdp-info { flex: 1; min-width: 0; }
+                        #vac-day-popup .vdp-name { font-weight: 700; font-size: .85rem; color: #0277bd; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; transition: color .15s; }
+                        #vac-day-popup .vdp-name:hover { color: #e91e63; text-decoration: underline; }
+                        #vac-day-popup .vdp-num { font-size: .69rem; color: #90a4ae; }
+                        #vac-day-popup .vdp-puesto { font-size: .71rem; color: #78909c; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+                        #vac-day-popup .vdp-dates { font-size: .75rem; color: #37474f; margin-top: .1rem; }
+                        #vac-day-popup .vdp-badge { display: inline-block; font-size: .65rem; font-weight: 700; border-radius: 20px; padding: .1rem .45rem; margin-top: .15rem; }
+                        #vac-day-popup .vdp-badge.programado { background: #e0f2fe; color: #0277bd; }
+                        #vac-day-popup .vdp-badge.disfrutado { background: #e8f5e9; color: #2e7d32; }
+                        #vac-day-popup .vdp-badge.cancelado  { background: #ffebee; color: #c62828; }
                         @media print {
                             .colab-vac-panel { display: none !important; }
                         }
@@ -10628,6 +10683,7 @@ FF
 
                         let _vacCurrentNumEmpl = null; // empleado mostrado en el panel
                         let _vacAllCache       = [];   // períodos planos para el calendario global
+                        let _vacCalDayMap      = {};   // 'YYYY-MM-DD' → [{...periodo, _nom, _num, _foto, _puesto}]
 
                         /** Rellena el selector de año del panel con los últimos 3 años */
                         function _vacInitAnioSelect() {
@@ -10950,15 +11006,19 @@ FF
                                 const empleados = await colabCargarTodos();
                                 const numCol    = colabCols?.num;
                                 const nomCol    = colabCols?.nombre;
+                                const fotoCol   = colabCols?.foto;
+                                const puestoCol = colabCols?.puesto;
                                 // Aplanar todos los períodos del año
                                 _vacAllCache = [];
                                 for (const emp of empleados) {
                                     const vacs = Array.isArray(emp.vacaciones) ? emp.vacaciones : [];
                                     const num  = numCol ? String(emp[numCol] || '') : '';
                                     const nom  = nomCol ? String(emp[nomCol] || '') : num;
+                                    const foto = fotoCol ? (emp[fotoCol] || '') : '';
+                                    const puesto = puestoCol ? (emp[puestoCol] || '') : '';
                                     for (const v of vacs) {
                                         if (v.anio === anio) {
-                                            _vacAllCache.push({ ...v, _num: num, _nom: nom });
+                                            _vacAllCache.push({ ...v, _num: num, _nom: nom, _foto: foto, _puesto: puesto });
                                         }
                                     }
                                 }
@@ -10987,20 +11047,77 @@ FF
                             if (count) count.textContent = total + ' período' + (total !== 1 ? 's' : '');
                             if (!grid) return;
                             grid.innerHTML = _vacBuildCalendar(lista, anio);
+                            _vacCalInitEvents(grid);
+                        }
+
+                        /** Wires up tooltip + click delegation on the calendar grid */
+                        function _vacCalInitEvents(grid) {
+                            if (!grid) return;
+                            // Remove previous listeners by cloning (fast)
+                            const fresh = grid.cloneNode(true);
+                            grid.parentNode.replaceChild(fresh, grid);
+
+                            const tip = document.getElementById('vac-day-tip');
+
+                            fresh.addEventListener('mousemove', function(e) {
+                                const day = e.target.closest('.vac-day.has-vac');
+                                if (!day || !tip) return;
+                                const key = day.dataset.key;
+                                const vacs = _vacCalDayMap[key];
+                                if (!vacs || !vacs.length) return;
+
+                                const DIAS = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+                                const [y,m,d] = key.split('-').map(Number);
+                                const dateObj  = new Date(y, m-1, d);
+                                const dateLabel = `${DIAS[dateObj.getDay()]} ${d}/${m}/${y}`;
+
+                                const activos = vacs.filter(v => v.estado !== 'cancelado');
+                                const MAX_SHOW = 4;
+                                let rows = vacs.slice(0, MAX_SHOW).map(v => {
+                                    const st = v.estado || 'programado';
+                                    const nom = v._nom || v._num || '—';
+                                    return `<div class="tip-row"><span class="tip-dot ${st}"></span><span class="tip-name">${nom}</span></div>`;
+                                }).join('');
+                                if (vacs.length > MAX_SHOW) rows += `<div class="tip-more">+${vacs.length - MAX_SHOW} más…</div>`;
+                                const overlapHtml = activos.length > 1
+                                    ? `<div class="tip-overlap"><i class="fas fa-exclamation-triangle me-1"></i>${activos.length} colaboradores simultáneos</div>` : '';
+                                tip.innerHTML = `<div class="tip-date"><i class="fas fa-calendar-day me-1"></i>${dateLabel}</div>${rows}${overlapHtml}<div class="tip-hint">Clic para ver detalles</div>`;
+
+                                // Position
+                                const vw = window.innerWidth, vh = window.innerHeight;
+                                let tx = e.clientX + 14, ty = e.clientY + 14;
+                                tip.classList.add('visible');
+                                const tw = tip.offsetWidth, tH = tip.offsetHeight;
+                                if (tx + tw > vw - 8) tx = e.clientX - tw - 10;
+                                if (ty + tH > vh - 8) ty = e.clientY - tH - 10;
+                                tip.style.left = tx + 'px';
+                                tip.style.top  = ty + 'px';
+                            });
+
+                            fresh.addEventListener('mouseleave', function() {
+                                if (tip) { tip.classList.remove('visible'); tip.innerHTML = ''; }
+                            });
+
+                            fresh.addEventListener('click', function(e) {
+                                const day = e.target.closest('.vac-day.has-vac');
+                                if (!day) return;
+                                if (tip) { tip.classList.remove('visible'); tip.innerHTML = ''; }
+                                vacCalPopupOpen(day.dataset.key, day);
+                            });
                         }
 
                         /** Construye el HTML del calendario anual de vacaciones */
                         function _vacBuildCalendar(lista, anio) {
-                            // Mapa de días: 'YYYY-MM-DD' -> [{_nom, _num, estado}]
-                            const dayMap = {};
+                            // Poblar _vacCalDayMap global
+                            _vacCalDayMap = {};
                             lista.forEach(r => {
                                 if (!r.fecha_inicio || !r.fecha_fin) return;
                                 const ini = new Date(r.fecha_inicio + 'T00:00:00');
                                 const fin = new Date(r.fecha_fin + 'T00:00:00');
                                 for (let d = new Date(ini); d <= fin; d.setDate(d.getDate() + 1)) {
                                     const key = d.toISOString().slice(0, 10);
-                                    if (!dayMap[key]) dayMap[key] = [];
-                                    dayMap[key].push(r);
+                                    if (!_vacCalDayMap[key]) _vacCalDayMap[key] = [];
+                                    _vacCalDayMap[key].push(r);
                                 }
                             });
                             const todayStr = new Date().toISOString().slice(0, 10);
@@ -11025,7 +11142,7 @@ FF
                                     const dow    = date.getDay();
                                     const isWE   = dow === 0 || dow === 6;
                                     const isToday = key === todayStr;
-                                    const vacs   = dayMap[key] || [];
+                                    const vacs   = _vacCalDayMap[key] || [];
                                     let cls = 'vac-day';
                                     if (isWE) cls += ' weekend';
                                     if (isToday) cls += ' today';
@@ -11039,12 +11156,8 @@ FF
                                             cls += ' has-vac vac-cancelado';
                                         }
                                     }
-                                    let tip = '';
-                                    if (vacs.length > 0) {
-                                        const names = [...new Set(vacs.map(v => v._nom || v._num))].slice(0,4).join(', ');
-                                        tip = ` title="${names.replace(/"/g,'&quot;')}"`;
-                                    }
-                                    html += `<div class="${cls}"${tip}>${d}</div>`;
+                                    const dataKey = vacs.length > 0 ? ` data-key="${key}"` : '';
+                                    html += `<div class="${cls}"${dataKey}>${d}</div>`;
                                 }
                                 html += '</div></div>'; // vac-days-grid / vac-month-block
                             }
@@ -11073,6 +11186,112 @@ FF
                                 <i class="fas fa-exclamation-triangle me-1"></i>
                                 <strong>¡Alerta de solapamiento!</strong> Se detectaron ${solapados.length} par${solapados.length>1?'es':''} de colaboradores con vacaciones en fechas que se cruzan.
                             </div>`;
+                        }
+
+                        /** Abre el popup de detalle de un día del calendario global */
+                        function vacCalPopupOpen(key, anchorEl) {
+                            const popup = document.getElementById('vac-day-popup');
+                            const title = document.getElementById('vdp-title');
+                            const body  = document.getElementById('vdp-body');
+                            if (!popup || !title || !body) return;
+
+                            const vacs = _vacCalDayMap[key] || [];
+                            if (!vacs.length) return;
+
+                            const DIAS  = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+                            const MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+                            const [y,m,d] = key.split('-').map(Number);
+                            const dateObj = new Date(y, m-1, d);
+                            const dLabel  = `${DIAS[dateObj.getDay()].charAt(0).toUpperCase()+DIAS[dateObj.getDay()].slice(1)} ${d} de ${MESES[m-1]} ${y}`;
+                            title.innerHTML = `<i class="fas fa-calendar-day me-1"></i>${dLabel}<small>${vacs.length} período${vacs.length!==1?'s':''}</small>`;
+
+                            const activos = vacs.filter(v => v.estado !== 'cancelado');
+                            let overlapHtml = '';
+                            if (activos.length > 1) {
+                                overlapHtml = `<div class="vdp-overlap"><i class="fas fa-exclamation-triangle"></i>Solapamiento: ${activos.length} colaboradores este día</div>`;
+                            }
+
+                            const ESTADO_ICON = { programado: '🏖️', disfrutado: '✅', cancelado: '❌' };
+                            const rows = vacs.map(v => {
+                                const st   = v.estado || 'programado';
+                                const nom  = v._nom  || v._num || '—';
+                                const num  = v._num  || '';
+                                const psto = v._puesto || '';
+                                const ini  = v.fecha_inicio ? v.fecha_inicio.slice(5).replace('-','/') : '?';
+                                const fin  = v.fecha_fin   ? v.fecha_fin.slice(5).replace('-','/')   : '?';
+                                const dias = v.dias_totales || '?';
+                                const initials = nom.split(' ').slice(0,2).map(w=>w[0]||'').join('').toUpperCase() || '?';
+                                const fotoHtml = v._foto
+                                    ? `<img src="${v._foto}" alt="${nom}" loading="lazy" onerror="this.parentNode.textContent='${initials}'">`
+                                    : initials;
+                                const numSafe = encodeURIComponent(num).replace(/'/g,"\\'");
+                                return `<div class="vdp-colab">
+                                    <div class="vdp-avatar">${fotoHtml}</div>
+                                    <div class="vdp-info">
+                                        <span class="vdp-name" onclick="vacCalAbrirColab('${numSafe}')" title="Ver tarjeta de ${nom}">${nom}</span>
+                                        <div class="vdp-num">${num}${psto ? ' · ' : ''}<span class="vdp-puesto">${psto}</span></div>
+                                        <div class="vdp-dates"><i class="fas fa-calendar-minus me-1" style="opacity:.5"></i>${ini} → ${fin} · <strong>${dias} días</strong></div>
+                                        <span class="vdp-badge ${st}">${ESTADO_ICON[st]||''} ${st.charAt(0).toUpperCase()+st.slice(1)}</span>
+                                    </div>
+                                </div>`;
+                            }).join('');
+
+                            body.innerHTML = overlapHtml + rows;
+                            popup.classList.add('visible');
+
+                            // Posicionar cerca del día clicado, dentro de la ventana
+                            const vw = window.innerWidth, vh = window.innerHeight;
+                            let px, py;
+                            if (anchorEl) {
+                                const r = anchorEl.getBoundingClientRect();
+                                px = r.right + 8;
+                                py = r.top;
+                            } else {
+                                px = vw / 2 - 160;
+                                py = vh / 2 - 120;
+                            }
+                            popup.style.left = '0'; popup.style.top = '0';
+                            const pw = popup.offsetWidth || 330, pH = popup.offsetHeight || 200;
+                            if (px + pw > vw - 10) px = Math.max(8, (anchorEl ? anchorEl.getBoundingClientRect().left - pw - 8 : vw/2-pw/2));
+                            if (py + pH > vh - 10) py = Math.max(8, vh - pH - 10);
+                            popup.style.left = px + 'px';
+                            popup.style.top  = py + 'px';
+
+                            // Close on outside click
+                            setTimeout(() => {
+                                document.addEventListener('click', _vacCalPopupOutside, { once: true, capture: true });
+                            }, 0);
+                        }
+
+                        function _vacCalPopupOutside(e) {
+                            const popup = document.getElementById('vac-day-popup');
+                            if (popup && !popup.contains(e.target)) vacCalPopupClose();
+                        }
+
+                        function vacCalPopupClose() {
+                            const popup = document.getElementById('vac-day-popup');
+                            if (popup) popup.classList.remove('visible');
+                            document.removeEventListener('click', _vacCalPopupOutside, true);
+                        }
+
+                        /** Navega al colaborador: cierra el modal del calendario y abre su ficha */
+                        function vacCalAbrirColab(numEmplEncoded) {
+                            const numEmpl = decodeURIComponent(numEmplEncoded);
+                            vacCalPopupClose();
+                            // Cerrar modal del calendario
+                            const calModal = bootstrap.Modal.getInstance(document.getElementById('colabVacCalModal'));
+                            if (calModal) calModal.hide();
+                            // Navegar a sección colaboradores y buscar
+                            if (typeof window.showSection === 'function') {
+                                const link = document.querySelector('[onclick*="colaboradores"]') || null;
+                                window.showSection('colaboradores', link);
+                            }
+                            // Pequeño delay para que la sección esté visible antes de buscar
+                            setTimeout(() => {
+                                if (typeof window.colabSeleccionarSugerencia === 'function') {
+                                    window.colabSeleccionarSugerencia(numEmpl);
+                                }
+                            }, 200);
                         }
 
                         /** Mini-toast de confirmación */
@@ -11253,6 +11472,8 @@ FF
                         window.vacCalAbrir      = vacCalAbrir;
                         window.vacCalCargar     = vacCalCargar;
                         window.vacCalFiltrar    = vacCalFiltrar;
+                        window.vacCalPopupClose = vacCalPopupClose;
+                        window.vacCalAbrirColab = vacCalAbrirColab;
                         window.vacAbrirModal    = vacAbrirModal;
                         window.vacLoadForColab  = vacLoadForColab;
                         window.vacAutoFechaFin  = vacAutoFechaFin;
@@ -11262,6 +11483,9 @@ FF
                         window.vacEditInit      = vacEditInit;
                         window.vacEditCargar    = vacEditCargar;
                         window.vacEditEliminar  = vacEditEliminar;
+
+                        // Cerrar popup cuando se cierre el modal del calendario
+                        document.getElementById('colabVacCalModal')?.addEventListener('hide.bs.modal', vacCalPopupClose);
 
                         /* --------------------------------------------------------------
                            CURSOS Y CAPACITACIONES
@@ -13597,6 +13821,18 @@ FF
                         </div>
                     </div>
                     <!-- /colabVacCalModal -->
+
+                    <!-- ── Tooltip flotante día vacaciones ── -->
+                    <div id="vac-day-tip" role="tooltip" aria-hidden="true"></div>
+
+                    <!-- ── Popup click día vacaciones ── -->
+                    <div id="vac-day-popup" role="dialog" aria-modal="true" aria-labelledby="vdp-title">
+                        <div class="vdp-header">
+                            <div class="vdp-title" id="vdp-title">Cargando…</div>
+                            <button class="vdp-close" onclick="vacCalPopupClose()" aria-label="Cerrar">✕</button>
+                        </div>
+                        <div class="vdp-body" id="vdp-body"></div>
+                    </div>
 
                 </div>
                 <!-- /colaboradores-section -->
