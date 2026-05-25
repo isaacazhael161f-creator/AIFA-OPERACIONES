@@ -10648,10 +10648,11 @@ FF
                             if (!client) return [];
                             const numCol = colabCols?.num;
                             if (!numCol) return [];
+                            const safeCol = /[\s.]/.test(numCol) ? `"${numCol}"` : numCol;
                             const { data, error } = await client
                                 .from('agenda_2026')
                                 .select(`"${numCol}", vacaciones`)
-                                .eq(numCol, numEmpl)
+                                .eq(safeCol, numEmpl)
                                 .single();
                             if (error || !data) return [];
                             return Array.isArray(data.vacaciones) ? data.vacaciones : [];
@@ -10663,13 +10664,12 @@ FF
                             if (!client) throw new Error('Supabase no disponible');
                             const numCol = colabCols?.num;
                             if (!numCol) throw new Error('Columna num_empleado no detectada');
-                            const { data, error } = await client
+                            const safeCol = /[\s.]/.test(numCol) ? `"${numCol}"` : numCol;
+                            const { error } = await client
                                 .from('agenda_2026')
                                 .update({ vacaciones: arr })
-                                .eq(numCol, numEmpl)
-                                .select('vacaciones');
+                                .eq(safeCol, numEmpl);
                             if (error) throw error;
-                            if (!data || data.length === 0) throw new Error(`No se encontró el colaborador ${numEmpl} para guardar vacaciones.`);
                         }
 
                         /** Carga y renderiza los períodos de vacaciones del colaborador activo */
