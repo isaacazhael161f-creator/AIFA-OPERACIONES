@@ -11889,7 +11889,7 @@ FF
                             _ccMasivaItems = files.map((f, i) => {
                                 const baseName  = f.name.replace(/\.pdf$/i, '');
                                 const parts     = baseName.split('_');
-                                const numEmpl   = parts[0].replace(/\D/g, ''); // solo dígitos
+                                const numEmpl   = parts[0].trim(); // preservar formato "1468-2"
                                 const nameRest  = parts.slice(1).join(' ').trim() || baseName;
                                 const matched   = numEmpl ? (byNum[numEmpl] || null) : null;
                                 const matchName = matched ? (String(gc(matched, 'nombre') || '').trim() || `#${numEmpl}`) : null;
