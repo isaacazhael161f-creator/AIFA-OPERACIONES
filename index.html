@@ -10972,6 +10972,17 @@ FF
                             setTimeout(() => { t.style.opacity='0'; setTimeout(()=>t.remove(),400); }, 2800);
                         }
 
+                        // Exponer funciones de vacaciones al scope global (requerido por onclick/oninput en HTML)
+                        window.vacCalAbrir      = vacCalAbrir;
+                        window.vacCalCargar     = vacCalCargar;
+                        window.vacCalFiltrar    = vacCalFiltrar;
+                        window.vacAbrirModal    = vacAbrirModal;
+                        window.vacLoadForColab  = vacLoadForColab;
+                        window.vacAutoFechaFin  = vacAutoFechaFin;
+                        window.vacValidarFechas = vacValidarFechas;
+                        window.vacGuardar       = vacGuardar;
+                        window.vacEliminar      = vacEliminar;
+
                         /* --------------------------------------------------------------
                            CURSOS Y CAPACITACIONES
                            -------------------------------------------------------------- */
