@@ -8974,7 +8974,10 @@ FF
                                 if (orig._colabPatched) return true;
                                 window.showSection = function(sectionKey, linkEl) {
                                     orig(sectionKey, linkEl);
-                                    if (sectionKey === 'colaboradores') colabRenderDashboard();
+                                    if (sectionKey === 'colaboradores') {
+                                        colabRenderDashboard();
+                                        colabActualizarBotonesAdmin();
+                                    }
                                 };
                                 window.showSection._colabPatched = true;
                                 return true;
@@ -12319,6 +12322,8 @@ FF
                         function _colabBootstrap() {
                             initColabEvents();
                             colabActualizarBotonesAdmin();
+                            // Re-evaluar botones cuando el login/rol cambie (auth es asíncrono)
+                            window.addEventListener('aifa:login', () => colabActualizarBotonesAdmin());
                             // Arrancar dashboard si la sección ya es visible al cargar la página
                             const sec = document.getElementById('colaboradores-section');
                             if (sec && !sec.classList.contains('d-none') && getComputedStyle(sec).display !== 'none') {
