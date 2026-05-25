@@ -5578,6 +5578,9 @@ FF
                         }
                         .vac-progress-inner.full { background: linear-gradient(90deg, #2e7d32, #66bb6a); }
                         .vac-progress-inner.over { background: linear-gradient(90deg, #c62828, #ef5350); }
+                        .vac-year-bar-bg {
+                            background: #b3d9f5; border-radius: 20px; height: 12px; overflow: hidden;
+                        }
                         .vac-days-badge { font-size: .82rem; font-weight: 700; white-space: nowrap; color: #01579b; }
                         .vac-period-grid {
                             display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -6541,9 +6544,6 @@ FF
                                     <button class="colab-btn-delete d-none" id="colab-btn-delete" onclick="colabEliminarColaborador()" aria-label="Eliminar colaborador">
                                         <i class="fas fa-trash-alt" aria-hidden="true"></i> Eliminar
                                     </button>
-                                    <button class="colab-btn-vac d-none" id="colab-btn-vac" onclick="vacAbrirModal()" aria-label="Registrar vacaciones">
-                                        <i class="fas fa-umbrella-beach" aria-hidden="true"></i> Vacaciones
-                                    </button>
                                     <button class="colab-btn-print" onclick="colabImprimirFicha()" aria-label="Imprimir ficha">
                                         <i class="fas fa-print" aria-hidden="true"></i> Imprimir ficha
                                     </button>
@@ -6962,6 +6962,7 @@ FF
                                         <li class="nav-item" role="presentation"><button class="nav-link" id="cedit-tab-foto" data-bs-toggle="tab" data-bs-target="#cedit-foto" type="button"><i class="fas fa-camera me-1"></i>Foto</button></li>
                                         <li class="nav-item" role="presentation"><button class="nav-link" id="cedit-tab-cv" data-bs-toggle="tab" data-bs-target="#cedit-cv" type="button"><i class="fas fa-file-pdf me-1 text-danger"></i>CV</button></li>
                                         <li class="nav-item" role="presentation"><button class="nav-link" id="cedit-tab-cursos" data-bs-toggle="tab" data-bs-target="#cedit-cursos" type="button" onclick="colabCursosCargarEdit()"><i class="fas fa-graduation-cap me-1" style="color:#1565c0"></i>Cursos</button></li>
+                                        <li class="nav-item" role="presentation"><button class="nav-link" id="cedit-tab-vac" data-bs-toggle="tab" data-bs-target="#cedit-vac" type="button" onclick="vacEditInit()"><i class="fas fa-umbrella-beach me-1" style="color:#0288d1"></i>Vacaciones</button></li>
                                     </ul>
                                     <div class="tab-content p-3" id="colabEditContent">
 
@@ -7249,6 +7250,45 @@ FF
                                                         <span id="cn-cursos-save-status" class="small text-muted"></span>
                                                     </div>
                                                 </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- TAB: Vacaciones -->
+                                        <div class="tab-pane fade" id="cedit-vac" role="tabpanel">
+                                            <!-- Info: fecha ingreso + año selector -->
+                                            <div class="d-flex flex-wrap align-items-center gap-3 mb-3 px-2 py-2 rounded" style="background:#e1f5fe;border:1px solid #b3e5fc">
+                                                <div>
+                                                    <span class="small text-muted fw-semibold">Ingreso:</span>
+                                                    <span class="fw-bold text-primary ms-1 small" id="ce-vac-ingreso">—</span>
+                                                </div>
+                                                <div>
+                                                    <span class="small text-muted fw-semibold">Antigüedad:</span>
+                                                    <span class="fw-bold ms-1 small" id="ce-vac-antiguedad">—</span>
+                                                </div>
+                                                <div class="ms-auto d-flex align-items-center gap-2">
+                                                    <label class="small fw-semibold text-muted mb-0">Año:</label>
+                                                    <select class="form-select form-select-sm" id="ce-vac-anio" style="max-width:90px" onchange="vacEditCargar()"></select>
+                                                </div>
+                                            </div>
+                                            <!-- Barra de progreso -->
+                                            <div class="mb-3">
+                                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                                    <span class="fw-semibold small">Días hábiles de vacaciones</span>
+                                                    <span class="small text-muted"><strong id="ce-vac-usados">0</strong> usados · <strong id="ce-vac-restantes">20</strong> restantes de <strong id="ce-vac-limite">20</strong></span>
+                                                </div>
+                                                <div class="vac-year-bar-bg">
+                                                    <div class="vac-progress-inner" id="ce-vac-progress" style="width:0%"></div>
+                                                </div>
+                                            </div>
+                                            <!-- Períodos -->
+                                            <div id="ce-vac-grid" class="vac-period-grid mb-3">
+                                                <div class="vac-empty"><i class="fas fa-umbrella-beach"></i>Sin períodos registrados este año</div>
+                                            </div>
+                                            <!-- Botón agregar (solo editores) -->
+                                            <div id="ce-vac-add-wrap" class="d-none">
+                                                <button class="vac-add-btn" onclick="vacAbrirModal()">
+                                                    <i class="fas fa-plus-circle me-2"></i>Agregar período de vacaciones
+                                                </button>
                                             </div>
                                         </div>
 
@@ -9316,6 +9356,8 @@ FF
                         window.colabAbrirEditor = function() {
                             if (!colabCurrentRow || !colabCanEdit()) return;
                             const c = colabCurrentRow;
+                            // Asegurarse de que el número de empleado está disponible para la pestaña de vacaciones
+                            _vacCurrentNumEmpl = val(gc(c, 'num')) || _vacCurrentNumEmpl;
 
                             // Encabezado del modal
                             const label = document.getElementById('colab-edit-num-label');
@@ -10575,8 +10617,6 @@ FF
                             if (btnNuevo) btnNuevo.classList.toggle('d-none', !colabCanEdit());
                             const btnMasiva = document.getElementById('colab-btn-masiva-cursos');
                             if (btnMasiva) btnMasiva.classList.toggle('d-none', !colabCanEdit());
-                            const btnVac = document.getElementById('colab-btn-vac');
-                            if (btnVac) btnVac.classList.toggle('d-none', !colabCanEdit());
                         }
 
                         /* ==============================================================
@@ -10858,6 +10898,10 @@ FF
                                 }
                                 bootstrap.Modal.getInstance(document.getElementById('colabVacModal'))?.hide();
                                 await vacLoadForColab(_vacCurrentNumEmpl);
+                                // También refrescar pestaña del modal de edición si está activa
+                                if (document.getElementById('cedit-vac')?.classList.contains('active')) {
+                                    vacEditCargar();
+                                }
                                 _vacToast('✅ Período guardado correctamente.');
                             } catch (err) {
                                 alert('Error al guardar: ' + (err?.message || err));
@@ -10879,6 +10923,10 @@ FF
                                     if (emp) emp.vacaciones = filtrado;
                                 }
                                 await vacLoadForColab(_vacCurrentNumEmpl);
+                                // También refrescar pestaña del modal de edición si está activa
+                                if (document.getElementById('cedit-vac')?.classList.contains('active')) {
+                                    vacEditCargar();
+                                }
                                 _vacToast('🗑 Período eliminado.');
                             } catch (err) {
                                 alert('Error al eliminar: ' + (err?.message || err));
@@ -11035,6 +11083,161 @@ FF
                             setTimeout(() => { t.style.opacity='0'; setTimeout(()=>t.remove(),400); }, 2800);
                         }
 
+                        /* ==============================================================
+                           VACACIONES — PESTAÑA EN MODAL DE EDICIÓN
+                           ============================================================== */
+
+                        /** Rellena el selector de año del tab de edición */
+                        function _vacInitEditAnioSelect() {
+                            const sel = document.getElementById('ce-vac-anio');
+                            if (!sel || sel.options.length) return;
+                            const cur = new Date().getFullYear();
+                            for (let y = cur - 1; y <= cur + 1; y++) {
+                                const opt = document.createElement('option');
+                                opt.value = y; opt.textContent = y;
+                                if (y === cur) opt.selected = true;
+                                sel.appendChild(opt);
+                            }
+                        }
+
+                        /** Calcula días de vacaciones proporcionales al año de ingreso (siempre 20 si ya pasó) */
+                        function _vacCalcLimite(fechaIngresoStr, anio) {
+                            if (!fechaIngresoStr) return 20;
+                            let ing;
+                            try {
+                                if (/\d{2}\/\d{2}\/\d{4}/.test(fechaIngresoStr)) {
+                                    const [d, m, y] = fechaIngresoStr.split('/');
+                                    ing = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
+                                } else {
+                                    ing = new Date(fechaIngresoStr);
+                                }
+                            } catch (_) { return 20; }
+                            if (isNaN(ing.getTime())) return 20;
+                            if (ing.getFullYear() < anio) return 20;
+                            if (ing.getFullYear() > anio) return 0;
+                            const endOfYear = new Date(anio + 1, 0, 1);
+                            const msYear = endOfYear - new Date(anio, 0, 1);
+                            const msRemaining = endOfYear - ing;
+                            return Math.max(0, Math.round(msRemaining / msYear * 20));
+                        }
+
+                        /** Devuelve texto de antigüedad ("2 años 3 meses") */
+                        function _vacCalcAntiguedad(fechaIngresoStr) {
+                            if (!fechaIngresoStr) return '—';
+                            let ing;
+                            try {
+                                if (/\d{2}\/\d{2}\/\d{4}/.test(fechaIngresoStr)) {
+                                    const [d, m, y] = fechaIngresoStr.split('/');
+                                    ing = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
+                                } else {
+                                    ing = new Date(fechaIngresoStr);
+                                }
+                            } catch (_) { return '—'; }
+                            if (isNaN(ing.getTime())) return '—';
+                            const hoy = new Date();
+                            let years = hoy.getFullYear() - ing.getFullYear();
+                            let months = hoy.getMonth() - ing.getMonth();
+                            if (months < 0) { years--; months += 12; }
+                            if (years < 0) return 'Recién ingresado';
+                            if (years === 0) return months === 0 ? 'Recién ingresado' : `${months} mes${months !== 1 ? 'es' : ''}`;
+                            return `${years} año${years !== 1 ? 's' : ''}${months > 0 ? ` ${months} mes${months !== 1 ? 'es' : ''}` : ''}`;
+                        }
+
+                        /** Inicializa y carga la pestaña Vacaciones del modal de edición */
+                        function vacEditInit() {
+                            _vacInitEditAnioSelect();
+                            const ingStr = document.getElementById('ce-fecha-ingreso')?.value || '';
+                            const ingresoEl  = document.getElementById('ce-vac-ingreso');
+                            const antEl      = document.getElementById('ce-vac-antiguedad');
+                            if (ingresoEl) ingresoEl.textContent = ingStr || '—';
+                            if (antEl)     antEl.textContent     = _vacCalcAntiguedad(ingStr);
+                            vacEditCargar();
+                        }
+
+                        /** Carga y renderiza los períodos de vacaciones en la pestaña del modal de edición */
+                        async function vacEditCargar() {
+                            const anioSel = document.getElementById('ce-vac-anio');
+                            const anio = parseInt(anioSel?.value || new Date().getFullYear());
+                            const grid    = document.getElementById('ce-vac-grid');
+                            const addWrap = document.getElementById('ce-vac-add-wrap');
+                            if (!_vacCurrentNumEmpl) return;
+                            if (grid) grid.innerHTML = '<div class="text-center py-3"><i class="fas fa-circle-notch fa-spin text-primary"></i> Cargando…</div>';
+                            try {
+                                const todos = await _vacFetchArray(_vacCurrentNumEmpl);
+                                // Actualizar cache local
+                                if (colabCache) {
+                                    const numCol = colabCols?.num;
+                                    const emp = numCol ? colabCache.find(r => String(r[numCol]) === String(_vacCurrentNumEmpl)) : null;
+                                    if (emp) emp.vacaciones = todos;
+                                }
+                                const ingStr = document.getElementById('ce-fecha-ingreso')?.value || '';
+                                const limite = _vacCalcLimite(ingStr, anio);
+                                const anuales = todos.filter(r => r.anio === anio);
+                                anuales.sort((a, b) => (a.fecha_inicio || '') < (b.fecha_inicio || '') ? -1 : 1);
+                                const usados = anuales.filter(r => r.estado !== 'cancelado')
+                                    .reduce((s, r) => s + (r.dias_totales || 0), 0);
+                                const restantes = Math.max(0, limite - usados);
+                                const pct = Math.min(100, limite > 0 ? (usados / limite * 100) : 0);
+                                // Actualizar indicadores
+                                const elLimite    = document.getElementById('ce-vac-limite');
+                                const elUsados    = document.getElementById('ce-vac-usados');
+                                const elRestantes = document.getElementById('ce-vac-restantes');
+                                const bar         = document.getElementById('ce-vac-progress');
+                                if (elLimite)    elLimite.textContent    = limite;
+                                if (elUsados)    elUsados.textContent    = usados;
+                                if (elRestantes) elRestantes.textContent = restantes;
+                                if (bar) {
+                                    bar.style.width = pct + '%';
+                                    bar.className   = 'vac-progress-inner' + (usados > limite ? ' over' : '');
+                                }
+                                // Renderizar tarjetas de períodos
+                                if (!grid) return;
+                                if (!anuales.length) {
+                                    grid.innerHTML = '<div class="vac-empty"><i class="fas fa-umbrella-beach"></i>Sin períodos registrados este año</div>';
+                                } else {
+                                    const canDel = colabCanEdit();
+                                    grid.innerHTML = anuales.map(r => {
+                                        const ini = _vacFmt(r.fecha_inicio);
+                                        const fin = _vacFmt(r.fecha_fin);
+                                        const cls = `estado-${r.estado || 'programado'}`;
+                                        const delBtn = canDel
+                                            ? `<button class="vac-per-delete" title="Eliminar" onclick="vacEditEliminar('${r.id}')"><i class="fas fa-trash-alt"></i></button>`
+                                            : '';
+                                        return `<div class="vac-period-card ${cls}">
+                                            ${delBtn}
+                                            <div class="vac-per-num">Período ${r.periodo_num || '?'}</div>
+                                            <div class="vac-per-dates"><i class="fas fa-calendar-day me-1" style="color:#0288d1"></i>${ini} → ${fin}</div>
+                                            <div class="vac-per-dias">${r.dias_totales || '?'} días hábiles</div>
+                                            <span class="vac-per-estado ${r.estado || 'programado'}">${(r.estado || 'programado').charAt(0).toUpperCase() + (r.estado || 'programado').slice(1)}</span>
+                                            ${r.observaciones ? `<div class="vac-per-obs">${_vacEsc(r.observaciones)}</div>` : ''}
+                                        </div>`;
+                                    }).join('');
+                                }
+                                if (addWrap) addWrap.classList.toggle('d-none', !colabCanEdit());
+                            } catch (err) {
+                                if (grid) grid.innerHTML = `<div class="text-danger small p-2"><i class="fas fa-exclamation-circle me-1"></i>${err?.message || err}</div>`;
+                            }
+                        }
+
+                        /** Elimina un período de vacaciones desde la pestaña del modal de edición */
+                        async function vacEditEliminar(id) {
+                            if (!confirm('¿Eliminar este período de vacaciones?')) return;
+                            try {
+                                const todos    = await _vacFetchArray(_vacCurrentNumEmpl);
+                                const filtrado = todos.filter(r => r.id !== id);
+                                await _vacSaveArray(_vacCurrentNumEmpl, filtrado);
+                                if (colabCache) {
+                                    const numCol = colabCols?.num;
+                                    const emp = numCol ? colabCache.find(r => String(r[numCol]) === String(_vacCurrentNumEmpl)) : null;
+                                    if (emp) emp.vacaciones = filtrado;
+                                }
+                                await vacEditCargar();
+                                _vacToast('🗑 Período eliminado.');
+                            } catch (err) {
+                                alert('Error al eliminar: ' + (err?.message || err));
+                            }
+                        }
+
                         // Exponer funciones de vacaciones al scope global (requerido por onclick/oninput en HTML)
                         window.vacCalAbrir      = vacCalAbrir;
                         window.vacCalCargar     = vacCalCargar;
@@ -11045,6 +11248,9 @@ FF
                         window.vacValidarFechas = vacValidarFechas;
                         window.vacGuardar       = vacGuardar;
                         window.vacEliminar      = vacEliminar;
+                        window.vacEditInit      = vacEditInit;
+                        window.vacEditCargar    = vacEditCargar;
+                        window.vacEditEliminar  = vacEditEliminar;
 
                         /* --------------------------------------------------------------
                            CURSOS Y CAPACITACIONES
