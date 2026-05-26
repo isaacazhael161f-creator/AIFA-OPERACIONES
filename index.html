@@ -1645,7 +1645,7 @@ FF
                                                             <p class="small mb-0">Operación sin trámite o incumplimiento de horarios causa sanciones por parte de la SICyT conforme a la <strong>Ley de Aviación Civil Art. 87, fracción XII</strong>.</p>
                                                         </div>
                                                         <div class="col-md-6">
-                                                            <h6 class="text-danger"><i class="fas fa-times-circle me-1"></i>¿QuÉ se considera uso indebido?</h6>
+                                                            <h6 class="text-danger"><i class="fas fa-times-circle me-1"></i>¿Qué se considera uso indebido?</h6>
                                                             <ul class="small">
                                                                 <li>Conservar horarios sin intención de operar.</li>
                                                                 <li>Guardar horarios para negar capacidad a otros.</li>
@@ -3861,7 +3861,7 @@ FF
                         <li class="nav-item">
                             <button class="nav-link" id="ag-tab-comites" data-bs-toggle="tab"
                                 data-bs-target="#ag-pane-comites" type="button">
-                                <i class="fas fa-users-cog me-1"></i>ComitÉs
+                                <i class="fas fa-users-cog me-1"></i>Comités
                             </button>
                         </li>
                         <li class="nav-item">
@@ -3897,13 +3897,13 @@ FF
                             <div class="d-flex justify-content-end mb-2" id="ag-comites-actions" style="display:none!important">
                                 <button class="btn btn-sm btn-outline-primary" id="ag-btn-nuevo-comite"
                                     onclick="agOpenNuevoComite()" style="display:none">
-                                    <i class="fas fa-plus me-1"></i>Nuevo ComitÉ
+                                    <i class="fas fa-plus me-1"></i>Nuevo Comité
                                 </button>
                             </div>
                             <!-- Spinner -->
                             <div class="text-center py-5" id="ag-comites-loading">
                                 <div class="spinner-border text-primary" role="status" style="width:2.5rem;height:2.5rem"></div>
-                                <p class="text-muted mt-2 small">Cargando comitÉs</p>
+                                <p class="text-muted mt-2 small">Cargando comités</p>
                             </div>
                             <!-- Grid de tarjetas -->
                             <div class="row g-3" id="ag-comites-grid" style="display:none"></div>
@@ -12356,7 +12356,7 @@ FF
                             const { data: items } = await sb.from('colab_cursos').select('id').eq('num_empleado', String(numEmpl)).eq('categoria', cat);
                             const count = items?.length || 0;
                             let msg = `¿Eliminar la carpeta "${cat}"?`;
-                            if (count > 0) msg += `\n\nTiene ${count} curso${count!==1?'s':''}. ·QuÉ deseas hacer con ellos?\n\n Aceptar \u2192 mover a "Sin carpeta"\n• Cancelar \u2192 cancelar operación`;
+                            if (count > 0) msg += `\n\nTiene ${count} curso${count!==1?'s':''}. ·Qué deseas hacer con ellos?\n\n Aceptar \u2192 mover a "Sin carpeta"\n• Cancelar \u2192 cancelar operación`;
                             else msg += '\n\n Aceptar \u2192 eliminar carpeta vacía\n• Cancelar \u2192 cancelar';
                             if (!confirm(msg)) return;
                             try {
@@ -20665,7 +20665,7 @@ FF
                                                     <div class="card border-0 shadow-sm h-100" style="border-radius: 1rem; overflow: hidden;">
                                                         <div class="card-header bg-white border-bottom p-4">
                                                             <h6 class="mb-0 fw-bold"><i class="fas fa-calendar-week me-2 text-info"></i>Distribución por Día</h6>
-                                                            <small class="text-muted">QuÉ días concentran más frecuencias</small>
+                                                            <small class="text-muted">Qué días concentran más frecuencias</small>
                                                         </div>
                                                         <div class="card-body p-4" style="height:320px;position:relative">
                                                             <canvas id="chart-freq-days"></canvas>
@@ -23732,7 +23732,7 @@ FF
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="mfDirectionModalLabel"><i class="fas fa-plane me-2"></i>¿QuÉ tipo de
+                    <h5 class="modal-title" id="mfDirectionModalLabel"><i class="fas fa-plane me-2"></i>¿Qué tipo de
                         documento es?</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                 </div>
