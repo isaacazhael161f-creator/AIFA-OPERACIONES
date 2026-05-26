@@ -7327,7 +7327,7 @@ FF
                                                 </div>
                                             </div>
                                             <!-- Barra de progreso -->
-                                            <div class="mb-3">
+                                            <div class="mb-2">
                                                 <div class="d-flex justify-content-between align-items-center mb-1">
                                                     <span class="fw-semibold small">Días hábiles de vacaciones</span>
                                                     <span class="small text-muted"><strong id="ce-vac-usados">0</strong> usados · <strong id="ce-vac-restantes">20</strong> restantes de <strong id="ce-vac-limite">20</strong></span>
@@ -7336,6 +7336,8 @@ FF
                                                     <div class="vac-progress-inner" id="ce-vac-progress" style="width:0%"></div>
                                                 </div>
                                             </div>
+                                            <!-- Info período aniversario -->
+                                            <div id="ce-vac-aniv-info" class="mb-2 d-none"></div>
                                             <!-- Períodos -->
                                             <div id="ce-vac-grid" class="vac-period-grid mb-3">
                                                 <div class="vac-empty"><i class="fas fa-umbrella-beach"></i>Sin períodos registrados este año</div>
@@ -10875,12 +10877,50 @@ FF
                                 if (calcEl) calcEl.textContent = '⚠ La fecha fin debe ser posterior al inicio.';
                                 if (btn) btn.disabled = true; return;
                             }
+
+                            // ── Validar elegibilidad por año aniversario ──
+                            const ingStr = (typeof gc === 'function' && colabCurrentRow) ? (gc(colabCurrentRow, 'fecha_ingreso') || '') : '';
+                            if (ingStr) {
+                                const anivInfo = _vacGetAnivYear(ingStr, ini);
+                                if (anivInfo && !anivInfo.eligible) {
+                                    const fmtAniv = anivInfo.firstAniv.toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' });
+                                    if (calcEl) calcEl.innerHTML = `<span class="text-danger fw-semibold"><i class="fas fa-ban me-1"></i>Sin derecho a vacaciones aún. El colaborador cumple 1 año el <strong>${fmtAniv}</strong>.</span>`;
+                                    if (btn) btn.disabled = true;
+                                    return;
+                                }
+                            }
+
                             const dias = _vacCountWorkDays(ini, fin);
                             if (dias > 20) {
                                 if (calcEl) calcEl.textContent = `⚠ Máximo 20 días hábiles (L–V). Seleccionaste ${dias}.`;
                                 if (btn) btn.disabled = true; return;
                             }
-                            if (calcEl) calcEl.textContent = `✔ ${dias} día${dias>1?'s':''} hábil${dias>1?'es':''} (lunes a viernes).`;
+
+                            // ── Verificar días restantes en el año aniversario ──
+                            if (ingStr && _vacCurrentNumEmpl) {
+                                try {
+                                    const todos = await _vacFetchArray(_vacCurrentNumEmpl);
+                                    const anivInfo = _vacGetAnivYear(ingStr, ini);
+                                    if (anivInfo?.eligible && anivInfo.isoIni) {
+                                        const usadosAniv = todos
+                                            .filter(r => r.estado !== 'cancelado' && r.fecha_inicio >= anivInfo.isoIni && r.fecha_inicio <= anivInfo.isoFin)
+                                            .reduce((s, r) => s + (r.dias_totales || 0), 0);
+                                        const restantes = Math.max(0, 20 - usadosAniv);
+                                        if (usadosAniv + dias > 20) {
+                                            if (calcEl) calcEl.innerHTML = `<span class="text-danger fw-semibold"><i class="fas fa-exclamation-triangle me-1"></i>Solo quedan <strong>${restantes}</strong> días hábiles en este período aniversario (ya usados: ${usadosAniv}/20).</span>`;
+                                            if (btn) btn.disabled = true; return;
+                                        }
+                                        if (calcEl) calcEl.innerHTML = `<span class="text-success"><i class="fas fa-check me-1"></i>${dias} día${dias>1?'s':''} hábil${dias>1?'es':''}.</span> <span class="text-muted">Restan <strong>${restantes - dias}</strong> días en tu período aniversario.</span>`;
+                                    } else {
+                                        if (calcEl) calcEl.innerHTML = `<span class="text-success"><i class="fas fa-check me-1"></i>${dias} día${dias>1?'s':''} hábil${dias>1?'es':''}.</span>`;
+                                    }
+                                } catch (_) {
+                                    if (calcEl) calcEl.innerHTML = `<span class="text-success"><i class="fas fa-check me-1"></i>${dias} día${dias>1?'s':''} hábil${dias>1?'es':''}.</span>`;
+                                }
+                            } else {
+                                if (calcEl) calcEl.innerHTML = `<span class="text-success"><i class="fas fa-check me-1"></i>${dias} día${dias>1?'s':''} hábil${dias>1?'es':''}. (L–V)</span>`;
+                            }
+
                             if (btn) btn.disabled = false;
                             await vacChequearSolapamiento(ini, fin, alertEl);
                         }
@@ -10930,6 +10970,34 @@ FF
                             if (dFin < dIni) { alert('La fecha fin debe ser posterior al inicio.'); return; }
                             const dias = _vacCountWorkDays(ini, fin);
                             if (dias > 20) { alert(`Máximo 20 días hábiles (L–V) por período.`); return; }
+
+                            // ── Validación de año aniversario ──────────────────────────
+                            const ingStr = (typeof gc === 'function' && colabCurrentRow) ? (gc(colabCurrentRow, 'fecha_ingreso') || '') : '';
+                            if (ingStr) {
+                                const anivInfo = _vacGetAnivYear(ingStr, ini);
+                                if (!anivInfo || !anivInfo.eligible) {
+                                    const fmtAniv = anivInfo?.firstAniv
+                                        ? anivInfo.firstAniv.toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' })
+                                        : '(fecha no calculada)';
+                                    alert(`Este colaborador aún no ha cumplido 1 año en la empresa.\nLas vacaciones se pueden programar a partir del ${fmtAniv}.`);
+                                    return;
+                                }
+                                // Verificar que no exceda 20 días en el período aniversario
+                                if (anivInfo.isoIni) {
+                                    const todosCheck = await _vacFetchArray(_vacCurrentNumEmpl);
+                                    const usadosAniv = todosCheck
+                                        .filter(r => r.estado !== 'cancelado' && r.fecha_inicio >= anivInfo.isoIni && r.fecha_inicio <= anivInfo.isoFin)
+                                        .reduce((s, r) => s + (r.dias_totales || 0), 0);
+                                    if (usadosAniv + dias > 20) {
+                                        const restantes = Math.max(0, 20 - usadosAniv);
+                                        const fmtI = anivInfo.anivIni.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                                        const fmtF = anivInfo.anivFin.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                                        alert(`Solo quedan ${restantes} día${restantes!==1?'s':''} hábil${restantes!==1?'es':''} disponibles en el período aniversario ${fmtI} – ${fmtF}.\n(Ya programados: ${usadosAniv} de 20 días. Los días no utilizados no se acumulan.)`);
+                                        return;
+                                    }
+                                }
+                            }
+                            // ──────────────────────────────────────────────────────────
 
                             const anioSel = document.getElementById('ce-vac-anio') || document.getElementById('vac-panel-anio');
                             const anio    = parseInt(anioSel?.value) || dIni.getFullYear();
@@ -11337,24 +11405,86 @@ FF
                         }
 
                         /** Calcula días de vacaciones proporcionales al año de ingreso (siempre 20 si ya pasó) */
-                        function _vacCalcLimite(fechaIngresoStr, anio) {
-                            if (!fechaIngresoStr) return 20;
-                            let ing;
+                        /** Parsea un string de fecha (DD/MM/YYYY o YYYY-MM-DD) → Date, o null */
+                        function _vacParseIngreso(s) {
+                            if (!s) return null;
                             try {
-                                if (/\d{2}\/\d{2}\/\d{4}/.test(fechaIngresoStr)) {
-                                    const [d, m, y] = fechaIngresoStr.split('/');
-                                    ing = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
+                                let d;
+                                if (/^\d{2}\/\d{2}\/\d{4}$/.test(String(s))) {
+                                    const [dd, mm, yyyy] = String(s).split('/');
+                                    d = new Date(+yyyy, +mm - 1, +dd);
+                                } else if (/^\d{4}-\d{2}-\d{2}/.test(String(s))) {
+                                    const [yyyy, mm, dd] = String(s).slice(0, 10).split('-');
+                                    d = new Date(+yyyy, +mm - 1, +dd);
                                 } else {
-                                    ing = new Date(fechaIngresoStr);
+                                    d = new Date(s);
                                 }
-                            } catch (_) { return 20; }
-                            if (isNaN(ing.getTime())) return 20;
-                            if (ing.getFullYear() < anio) return 20;
-                            if (ing.getFullYear() > anio) return 0;
-                            const endOfYear = new Date(anio + 1, 0, 1);
-                            const msYear = endOfYear - new Date(anio, 0, 1);
-                            const msRemaining = endOfYear - ing;
-                            return Math.max(0, Math.round(msRemaining / msYear * 20));
+                                return isNaN(d.getTime()) ? null : d;
+                            } catch (_) { return null; }
+                        }
+
+                        /**
+                         * Dado un string de fecha ingreso y una fecha objetivo (YYYY-MM-DD),
+                         * devuelve info del año aniversario al que pertenece la fecha objetivo.
+                         * Retorna { eligible:false, firstAniv } si no ha cumplido 1 año en esa fecha.
+                         * Retorna { eligible:true, anivNum, anivIni, anivFin, isoIni, isoFin }.
+                         */
+                        function _vacGetAnivYear(ingStr, targetStr) {
+                            const ing = _vacParseIngreso(ingStr);
+                            if (!ing) return { eligible: true, anivNum: null, anivIni: null, anivFin: null };
+                            const target = _vacParseIngreso(targetStr);
+                            if (!target) return null;
+                            const firstAniv = new Date(ing.getFullYear() + 1, ing.getMonth(), ing.getDate());
+                            if (target < firstAniv) return { eligible: false, firstAniv };
+                            for (let n = 1; n <= 50; n++) {
+                                const anivIni = new Date(ing.getFullYear() + n, ing.getMonth(), ing.getDate());
+                                const anivFin = new Date(ing.getFullYear() + n + 1, ing.getMonth(), ing.getDate());
+                                anivFin.setDate(anivFin.getDate() - 1);
+                                if (target >= anivIni && target <= anivFin) {
+                                    return {
+                                        eligible: true, anivNum: n,
+                                        anivIni, anivFin,
+                                        isoIni: anivIni.toISOString().slice(0, 10),
+                                        isoFin: anivFin.toISOString().slice(0, 10)
+                                    };
+                                }
+                            }
+                            return { eligible: true, anivNum: null, anivIni: null, anivFin: null };
+                        }
+
+                        /**
+                         * Devuelve el año aniversario más reciente que EMPIEZA en/antes del
+                         * 31-dic del año calendario `anio`. Útil para el panel de edición.
+                         * Retorna { eligible:false, firstAniv } si no es elegible en ese año.
+                         */
+                        function _vacGetAnivYearForCal(ingStr, anio) {
+                            const ing = _vacParseIngreso(ingStr);
+                            if (!ing) return { eligible: true, anivNum: null };
+                            const firstAniv = new Date(ing.getFullYear() + 1, ing.getMonth(), ing.getDate());
+                            const endOfYear = new Date(anio, 11, 31);
+                            if (firstAniv > endOfYear) return { eligible: false, firstAniv };
+                            let bestN = 1;
+                            for (let n = 1; n <= 50; n++) {
+                                const anivStart = new Date(ing.getFullYear() + n, ing.getMonth(), ing.getDate());
+                                if (anivStart <= endOfYear) { bestN = n; } else { break; }
+                            }
+                            const anivIni = new Date(ing.getFullYear() + bestN, ing.getMonth(), ing.getDate());
+                            const anivFin = new Date(ing.getFullYear() + bestN + 1, ing.getMonth(), ing.getDate());
+                            anivFin.setDate(anivFin.getDate() - 1);
+                            const fmt = d => d.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                            return {
+                                eligible: true, anivNum: bestN,
+                                anivIni, anivFin,
+                                isoIni: anivIni.toISOString().slice(0, 10),
+                                isoFin: anivFin.toISOString().slice(0, 10),
+                                label: `Período aniversario ${bestN}: ${fmt(anivIni)} – ${fmt(anivFin)}`
+                            };
+                        }
+
+                        /** (Mantenido por compatibilidad) – ahora delega en _vacGetAnivYearForCal */
+                        function _vacCalcLimite(fechaIngresoStr, anio) {
+                            const info = _vacGetAnivYearForCal(fechaIngresoStr, anio);
+                            return info.eligible ? 20 : 0;
                         }
 
                         /** Devuelve texto de antigüedad ("2 años 3 meses") */
@@ -11417,13 +11547,48 @@ FF
                                     if (emp) emp.vacaciones = todos;
                                 }
                                 const ingStr = document.getElementById('ce-fecha-ingreso')?.value || '';
-                                const limite = _vacCalcLimite(ingStr, anio);
+                                // ── Calcular por período aniversario (no por año calendario) ──
+                                const anivInfo = _vacGetAnivYearForCal(ingStr, anio);
+                                const limite   = anivInfo.eligible ? 20 : 0;
+
+                                // Períodos a mostrar: los del año calendario seleccionado
                                 const anuales = todos.filter(r => r.anio === anio);
                                 anuales.sort((a, b) => (a.fecha_inicio || '') < (b.fecha_inicio || '') ? -1 : 1);
-                                const usados = anuales.filter(r => r.estado !== 'cancelado')
-                                    .reduce((s, r) => s + (r.dias_totales || 0), 0);
+
+                                // Días USADOS: contar desde el período aniversario correspondiente
+                                let usados = 0;
+                                if (anivInfo.eligible && anivInfo.isoIni) {
+                                    usados = todos
+                                        .filter(r => r.estado !== 'cancelado' && r.fecha_inicio >= anivInfo.isoIni && r.fecha_inicio <= anivInfo.isoFin)
+                                        .reduce((s, r) => s + (r.dias_totales || 0), 0);
+                                } else {
+                                    usados = anuales.filter(r => r.estado !== 'cancelado').reduce((s, r) => s + (r.dias_totales || 0), 0);
+                                }
                                 const restantes = Math.max(0, limite - usados);
                                 const pct = Math.min(100, limite > 0 ? (usados / limite * 100) : 0);
+
+                                // ── Mostrar/ocultar banner de elegibilidad ──
+                                const anivInfoEl = document.getElementById('ce-vac-aniv-info');
+                                if (anivInfoEl) {
+                                    if (!ingStr) {
+                                        anivInfoEl.className = 'mb-2 d-none';
+                                    } else if (!anivInfo.eligible) {
+                                        const fmtAniv = anivInfo.firstAniv.toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' });
+                                        anivInfoEl.className = 'mb-2';
+                                        anivInfoEl.innerHTML = `<div class="alert alert-warning py-2 px-3 mb-0 small">
+                                            <i class="fas fa-clock me-1"></i>
+                                            <strong>Sin derecho a vacaciones en ${anio}.</strong>
+                                            Este colaborador cumple su primer año el <strong>${fmtAniv}</strong>. Las vacaciones podrán programarse a partir de esa fecha.
+                                        </div>`;
+                                    } else if (anivInfo.label) {
+                                        anivInfoEl.className = 'mb-2';
+                                        anivInfoEl.innerHTML = `<div class="d-flex align-items-center gap-2 px-2 py-1 rounded" style="background:#f0f9ff;border:1px solid #b3e5fc;font-size:.75rem">
+                                            <i class="fas fa-calendar-check text-primary"></i>
+                                            <span class="text-muted">${anivInfo.label}</span>
+                                            <span class="ms-auto fw-semibold" style="color:#0277bd">${restantes} día${restantes!==1?'s':''} disponible${restantes!==1?'s':''}</span>
+                                        </div>`;
+                                    }
+                                }
                                 // Actualizar indicadores
                                 const elLimite    = document.getElementById('ce-vac-limite');
                                 const elUsados    = document.getElementById('ce-vac-usados');
@@ -11459,7 +11624,7 @@ FF
                                         </div>`;
                                     }).join('');
                                 }
-                                if (addWrap) addWrap.classList.toggle('d-none', !colabCanEdit());
+                                if (addWrap) addWrap.classList.toggle('d-none', !colabCanEdit() || !anivInfo.eligible);
                             } catch (err) {
                                 if (grid) grid.innerHTML = `<div class="text-danger small p-2"><i class="fas fa-exclamation-circle me-1"></i>${err?.message || err}</div>`;
                             }
