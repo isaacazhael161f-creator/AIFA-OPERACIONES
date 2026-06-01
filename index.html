@@ -56,6 +56,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <!-- html2canvas independiente para captura de imagen de tarjeta de cumpleaños -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" crossorigin="anonymous"></script>
 
     <script src="js/supabase-client.js"></script>
     <script src="js/realtime.js"></script>
@@ -1135,9 +1136,9 @@ FF
                     <a class="menu-item" href="#" data-section="fids" id="menu-fids"><i
                             class="fas fa-tv"></i><span>FIDS</span></a>
                             
-                    <!-- Contratos AIFA (sistema externo) -->
-                    <a class="menu-item" href="https://contratos-aifa.vercel.app/" target="_blank" rel="noopener noreferrer"><i
-                            class="fas fa-file-contract"></i><span>Contratos</span></a>
+                    <!-- Contratos AIFA (sistema externo) — oculto temporalmente -->
+                    <!-- <a class="menu-item" href="https://contratos-aifa.vercel.app/" target="_blank" rel="noopener noreferrer"><i
+                            class="fas fa-file-contract"></i><span>Contratos</span></a> -->
 
                     <a class="menu-item" href="#" data-install-app-info><i class="fas fa-download"></i><span>Instalar
                             como app</span></a>
@@ -1986,6 +1987,21 @@ FF
                             </div>
                         </div>
 
+                        <div class="card border-0 shadow-sm mb-4" style="background:#f8fafc">
+                            <div class="card-body p-3">
+                                <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2">
+                                    <div>
+                                        <div class="fw-semibold"><i class="fas fa-calendar-check me-1 text-primary"></i>Enviar agenda consolidada</div>
+                                        <div class="small text-muted">Envia por WhatsApp un resumen de todo lo programado en calendarios (comites, cursos y vacaciones) a todos los numeros activos.</div>
+                                    </div>
+                                    <button id="wha-send-agenda-btn" class="btn btn-primary" onclick="whaSendCalendarAgenda()">
+                                        <i class="fab fa-whatsapp me-1"></i>Enviar agenda por WhatsApp
+                                    </button>
+                                </div>
+                                <div id="wha-send-status" class="small mt-2"></div>
+                            </div>
+                        </div>
+
                         <!-- Tabla de números registrados -->
                         <div id="wha-list-wrap">
                             <div class="text-center text-muted py-4">
@@ -2111,6 +2127,27 @@ FF
                                             id="tab-aerolineas-mensual" data-bs-toggle="pill"
                                             data-bs-target="#pane-aerolineas-mensual" type="button" role="tab"><i
                                                 class="fas fa-calendar-alt me-2 text-warning"></i>Aerolíneas Mensuales</button>
+
+                                        <hr class="my-2">
+                                        <div class="small text-muted px-1 mb-1 fw-semibold" style="font-size:.75rem;letter-spacing:.4px">MURO DE PROYECCIÓN</div>
+
+                                        <button class="nav-link text-start mb-2 border shadow-sm rounded"
+                                            id="tab-cal-rutas" data-bs-toggle="pill"
+                                            data-bs-target="#pane-cal-rutas" type="button" role="tab"
+                                            onclick="dataManagement.loadDmCalRutas()"><i
+                                                class="fas fa-calendar-check me-2 text-success"></i>Calendario Rutas</button>
+
+                                        <button class="nav-link text-start mb-2 border shadow-sm rounded"
+                                            id="tab-tv-notas" data-bs-toggle="pill"
+                                            data-bs-target="#pane-tv-notas" type="button" role="tab"
+                                            onclick="dataManagement.loadDmTvNotas()"><i
+                                                class="fas fa-note-sticky me-2 text-warning"></i>Notas TV Wall</button>
+
+                                        <button class="nav-link text-start mb-2 border shadow-sm rounded"
+                                            id="tab-tv-wall-preview" data-bs-toggle="pill"
+                                            data-bs-target="#pane-tv-wall-preview" type="button" role="tab"
+                                            onclick="initTvWallPreview()"><i
+                                                class="fas fa-tv me-2 text-info"></i>Vista TV Wall</button>
                                     </div>
                                 </div>
                                 <div class="col-md-9" id="dm-content">
@@ -2475,6 +2512,7 @@ FF
                                                     <tbody></tbody>
                                                 </table>
                                             </div>
+
                                         </div>
 
                                         <!-- Weekly Frequencies Int Pane -->
@@ -3545,6 +3583,197 @@ FF
                                             <div class="text-muted small mt-2" id="am-count"></div>
                                         </div><!-- /pane-aerolineas-mensual -->
 
+                                        <!-- ═══ Calendario Rutas (Muro de Proyección) ═══ -->
+                                        <div class="tab-pane fade" id="pane-cal-rutas" role="tabpanel">
+                                            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                                                <div>
+                                                    <h5 class="mb-0"><i class="fas fa-calendar-check text-success me-2"></i>Calendario Inauguración de Rutas</h5>
+                                                    <small class="text-muted">Las rutas registradas aquí se muestran en el Calendario Rutas del muro de proyección.</small>
+                                                </div>
+                                                <div class="d-flex gap-2">
+                                                    <a href="./defaultLayout/DefaultLayout.html" target="_blank" class="btn btn-success btn-sm">
+                                                        <i class="fas fa-tv me-1"></i>Ver Proyección
+                                                    </a>
+                                                    <button class="btn btn-outline-secondary btn-sm" onclick="dataManagement.loadDmCalRutas()">
+                                                        <i class="fas fa-sync-alt me-1"></i>Actualizar
+                                                    </button>
+                                                    <button class="btn btn-primary btn-sm" onclick="dataManagement.openRouteLaunchModal()">
+                                                        <i class="fas fa-plus me-1"></i>Nueva inauguración
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div class="card border-0 shadow-sm">
+                                                <div class="card-header bg-light">
+                                                    <div class="row g-2 align-items-end">
+                                                        <div class="col-md-2">
+                                                            <label class="form-label small text-muted mb-1">Mes</label>
+                                                            <input type="month" class="form-control form-control-sm" id="dm-rlc-month" onchange="dataManagement.renderDmCalRutas()">
+                                                        </div>
+                                                        <div class="col-md-2">
+                                                            <label class="form-label small text-muted mb-1">Estado</label>
+                                                            <select class="form-select form-select-sm" id="dm-rlc-status-filter" onchange="dataManagement.renderDmCalRutas()">
+                                                                <option value="">Todos</option>
+                                                                <option value="confirmada">Confirmada</option>
+                                                                <option value="programada">Programada</option>
+                                                                <option value="pospuesta">Pospuesta</option>
+                                                                <option value="cancelada">Cancelada</option>
+                                                            </select>
+                                                        </div>
+                                                        <div class="col-md-2">
+                                                            <label class="form-label small text-muted mb-1">Alcance</label>
+                                                            <select class="form-select form-select-sm" id="dm-rlc-scope-filter" onchange="dataManagement.renderDmCalRutas()">
+                                                                <option value="">Todos</option>
+                                                                <option value="nacional">Nacional</option>
+                                                                <option value="internacional">Internacional</option>
+                                                            </select>
+                                                        </div>
+                                                        <div class="col-md-3">
+                                                            <label class="form-label small text-muted mb-1">Buscar</label>
+                                                            <input type="text" class="form-control form-control-sm" id="dm-rlc-search" placeholder="Ruta o aerolínea" oninput="dataManagement.renderDmCalRutas()">
+                                                        </div>
+                                                        <div class="col-md-3">
+                                                            <button class="btn btn-outline-success btn-sm w-100" onclick="dataManagement.sendRouteLaunchRemindersNow()">
+                                                                <i class="fas fa-paper-plane me-1"></i>Enviar recordatorios
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="card-body">
+                                                    <div id="dm-rlc-grid" class="mb-3"></div>
+                                                    <div class="table-responsive">
+                                                        <table class="table table-sm table-hover" id="dm-table-rlc">
+                                                            <thead class="table-light">
+                                                                <tr>
+                                                                    <th>Fecha</th>
+                                                                    <th>Ruta</th>
+                                                                    <th>Aerolínea</th>
+                                                                    <th>Alcance</th>
+                                                                    <th>Estado</th>
+                                                                    <th>Recordatorios</th>
+                                                                    <th></th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody><tr><td colspan="7" class="text-center text-muted py-3">Haz clic en "Actualizar" para cargar los datos.</td></tr></tbody>
+                                                        </table>
+                                                    </div>
+                                                    <div id="dm-rlc-status-bar" class="small text-muted mt-2"></div>
+                                                </div>
+                                            </div>
+                                        </div><!-- /pane-cal-rutas -->
+
+                                        <!-- ═══ Notas TV Wall ═══ -->
+                                        <div class="tab-pane fade" id="pane-tv-notas" role="tabpanel">
+                                            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                                                <div>
+                                                    <h5 class="mb-0"><i class="fas fa-note-sticky text-warning me-2"></i>Notas Operativas TV Wall</h5>
+                                                    <small class="text-muted">Se muestran en el cuadrante "Notas Operativas" del muro de proyección.</small>
+                                                </div>
+                                                <a href="./defaultLayout/DefaultLayout.html" target="_blank" class="btn btn-success btn-sm">
+                                                    <i class="fas fa-tv me-1"></i>Ver Proyección
+                                                </a>
+                                            </div>
+                                            <!-- Formulario nueva nota -->
+                                            <div class="card border-0 shadow-sm mb-4">
+                                                <div class="card-header bg-light">
+                                                    <h6 class="mb-0"><i class="fas fa-plus-circle me-2 text-primary"></i>Nueva Nota Operativa</h6>
+                                                </div>
+                                                <div class="card-body">
+                                                    <div class="row g-3">
+                                                        <div class="col-md-8">
+                                                            <label class="form-label small fw-semibold">Título *</label>
+                                                            <input type="text" class="form-control form-control-sm" id="dm-nota-titulo" placeholder="Título de la nota operativa">
+                                                        </div>
+                                                        <div class="col-md-4">
+                                                            <label class="form-label small fw-semibold">Prioridad</label>
+                                                            <select class="form-select form-select-sm" id="dm-nota-prioridad">
+                                                                <option value="3">Baja</option>
+                                                                <option value="5" selected>Media</option>
+                                                                <option value="8">Alta</option>
+                                                                <option value="10">Crítica</option>
+                                                            </select>
+                                                        </div>
+                                                        <div class="col-12">
+                                                            <label class="form-label small fw-semibold">Nota *</label>
+                                                            <textarea class="form-control form-control-sm" id="dm-nota-body" rows="3" placeholder="Contenido de la nota operativa..."></textarea>
+                                                        </div>
+                                                    </div>
+                                                    <div class="d-flex justify-content-between align-items-center mt-3">
+                                                        <div class="small" id="dm-nota-status"></div>
+                                                        <button class="btn btn-primary btn-sm" onclick="dataManagement.addDmTvNota()">
+                                                            <i class="fas fa-plus me-1"></i>Agregar Nota
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <!-- Lista de notas activas -->
+                                            <div class="card border-0 shadow-sm">
+                                                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                                                    <h6 class="mb-0"><i class="fas fa-list me-2"></i>Notas Activas</h6>
+                                                    <span class="badge bg-primary" id="dm-notas-count">-</span>
+                                                </div>
+                                                <div class="card-body p-0">
+                                                    <div id="dm-notas-list" class="p-3">
+                                                        <div class="text-center text-muted py-3">Haz clic en la pestaña para cargar las notas.</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div><!-- /pane-tv-notas -->
+
+                                        <!-- ═══ Vista TV Wall (Preview con rotación) ═══ -->
+                                        <div class="tab-pane fade" id="pane-tv-wall-preview" role="tabpanel">
+                                            <!-- Encabezado -->
+                                            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                                                <div>
+                                                    <h5 class="mb-0"><i class="fas fa-tv text-info me-2"></i>Vista TV Wall</h5>
+                                                    <small class="text-muted">Rota automáticamente entre el muro de 4 cuadrantes y la vista del NG-Client.</small>
+                                                </div>
+                                                <div class="d-flex gap-2 align-items-center flex-wrap">
+                                                    <span class="badge bg-dark text-light" id="tv-preview-clock" style="font-variant-numeric:tabular-nums;font-size:.8rem"></span>
+                                                    <button class="btn btn-outline-secondary btn-sm" id="btn-tv-toggle-rotation" onclick="tvWallToggleRotation()">
+                                                        <i class="fas fa-pause me-1"></i>Pausar
+                                                    </button>
+                                                    <button class="btn btn-outline-info btn-sm" onclick="tvWallNext()">
+                                                        <i class="fas fa-forward me-1"></i>Siguiente
+                                                    </button>
+                                                    <a href="./defaultLayout/DefaultLayout.html" target="_blank" class="btn btn-success btn-sm">
+                                                        <i class="fas fa-expand me-1"></i>Pantalla completa
+                                                    </a>
+                                                </div>
+                                            </div>
+
+                                            <!-- Indicador de vista activa -->
+                                            <div class="d-flex gap-2 mb-2 align-items-center">
+                                                <button class="btn btn-sm px-3" id="tv-tab-ops" onclick="tvWallSwitch(0)"
+                                                    style="border:2px solid #0dcaf0;background:#0dcaf0;color:#000;font-weight:600">
+                                                    <i class="fas fa-th-large me-1"></i>4 Cuadrantes
+                                                </button>
+                                                <button class="btn btn-sm px-3" id="tv-tab-fids" onclick="tvWallSwitch(1)"
+                                                    style="border:2px solid #444;background:transparent;color:#888;">
+                                                    <i class="fas fa-display me-1"></i>Vista NG-Client
+                                                </button>
+                                                <div class="flex-grow-1" style="background:#222;border-radius:4px;height:6px;overflow:hidden;">
+                                                    <div id="tv-progress-bar" style="height:100%;width:0%;background:#0dcaf0;transition:width .2s linear;"></div>
+                                                </div>
+                                                <span class="small text-muted" id="tv-countdown">10s</span>
+                                            </div>
+
+                                            <!-- Un solo iframe — cambia src al rotar -->
+                                            <div class="card border-0 shadow overflow-hidden" style="background:#050510;border-radius:8px;">
+                                                <!-- Overlay de carga -->
+                                                <div id="tv-loading-overlay" style="display:none;position:absolute;inset:0;z-index:10;background:#050510;align-items:center;justify-content:center;">
+                                                    <span class="text-secondary small"><i class="fas fa-spinner fa-spin me-2"></i>Cargando vista...</span>
+                                                </div>
+                                                <div style="position:relative;width:100%;padding-top:56.25%;overflow:hidden;">
+                                                    <iframe id="tv-wall-frame"
+                                                        src=""
+                                                        title="TV Wall Preview"
+                                                        style="position:absolute;top:0;left:0;width:177.78%;height:177.78%;transform:scale(0.5625);transform-origin:top left;border:none;pointer-events:none;">
+                                                    </iframe>
+                                                </div>
+                                            </div>
+                                            <p class="small text-muted mt-2 mb-0"><i class="fas fa-info-circle me-1"></i>Modo lectura. Usa <strong>Pantalla completa</strong> para proyectar en TV.</p>
+                                        </div><!-- /pane-tv-wall-preview -->
+
                                         <!-- Modal aerolínea (dentro de data-management) -->
                                         <div class="modal fade" id="dm-airline-modal" tabindex="-1">
                                           <div class="modal-dialog modal-lg">
@@ -3594,7 +3823,7 @@ FF
                                                          ondrop="alHandleDrop(event)">
                                                       <input type="file" id="al-f-file" accept="image/*" style="display:none" onchange="alHandleFile(event.target.files[0])">
                                                       <i class="fas fa-upload text-muted d-block mb-1"></i>
-                                                      <div class="small text-muted" id="al-drop-text">Arrastra o haz click · PNG, JPG, SVG · mÁx 2 MB</div>
+                                                      <div class="small text-muted" id="al-drop-text">Arrastra o haz click - PNG, JPG, SVG - max 2 MB</div>
                                                     </div>
                                                     <div class="mt-1 d-none" id="al-upload-progress">
                                                       <div class="progress" style="height:4px"><div class="progress-bar progress-bar-striped progress-bar-animated" id="al-prog-bar" style="width:0%"></div></div>
@@ -5422,6 +5651,70 @@ FF
                         }
                         .colab-btn-delete:hover { background: linear-gradient(135deg,#7f0000,#b71c1c); }
 
+                        .colab-btn-onboarding {
+                            background: linear-gradient(135deg, #00695c, #00acc1);
+                            color: #fff;
+                            border: none;
+                            border-radius: 10px;
+                            padding: .52rem 1.1rem;
+                            font-weight: 700;
+                            font-size: .82rem;
+                            cursor: pointer;
+                            display: flex;
+                            align-items: center;
+                            gap: .4rem;
+                            transition: background .2s, opacity .2s;
+                            white-space: nowrap;
+                        }
+                        .colab-btn-onboarding:hover { background: linear-gradient(135deg,#005046,#00838f); }
+
+                        .colab-onboarding-qr-box {
+                            width: 240px;
+                            height: 240px;
+                            border-radius: 16px;
+                            border: 1px solid #d8e4f0;
+                            background: linear-gradient(180deg, #ffffff, #f6fbff);
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            margin: 0 auto;
+                            overflow: hidden;
+                        }
+                        .colab-onboarding-qr-box img,
+                        .colab-onboarding-qr-box canvas {
+                            width: 220px;
+                            height: 220px;
+                            object-fit: contain;
+                            display: block;
+                        }
+                        .colab-onboarding-link {
+                            font-size: .88rem;
+                            background: #f8fbff;
+                            border: 1px solid #d7e6f6;
+                        }
+                        .colab-onboarding-base-help {
+                            font-size: .78rem;
+                            color: #60758a;
+                            margin-top: .35rem;
+                        }
+                        .colab-onboarding-inline-panel {
+                            margin: 0 1rem 1rem;
+                            border: 1px solid #cfe6ea;
+                            border-radius: 16px;
+                            background: linear-gradient(180deg, #fbfeff, #f4fbfc);
+                            box-shadow: inset 0 1px 0 rgba(255,255,255,.7);
+                        }
+                        .colab-onboarding-inline-head {
+                            display: flex;
+                            align-items: center;
+                            justify-content: space-between;
+                            gap: 1rem;
+                            padding: .9rem 1rem;
+                            border-bottom: 1px solid #d8ecef;
+                            background: linear-gradient(135deg, #e6f7f8, #f6fcff);
+                            border-radius: 16px 16px 0 0;
+                        }
+
                         /* --- PANEL HISTORIAL --- */
                         .colab-historial-panel {
                             background: #f8faff;
@@ -6149,6 +6442,85 @@ FF
                         #cursosCalModal .modal-header  { background:#1e293b; border-bottom:1px solid #334155; }
                         #cursosCalModal .modal-title   { color:#f1f5f9; font-weight:700; }
                         #cursosCalModal .modal-body    { background:#0f172a; }
+                        #cursosAgendaModal .modal-content { background:#0f172a; color:#e2e8f0; border:none; border-radius:14px; overflow:hidden; }
+                        #cursosAgendaModal .modal-header  { background:#1e293b; border-bottom:1px solid #334155; }
+                        #cursosAgendaModal .modal-title   { color:#f1f5f9; font-weight:700; }
+                        #cursosAgendaModal .modal-body    { background:#0f172a; }
+                        .modal-aifa-mark { display:inline-flex; align-items:center; justify-content:center; border:1px solid rgba(255,255,255,.22); border-radius:999px; padding:.12rem .45rem; background:rgba(255,255,255,.08); flex-shrink:0; }
+                        .modal-aifa-mark img { height:18px; width:auto; filter:brightness(0) invert(1); opacity:.92; display:block; }
+                        .ca-panel { background:#111c33; border:1px solid #334155; border-radius:10px; padding:.8rem; }
+                        .ca-label { font-size:.73rem; font-weight:700; color:#cbd5e1; text-transform:uppercase; letter-spacing:.03em; margin-bottom:.25rem; }
+                        .ca-input, .ca-select { background:#0b1324; color:#e2e8f0; border:1px solid #334155; }
+                        .ca-input::placeholder { color:#94a3b8; }
+                        .ca-emp-list { background:#0b1324; color:#e2e8f0; border:1px solid #334155; min-height:180px; }
+                        .ca-selected-preview { margin-top:.45rem; min-height:26px; max-height:82px; overflow:auto; display:flex; flex-wrap:wrap; gap:.3rem; }
+                        .ca-pill { display:inline-flex; align-items:center; border:1px solid #334155; border-radius:999px; padding:.15rem .5rem; font-size:.69rem; color:#cbd5e1; background:#0b1324; }
+                        .ca-pill-empty { color:#64748b; font-size:.72rem; }
+                        .ca-mini-btn { border:1px solid #475569; background:#1e293b; color:#cbd5e1; border-radius:8px; padding:.18rem .6rem; font-size:.74rem; font-weight:600; }
+                        .ca-mini-btn:hover { background:#334155; color:#fff; }
+                        .ca-save-btn { background:#2563eb; border:none; color:#fff; border-radius:8px; font-size:.82rem; font-weight:700; padding:.42rem .9rem; }
+                        .ca-save-btn:hover { background:#1d4ed8; }
+                        .ca-grid { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:.35rem; }
+                        .ca-dow { text-align:center; font-size:.72rem; color:#94a3b8; font-weight:700; padding:.12rem 0; }
+                        .ca-day { min-height:68px; border:1px solid #334155; border-radius:8px; background:#111827; padding:.24rem .3rem; cursor:pointer; }
+                        .ca-day.other { opacity:.35; cursor:default; }
+                        .ca-day.today { border-color:#3b82f6; box-shadow:0 0 0 1px rgba(59,130,246,.35) inset; }
+                        .ca-day.sel { border-color:#22c55e; box-shadow:0 0 0 1px rgba(34,197,94,.35) inset; }
+                        .ca-day-num { font-size:.74rem; font-weight:700; color:#e2e8f0; }
+                        .ca-day-count { margin-top:.2rem; display:inline-flex; align-items:center; justify-content:center; min-width:18px; height:18px; border-radius:10px; padding:0 .36rem; font-size:.68rem; font-weight:700; background:#1d4ed8; color:#fff; }
+                        .ca-list { max-height:305px; overflow:auto; }
+                        .ca-item { background:#0b1324; border:1px solid #334155; border-radius:10px; padding:.7rem .75rem; margin-bottom:.55rem; }
+                        .ca-item:last-child { margin-bottom:0; }
+                        .ca-item-top { display:flex; align-items:flex-start; justify-content:space-between; gap:.65rem; flex-wrap:wrap; }
+                        .ca-item-title { font-size:.88rem; font-weight:700; color:#e2e8f0; line-height:1.2; }
+                        .ca-item-meta { font-size:.73rem; color:#94a3b8; }
+                        .ca-item-meta-row { display:flex; flex-wrap:wrap; gap:.35rem; margin-top:.35rem; }
+                        .ca-item-badge { display:inline-flex; align-items:center; border:1px solid #334155; border-radius:999px; padding:.12rem .5rem; font-size:.7rem; color:#cbd5e1; background:#0f172a; }
+                        .ca-item-att { margin-top:.6rem; padding-top:.55rem; border-top:1px dashed #334155; font-size:.74rem; color:#cbd5e1; line-height:1.4; }
+                        .ca-item-att-list { margin-top:.35rem; display:flex; flex-wrap:wrap; gap:.3rem; }
+                        .ca-item-att-pill { display:inline-flex; align-items:center; border:1px solid #334155; border-radius:999px; padding:.14rem .48rem; font-size:.7rem; color:#dbeafe; background:#0f1a33; }
+                        .ca-item-att-pill.ca-colab-link { cursor:pointer; transition:all .12s; }
+                        .ca-item-att-pill.ca-colab-link:hover { border-color:#60a5fa; color:#fff; background:#122044; transform:translateY(-1px); }
+                        .ca-item-att-empty { color:#64748b; }
+                        .ca-check { display:flex; align-items:flex-start; gap:.5rem; margin:.15rem 0 .75rem; padding:.45rem .55rem; border:1px solid #334155; border-radius:8px; background:#0b1324; }
+                        .ca-check .form-check-input { margin-top:.18rem; background-color:#0f172a; border-color:#475569; }
+                        .ca-check .form-check-input:checked { background-color:#3b82f6; border-color:#60a5fa; }
+                        .ca-check-label { font-size:.78rem; font-weight:700; color:#e2e8f0; line-height:1.15; }
+                        .ca-check-hint { display:block; font-size:.69rem; color:#94a3b8; font-weight:500; margin-top:.12rem; }
+                        .ca-recur-box { margin-top:-.15rem; margin-bottom:.65rem; padding:.5rem .55rem; border:1px solid #334155; border-radius:8px; background:#0b1324; }
+                        .ca-recur-row { display:grid; grid-template-columns:1fr 1fr; gap:.45rem; }
+                        .ca-recur-row + .ca-recur-row { margin-top:.45rem; }
+                        .ca-recur-input, .ca-recur-select { background:#0f172a; color:#e2e8f0; border:1px solid #334155; font-size:.78rem; }
+                        .ca-recur-input::placeholder { color:#94a3b8; }
+                        .ca-recur-custom { display:none; margin-top:.45rem; }
+                        .ca-recur-custom.visible { display:block; }
+                        .ca-recur-note { font-size:.69rem; color:#94a3b8; margin-top:.32rem; line-height:1.25; }
+                        .ca-alert-section { margin-top:.7rem; border-top:1px solid #334155; padding-top:.7rem; }
+                        .ca-alert-header { display:flex; align-items:center; justify-content:space-between; gap:.5rem; margin-bottom:.5rem; }
+                        .ca-alert-title { font-size:.76rem; font-weight:800; color:#fbbf24; text-transform:uppercase; letter-spacing:.06em; }
+                        .ca-alert-list { max-height:165px; overflow:auto; display:flex; flex-direction:column; gap:.4rem; }
+                        .ca-alert-item { background:#0b1324; border:1px solid #334155; border-left:4px solid #f59e0b; border-radius:8px; padding:.5rem .6rem; }
+                        .ca-alert-item.recurrent { border-left-color:#22c55e; }
+                        .ca-alert-item-title { font-size:.8rem; font-weight:700; color:#e2e8f0; }
+                        .ca-alert-item-meta { font-size:.7rem; color:#94a3b8; margin-top:.15rem; }
+                        .ca-alert-empty { color:#64748b; font-size:.74rem; padding:.35rem 0 .1rem; }
+                        .ca-alert-wha-btn { display:inline-flex; align-items:center; gap:.45rem; background:#25d366; color:#fff; border:none; border-radius:9px; padding:.42rem .8rem; font-weight:700; font-size:.8rem; text-decoration:none; }
+                        .ca-alert-wha-btn:hover { background:#128c7e; color:#fff; }
+                        #ca-colab-tip {
+                            position:fixed; z-index:10020; min-width:230px; max-width:320px;
+                            background:rgba(6,13,28,.96); color:#e2e8f0; border:1px solid #334155;
+                            border-radius:10px; box-shadow:0 12px 34px rgba(0,0,0,.35);
+                            padding:.6rem .7rem; font-size:.76rem; line-height:1.35;
+                            pointer-events:none; opacity:0; transition:opacity .1s;
+                        }
+                        #ca-colab-tip.visible { opacity:1; }
+                        #ca-colab-tip .ca-tip-name { font-weight:700; color:#dbeafe; font-size:.83rem; margin-bottom:.1rem; }
+                        #ca-colab-tip .ca-tip-num { font-size:.72rem; color:#93c5fd; margin-bottom:.35rem; }
+                        #ca-colab-tip .ca-tip-row { color:#cbd5e1; margin-top:.2rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+                        #ca-colab-tip .ca-tip-row i { width:14px; color:#60a5fa; margin-right:.3rem; }
+                        #ca-colab-tip .ca-tip-hint { margin-top:.35rem; color:#94a3b8; font-style:italic; font-size:.69rem; }
+                        .ca-item-del { border:1px solid #ef4444; color:#fca5a5; background:transparent; border-radius:7px; font-size:.7rem; padding:.15rem .45rem; }
+                        .ca-item-del:hover { background:#7f1d1d; color:#fff; }
                         .ccal-nav { display:flex; align-items:center; gap:.7rem; justify-content:center; margin-bottom:1.1rem; }
                         .ccal-nav-btn { background:#1e293b; border:1px solid #334155; color:#94a3b8; border-radius:8px; padding:.28rem .75rem; cursor:pointer; font-size:1rem; transition:background .15s; }
                         .ccal-nav-btn:hover { background:#334155; color:#f1f5f9; }
@@ -6377,6 +6749,9 @@ FF
                                         </button>
                                         <button class="btn btn-sm btn-outline-warning ms-1" onclick="cursosCalAbrir()" title="Ver calendario de vencimientos de cursos recurrentes">
                                             <i class="fas fa-calendar-exclamation me-1"></i> Vencimientos
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-info ms-1" onclick="cursosAgendaAbrir()" title="Agendar cursos y asistentes">
+                                            <i class="fas fa-calendar-check me-1"></i> Agenda Cursos
                                         </button>
                                         <button class="btn-vac-global ms-1" onclick="vacCalAbrir()" title="Ver calendario global de vacaciones">
                                             <i class="fas fa-umbrella-beach me-1"></i> Vacaciones
@@ -7505,10 +7880,59 @@ FF
 
                                     </div><!-- /tab-content -->
                                 </div><!-- /modal-body -->
+                                <div class="colab-onboarding-inline-panel d-none" id="colab-onboarding-panel">
+                                    <div class="colab-onboarding-inline-head">
+                                        <div>
+                                            <div class="fw-bold text-dark"><i class="fas fa-qrcode me-2 text-info"></i>QR de onboarding</div>
+                                            <div class="small text-muted">Genera y comparte el acceso del colaborador al portal de registro sin salir de esta alta.</div>
+                                        </div>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="colabCerrarOnboardingPanel()">
+                                            <i class="fas fa-times me-1"></i>Cerrar
+                                        </button>
+                                    </div>
+                                    <div class="p-3 p-md-4">
+                                        <div class="alert alert-info py-2 small mb-3">
+                                            <i class="fas fa-info-circle me-1"></i>
+                                            Este enlace vence en 30 días y puede reutilizarse para que el colaborador continúe su captura.
+                                        </div>
+                                        <div class="row g-4 align-items-center">
+                                            <div class="col-md-6 text-center">
+                                                <div class="colab-onboarding-qr-box mb-2">
+                                                    <div id="colab-onboarding-qr-img" role="img" aria-label="QR de onboarding"></div>
+                                                </div>
+                                                <div class="small text-muted" id="colab-onboarding-qr-caption">Genera el acceso para ver el QR.</div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label fw-semibold">Colaborador</label>
+                                                <div class="form-control mb-3" id="colab-onboarding-nombre">—</div>
+                                                <label class="form-label fw-semibold">URL pública del portal</label>
+                                                <div class="input-group input-group-sm mb-2">
+                                                    <input class="form-control" id="colab-onboarding-public-base" placeholder="https://tu-dominio/colaborador-registro.html">
+                                                    <button type="button" class="btn btn-outline-secondary" onclick="colabGuardarOnboardingBaseUrl()">Guardar</button>
+                                                </div>
+                                                <div class="colab-onboarding-base-help" id="colab-onboarding-base-help">Usa una URL pública que sí abra en el celular.</div>
+                                                <label class="form-label fw-semibold">Enlace de acceso</label>
+                                                <input class="form-control colab-onboarding-link" id="colab-onboarding-link" readonly value="">
+                                                <div class="d-flex flex-wrap gap-2 mt-3">
+                                                    <button type="button" class="btn btn-primary btn-sm" onclick="colabCopiarOnboardingLink()">
+                                                        <i class="fas fa-copy me-1"></i>Copiar enlace
+                                                    </button>
+                                                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="colabAbrirOnboardingLink()">
+                                                        <i class="fas fa-up-right-from-square me-1"></i>Abrir portal
+                                                    </button>
+                                                </div>
+                                                <div class="small text-muted mt-3" id="colab-onboarding-status">El QR se genera con la función segura del backend.</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                                 <div class="modal-footer justify-content-between">
                                     <small class="text-danger fw-semibold" id="colab-nuevo-error" style="display:none"></small>
                                     <div>
                                         <button type="button" class="btn btn-secondary btn-sm me-2" data-bs-dismiss="modal">Cancelar</button>
+                                        <button type="button" class="colab-btn-onboarding btn-sm me-2" id="btn-colab-nuevo-onboarding" onclick="colabGenerarNuevoOnboardingQr()">
+                                            <i class="fas fa-qrcode me-1"></i>Generar QR onboarding
+                                        </button>
                                         <button type="button" class="btn btn-success btn-sm" id="btn-colab-nuevo-save" onclick="colabGuardarNuevo()">
                                             <i class="fas fa-save me-1"></i>Registrar Colaborador
                                         </button>
@@ -7528,6 +7952,7 @@ FF
                                     <div class="d-flex align-items-center gap-2">
                                         <h5 class="modal-title text-white mb-0" id="colabTablaModalLabel"><i class="fas fa-table me-2"></i>Tabla Completa de Colaboradores</h5>
                                         <span class="ctbl-count-badge" id="ctbl-badge">—</span>
+                                        <span class="modal-aifa-mark" title="AIFA"><img src="images/aifa-logo.png" alt="AIFA"></span>
                                     </div>
                                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                                 </div>
@@ -7585,9 +8010,12 @@ FF
                         <div class="modal-dialog modal-xl modal-dialog-scrollable">
                             <div class="modal-content">
                                 <div class="modal-header py-2">
-                                    <h5 class="modal-title mb-0" id="cursosCalModalLabel">
-                                        <i class="fas fa-calendar-exclamation me-2 text-warning"></i>Calendario de Vencimientos de Cursos
-                                    </h5>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <h5 class="modal-title mb-0" id="cursosCalModalLabel">
+                                            <i class="fas fa-calendar-exclamation me-2 text-warning"></i>Calendario de Vencimientos de Cursos
+                                        </h5>
+                                        <span class="modal-aifa-mark" title="AIFA"><img src="images/aifa-logo.png" alt="AIFA"></span>
+                                    </div>
                                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                                 </div>
                                 <div class="modal-body p-3" id="ccal-body">
@@ -7625,6 +8053,126 @@ FF
                             </div>
                         </div>
                     </div><!-- /cursosCalModal -->
+
+                    <!-- ─────────── MODAL: AGENDA DE CURSOS PROGRAMADOS ─────────── -->
+                    <div class="modal fade" id="cursosAgendaModal" tabindex="-1" aria-labelledby="cursosAgendaModalLabel" aria-hidden="true">
+                        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+                            <div class="modal-content">
+                                <div class="modal-header py-2">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <h5 class="modal-title mb-0" id="cursosAgendaModalLabel">
+                                            <i class="fas fa-calendar-check me-2 text-info"></i>Agenda de Cursos
+                                        </h5>
+                                        <span class="modal-aifa-mark" title="AIFA"><img src="images/aifa-logo.png" alt="AIFA"></span>
+                                    </div>
+                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                                </div>
+                                <div class="modal-body p-3" id="ca-body">
+                                    <div class="row g-3">
+                                        <div class="col-xl-4">
+                                            <div class="ca-panel">
+                                                <div class="ca-label">Programar curso</div>
+                                                <div class="mb-2">
+                                                    <input id="ca-curso" class="form-control form-control-sm ca-input" type="text" placeholder="Nombre del curso">
+                                                </div>
+                                                <div class="row g-2 mb-2">
+                                                    <div class="col-6"><input id="ca-fecha" class="form-control form-control-sm ca-input" type="date"></div>
+                                                    <div class="col-6"><input id="ca-hora" class="form-control form-control-sm ca-input" type="time" value="09:00"></div>
+                                                </div>
+                                                <div class="row g-2 mb-2">
+                                                    <div class="col-6">
+                                                        <select id="ca-modalidad" class="form-select form-select-sm ca-select">
+                                                            <option value="Presencial">Presencial</option>
+                                                            <option value="En línea">En línea</option>
+                                                            <option value="Mixto">Mixto</option>
+                                                        </select>
+                                                    </div>
+                                                    <div class="col-6"><input id="ca-lugar" class="form-control form-control-sm ca-input" type="text" placeholder="Sala / enlace"></div>
+                                                </div>
+                                                <div class="mb-2">
+                                                    <textarea id="ca-notas" class="form-control form-control-sm ca-input" rows="2" placeholder="Notas opcionales"></textarea>
+                                                </div>
+                                                <div class="ca-check">
+                                                    <input id="ca-recurrente" class="form-check-input" type="checkbox" onchange="caRecurrenceToggleCustom()">
+                                                    <div>
+                                                        <label for="ca-recurrente" class="ca-check-label">Curso recurrente / requiere seguimiento</label>
+                                                        <small class="ca-check-hint">Se marcará en las alertas para que cheques este curso con el personal.</small>
+                                                    </div>
+                                                </div>
+                                                <div id="ca-recur-box" class="ca-recur-box d-none">
+                                                    <div class="ca-recur-row">
+                                                        <select id="ca-recur-tipo" class="form-select form-select-sm ca-recur-select" onchange="caRecurrenceToggleCustom()">
+                                                            <option value="semestral">Semestral</option>
+                                                            <option value="bimestral">Bimestral</option>
+                                                            <option value="anual">Anual</option>
+                                                            <option value="personalizado">Personalizado</option>
+                                                        </select>
+                                                        <input id="ca-recur-etiqueta" class="form-control form-control-sm ca-recur-input" type="text" placeholder="Etiqueta opcional">
+                                                    </div>
+                                                    <div id="ca-recur-custom" class="ca-recur-custom">
+                                                        <div class="ca-recur-row">
+                                                            <input id="ca-recur-meses" class="form-control form-control-sm ca-recur-input" type="number" min="0" step="1" value="0" placeholder="Meses">
+                                                            <input id="ca-recur-dias" class="form-control form-control-sm ca-recur-input" type="number" min="0" step="1" value="0" placeholder="Días">
+                                                        </div>
+                                                        <div class="ca-recur-note">Ejemplo: 2 meses y 15 días.</div>
+                                                    </div>
+                                                </div>
+
+                                                <div class="d-flex align-items-center justify-content-between mt-2 mb-1">
+                                                    <span class="ca-label mb-0">Asistentes</span>
+                                                    <div class="d-flex gap-1">
+                                                        <button type="button" class="ca-mini-btn" onclick="caEmpSelectAll(true)">Todos</button>
+                                                        <button type="button" class="ca-mini-btn" onclick="caEmpSelectAll(false)">Limpiar</button>
+                                                    </div>
+                                                </div>
+                                                <input id="ca-emp-filter" class="form-control form-control-sm ca-input mb-2" type="search" placeholder="Buscar colaborador…" oninput="caEmpFilter(this.value)">
+                                                <select id="ca-asistentes" class="form-select form-select-sm ca-emp-list" multiple onchange="caEmpUpdateCount()"></select>
+                                                <small class="text-muted d-block mt-1">Tip: haz clic para agregar o quitar colaboradores de la selección.</small>
+                                                <div id="ca-selected-preview" class="ca-selected-preview"><span class="ca-pill-empty">Sin selección</span></div>
+
+                                                <div class="d-flex align-items-center justify-content-between mt-2 gap-2 flex-wrap">
+                                                    <small class="text-muted" id="ca-selected-count">0 seleccionados</small>
+                                                    <button type="button" class="ca-save-btn" onclick="cursosAgendaGuardar()"><i class="fas fa-save me-1"></i>Guardar agenda</button>
+                                                </div>
+                                                <div id="ca-status" class="small mt-2"></div>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-xl-8">
+                                            <div class="ca-panel mb-2 d-flex align-items-center justify-content-between">
+                                                <button class="ccal-nav-btn" onclick="cursosAgendaPrev()" title="Mes anterior"><i class="fas fa-chevron-left"></i></button>
+                                                <span class="ccal-month-label" id="ca-month-label">—</span>
+                                                <button class="ccal-nav-btn" onclick="cursosAgendaNext()" title="Mes siguiente"><i class="fas fa-chevron-right"></i></button>
+                                            </div>
+                                            <div class="ca-panel mb-2">
+                                                <div class="ca-grid" id="ca-grid"></div>
+                                            </div>
+                                            <div class="ca-panel">
+                                                <div class="d-flex align-items-center justify-content-between mb-2">
+                                                    <div class="ca-label mb-0">Asistencia por curso y fecha</div>
+                                                    <small id="ca-list-date" class="text-muted">—</small>
+                                                </div>
+                                                <div id="ca-list" class="ca-list"></div>
+                                            </div>
+                                            <div class="ca-panel ca-alert-section">
+                                                <div class="ca-alert-header">
+                                                    <div class="ca-alert-title"><i class="fas fa-bell me-1"></i>Alertas de seguimiento</div>
+                                                    <span class="badge bg-warning text-dark" id="ca-alert-count">0</span>
+                                                </div>
+                                                <div id="ca-alert-list" class="ca-alert-list"></div>
+                                                <div id="ca-alert-wha-wrap" class="mt-2" style="display:none">
+                                                    <a id="ca-alert-wha-btn" class="ca-alert-wha-btn" href="#" target="_blank" rel="noopener noreferrer">
+                                                        <i class="fab fa-whatsapp"></i> Enviar alerta por WhatsApp
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div><!-- /cursosAgendaModal -->
+                    <div id="ca-colab-tip" role="tooltip" aria-hidden="true"></div>
 
                     <!-- -------------- MODAL TARJETA DE CUMPLEAÑOS -------------- -->
                     <div id="bday-card-modal-bg" onclick="bdayCardCerrar(event)">
@@ -9297,6 +9845,230 @@ FF
                             return role === 'admin' || role === 'editor' || role === 'colab_editor';
                         }
 
+                        function colabGetOnboardingPortalUrl(urlSuffix) {
+                            if (!urlSuffix) return '';
+                            const configuredBase = colabGetConfiguredOnboardingBase();
+                            const baseForUrl = configuredBase || colabGetCurrentPublicOnboardingBase();
+                            try {
+                                return new URL(urlSuffix, baseForUrl || window.location.href).href;
+                            } catch (_) {
+                                return urlSuffix;
+                            }
+                        }
+
+                        function colabIsPrivateHost(hostname) {
+                            const host = String(hostname || '').toLowerCase();
+                            if (!host || host === 'localhost' || host === '127.0.0.1' || host === '::1') return true;
+                            if (/^10\./.test(host)) return true;
+                            if (/^192\.168\./.test(host)) return true;
+                            if (/^172\.(1[6-9]|2\d|3[0-1])\./.test(host)) return true;
+                            if (host.endsWith('.local')) return true;
+                            return false;
+                        }
+
+                        function colabNormalizeOnboardingBaseUrl(raw) {
+                            const trimmed = String(raw || '').trim();
+                            if (!trimmed) return '';
+                            try {
+                                const parsed = new URL(trimmed, window.location.href);
+                                if (/colaborador-registro\.html$/i.test(parsed.pathname)) return parsed.href;
+                                const normalizedPath = parsed.pathname.replace(/\/+$/, '') + '/colaborador-registro.html';
+                                parsed.pathname = normalizedPath;
+                                parsed.search = '';
+                                parsed.hash = '';
+                                return parsed.href;
+                            } catch (_) {
+                                return '';
+                            }
+                        }
+
+                        function colabGetConfiguredOnboardingBase() {
+                            const appConfigured = window.APP_CONFIG && window.APP_CONFIG.ONBOARDING_PUBLIC_BASE_URL;
+                            const stored = localStorage.getItem('colab_onboarding_public_base_url');
+                            return colabNormalizeOnboardingBaseUrl(appConfigured || stored || '');
+                        }
+
+                        function colabGetCurrentPublicOnboardingBase() {
+                            try {
+                                const current = new URL('colaborador-registro.html', window.location.href);
+                                if (current.protocol !== 'https:' && current.protocol !== 'http:') return '';
+                                if (colabIsPrivateHost(current.hostname)) return '';
+                                return current.href;
+                            } catch (_) {
+                                return '';
+                            }
+                        }
+
+                        function colabRefreshOnboardingBaseUi() {
+                            const inputEl = document.getElementById('colab-onboarding-public-base');
+                            const helpEl = document.getElementById('colab-onboarding-base-help');
+                            if (!inputEl || !helpEl) return;
+                            const configured = colabGetConfiguredOnboardingBase();
+                            const fallback = colabGetCurrentPublicOnboardingBase();
+                            inputEl.value = configured || fallback || '';
+                            if (configured) {
+                                helpEl.textContent = 'Se usará esta URL pública guardada para generar el QR.';
+                                helpEl.style.color = '#2e7d32';
+                            } else if (fallback) {
+                                helpEl.textContent = 'Se usará la URL actual porque parece pública.';
+                                helpEl.style.color = '#60758a';
+                            } else {
+                                helpEl.textContent = 'La URL actual no parece pública. Captura aquí la URL que sí abre en el celular.';
+                                helpEl.style.color = '#c62828';
+                            }
+                        }
+
+                        window.colabGuardarOnboardingBaseUrl = function() {
+                            const inputEl = document.getElementById('colab-onboarding-public-base');
+                            const raw = String(inputEl?.value || '').trim();
+                            const normalized = colabNormalizeOnboardingBaseUrl(raw);
+                            if (!normalized) {
+                                alert('Captura una URL válida, por ejemplo: https://tu-dominio/colaborador-registro.html');
+                                return;
+                            }
+                            localStorage.setItem('colab_onboarding_public_base_url', normalized);
+                            colabRefreshOnboardingBaseUi();
+                        };
+
+                        function colabSetOnboardingModalState(opts) {
+                            const panelEl = document.getElementById('colab-onboarding-panel');
+                            const titleEl = document.getElementById('colab-onboarding-nombre');
+                            const linkEl = document.getElementById('colab-onboarding-link');
+                            const qrEl = document.getElementById('colab-onboarding-qr-img');
+                            const captionEl = document.getElementById('colab-onboarding-qr-caption');
+                            const statusEl = document.getElementById('colab-onboarding-status');
+                            if (panelEl) panelEl.classList.remove('d-none');
+                            colabRefreshOnboardingBaseUi();
+                            if (titleEl) titleEl.textContent = opts.nombre || '—';
+                            if (linkEl) linkEl.value = opts.link || '';
+                            if (qrEl) {
+                                qrEl.innerHTML = '';
+                                if (opts.link && window.QRCode) {
+                                    try {
+                                        new QRCode(qrEl, {
+                                            text: opts.link,
+                                            width: 220,
+                                            height: 220,
+                                            colorDark: '#0f172a',
+                                            colorLight: '#ffffff',
+                                            correctLevel: QRCode.CorrectLevel.M
+                                        });
+                                    } catch (_) {}
+                                }
+                            }
+                            if (captionEl) captionEl.textContent = opts.caption || '';
+                            if (statusEl) {
+                                statusEl.className = opts.statusClass || 'small text-muted mt-3';
+                                statusEl.textContent = opts.status || '';
+                            }
+                        }
+
+                        window.colabCerrarOnboardingPanel = function() {
+                            const panelEl = document.getElementById('colab-onboarding-panel');
+                            if (panelEl) panelEl.classList.add('d-none');
+                        };
+
+                        window.colabCopiarOnboardingLink = async function() {
+                            const linkEl = document.getElementById('colab-onboarding-link');
+                            const statusEl = document.getElementById('colab-onboarding-status');
+                            const link = String(linkEl?.value || '').trim();
+                            if (!link) return;
+                            try {
+                                await navigator.clipboard.writeText(link);
+                                if (statusEl) {
+                                    statusEl.className = 'small text-success mt-3';
+                                    statusEl.textContent = 'Enlace copiado al portapapeles.';
+                                }
+                            } catch (_) {
+                                linkEl?.select();
+                                document.execCommand?.('copy');
+                                if (statusEl) {
+                                    statusEl.className = 'small text-success mt-3';
+                                    statusEl.textContent = 'Enlace seleccionado. Si no se copió automático, usa Ctrl+C.';
+                                }
+                            }
+                        };
+
+                        window.colabAbrirOnboardingLink = function() {
+                            const link = String(document.getElementById('colab-onboarding-link')?.value || '').trim();
+                            if (!link) return;
+                            window.open(link, '_blank', 'noopener');
+                        };
+
+                        async function colabGenerarOnboardingQrDesdeDatos(datosBase) {
+                            let sb = window.supabaseClient;
+                            if (!sb && typeof window.ensureSupabaseClient === 'function') sb = await window.ensureSupabaseClient();
+                            if (!sb) {
+                                alert('No se pudo inicializar Supabase para generar el QR.');
+                                return;
+                            }
+
+                            const numEmpl = String(datosBase?.numEmpl || '').trim();
+                            const nombre = String(datosBase?.nombre || '').trim() || 'Colaborador';
+                            const puesto = String(datosBase?.puesto || '').trim();
+                            if (!numEmpl) {
+                                alert('El colaborador no tiene número de empleado identificable.');
+                                return;
+                            }
+
+                            colabSetOnboardingModalState({
+                                nombre: `${nombre} (${numEmpl})`,
+                                link: '',
+                                caption: 'Generando acceso...',
+                                status: 'Creando token seguro de onboarding...',
+                                statusClass: 'small text-muted mt-3'
+                            });
+
+                            try {
+                                const metadata = { nombre, puesto };
+                                const { data, error } = await sb.rpc('create_colab_onboarding_link', {
+                                    p_num_empleado: numEmpl,
+                                    p_days_valid: 30,
+                                    p_metadata: metadata
+                                });
+                                if (error) throw error;
+                                if (!data?.url_suffix) throw new Error('No se recibió url_suffix del backend.');
+
+                                const fullUrl = colabGetOnboardingPortalUrl(data.url_suffix);
+                                if (!fullUrl) throw new Error('Define una URL pública del portal para que el celular pueda abrir el onboarding.');
+                                colabSetOnboardingModalState({
+                                    nombre: `${nombre} (${numEmpl})`,
+                                    link: fullUrl,
+                                    caption: 'Escanea este QR o comparte el enlace al colaborador.',
+                                    status: `Token creado. Expira: ${data.expires_at ? new Date(data.expires_at).toLocaleString('es-MX') : 'sin fecha'}`,
+                                    statusClass: 'small text-success mt-3'
+                                });
+                            } catch (err) {
+                                colabSetOnboardingModalState({
+                                    nombre: `${nombre} (${numEmpl})`,
+                                    link: '',
+                                    caption: 'No se pudo generar el QR.',
+                                    status: 'Error al generar onboarding: ' + (err?.message || err),
+                                    statusClass: 'small text-danger mt-3'
+                                });
+                            }
+                        }
+
+                        window.colabGenerarNuevoOnboardingQr = async function() {
+                            if (!colabCanEdit()) return;
+                            const numEmpl = (document.getElementById('cn-num')?.value || '').trim();
+                            const nombre = (document.getElementById('cn-nombre')?.value || '').trim();
+                            const puesto = (document.getElementById('cn-puesto')?.value || '').trim();
+
+                            if (!numEmpl || !nombre) {
+                                const errEl = document.getElementById('colab-nuevo-error');
+                                if (errEl) {
+                                    errEl.textContent = 'Para generar el onboarding captura al menos No. Empleado y Nombre.';
+                                    errEl.style.display = '';
+                                }
+                                const genTab = document.querySelector('#colabNuevoTabs .nav-link');
+                                if (genTab && typeof bootstrap !== 'undefined') bootstrap.Tab.getOrCreateInstance(genTab).show();
+                                return;
+                            }
+
+                            await colabGenerarOnboardingQrDesdeDatos({ numEmpl, nombre, puesto });
+                        };
+
                         /* -- Preview CV inline (ficha) -- */
                         window.colabToggleCvPreview = function(url) {
                             const wrap   = document.getElementById('colab-cv-inline-preview');
@@ -9883,6 +10655,7 @@ FF
                                 const el = document.getElementById(id);
                                 if (el) el.value = '';
                             });
+                            window.colabCerrarOnboardingPanel?.();
                             // Limpiar errores
                             const errEl = document.getElementById('colab-nuevo-error');
                             if (errEl) { errEl.style.display = 'none'; errEl.textContent = ''; }
@@ -12575,6 +13348,614 @@ FF
                             cursosCal_render();
                         };
 
+                        /* ═══════════════════════════════════════════════════════════
+                           AGENDA DE CURSOS PROGRAMADOS (agenda_2026.cursos_programados)
+                           ═══════════════════════════════════════════════════════════ */
+
+                        let _caRows = [];             // [{ num, nombre, cursos_programados:[] }]
+                        let _caYear = new Date().getFullYear();
+                        let _caMonth = new Date().getMonth();
+                        let _caDate = '';
+                        let _caNumCol = 'num_empleado';
+                        let _caNombreCol = 'nombre';
+                        let _caAttEventsBound = false;
+
+                        function caEsc(s) {
+                            return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                        }
+
+                        function caQCol(col) {
+                            return /[\s.]/.test(col) ? `"${col}"` : col;
+                        }
+
+                        function caNormEvents(arr) {
+                            if (!Array.isArray(arr)) return [];
+                            return arr.filter(Boolean).map(e => ({
+                                session_id: e.session_id || e.id || null,
+                                curso: String(e.curso || '').trim(),
+                                fecha: String(e.fecha || '').slice(0, 10),
+                                hora: String(e.hora || '').slice(0, 5),
+                                modalidad: String(e.modalidad || '').trim(),
+                                lugar: String(e.lugar || '').trim(),
+                                notas: String(e.notas || '').trim(),
+                                recurrente: !!e.recurrente,
+                                recurrencia: e.recurrencia && typeof e.recurrencia === 'object' ? {
+                                    tipo: String(e.recurrencia.tipo || '').trim(),
+                                    meses: Number(e.recurrencia.meses || 0),
+                                    dias: Number(e.recurrencia.dias || 0),
+                                    etiqueta: String(e.recurrencia.etiqueta || '').trim()
+                                } : null,
+                                creado_en: e.creado_en || null,
+                                creado_por: e.creado_por || null
+                            })).filter(e => e.curso && /^\d{4}-\d{2}-\d{2}$/.test(e.fecha));
+                        }
+
+                        function caRecurrenceDefaults(tipo) {
+                            const map = { semestral: { meses: 6, dias: 0 }, bimestral: { meses: 2, dias: 0 }, anual: { meses: 12, dias: 0 } };
+                            return map[tipo] || { meses: 0, dias: 0 };
+                        }
+
+                        function caGetRecurrence() {
+                            const recurrente = !!document.getElementById('ca-recurrente')?.checked;
+                            if (!recurrente) return { recurrente: false, recurrencia: null };
+                            const tipo = String(document.getElementById('ca-recur-tipo')?.value || 'semestral').trim();
+                            const etiqueta = String(document.getElementById('ca-recur-etiqueta')?.value || '').trim();
+                            const base = tipo === 'personalizado'
+                                ? {
+                                    meses: Math.max(0, parseInt(document.getElementById('ca-recur-meses')?.value || '0', 10) || 0),
+                                    dias: Math.max(0, parseInt(document.getElementById('ca-recur-dias')?.value || '0', 10) || 0)
+                                  }
+                                : caRecurrenceDefaults(tipo);
+                            return {
+                                recurrente: true,
+                                recurrencia: {
+                                    tipo,
+                                    meses: base.meses,
+                                    dias: base.dias,
+                                    etiqueta
+                                }
+                            };
+                        }
+
+                        function caRecurrenceLabel(ev) {
+                            if (!ev?.recurrente) return '';
+                            const rec = ev.recurrencia || {};
+                            if (rec.etiqueta) return rec.etiqueta;
+                            if (rec.tipo && rec.tipo !== 'personalizado') {
+                                const map = { semestral: 'Semestral', bimestral: 'Bimestral', anual: 'Anual' };
+                                return map[rec.tipo] || 'Recurrente';
+                            }
+                            const parts = [];
+                            if (Number(rec.meses) > 0) parts.push(`${rec.meses} mes${Number(rec.meses) === 1 ? '' : 'es'}`);
+                            if (Number(rec.dias) > 0) parts.push(`${rec.dias} día${Number(rec.dias) === 1 ? '' : 's'}`);
+                            return parts.length ? parts.join(' y ') : 'Recurrente';
+                        }
+
+                        function caRecurrenceToggleCustom() {
+                            const recurrente = !!document.getElementById('ca-recurrente')?.checked;
+                            const box = document.getElementById('ca-recur-box');
+                            const custom = document.getElementById('ca-recur-custom');
+                            const tipo = String(document.getElementById('ca-recur-tipo')?.value || 'semestral');
+                            if (box) box.classList.toggle('d-none', !recurrente);
+                            if (custom) custom.classList.toggle('visible', recurrente && tipo === 'personalizado');
+                            if (recurrente && tipo !== 'personalizado') {
+                                const def = caRecurrenceDefaults(tipo);
+                                const mes = document.getElementById('ca-recur-meses');
+                                const dias = document.getElementById('ca-recur-dias');
+                                if (mes) mes.value = String(def.meses);
+                                if (dias) dias.value = String(def.dias);
+                            }
+                        }
+
+                        async function caLoadRows() {
+                            let sb = window.supabaseClient;
+                            if (!sb && typeof window.ensureSupabaseClient === 'function') sb = await window.ensureSupabaseClient();
+                            if (!sb) throw new Error('Supabase no disponible');
+
+                            await colabCargarTodos();
+                            _caNumCol = colabCols?.num || 'num_empleado';
+                            _caNombreCol = colabCols?.nombre || 'nombre';
+
+                            const selectStr = `${caQCol(_caNumCol)},${caQCol(_caNombreCol)},cursos_programados`;
+                            const { data, error } = await sb
+                                .from('agenda_2026')
+                                .select(selectStr)
+                                .limit(3000);
+
+                            if (error) {
+                                if (/cursos_programados/i.test(error.message || '')) {
+                                    throw new Error('Falta la columna cursos_programados en agenda_2026. Ejecuta db/add_cursos_programados_column.sql en Supabase.');
+                                }
+                                throw error;
+                            }
+
+                            _caRows = (data || []).map(r => ({
+                                num: String(r[_caNumCol] ?? '').trim(),
+                                nombre: String(r[_caNombreCol] ?? r[_caNumCol] ?? '').trim(),
+                                cursos_programados: caNormEvents(r.cursos_programados)
+                            })).filter(r => r.num);
+                        }
+
+                        function caBuildSessions() {
+                            const map = new Map();
+                            _caRows.forEach(emp => {
+                                (emp.cursos_programados || []).forEach(ev => {
+                                    const key = ev.session_id || `${ev.fecha}|${ev.hora}|${ev.curso}|${ev.modalidad}|${ev.lugar}`;
+                                    if (!map.has(key)) {
+                                        map.set(key, {
+                                            key,
+                                            session_id: ev.session_id || null,
+                                            curso: ev.curso,
+                                            fecha: ev.fecha,
+                                            hora: ev.hora || '',
+                                            modalidad: ev.modalidad || '',
+                                            lugar: ev.lugar || '',
+                                            notas: ev.notas || '',
+                                            recurrente: !!ev.recurrente,
+                                            recurrencia: ev.recurrencia || null,
+                                            asistentes: []
+                                        });
+                                    }
+                                    map.get(key).asistentes.push({ num: emp.num, nombre: emp.nombre });
+                                });
+                            });
+                            return [...map.values()].sort((a, b) => {
+                                const fa = (a.fecha || '').localeCompare(b.fecha || '');
+                                if (fa) return fa;
+                                const ha = (a.hora || '').localeCompare(b.hora || '');
+                                if (ha) return ha;
+                                return (a.curso || '').localeCompare(b.curso || '');
+                            });
+                        }
+
+                        function caRenderEmployeeOptions() {
+                            const sel = document.getElementById('ca-asistentes');
+                            const count = document.getElementById('ca-selected-count');
+                            if (!sel) return;
+                            const sorted = [..._caRows].sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+                            sel.innerHTML = sorted.map(e => `<option value="${caEsc(e.num)}">${caEsc(e.nombre)} (${caEsc(e.num)})</option>`).join('');
+                            if (!sel.dataset.caMultiBound) {
+                                sel.addEventListener('mousedown', ev => {
+                                    const opt = ev.target;
+                                    if (!opt || opt.tagName !== 'OPTION') return;
+                                    ev.preventDefault();
+                                    opt.selected = !opt.selected;
+                                    sel.focus();
+                                    caEmpUpdateCount();
+                                });
+                                sel.addEventListener('keydown', ev => {
+                                    if ((ev.key !== 'Enter' && ev.key !== ' ') || sel.selectedIndex < 0) return;
+                                    ev.preventDefault();
+                                    const opt = sel.options[sel.selectedIndex];
+                                    opt.selected = !opt.selected;
+                                    caEmpUpdateCount();
+                                });
+                                sel.dataset.caMultiBound = '1';
+                            }
+                            if (count) count.textContent = '0 seleccionados';
+                            caRenderSelectedPreview();
+                        }
+
+                        function caGetSelectedEmployees() {
+                            const sel = document.getElementById('ca-asistentes');
+                            if (!sel) return [];
+                            const map = new Map(_caRows.map(r => [r.num, r.nombre]));
+                            return [...sel.options]
+                                .filter(o => o.selected)
+                                .map(o => ({ num: o.value, nombre: map.get(o.value) || o.textContent || o.value }));
+                        }
+
+                        function caRenderSelectedPreview() {
+                            const wrap = document.getElementById('ca-selected-preview');
+                            if (!wrap) return;
+                            const selected = caGetSelectedEmployees();
+                            if (!selected.length) {
+                                wrap.innerHTML = '<span class="ca-pill-empty">Sin selección</span>';
+                                return;
+                            }
+                            wrap.innerHTML = selected
+                                .slice(0, 20)
+                                .map(e => `<span class="ca-pill" title="${caEsc(e.num)}">${caEsc(e.nombre)}</span>`)
+                                .join('');
+                            if (selected.length > 20) {
+                                wrap.innerHTML += `<span class="ca-pill">+${selected.length - 20} más</span>`;
+                            }
+                        }
+
+                        function caFindColabFull(num) {
+                            const n = String(num || '').trim();
+                            return (window.colabCache || []).find(r => String(r[_caNumCol] ?? '').trim() === n) || null;
+                        }
+
+                        function caBuildAreaLabel(row) {
+                            if (!row) return '';
+                            const parts = [gc(row, 'direccion'), gc(row, 'subdireccion'), gc(row, 'gerencia'), gc(row, 'coordinacion')]
+                                .map(v => String(v || '').trim())
+                                .filter(Boolean);
+                            return parts[0] || '';
+                        }
+
+                        function caHideColabTip() {
+                            const tip = document.getElementById('ca-colab-tip');
+                            if (!tip) return;
+                            tip.classList.remove('visible');
+                            tip.innerHTML = '';
+                        }
+
+                        function caShowColabTip(num, e) {
+                            const tip = document.getElementById('ca-colab-tip');
+                            if (!tip) return;
+                            const full = caFindColabFull(num);
+                            const nombre = full ? String(gc(full, 'nombre') || num) : String(num || '');
+                            const puesto = full ? String(gc(full, 'puesto') || '') : '';
+                            const area = full ? caBuildAreaLabel(full) : '';
+                            const ext = full ? String(gc(full, 'extension') || '') : '';
+                            const cel = full ? String(gc(full, 'celular') || '') : '';
+                            const correo = full ? String(gc(full, 'correo') || gc(full, 'correo_personal') || '') : '';
+
+                            tip.innerHTML = `<div class="ca-tip-name">${caEsc(nombre)}</div>
+                                <div class="ca-tip-num">${caEsc(String(num || ''))}</div>
+                                ${puesto ? `<div class="ca-tip-row"><i class="fas fa-id-badge"></i>${caEsc(puesto)}</div>` : ''}
+                                ${area ? `<div class="ca-tip-row"><i class="fas fa-building"></i>${caEsc(area)}</div>` : ''}
+                                ${ext ? `<div class="ca-tip-row"><i class="fas fa-phone-alt"></i>Ext. ${caEsc(ext)}</div>` : ''}
+                                ${cel ? `<div class="ca-tip-row"><i class="fas fa-mobile-alt"></i>${caEsc(cel)}</div>` : ''}
+                                ${correo ? `<div class="ca-tip-row"><i class="fas fa-envelope"></i>${caEsc(correo)}</div>` : ''}
+                                <div class="ca-tip-hint">Clic para abrir su tarjeta</div>`;
+
+                            let tx = e.clientX + 14;
+                            let ty = e.clientY + 14;
+                            tip.classList.add('visible');
+                            const tw = tip.offsetWidth || 260;
+                            const th = tip.offsetHeight || 120;
+                            const vw = window.innerWidth;
+                            const vh = window.innerHeight;
+                            if (tx + tw > vw - 8) tx = e.clientX - tw - 10;
+                            if (ty + th > vh - 8) ty = e.clientY - th - 10;
+                            tip.style.left = `${Math.max(6, tx)}px`;
+                            tip.style.top = `${Math.max(6, ty)}px`;
+                        }
+
+                        function caInitAttendeeEvents() {
+                            if (_caAttEventsBound) return;
+                            const list = document.getElementById('ca-list');
+                            if (!list) return;
+
+                            list.addEventListener('mousemove', e => {
+                                const pill = e.target.closest('.ca-colab-link[data-num]');
+                                if (!pill) return caHideColabTip();
+                                caShowColabTip(pill.dataset.num, e);
+                            });
+
+                            list.addEventListener('mouseleave', () => caHideColabTip());
+
+                            list.addEventListener('click', e => {
+                                const pill = e.target.closest('.ca-colab-link[data-num]');
+                                if (!pill) return;
+                                e.preventDefault();
+                                caHideColabTip();
+                                cursosAgendaAbrirColab(encodeURIComponent(pill.dataset.num || ''));
+                            });
+
+                            _caAttEventsBound = true;
+                        }
+
+                        function caRenderCalendar() {
+                            const grid = document.getElementById('ca-grid');
+                            const monthLabel = document.getElementById('ca-month-label');
+                            if (!grid) return;
+                            const mes = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+                            if (monthLabel) monthLabel.textContent = `${mes[_caMonth]} ${_caYear}`;
+
+                            const sessions = caBuildSessions();
+                            const monthMap = {};
+                            sessions.forEach(s => {
+                                const d = new Date(`${s.fecha}T00:00:00`);
+                                if (Number.isNaN(d.getTime())) return;
+                                if (d.getFullYear() !== _caYear || d.getMonth() !== _caMonth) return;
+                                const day = d.getDate();
+                                monthMap[day] = (monthMap[day] || 0) + 1;
+                            });
+
+                            const dow = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+                            const first = new Date(_caYear, _caMonth, 1);
+                            const last = new Date(_caYear, _caMonth + 1, 0);
+                            const start = (first.getDay() + 6) % 7;
+                            const cells = Math.ceil((start + last.getDate()) / 7) * 7;
+                            const today = new Date();
+
+                            let html = dow.map(d => `<div class="ca-dow">${d}</div>`).join('');
+                            for (let i = 0; i < cells; i++) {
+                                const day = i - start + 1;
+                                if (day < 1 || day > last.getDate()) {
+                                    html += '<div class="ca-day other"></div>';
+                                    continue;
+                                }
+                                const dateKey = `${_caYear}-${String(_caMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                                const isToday = today.getFullYear() === _caYear && today.getMonth() === _caMonth && today.getDate() === day;
+                                const isSel = _caDate === dateKey;
+                                const count = monthMap[day] || 0;
+                                html += `<div class="ca-day${isToday ? ' today' : ''}${isSel ? ' sel' : ''}" onclick="cursosAgendaSelectDate('${dateKey}')"><div class="ca-day-num">${day}</div>${count ? `<span class="ca-day-count">${count}</span>` : ''}</div>`;
+                            }
+                            grid.innerHTML = html;
+                            caRenderList();
+                            caRenderAlerts();
+                        }
+
+                        function caRenderList() {
+                            const list = document.getElementById('ca-list');
+                            const dateLbl = document.getElementById('ca-list-date');
+                            if (!list) return;
+
+                            const sessions = caBuildSessions().filter(s => s.fecha === _caDate);
+                            dateLbl.textContent = _caDate || 'Sin fecha seleccionada';
+                            if (!_caDate) {
+                                list.innerHTML = '<div class="text-muted small">Selecciona un día del calendario para ver cursos agendados.</div>';
+                                return;
+                            }
+                            if (!sessions.length) {
+                                list.innerHTML = '<div class="text-muted small">No hay cursos agendados para esta fecha.</div>';
+                                return;
+                            }
+                            list.innerHTML = sessions.map(s => {
+                                const asistentesHtml = s.asistentes.length
+                                    ? `<div class="ca-item-att-list">${s.asistentes.map(a => `<span class="ca-item-att-pill ca-colab-link" data-num="${caEsc(a.num)}" title="Ver tarjeta de ${caEsc(a.nombre)}">${caEsc(a.nombre)} (${caEsc(a.num)})</span>`).join('')}</div>`
+                                    : '<div class="ca-item-att-empty">Sin asistentes asignados.</div>';
+                                const canDelete = colabCanEdit() ? `<button type="button" class="ca-item-del" onclick="cursosAgendaEliminar('${caEsc(s.key)}')"><i class="fas fa-trash-alt me-1"></i>Eliminar</button>` : '';
+                                const recurrenteTag = s.recurrente ? `<span class="ca-item-badge"><i class="fas fa-sync-alt me-1"></i>${caEsc(caRecurrenceLabel(s) || 'Recurrente')}</span>` : '';
+                                return `<div class="ca-item"><div class="ca-item-top"><div><div class="ca-item-title">${caEsc(s.curso)}</div><div class="ca-item-meta-row"><span class="ca-item-badge"><i class="far fa-clock me-1"></i>${caEsc(s.hora || 'Sin hora')}</span><span class="ca-item-badge">${caEsc(s.modalidad || 'Modalidad no definida')}</span><span class="ca-item-badge">${caEsc(s.lugar || 'Sin sede')}</span>${recurrenteTag}</div></div>${canDelete}</div><div class="ca-item-att"><strong>Asistentes (${s.asistentes.length})</strong>${asistentesHtml}</div>${s.notas ? `<div class="ca-item-meta mt-2">Nota: ${caEsc(s.notas)}</div>` : ''}</div>`;
+                            }).join('');
+                        }
+
+                        function caBuildAlertSessions() {
+                            const today = new Date();
+                            today.setHours(0, 0, 0, 0);
+                            const limit = new Date(today);
+                            limit.setDate(limit.getDate() + 30);
+                            return caBuildSessions().filter(s => {
+                                if (!s.recurrente) return false;
+                                const d = new Date(`${s.fecha}T00:00:00`);
+                                return !Number.isNaN(d.getTime()) && d >= today && d <= limit;
+                            }).sort((a, b) => a.fecha.localeCompare(b.fecha) || a.hora.localeCompare(b.hora) || a.curso.localeCompare(b.curso));
+                        }
+
+                        function caRenderAlerts() {
+                            const countEl = document.getElementById('ca-alert-count');
+                            const listEl = document.getElementById('ca-alert-list');
+                            const wrapEl = document.getElementById('ca-alert-wha-wrap');
+                            const btnEl = document.getElementById('ca-alert-wha-btn');
+                            if (!countEl || !listEl) return;
+
+                            const alerts = caBuildAlertSessions();
+                            countEl.textContent = String(alerts.length);
+                            if (!alerts.length) {
+                                listEl.innerHTML = '<div class="ca-alert-empty"><i class="fas fa-check-circle text-success me-1"></i>No hay cursos recurrentes por revisar en los próximos 30 días.</div>';
+                                if (wrapEl) wrapEl.style.display = 'none';
+                                return;
+                            }
+
+                            const fmt = s => {
+                                const d = new Date(`${s.fecha}T00:00:00`);
+                                return Number.isNaN(d.getTime()) ? s.fecha : d.toLocaleDateString('es-MX', { day:'2-digit', month:'short', year:'numeric' });
+                            };
+                            const today = new Date();
+                            today.setHours(0, 0, 0, 0);
+                            listEl.innerHTML = alerts.map(s => {
+                                const d = new Date(`${s.fecha}T00:00:00`);
+                                const diff = Math.max(0, Math.ceil((d - today) / 86400000));
+                                const recur = caRecurrenceLabel(s);
+                                return `<div class="ca-alert-item recurrent"><div class="ca-alert-item-title">${caEsc(s.curso)}</div><div class="ca-alert-item-meta">${fmt(s)} · ${caEsc(s.hora || 'Sin hora')} · ${caEsc(s.modalidad || 'Sin modalidad')} · ${s.asistentes.length} asistentes · ${caEsc(recur)} · revisar en ${diff} día${diff === 1 ? '' : 's'}</div></div>`;
+                            }).join('');
+
+                            const lines = alerts.map(s => {
+                                const d = new Date(`${s.fecha}T00:00:00`);
+                                const dt = Number.isNaN(d.getTime()) ? s.fecha : d.toLocaleDateString('es-MX', { day:'2-digit', month:'short', year:'numeric' });
+                                return `• ${s.curso} — ${dt}${s.hora ? ` (${s.hora})` : ''} — ${s.asistentes.length} asistente(s)`;
+                            });
+                            const msg = `⚠️ *Cursos recurrentes por revisar — AIFA*\n\n${lines.join('\n')}\n\nFavor de checar el seguimiento con el personal indicado.\n\n_AIFA Operaciones — Agenda de Cursos_`;
+                            if (wrapEl && btnEl) {
+                                btnEl.href = `https://wa.me/?text=${encodeURIComponent(msg)}`;
+                                wrapEl.style.display = '';
+                            }
+                        }
+
+                        function caSetStatus(msg, cls) {
+                            const el = document.getElementById('ca-status');
+                            if (!el) return;
+                            el.className = `small mt-2 ${cls || ''}`;
+                            el.textContent = msg || '';
+                        }
+
+                        window.cursosAgendaAbrir = async function() {
+                            const modal = new bootstrap.Modal(document.getElementById('cursosAgendaModal'));
+                            modal.show();
+                            _caYear = new Date().getFullYear();
+                            _caMonth = new Date().getMonth();
+                            _caDate = new Date().toISOString().slice(0, 10);
+                            const recurrenteEl = document.getElementById('ca-recurrente');
+                            if (recurrenteEl) recurrenteEl.checked = false;
+                            caRecurrenceToggleCustom();
+                            caSetStatus('Cargando agenda de cursos…', 'text-info');
+                            try {
+                                await caLoadRows();
+                                caRenderEmployeeOptions();
+                                caRenderCalendar();
+                                caInitAttendeeEvents();
+                                caRenderAlerts();
+                                caSetStatus('Agenda cargada.', 'text-success');
+                            } catch (err) {
+                                caSetStatus(err.message || String(err), 'text-danger');
+                            }
+                        };
+
+                        window.cursosAgendaAbrirColab = function(numEmplEncoded) {
+                            const numEmpl = decodeURIComponent(numEmplEncoded || '');
+                            const caModal = bootstrap.Modal.getInstance(document.getElementById('cursosAgendaModal'));
+                            if (caModal) caModal.hide();
+                            if (typeof window.showSection === 'function') {
+                                const link = document.querySelector('[onclick*="colaboradores"]') || null;
+                                window.showSection('colaboradores', link);
+                            }
+                            setTimeout(() => {
+                                if (typeof window.colabSeleccionarSugerencia === 'function') {
+                                    window.colabSeleccionarSugerencia(numEmpl);
+                                }
+                            }, 200);
+                        };
+
+                        document.getElementById('cursosAgendaModal')?.addEventListener('hide.bs.modal', caHideColabTip);
+
+                        window.cursosAgendaSelectDate = function(dateKey) {
+                            _caDate = dateKey;
+                            caRenderCalendar();
+                        };
+
+                        window.cursosAgendaPrev = function() {
+                            _caMonth--;
+                            if (_caMonth < 0) { _caMonth = 11; _caYear--; }
+                            caRenderCalendar();
+                        };
+
+                        window.cursosAgendaNext = function() {
+                            _caMonth++;
+                            if (_caMonth > 11) { _caMonth = 0; _caYear++; }
+                            caRenderCalendar();
+                        };
+
+                        window.caEmpFilter = function(q) {
+                            const sel = document.getElementById('ca-asistentes');
+                            if (!sel) return;
+                            const query = String(q || '').trim().toLowerCase();
+                            [...sel.options].forEach(o => {
+                                o.style.display = !query || o.text.toLowerCase().includes(query) ? '' : 'none';
+                            });
+                        };
+
+                        window.caEmpSelectAll = function(all) {
+                            const sel = document.getElementById('ca-asistentes');
+                            const count = document.getElementById('ca-selected-count');
+                            if (!sel) return;
+                            [...sel.options].forEach(o => {
+                                if (o.style.display !== 'none') o.selected = !!all;
+                            });
+                            const n = [...sel.options].filter(o => o.selected).length;
+                            if (count) count.textContent = `${n} seleccionados`;
+                            caRenderSelectedPreview();
+                        };
+
+                        window.caEmpUpdateCount = function() {
+                            const sel = document.getElementById('ca-asistentes');
+                            const count = document.getElementById('ca-selected-count');
+                            if (!sel || !count) return;
+                            const n = [...sel.options].filter(o => o.selected).length;
+                            count.textContent = `${n} seleccionados`;
+                            caRenderSelectedPreview();
+                        };
+
+                        async function caSaveForEmployee(num, events) {
+                            let sb = window.supabaseClient;
+                            if (!sb && typeof window.ensureSupabaseClient === 'function') sb = await window.ensureSupabaseClient();
+                            if (!sb) throw new Error('Supabase no disponible');
+                            const colNumFilter = caQCol(_caNumCol);
+                            const { error } = await sb
+                                .from('agenda_2026')
+                                .update({ cursos_programados: events })
+                                .filter(colNumFilter, 'eq', num);
+                            if (error) throw error;
+                        }
+
+                        window.cursosAgendaGuardar = async function() {
+                            if (!colabCanEdit()) {
+                                caSetStatus('No tienes permisos para editar la agenda de cursos.', 'text-warning');
+                                return;
+                            }
+
+                            const curso = String(document.getElementById('ca-curso')?.value || '').trim();
+                            const fecha = String(document.getElementById('ca-fecha')?.value || '').trim();
+                            const hora = String(document.getElementById('ca-hora')?.value || '').trim();
+                            const modalidad = String(document.getElementById('ca-modalidad')?.value || '').trim();
+                            const lugar = String(document.getElementById('ca-lugar')?.value || '').trim();
+                            const notas = String(document.getElementById('ca-notas')?.value || '').trim();
+                            const recurrente = !!document.getElementById('ca-recurrente')?.checked;
+                            const recurrencia = recurrente ? caGetRecurrence().recurrencia : null;
+                            const asistentesSel = document.getElementById('ca-asistentes');
+                            const asistentes = asistentesSel ? [...asistentesSel.options].filter(o => o.selected).map(o => o.value) : [];
+
+                            if (!curso) return caSetStatus('Captura el nombre del curso.', 'text-warning');
+                            if (!/^\d{4}-\d{2}-\d{2}$/.test(fecha)) return caSetStatus('Selecciona una fecha válida.', 'text-warning');
+                            if (!asistentes.length) return caSetStatus('Selecciona al menos un asistente.', 'text-warning');
+                            if (recurrente) {
+                                if (!recurrencia) return caSetStatus('Define la recurrencia del curso.', 'text-warning');
+                                if (recurrencia.tipo === 'personalizado' && recurrencia.meses === 0 && recurrencia.dias === 0) {
+                                    return caSetStatus('En recurrencia personalizada captura meses y/o días.', 'text-warning');
+                                }
+                            }
+
+                            const sessionId = `ca-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+                            const user = sessionStorage.getItem('user_name') || sessionStorage.getItem('username') || sessionStorage.getItem('email') || 'usuario';
+                            const ev = {
+                                session_id: sessionId,
+                                curso,
+                                fecha,
+                                hora,
+                                modalidad,
+                                lugar,
+                                notas,
+                                recurrente,
+                                recurrencia,
+                                creado_en: new Date().toISOString(),
+                                creado_por: user
+                            };
+
+                            caSetStatus('Guardando agenda…', 'text-info');
+                            try {
+                                for (const num of asistentes) {
+                                    const row = _caRows.find(r => r.num === num);
+                                    if (!row) continue;
+                                    const nextArr = [...(row.cursos_programados || []), ev];
+                                    await caSaveForEmployee(num, nextArr);
+                                    row.cursos_programados = nextArr;
+                                    const cacheEmp = (window.colabCache || []).find(r => String(r[_caNumCol] ?? '').trim() === num);
+                                    if (cacheEmp) cacheEmp.cursos_programados = nextArr;
+                                }
+
+                                _caDate = fecha;
+                                caRenderCalendar();
+                                caRenderAlerts();
+                                caSetStatus(`Curso agendado para ${asistentes.length} colaborador(es).`, 'text-success');
+                            } catch (err) {
+                                caSetStatus('Error al guardar: ' + (err.message || String(err)), 'text-danger');
+                            }
+                        };
+
+                        window.cursosAgendaEliminar = async function(key) {
+                            if (!colabCanEdit()) {
+                                caSetStatus('No tienes permisos para editar la agenda de cursos.', 'text-warning');
+                                return;
+                            }
+                            if (!confirm('¿Eliminar esta sesión de curso y sus asistentes?')) return;
+                            caSetStatus('Eliminando sesión…', 'text-info');
+                            try {
+                                for (const row of _caRows) {
+                                    const before = row.cursos_programados || [];
+                                    const after = before.filter(ev => {
+                                        const k = ev.session_id || `${ev.fecha}|${ev.hora}|${ev.curso}|${ev.modalidad}|${ev.lugar}`;
+                                        return k !== key;
+                                    });
+                                    if (after.length !== before.length) {
+                                        await caSaveForEmployee(row.num, after);
+                                        row.cursos_programados = after;
+                                        const cacheEmp = (window.colabCache || []).find(r => String(r[_caNumCol] ?? '').trim() === row.num);
+                                        if (cacheEmp) cacheEmp.cursos_programados = after;
+                                    }
+                                }
+                                caRenderCalendar();
+                                caRenderAlerts();
+                                caSetStatus('Sesión eliminada.', 'text-success');
+                            } catch (err) {
+                                caSetStatus('Error al eliminar: ' + (err.message || String(err)), 'text-danger');
+                            }
+                        };
+
                         /* -- Menú contextual -- */
                         // Cierra el menÚ al clicar fuera
                         document.addEventListener('click', () => colabCursosHideCtxMenu());
@@ -13961,9 +15342,12 @@ FF
                         <div class="modal-dialog modal-xl modal-dialog-scrollable">
                             <div class="modal-content">
                                 <div class="modal-header py-2">
-                                    <h5 class="modal-title text-white mb-0" id="colabVacCalModalLabel">
-                                        <i class="fas fa-calendar-alt me-2"></i>Calendario Global de Vacaciones
-                                    </h5>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <h5 class="modal-title text-white mb-0" id="colabVacCalModalLabel">
+                                            <i class="fas fa-calendar-alt me-2"></i>Calendario Global de Vacaciones
+                                        </h5>
+                                        <span class="modal-aifa-mark" title="AIFA"><img src="images/aifa-logo.png" alt="AIFA"></span>
+                                    </div>
                                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                                 </div>
                                 <div class="modal-body p-3">
@@ -16967,7 +18351,7 @@ FF
                             <div class="row g-4 align-items-start">
                                 <div class="col-12 col-xl-6">
                                     <div class="mb-4">
-                                        <h3 class="h5 text-center mb-3">Demoras en vuelos de salida</h3>
+                                        <h3 class="h5 text-center mb-3" id="demoras-table-title">Demoras en vuelos de salida</h3>
                                         <div class="table-responsive">
                                             <table class="table table-bordered table-sm align-middle text-center">
                                                 <thead class="table-dark">
@@ -18566,19 +19950,19 @@ FF
                                             class="fas fa-chart-line me-2"></i>Comparativa (YoY)</button>
                                 </li>
 
-                                <li class="nav-item" role="presentation">
+                                <li class="nav-item d-none" role="presentation">
                                     <button class="nav-link" id="aviacion-comercial-tab" data-bs-toggle="tab"
                                         data-bs-target="#aviacion-comercial-pane" type="button" role="tab"
                                         aria-controls="aviacion-comercial-pane" aria-selected="false"><i
                                             class="fas fa-plane-up me-2"></i>Aviación comercial</button>
                                 </li>
-                                <li class="nav-item" role="presentation">
+                                <li class="nav-item d-none" role="presentation">
                                     <button class="nav-link" id="aviacion-general-tab" data-bs-toggle="tab"
                                         data-bs-target="#aviacion-general-pane" type="button" role="tab"
                                         aria-controls="aviacion-general-pane" aria-selected="false"><i
                                             class="fas fa-paper-plane me-2"></i>Aviación general</button>
                                 </li>
-                                <li class="nav-item" role="presentation">
+                                <li class="nav-item d-none" role="presentation">
                                     <button class="nav-link" id="aviacion-carga-tab" data-bs-toggle="tab"
                                         data-bs-target="#aviacion-carga-pane" type="button" role="tab"
                                         aria-controls="aviacion-carga-pane" aria-selected="false"><i
@@ -19395,7 +20779,7 @@ FF
                                             <div>
                                                 <strong>¿Sabías que puedes navegar entre tipos de aviación?</strong><br>
                                                 Usa las pestañas de arriba (<strong>Comercial</strong>, <strong>General</strong>, <strong>Carga</strong>) para ver la comparativa de cada segmento.<br>
-                                                <span style="color:#166534;">Dentro de cada vista tambiÉn puedes cambiar el <strong>Indicador</strong> (Operaciones, Pasajeros, etc.) desde el panel de filtros.</span>
+                                                <span style="color:#166534;">Dentro de cada vista también puedes cambiar el <strong>Indicador</strong> (Operaciones, Pasajeros, etc.) desde el panel de filtros.</span>
                                             </div>
                                             <button onclick="yoyDismissHint()" title="Cerrar" style="
                                                 position:absolute;top:.4rem;right:.55rem;
@@ -19428,7 +20812,7 @@ FF
                                                                             font-size:.65rem;font-weight:700;letter-spacing:.02em;
                                                                             animation:yoyPulse 1.8s ease-in-out 3;
                                                                             cursor:default;">
-                                                                            &#x21BB; cÁmbialo
+                                                                            &#x21BB; cámbialo
                                                                         </span>
                                                                     </label>
                                                                     <style>
@@ -19756,6 +21140,13 @@ FF
                                         aria-controls="frecuencias-estadisticas-pane" aria-selected="false"
                                         style="color:#7c3aed">
                                         <i class="fas fa-chart-line me-1"></i>Estadísticas
+                                    </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="frecuencias-rutas-tab" data-bs-toggle="tab"
+                                        data-bs-target="#frecuencias-rutas-pane" type="button" role="tab"
+                                        aria-controls="frecuencias-rutas-pane" aria-selected="false">
+                                        <i class="fas fa-calendar-check me-1"></i>Calendario Rutas
                                     </button>
                                 </li>
                                 <li class="nav-item" role="presentation">
@@ -20436,6 +21827,78 @@ FF
                                                     </table>
                                                 </div>
                                             </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="tab-pane fade" id="frecuencias-rutas-pane" role="tabpanel" aria-labelledby="frecuencias-rutas-tab" tabindex="0">
+                                    <div class="card border-0 shadow-sm mb-3">
+                                        <div class="card-header bg-light d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                            <div>
+                                                <h6 class="mb-0"><i class="fas fa-calendar-check text-primary me-2"></i>Calendario de inauguracion de rutas</h6>
+                                                <small class="text-muted">Programa nuevas rutas y dispara recordatorios por WhatsApp y correo.</small>
+                                            </div>
+                                            <div class="d-flex gap-2">
+                                                <button class="btn btn-outline-success btn-sm" onclick="dataManagement.sendRouteLaunchRemindersNow()">
+                                                    <i class="fas fa-paper-plane me-1"></i>Enviar recordatorios ahora
+                                                </button>
+                                                <button class="btn btn-primary btn-sm" onclick="dataManagement.openRouteLaunchModal()">
+                                                    <i class="fas fa-plus me-1"></i>Nueva inauguracion
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="row g-2 align-items-end mb-3">
+                                                <div class="col-md-3">
+                                                    <label class="form-label small text-muted mb-1">Mes</label>
+                                                    <input type="month" class="form-control form-control-sm" id="route-launch-month" onchange="dataManagement.renderRouteLaunchCalendar()">
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <label class="form-label small text-muted mb-1">Estado</label>
+                                                    <select class="form-select form-select-sm" id="route-launch-status-filter" onchange="dataManagement.renderRouteLaunchCalendar()">
+                                                        <option value="">Todos</option>
+                                                        <option value="confirmada">Confirmada</option>
+                                                        <option value="programada">Programada</option>
+                                                        <option value="pospuesta">Pospuesta</option>
+                                                        <option value="cancelada">Cancelada</option>
+                                                    </select>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <label class="form-label small text-muted mb-1">Tipo</label>
+                                                    <select class="form-select form-select-sm" id="route-launch-scope-filter" onchange="dataManagement.renderRouteLaunchCalendar()">
+                                                        <option value="">Todos</option>
+                                                        <option value="nacional">Nacional</option>
+                                                        <option value="internacional">Internacional</option>
+                                                        <option value="carga">Carga</option>
+                                                    </select>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <label class="form-label small text-muted mb-1">Buscar</label>
+                                                    <input type="text" class="form-control form-control-sm" id="route-launch-search" placeholder="Ruta o aerolinea" oninput="dataManagement.renderRouteLaunchCalendar()">
+                                                </div>
+                                            </div>
+
+                                            <div id="route-launch-calendar-grid" class="mb-3"></div>
+
+                                            <div class="table-responsive">
+                                                <table class="table table-sm table-hover" id="table-route-launch-calendar">
+                                                    <thead class="table-light">
+                                                        <tr>
+                                                            <th>Fecha</th>
+                                                            <th>Ruta</th>
+                                                            <th>Aerolinea</th>
+                                                            <th>Tipo</th>
+                                                            <th>Estado</th>
+                                                            <th>Recordatorios</th>
+                                                            <th class="text-center">Acciones</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        <tr><td colspan="7" class="text-center text-muted py-3"><i class="fas fa-spinner fa-spin me-1"></i>Cargando...</td></tr>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+
+                                            <div id="route-launch-status" class="small text-muted mt-2"></div>
                                         </div>
                                     </div>
                                 </div>
@@ -21219,7 +22682,7 @@ FF
                         </div>
                     </div>
                 </div>
-                <div id="puntualidad-agosto-section" class="content-section">
+                <div id="puntualidad-agosto-section" class="content-section" data-punc-view="monthly">
                     <div class="card">
                         <div class="card-header d-flex align-items-center justify-content-center">
                             <i class="fas fa-clock-check fa-2x text-primary me-3"></i>
@@ -21294,6 +22757,11 @@ FF
                                             </div>
                                         </div>
                                     </div>
+                                    <div class="punc-mode-hero mb-3" id="punc-mode-hero" role="status" aria-live="polite">
+                                        <span class="punc-mode-badge" id="punc-mode-badge"><i class="fas fa-calendar-day me-1"></i>Vista mensual</span>
+                                        <h6 class="punc-mode-title mb-1" id="punc-mode-title">Corte operativo del periodo seleccionado</h6>
+                                        <p class="punc-mode-note mb-0" id="punc-mode-note">Compara desempeño puntual por aerolínea en el mes elegido.</p>
+                                    </div>
                                     <div class="row g-3 mb-3">
                                         <div class="col-12 col-lg-6">
                                             <div class="card h-100 punc-card punc-passengers">
@@ -21307,8 +22775,8 @@ FF
                                                                 <i class="fas fa-trophy me-1"></i>Más puntuales
                                                             </h6>
                                                             <ol id="puntualidad-top-pax-best" class="m-0"></ol>
-                                                            <div class="mt-2"><canvas id="punc-pax-best-chart"
-                                                                    height="140"></canvas></div>
+                                                                <div class="mt-2"><canvas id="punc-pax-best-chart"
+                                                                    height="190"></canvas></div>
                                                         </div>
                                                         <div class="col-12 col-md-6 punc-worst-col" data-punc-worst>
                                                             <h6 class="text-danger mb-2 punc-col-title punc-col-worst">
@@ -21316,8 +22784,8 @@ FF
                                                                 impuntuales
                                                             </h6>
                                                             <ol id="puntualidad-top-pax-worst" class="m-0"></ol>
-                                                            <div class="mt-2"><canvas id="punc-pax-worst-chart"
-                                                                    height="140"></canvas></div>
+                                                                <div class="mt-2"><canvas id="punc-pax-worst-chart"
+                                                                    height="190"></canvas></div>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -21335,8 +22803,8 @@ FF
                                                                 <i class="fas fa-trophy me-1"></i>Más puntuales
                                                             </h6>
                                                             <ol id="puntualidad-top-cargo-best" class="m-0"></ol>
-                                                            <div class="mt-2"><canvas id="punc-cargo-best-chart"
-                                                                    height="140"></canvas></div>
+                                                                <div class="mt-2"><canvas id="punc-cargo-best-chart"
+                                                                    height="190"></canvas></div>
                                                         </div>
                                                         <div class="col-12 col-md-6 punc-worst-col" data-punc-worst>
                                                             <h6 class="text-danger mb-2 punc-col-title punc-col-worst">
@@ -21344,8 +22812,8 @@ FF
                                                                 impuntuales
                                                             </h6>
                                                             <ol id="puntualidad-top-cargo-worst" class="m-0"></ol>
-                                                            <div class="mt-2"><canvas id="punc-cargo-worst-chart"
-                                                                    height="140"></canvas></div>
+                                                                <div class="mt-2"><canvas id="punc-cargo-worst-chart"
+                                                                    height="190"></canvas></div>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -27216,6 +28684,173 @@ window.AeropuertosModule = (function () {
             }
         } catch(_) {}
     })();
+})();
+</script>
+
+<div class="modal fade" id="routeLaunchModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-route me-2 text-primary"></i>Inauguracion de ruta</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="route-launch-id">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Ruta *</label>
+                        <input type="text" class="form-control" id="route-launch-route" placeholder="AIFA - MAD" maxlength="140">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Aerolinea *</label>
+                        <input type="text" class="form-control" id="route-launch-airline" placeholder="Ej. Aeromexico" maxlength="120">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Fecha inauguracion *</label>
+                        <input type="date" class="form-control" id="route-launch-date">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Tipo</label>
+                        <select class="form-select" id="route-launch-scope">
+                            <option value="nacional">Nacional</option>
+                            <option value="internacional">Internacional</option>
+                            <option value="carga">Carga</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Estado</label>
+                        <select class="form-select" id="route-launch-status-field">
+                            <option value="confirmada">Confirmada</option>
+                            <option value="programada">Programada</option>
+                            <option value="pospuesta">Pospuesta</option>
+                            <option value="cancelada">Cancelada</option>
+                        </select>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Dias de recordatorio</label>
+                        <input type="text" class="form-control" id="route-launch-reminder-days" placeholder="30,14,7,3,1,0">
+                        <div class="form-text">Separados por coma. Ejemplo: 30,14,7,3,1,0</div>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Notas</label>
+                        <textarea class="form-control" id="route-launch-notes" rows="3" maxlength="600" placeholder="Detalles operativos, responsables, observaciones..."></textarea>
+                    </div>
+                </div>
+                <div id="route-launch-modal-status" class="small mt-3"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" onclick="dataManagement.saveRouteLaunchEvent()"><i class="fas fa-save me-1"></i>Guardar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// ── Vista TV Wall — Rotación (iframe único) ──────────────────────────────────
+(function () {
+    var VIEWS = [
+        { id: 'ops',  url: './defaultLayout/OpsWallLayout.html', color: '#0dcaf0', label: '4 Cuadrantes' },
+        { id: 'fids', url: './NG-Client/pages/defaultLayout/OpsWallLayout.html', color: '#20c997', label: 'NG-Client' }
+    ];
+    var DURATION = 10;
+    var _current = 0, _paused = false, _elapsed = 0;
+    var _ticker = null, _clockInt = null, _initialized = false;
+    var _overlayTimer = null;
+
+    function frame()    { return document.getElementById('tv-wall-frame'); }
+    function tabEl(id)  { return document.getElementById('tv-tab-' + id); }
+    function barEl()    { return document.getElementById('tv-progress-bar'); }
+    function cdEl()     { return document.getElementById('tv-countdown'); }
+    function overlay()  { return document.getElementById('tv-loading-overlay'); }
+
+    function showOverlay(label) {
+        var o = overlay();
+        if (!o) return;
+        o.innerHTML = '<span class="text-secondary small"><i class="fas fa-spinner fa-spin me-2"></i>Cargando ' + (label || '') + '...</span>';
+        o.style.display = 'flex';
+        // Siempre ocultamos después de 5s aunque onload no dispare
+        clearTimeout(_overlayTimer);
+        _overlayTimer = setTimeout(hideOverlay, 5000);
+    }
+    function hideOverlay() {
+        clearTimeout(_overlayTimer);
+        var o = overlay(); if (o) o.style.display = 'none';
+    }
+
+    function applyTabStyles(idx) {
+        VIEWS.forEach(function(v, i) {
+            var t = tabEl(v.id); if (!t) return;
+            var active = (i === idx);
+            t.style.background  = active ? v.color : 'transparent';
+            t.style.borderColor = active ? v.color : '#444';
+            t.style.color       = active ? '#000'  : '#888';
+            t.style.fontWeight  = active ? '600'   : '400';
+        });
+        var b = barEl(); if (b) b.style.background = VIEWS[idx].color;
+    }
+
+    function resetProgress() {
+        _elapsed = 0;
+        var b = barEl(), c = cdEl();
+        if (b) { b.style.transition = 'none'; b.style.width = '0%'; void b.offsetWidth; b.style.transition = 'width .2s linear'; }
+        if (c) c.textContent = DURATION + 's';
+    }
+
+    function loadView(idx) {
+        var f = frame(); if (!f) return;
+        var v = VIEWS[idx];
+        showOverlay(v.label);
+        f.onload = hideOverlay;
+        f.src = v.url;
+        applyTabStyles(idx);
+        resetProgress();
+    }
+
+    function tick() {
+        if (_paused) return;
+        _elapsed++;
+        var b = barEl(), c = cdEl();
+        if (b) b.style.width = ((_elapsed / DURATION) * 100) + '%';
+        if (c) c.textContent = (DURATION - _elapsed) + 's';
+        if (_elapsed >= DURATION) {
+            _current = (_current + 1) % VIEWS.length;
+            loadView(_current);
+        }
+    }
+
+    function updateClock() {
+        var el = document.getElementById('tv-preview-clock');
+        if (el) el.textContent = new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    }
+
+    window.initTvWallPreview = function () {
+        if (_initialized) return;
+        _initialized = true;
+        loadView(0);
+        _ticker   = setInterval(tick, 1000);
+        _clockInt = setInterval(updateClock, 1000);
+        updateClock();
+    };
+
+    window.tvWallSwitch = function (idx) {
+        _current = idx; _paused = false;
+        var btn = document.getElementById('btn-tv-toggle-rotation');
+        if (btn) btn.innerHTML = '<i class="fas fa-pause me-1"></i>Pausar';
+        loadView(idx);
+    };
+
+    window.tvWallNext = function () {
+        window.tvWallSwitch((_current + 1) % VIEWS.length);
+    };
+
+    window.tvWallToggleRotation = function () {
+        _paused = !_paused;
+        var btn = document.getElementById('btn-tv-toggle-rotation');
+        if (btn) btn.innerHTML = _paused
+            ? '<i class="fas fa-play me-1"></i>Reanudar'
+            : '<i class="fas fa-pause me-1"></i>Pausar';
+    };
 })();
 </script>
 </body>
