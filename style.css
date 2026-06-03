@@ -14496,7 +14496,7 @@ body.dark-mode #yoy-insights-list li {
 .sidebar {
     overflow-x: hidden !important;
     background:
-        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Cpath d='M0 20L20 0L40 20L20 40Z' fill='none' stroke='%23ffffff' stroke-opacity='.045' stroke-width='.7'/%3E%3C/svg%3E") 0 0 / 40px 40px,
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20'%3E%3Cpath d='M0%2C20 L4%2C20 L4%2C16 L8%2C16 L8%2C12 L12%2C12 L12%2C8 L16%2C8 L16%2C4 L20%2C4 L20%2C0' fill='none' stroke='%23ffffff' stroke-opacity='.07' stroke-width='1.2' stroke-linejoin='miter'/%3E%3C/svg%3E") 0 0 / 20px 20px,
         var(--sidebar-bg) !important;
     box-shadow: 4px 0 32px rgba(0,0,0,.58), inset 0 1px 0 rgba(255,255,255,.08);
 }
@@ -14898,7 +14898,12 @@ body.dark-mode #yoy-insights-list li {
     list-style: none;
     margin: 0;
     padding: .28rem 0 .35rem;
+    max-height: 70vh;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,.1) transparent;
 }
+/* Base li */
 .si-flyout-list li {
     display: flex;
     align-items: center;
@@ -14908,10 +14913,53 @@ body.dark-mode #yoy-insights-list li {
     color: rgba(255,255,255,.68);
     cursor: default;
     transition: background .12s, color .12s;
+    user-select: none;
 }
-.si-flyout-list li:hover {
-    background: rgba(255,255,255,.05);
+/* Clickable gerencia row (single nav target) */
+.si-flyout-link {
+    cursor: pointer !important;
+}
+.si-flyout-link:hover {
+    background: rgba(255,255,255,.07) !important;
+    color: #fff !important;
+}
+.si-flyout-link:hover .si-flyout-gbdg {
+    opacity: 1;
+    background: var(--flyout-c);
     color: #fff;
+    border-color: transparent;
+}
+/* Non-clickable gerencia header (has sub-links below) */
+.si-flyout-row--ger-hdr {
+    padding-top: .52rem !important;
+    padding-bottom: .2rem !important;
+    font-size: .7rem !important;
+    font-weight: 700 !important;
+    color: rgba(255,255,255,.45) !important;
+    letter-spacing: .04em;
+    border-top: 1px solid rgba(255,255,255,.06);
+    margin-top: .2rem;
+}
+.si-flyout-row--ger-hdr:first-child { border-top: none; margin-top: 0; }
+/* Indented sub-link */
+.si-flyout-link--sub {
+    padding-left: 1.35rem !important;
+    font-size: .75rem !important;
+    color: rgba(255,255,255,.62) !important;
+    gap: .42rem;
+}
+.si-flyout-link--sub .si-ico {
+    width: 14px;
+    font-size: .72rem;
+    color: rgba(255,255,255,.32);
+    text-align: center;
+    flex-shrink: 0;
+}
+.si-flyout-link--sub:hover .si-ico { color: var(--flyout-c); }
+/* Coming soon row */
+.si-flyout-row--soon {
+    opacity: .38 !important;
+    font-style: italic;
 }
 .si-flyout-gbdg {
     display: inline-flex;
@@ -14928,4 +14976,11 @@ body.dark-mode #yoy-insights-list li {
     letter-spacing: .02em;
     flex-shrink: 0;
     opacity: .82;
+    transition: background .12s, color .12s, opacity .12s;
+}
+.si-flyout-lbl {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
