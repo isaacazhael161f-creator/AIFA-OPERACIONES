@@ -1,4 +1,4 @@
-﻿#login-sky.dawn {
+#login-sky.dawn {
    background: radial-gradient(1000px 520px at 20% 14%, rgba(255, 214, 176, 0.18), rgba(255, 214, 176, 0)), linear-gradient(180deg, #ffe8c8 0%, #ffe0d4 28%, #f3ecff 58%, #c7dcff 100%);
 }
 
@@ -14484,279 +14484,312 @@ body.dark-mode #yoy-insights-list li {
 }
 
 
+
+
 /* ══════════════════════════════════════════════════════════════════
-   SIDEBAR v2 — ORGANIGRAMA CON COLLAPSE  |  AIFA Operaciones
+   SIDEBAR v2 — ORGANIGRAMA COLAPSABLE CON COLORES POR SUBDIRECCIÓN
    ══════════════════════════════════════════════════════════════════ */
 
-/* ── Ampliar ligeramente el ancho ── */
+/* ── Ancho y overflow ── */
 :root { --sidebar-width: 262px; }
+
+.sidebar { overflow-x: hidden !important; }
 
 /* ── Nav wrapper ── */
 .si-nav {
-   padding: .35rem 0 1.25rem;
-   flex: 1;
-   overflow-y: auto;
-   overflow-x: hidden;
+    padding: .25rem 0 1.5rem;
+    flex: 1 1 0;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
-/* ── Quitar el translateX del hover heredado ── */
-.si-nav .menu-item:hover  { transform: none !important; }
+/* ── Quitar translateX heredado ── */
+.si-nav .menu-item:hover,
 .si-nav .menu-item.active { transform: none !important; }
 
+/* ════════════════════════════════════════════════
+   COLORES POR SUBDIRECCIÓN  (cascada con vars CSS)
+   ════════════════════════════════════════════════ */
+.si-sub--sso { --sub-c: #38bdf8; --sub-cb: rgba(56,189,248,.13); }
+.si-sub--ssa { --sub-c: #a78bfa; --sub-cb: rgba(167,139,250,.13); }
+.si-sub--ssc { --sub-c: #22d3ee; --sub-cb: rgba(34,211,238,.13); }
+.si-sub--si  { --sub-c: #818cf8; --sub-cb: rgba(129,140,248,.13); }
+.si-sub--sge { --sub-c: #34d399; --sub-cb: rgba(52,211,153,.13); }
+
+/* Fallback para grupos sin clase de color */
+.si-group--sub { --sub-c: #60a5fa; --sub-cb: rgba(96,165,250,.13); }
+
 /* ──────────────────────────────────────────────
-   CABECERA "DIR. DE OPERACIÓN"
+   CABECERA DIR. DE OPERACIÓN
    ────────────────────────────────────────────── */
 .si-dir-hdr {
-   display: flex;
-   align-items: center;
-   gap: .5rem;
-   padding: .65rem 1.1rem .45rem;
-   margin: 0 .5rem .4rem;
-   font-size: .6rem;
-   font-weight: 800;
-   text-transform: uppercase;
-   letter-spacing: .12em;
-   color: rgba(255,255,255,.28);
-   border-bottom: 1px solid rgba(255,255,255,.07);
-   user-select: none;
-   pointer-events: none;
+    display: flex;
+    align-items: center;
+    gap: .45rem;
+    padding: .7rem 1rem .5rem;
+    margin: 0 .5rem .35rem;
+    font-size: .58rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .14em;
+    color: rgba(255,255,255,.25);
+    border-bottom: 1px solid rgba(255,255,255,.07);
+    user-select: none;
+    pointer-events: none;
 }
-.si-dir-hdr i { font-size: .65rem; }
+.si-dir-hdr i { font-size: .6rem; }
 
 /* ──────────────────────────────────────────────
-   ÍTEMS DE NAVEGACIÓN (links)
+   LINKS DE NAVEGACIÓN
    ────────────────────────────────────────────── */
 .si-link {
-   display: flex !important;
-   align-items: center;
-   gap: 9px;
-   padding: .63rem 1rem !important;
-   margin: 1px 6px !important;
-   border-radius: 8px;
-   color: rgba(255,255,255,.7) !important;
-   text-decoration: none;
-   font-size: .865rem;
-   transition: background .17s, color .17s !important;
-   position: relative;
-   overflow: hidden;
+    display: flex !important;
+    align-items: center;
+    gap: 8px;
+    padding: .6rem .9rem !important;
+    margin: 1px 5px !important;
+    border-radius: 7px;
+    color: rgba(255,255,255,.68) !important;
+    text-decoration: none;
+    font-size: .855rem;
+    transition: background .15s, color .15s !important;
+    position: relative;
+    overflow: hidden;
+    white-space: nowrap;
+    min-width: 0;
 }
-.si-link:hover {
-   background: rgba(255,255,255,.08) !important;
-   color: #fff !important;
-}
-/* Activo: fondo sutil + barra ámbar izquierda */
+.si-link:hover  { background: rgba(255,255,255,.08) !important; color: #fff !important; }
 .si-link.active {
-   background: rgba(255,255,255,.12) !important;
-   color: #fff !important;
-   font-weight: 600 !important;
-   box-shadow: none !important;
+    background: rgba(255,255,255,.11) !important;
+    color: #fff !important;
+    font-weight: 600 !important;
 }
 .si-link.active::before {
-   content: '';
-   position: absolute;
-   left: 0; top: 18%; bottom: 18%;
-   width: 3px;
-   border-radius: 0 3px 3px 0;
-   background: #f59e0b;
+    content: '';
+    position: absolute;
+    left: 0; top: 20%; bottom: 20%;
+    width: 3px;
+    border-radius: 0 3px 3px 0;
+    background: #f59e0b;
 }
-/* Ícono */
+
 .si-ico {
-   width: 16px;
-   text-align: center;
-   font-size: .82rem;
-   flex-shrink: 0;
-   color: rgba(255,255,255,.45);
-   transition: color .17s;
-   /* icon-clock-check comparte este espacio */
-   position: relative;
-   display: inline-block;
+    width: 15px;
+    text-align: center;
+    font-size: .8rem;
+    flex-shrink: 0;
+    color: rgba(255,255,255,.4);
+    transition: color .15s;
+    display: inline-block;
 }
 .si-link:hover .si-ico,
-.si-link.active .si-ico { color: rgba(255,255,255,.9); }
+.si-link.active .si-ico { color: rgba(255,255,255,.85); }
+.si-link .icon-clock-check { margin-right: 0; width: 15px; }
 
-/* icon-clock-check dentro de si-ico */
-.si-link .icon-clock-check { margin-right: 0; }
-
-/* Texto del ítem */
 .si-txt {
-   flex: 1;
-   overflow: hidden;
-   text-overflow: ellipsis;
-   white-space: nowrap;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
 }
 
-/* Niveles de indentación */
-.si-link--l1 { padding-left: 1.9rem !important; font-size: .845rem; }
-.si-link--l2 { padding-left: 2.8rem !important; font-size: .83rem;
-               padding-top: .52rem !important; padding-bottom: .52rem !important; }
+/* Niveles */
+.si-link--l1 { padding-left: 1.8rem !important; font-size: .84rem; }
+.si-link--l2 { padding-left: 2.6rem !important; font-size: .82rem;
+               padding-top: .5rem !important; padding-bottom: .5rem !important; }
 
 /* Util / Logout */
-.si-link--util { color: rgba(255,255,255,.38) !important; font-size: .8rem; }
-.si-link--util:hover { color: rgba(255,255,255,.65) !important; }
+.si-link--util  { color: rgba(255,255,255,.35) !important; font-size: .8rem; }
+.si-link--util:hover { color: rgba(255,255,255,.6) !important; }
 .si-link--logout {
-   color: rgba(248,113,113,.7) !important;
-   font-size: .855rem;
-   border-top: 1px solid rgba(255,255,255,.08) !important;
-   margin-top: 3px !important;
+    color: rgba(248,113,113,.7) !important;
+    border-top: 1px solid rgba(255,255,255,.07) !important;
+    margin-top: 4px !important;
 }
 .si-link--logout:hover { color: #fca5a5 !important; background: rgba(248,113,113,.09) !important; }
-/* Quitar margin-top:auto del logout-item original dentro de si-nav */
-.si-nav .logout-item { margin-top: 3px !important; }
+.si-nav .logout-item { margin-top: 4px !important; }
 
 /* ──────────────────────────────────────────────
    BOTONES DE GRUPO (colapsables)
    ────────────────────────────────────────────── */
 .si-grp-btn {
-   display: flex;
-   align-items: center;
-   gap: 7px;
-   width: calc(100% - 12px);
-   margin: 1px 6px;
-   padding: .5rem .9rem;
-   background: transparent;
-   border: none;
-   border-radius: 7px;
-   color: rgba(255,255,255,.42);
-   font-size: .68rem;
-   font-weight: 700;
-   text-transform: uppercase;
-   letter-spacing: .07em;
-   cursor: pointer;
-   text-align: left;
-   transition: background .17s, color .17s, border-color .17s;
-   overflow: hidden;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    width: calc(100% - 10px);
+    max-width: calc(100% - 10px);
+    margin: 1px 5px;
+    padding: .48rem .85rem;
+    background: transparent;
+    border: none;
+    border-radius: 7px;
+    color: rgba(255,255,255,.38);
+    font-size: .67rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    cursor: pointer;
+    text-align: left;
+    transition: background .15s, color .15s, border-color .15s;
+    overflow: hidden;
+    box-sizing: border-box;
 }
-.si-grp-btn:hover { background: rgba(255,255,255,.055); color: rgba(255,255,255,.65); }
-.si-grp-btn:not(.collapsed) { color: rgba(255,255,255,.62); }
+.si-grp-btn:hover { background: rgba(255,255,255,.05); color: rgba(255,255,255,.6); }
 
-/* Ícono del grupo (áreas: Archivo, Auditoría, GPyC) */
 .si-grp-ico {
-   width: 15px;
-   text-align: center;
-   font-size: .76rem;
-   flex-shrink: 0;
+    width: 14px;
+    text-align: center;
+    font-size: .74rem;
+    flex-shrink: 0;
 }
-
-/* Label del grupo */
 .si-grp-lbl {
-   flex: 1;
-   overflow: hidden;
-   text-overflow: ellipsis;
-   white-space: nowrap;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
 }
 
-/* Chevron rotatorio */
+/* Chevron */
 .si-chev {
-   font-size: .58rem;
-   flex-shrink: 0;
-   color: rgba(255,255,255,.25);
-   transition: transform .22s ease, color .17s;
-   margin-left: auto;
+    font-size: .56rem;
+    flex-shrink: 0;
+    color: rgba(255,255,255,.22);
+    transition: transform .2s ease, color .15s;
+    margin-left: auto;
 }
-.si-grp-btn:not(.collapsed) .si-chev { transform: rotate(180deg); color: rgba(255,255,255,.4); }
+.si-grp-btn:not(.collapsed) .si-chev { transform: rotate(180deg); color: rgba(255,255,255,.38); }
 .si-grp-btn.collapsed .si-chev       { transform: rotate(0deg); }
 
-/* ── Variante Área (Archivo, Auditoría, GPyC) ── */
-/* Sin estilo adicional — el base alcanza */
+/* ─── Nivel SUBDIRECCIÓN ─── */
+.si-group--sub { margin: 2px 0; }
 
-/* ── Variante Subdirección (SSO, SSA…) ── */
-.si-group--sub { margin: 3px 0; }
 .si-grp-btn--sub {
-   font-size: .72rem;
-   color: rgba(255,255,255,.52);
-   border-left: 2px solid transparent;
-   border-radius: 0 7px 7px 0;
-   padding-left: .85rem;
-   margin-left: 6px;
-   width: calc(100% - 12px);
-   gap: 7px;
+    font-size: .71rem;
+    font-weight: 800;
+    color: rgba(255,255,255,.5);
+    border-left: 3px solid transparent;
+    border-radius: 0 7px 7px 0 !important;
+    padding-left: .8rem;
+    margin-left: 0;
+    width: calc(100% - 5px);
+    max-width: calc(100% - 5px);
+    transition: background .15s, color .15s, border-color .2s;
 }
-.si-grp-btn--sub:hover { border-left-color: rgba(96,165,250,.45); }
+/* Hover */
+.si-grp-btn--sub:hover {
+    border-left-color: var(--sub-c);
+    color: rgba(255,255,255,.7);
+}
+/* Expandido */
 .si-grp-btn--sub:not(.collapsed) {
-   border-left-color: rgba(96,165,250,.65);
-   color: rgba(255,255,255,.78);
-   background: rgba(96,165,250,.07);
-}
-
-/* Cuerpo de subdirección con línea guía */
-.si-body--sub {
-   border-left: 1px solid rgba(96,165,250,.14);
-   margin-left: 18px;
-}
-
-/* ── Variante Gerencia (GOPA, GSO, GSM, GOET) ── */
-.si-group--ger { margin: 1px 0; }
-.si-grp-btn--ger {
-   font-size: .62rem;
-   color: rgba(255,255,255,.38);
-   padding: .38rem .75rem;
-   margin: 0;
-   width: 100%;
-   border-radius: 0;
-}
-.si-grp-btn--ger:hover { color: rgba(255,255,255,.58); border-radius: 6px; }
-.si-grp-btn--ger:not(.collapsed) { color: rgba(255,255,255,.55); }
-
-.si-body--ger { padding: 1px 0 3px; }
-
-/* ──────────────────────────────────────────────
-   BADGES  (SSO, SSA… y GOPA, GSO…)
-   ────────────────────────────────────────────── */
-.si-bdg {
-   display: inline-flex;
-   align-items: center;
-   justify-content: center;
-   min-width: 34px;
-   padding: .13rem .38rem;
-   border-radius: 4px;
-   font-size: .58rem;
-   font-weight: 900;
-   letter-spacing: .03em;
-   flex-shrink: 0;
-   /* Subdirección: azul */
-   background: rgba(96,165,250,.18);
-   color: #93c5fd;
-   border: 1px solid rgba(96,165,250,.22);
-   transition: background .17s;
+    border-left-color: var(--sub-c) !important;
+    color: var(--sub-c) !important;
+    background: var(--sub-cb) !important;
+    border-radius: 0 7px 0 0 !important;
 }
 .si-grp-btn--sub:not(.collapsed) .si-bdg {
-   background: rgba(96,165,250,.28);
-   color: #bfdbfe;
+    background: var(--sub-c) !important;
+    color: #0f172a !important;
+    border-color: transparent !important;
 }
-/* Gerencia: más discreto */
-.si-bdg--ger {
-   min-width: 28px;
-   padding: .08rem .28rem;
-   font-size: .54rem;
-   background: rgba(255,255,255,.09);
-   color: rgba(255,255,255,.55);
-   border-color: rgba(255,255,255,.1);
+/* Cuerpo indentado con línea guía del color de la subdirección */
+.si-body--sub {
+    border-left: 2px solid var(--sub-c, rgba(96,165,250,.25));
+    margin-left: 16px;
+    padding-left: 0;
+}
+
+/* ─── Nivel GERENCIA ─── */
+.si-group--ger { margin: 0; }
+
+.si-grp-btn--ger {
+    font-size: .62rem;
+    font-weight: 700;
+    color: rgba(255,255,255,.36);
+    padding: .38rem .7rem;
+    margin: 0;
+    width: 100%;
+    max-width: 100%;
+    border-radius: 0 !important;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    box-sizing: border-box;
+}
+.si-grp-btn--ger:hover {
+    color: var(--sub-c, rgba(255,255,255,.55));
+    background: var(--sub-cb, rgba(255,255,255,.04));
+    border-radius: 5px !important;
+}
+.si-grp-btn--ger:not(.collapsed) {
+    color: var(--sub-c, rgba(255,255,255,.55));
+}
+.si-grp-btn--ger:not(.collapsed) .si-bdg--ger {
+    background: var(--sub-cb) !important;
+    color: var(--sub-c) !important;
+    border-color: var(--sub-c) !important;
+}
+
+.si-body--ger {
+    border-left: 1px solid var(--sub-c, rgba(255,255,255,.1));
+    margin-left: 12px;
+    padding: 1px 0 3px;
 }
 
 /* ──────────────────────────────────────────────
-   GRUPOS PENDIENTES / SIN CONTENIDO
+   BADGES
    ────────────────────────────────────────────── */
-.si-group--pend > .si-grp-btn { opacity: .45; }
-.si-group--pend > .si-grp-btn:hover { opacity: .7; }
+.si-bdg {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 32px;
+    padding: .1rem .32rem;
+    border-radius: 5px;
+    font-size: .57rem;
+    font-weight: 900;
+    letter-spacing: .02em;
+    flex-shrink: 0;
+    background: var(--sub-cb, rgba(96,165,250,.15));
+    color: var(--sub-c, #93c5fd);
+    border: 1px solid var(--sub-c, rgba(96,165,250,.3));
+    transition: background .15s, color .15s;
+}
+.si-bdg--ger {
+    min-width: 26px;
+    padding: .06rem .22rem;
+    font-size: .52rem;
+    background: rgba(255,255,255,.07);
+    color: rgba(255,255,255,.45);
+    border-color: rgba(255,255,255,.1);
+}
+
+/* ──────────────────────────────────────────────
+   PENDIENTES / PRÓXIMAMENTE
+   ────────────────────────────────────────────── */
+.si-group--pend > .si-grp-btn { opacity: .4; }
+.si-group--pend > .si-grp-btn:hover { opacity: .65; }
 
 .si-coming {
-   display: block;
-   padding: .32rem 1.4rem;
-   font-size: .7rem;
-   color: rgba(255,255,255,.2);
-   font-style: italic;
+    display: block;
+    padding: .3rem 1.2rem;
+    font-size: .69rem;
+    color: rgba(255,255,255,.18);
+    font-style: italic;
 }
 
 /* ──────────────────────────────────────────────
    SEPARADOR
    ────────────────────────────────────────────── */
 .si-sep {
-   height: 1px;
-   background: rgba(255,255,255,.07);
-   margin: .55rem .75rem;
+    height: 1px;
+    background: rgba(255,255,255,.07);
+    margin: .5rem .6rem;
 }
 
 /* ──────────────────────────────────────────────
-   ANIMACIÓN DE COLLAPSE MÁS SUAVE
+   ANIMACIÓN COLLAPSE
    ────────────────────────────────────────────── */
-.si-nav .collapsing { transition: height .22s ease !important; }
+.si-nav .collapsing { transition: height .2s ease !important; }
