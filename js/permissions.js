@@ -17,6 +17,8 @@
         
         // Reset visibility first to ensure clean state
         menuItems.forEach(el => el.classList.remove('d-none-auth'));
+        // Also restore any groups hidden by this system
+        document.querySelectorAll('#sidebar-nav .si-group').forEach(g => g.classList.remove('d-none-auth'));
 
         // If not a viewer, we don't apply these specific restrictions
         if (role !== 'viewer') {
@@ -53,6 +55,15 @@
             if (!allowed.includes(section)) {
                 item.classList.add('d-none-auth');
             }
+        });
+
+        // Hide sidebar group containers whose every menu-item is now hidden
+        const allGroups = Array.from(document.querySelectorAll('#sidebar-nav .si-group'));
+        allGroups.reverse().forEach(group => {
+            const items = Array.from(group.querySelectorAll('.menu-item[data-section]'));
+            if (items.length === 0) return; // "Próximamente" — leave alone
+            const allHidden = items.every(i => i.classList.contains('d-none-auth') || i.classList.contains('perm-hidden'));
+            if (allHidden) group.classList.add('d-none-auth');
         });
     }
 
