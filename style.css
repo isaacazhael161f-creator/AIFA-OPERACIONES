@@ -14493,7 +14493,13 @@ body.dark-mode #yoy-insights-list li {
 /* ── Ancho y overflow ── */
 :root { --sidebar-width: 278px; }
 
-.sidebar { overflow-x: hidden !important; }
+.sidebar {
+    overflow-x: hidden !important;
+    background:
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Cpath d='M0 20L20 0L40 20L20 40Z' fill='none' stroke='%23ffffff' stroke-opacity='.045' stroke-width='.7'/%3E%3C/svg%3E") 0 0 / 40px 40px,
+        var(--sidebar-bg) !important;
+    box-shadow: 4px 0 32px rgba(0,0,0,.58), inset 0 1px 0 rgba(255,255,255,.08);
+}
 
 /* ── Nav wrapper ── */
 .si-nav {
@@ -14837,3 +14843,89 @@ body.dark-mode #yoy-insights-list li {
    ANIMACIÓN
    ────────────────────────────────────────────── */
 .si-nav .collapsing { transition: height .2s ease !important; }
+
+/* ──────────────────────────────────────────────
+   FLYOUT — preview de gerencias al hover
+   ────────────────────────────────────────────── */
+.si-flyout-panel {
+    position: fixed;
+    z-index: 10500;
+    display: none;
+    width: 220px;
+    background: #0d1e38;
+    border: 1px solid rgba(255,255,255,.1);
+    border-left: 3px solid var(--flyout-c, #60a5fa);
+    border-radius: 0 10px 10px 10px;
+    box-shadow: 6px 10px 36px rgba(0,0,0,.55), 0 2px 8px rgba(0,0,0,.28);
+    overflow: hidden;
+    animation: si-fo-in .14s ease;
+    font-family: inherit;
+}
+@keyframes si-fo-in {
+    from { opacity: 0; transform: translateX(-8px) scale(.97); }
+    to   { opacity: 1; transform: translateX(0) scale(1); }
+}
+.si-flyout-hdr {
+    display: flex;
+    align-items: center;
+    gap: .45rem;
+    padding: .55rem .78rem .48rem;
+    background: rgba(255,255,255,.04);
+    border-bottom: 1px solid rgba(255,255,255,.06);
+}
+.si-flyout-bdg {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: .12rem .38rem;
+    border-radius: 5px;
+    background: var(--flyout-c, #60a5fa);
+    color: #fff;
+    font-size: .58rem;
+    font-weight: 900;
+    letter-spacing: .02em;
+    flex-shrink: 0;
+}
+.si-flyout-ttl {
+    font-size: .72rem;
+    font-weight: 700;
+    color: rgba(255,255,255,.88);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.si-flyout-list {
+    list-style: none;
+    margin: 0;
+    padding: .28rem 0 .35rem;
+}
+.si-flyout-list li {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    padding: .38rem .78rem;
+    font-size: .78rem;
+    color: rgba(255,255,255,.68);
+    cursor: default;
+    transition: background .12s, color .12s;
+}
+.si-flyout-list li:hover {
+    background: rgba(255,255,255,.05);
+    color: #fff;
+}
+.si-flyout-gbdg {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 30px;
+    padding: .08rem .28rem;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--flyout-c, #60a5fa);
+    border: 1px solid var(--flyout-c, #60a5fa);
+    font-size: .54rem;
+    font-weight: 800;
+    letter-spacing: .02em;
+    flex-shrink: 0;
+    opacity: .82;
+}
