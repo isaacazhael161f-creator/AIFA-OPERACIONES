@@ -14552,7 +14552,7 @@ body.dark-mode #yoy-insights-list li {
     padding: .6rem .9rem !important;
     margin: 1px 5px !important;
     border-radius: 7px;
-    color: rgba(255,255,255,.68) !important;
+    color: rgba(255,255,255,.82) !important;
     text-decoration: none;
     font-size: .855rem;
     transition: background .15s, color .15s !important;
@@ -14561,7 +14561,7 @@ body.dark-mode #yoy-insights-list li {
     white-space: nowrap;
     min-width: 0;
 }
-.si-link:hover  { background: rgba(255,255,255,.08) !important; color: #fff !important; }
+.si-link:hover  { background: rgba(255,255,255,.1) !important; color: #fff !important; }
 .si-link.active {
     background: rgba(255,255,255,.11) !important;
     color: #fff !important;
@@ -14581,12 +14581,12 @@ body.dark-mode #yoy-insights-list li {
     text-align: center;
     font-size: .8rem;
     flex-shrink: 0;
-    color: rgba(255,255,255,.4);
+    color: var(--sub-c, rgba(255,255,255,.55));
     transition: color .15s;
     display: inline-block;
 }
 .si-link:hover .si-ico,
-.si-link.active .si-ico { color: rgba(255,255,255,.85); }
+.si-link.active .si-ico { color: var(--sub-c, #fff); }
 .si-link .icon-clock-check { margin-right: 0; width: 15px; }
 
 .si-txt {
@@ -14627,7 +14627,7 @@ body.dark-mode #yoy-insights-list li {
     background: transparent;
     border: none;
     border-radius: 7px;
-    color: rgba(255,255,255,.38);
+    color: rgba(255,255,255,.58);
     font-size: .67rem;
     font-weight: 700;
     text-transform: uppercase;
@@ -14638,7 +14638,7 @@ body.dark-mode #yoy-insights-list li {
     overflow: hidden;
     box-sizing: border-box;
 }
-.si-grp-btn:hover { background: rgba(255,255,255,.05); color: rgba(255,255,255,.6); }
+.si-grp-btn:hover { background: rgba(255,255,255,.07); color: rgba(255,255,255,.8); }
 
 .si-grp-ico {
     width: 14px;
@@ -14671,7 +14671,7 @@ body.dark-mode #yoy-insights-list li {
 .si-grp-btn--sub {
     font-size: .71rem;
     font-weight: 800;
-    color: rgba(255,255,255,.5);
+    color: rgba(255,255,255,.7);
     border-left: 3px solid transparent;
     border-radius: 0 7px 7px 0 !important;
     padding-left: .8rem;
@@ -14710,7 +14710,7 @@ body.dark-mode #yoy-insights-list li {
 .si-grp-btn--ger {
     font-size: .62rem;
     font-weight: 700;
-    color: rgba(255,255,255,.36);
+    color: rgba(255,255,255,.58);
     padding: .38rem .7rem;
     margin: 0;
     width: 100%;
@@ -14721,12 +14721,12 @@ body.dark-mode #yoy-insights-list li {
     box-sizing: border-box;
 }
 .si-grp-btn--ger:hover {
-    color: var(--sub-c, rgba(255,255,255,.55));
-    background: var(--sub-cb, rgba(255,255,255,.04));
+    color: var(--sub-c, rgba(255,255,255,.8));
+    background: var(--sub-cb, rgba(255,255,255,.05));
     border-radius: 5px !important;
 }
 .si-grp-btn--ger:not(.collapsed) {
-    color: var(--sub-c, rgba(255,255,255,.55));
+    color: var(--sub-c, rgba(255,255,255,.75));
 }
 .si-grp-btn--ger:not(.collapsed) .si-bdg--ger {
     background: var(--sub-cb) !important;
@@ -14771,14 +14771,14 @@ body.dark-mode #yoy-insights-list li {
 /* ──────────────────────────────────────────────
    PENDIENTES / PRÓXIMAMENTE
    ────────────────────────────────────────────── */
-.si-group--pend > .si-grp-btn { opacity: .4; }
-.si-group--pend > .si-grp-btn:hover { opacity: .65; }
+.si-group--pend > .si-grp-btn { opacity: .72; }
+.si-group--pend > .si-grp-btn:hover { opacity: 1; }
 
 .si-coming {
     display: block;
     padding: .3rem 1.2rem;
     font-size: .69rem;
-    color: rgba(255,255,255,.18);
+    color: rgba(255,255,255,.32);
     font-style: italic;
 }
 
