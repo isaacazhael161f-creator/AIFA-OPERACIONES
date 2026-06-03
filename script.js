@@ -19375,7 +19375,7 @@ async function _conciSaveBulkEdits() {
 })(); // end Agenda module
 
 /* ══════════════════════════════════════════════════════════════════
-   SIDEBAR FLYOUT — preview de gerencias al pasar el mouse
+   SIDEBAR FLYOUT — preview de gerencias al pasar el mouse + navegación
    ══════════════════════════════════════════════════════════════════ */
 (function () {
     'use strict';
@@ -19387,8 +19387,70 @@ async function _conciSaveBulkEdits() {
         flyout.id = 'si-flyout';
         flyout.className = 'si-flyout-panel';
         document.body.appendChild(flyout);
+
         flyout.addEventListener('mouseenter', function () { clearTimeout(hideTimer); });
         flyout.addEventListener('mouseleave', function () { hideTimer = setTimeout(hide, 180); });
+
+        // Delegated click for navigable rows
+        flyout.addEventListener('click', function (e) {
+            var li = e.target.closest('.si-flyout-link');
+            if (!li) return;
+            var sec = li.dataset.section;
+            if (!sec) return;
+            hide();
+            var realLink = document.querySelector('.menu-item[data-section="' + sec + '"]');
+            if (typeof showSection === 'function') {
+                showSection(sec, realLink);
+            } else if (realLink) {
+                realLink.click();
+            }
+        });
+    }
+
+    function buildRows(groupEl) {
+        var gers = groupEl.querySelectorAll('.si-group--ger');
+        if (!gers.length) return '';
+        var html = '';
+        gers.forEach(function (ger) {
+            var gBtn   = ger.querySelector(':scope > .si-grp-btn--ger');
+            if (!gBtn) return;
+            var gBdg   = (gBtn.querySelector('.si-bdg--ger') || {}).textContent || '';
+            var gLbl   = (gBtn.querySelector('.si-grp-lbl') || {}).textContent || '';
+            gBdg = gBdg.trim(); gLbl = gLbl.trim();
+
+            var links  = ger.querySelectorAll('.si-link[data-section]');
+
+            if (links.length === 1) {
+                // Single target → entire gerencia row is clickable
+                var sec = links[0].dataset.section;
+                html += '<li class="si-flyout-link si-flyout-link--ger" data-section="' + sec + '" role="button">' +
+                    '<span class="si-flyout-gbdg">' + gBdg + '</span>' +
+                    '<span class="si-flyout-lbl">' + gLbl + '</span>' +
+                    '</li>';
+            } else if (links.length > 1) {
+                // Multiple targets → header + sub-links
+                html += '<li class="si-flyout-row--ger-hdr">' +
+                    '<span class="si-flyout-gbdg">' + gBdg + '</span>' +
+                    '<span class="si-flyout-lbl">' + gLbl + '</span>' +
+                    '</li>';
+                links.forEach(function (lnk) {
+                    var ltxt   = ((lnk.querySelector('.si-txt') || {}).textContent || lnk.dataset.section).trim();
+                    var icoEl  = lnk.querySelector('i.si-ico');
+                    var icoClass = icoEl ? icoEl.className : 'fas fa-circle si-ico';
+                    html += '<li class="si-flyout-link si-flyout-link--sub" data-section="' + lnk.dataset.section + '" role="button">' +
+                        '<i class="' + icoClass + '" aria-hidden="true"></i>' +
+                        ltxt +
+                        '</li>';
+                });
+            } else {
+                // Coming soon (no nav links)
+                html += '<li class="si-flyout-row--soon">' +
+                    '<span class="si-flyout-gbdg">' + gBdg + '</span>' +
+                    '<span class="si-flyout-lbl">' + gLbl + '</span>' +
+                    '</li>';
+            }
+        });
+        return html;
     }
 
     function show(groupEl) {
@@ -19396,28 +19458,14 @@ async function _conciSaveBulkEdits() {
         if (!btn || !btn.classList.contains('collapsed')) return;
         if (document.body.classList.contains('sidebar-collapsed')) return;
 
-        var gers = groupEl.querySelectorAll('.si-group--ger');
-        if (!gers.length) return;
+        var rows = buildRows(groupEl);
+        if (!rows) return;
 
-        var bdgEl  = btn.querySelector('.si-bdg');
-        var lblEl  = btn.querySelector('.si-grp-lbl');
-        var bdgTxt = bdgEl ? bdgEl.textContent.trim() : '';
-        var lblTxt = lblEl ? lblEl.textContent.trim() : '';
+        var bdgTxt = ((btn.querySelector('.si-bdg') || {}).textContent || '').trim();
+        var lblTxt = ((btn.querySelector('.si-grp-lbl') || {}).textContent || '').trim();
         var color  = getComputedStyle(groupEl).getPropertyValue('--sub-c').trim() || '#60a5fa';
 
         flyout.style.setProperty('--flyout-c', color);
-
-        var rows = '';
-        gers.forEach(function (ger) {
-            var gBtn = ger.querySelector(':scope > .si-grp-btn--ger');
-            if (!gBtn) return;
-            var gBdgEl = gBtn.querySelector('.si-bdg--ger');
-            var gLblEl = gBtn.querySelector('.si-grp-lbl');
-            var gBdg   = gBdgEl ? gBdgEl.textContent.trim() : '';
-            var gLbl   = gLblEl ? gLblEl.textContent.trim() : '';
-            rows += '<li><span class="si-flyout-gbdg">' + gBdg + '</span>' + gLbl + '</li>';
-        });
-
         flyout.innerHTML =
             '<div class="si-flyout-hdr">' +
                 '<span class="si-flyout-bdg">' + bdgTxt + '</span>' +
@@ -19457,7 +19505,6 @@ async function _conciSaveBulkEdits() {
                 hideTimer = setTimeout(hide, 180);
             });
         });
-        // Auto-hide when a collapse opens (content becomes visible inline)
         document.addEventListener('show.bs.collapse', function (e) {
             if (e.target && e.target.closest && e.target.closest('.si-group--sub')) hide();
         });
