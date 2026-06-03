@@ -1070,13 +1070,16 @@ FF
 
         <div class="app-body">
             <aside class="sidebar d-flex flex-column" id="sidebar">
-                <nav class="nav flex-column si-nav" id="sidebar-nav">
-
-                    <!-- Cabecera Dirección -->
-                    <div class="si-dir-hdr">
-                        <i class="fas fa-sitemap" aria-hidden="true"></i>
-                        <span>Dir. de Operación</span>
+                <!-- Brand header -->
+                <div class="si-brand">
+                    <img src="images/logo_aifa.jpg" class="si-brand-logo" alt="AIFA">
+                    <div class="si-brand-text">
+                        <div class="si-brand-name">AIFA</div>
+                        <div class="si-brand-sub">OPERACIONES</div>
                     </div>
+                </div>
+
+                <nav class="nav flex-column si-nav" id="sidebar-nav">
 
                     <!-- Inicio -->
                     <a class="menu-item si-link" href="#" data-section="operaciones-totales">
@@ -1085,10 +1088,10 @@ FF
                     </a>
 
                     <!-- ARCHIVO -->
-                    <div class="si-group">
+                    <div class="si-group si-group--archivo">
                         <button class="si-grp-btn si-grp-btn--area collapsed"
                                 data-bs-toggle="collapse" data-bs-target="#sg-archivo" aria-expanded="false">
-                            <i class="fas fa-archive si-grp-ico"></i>
+                            <span class="si-ico-box"><i class="fas fa-archive"></i></span>
                             <span class="si-grp-lbl">Archivo</span>
                             <i class="fas fa-chevron-down si-chev"></i>
                         </button>
@@ -1098,10 +1101,10 @@ FF
                     </div>
 
                     <!-- COORD. AUDITORÍA -->
-                    <div class="si-group">
+                    <div class="si-group si-group--auditoria">
                         <button class="si-grp-btn si-grp-btn--area collapsed"
                                 data-bs-toggle="collapse" data-bs-target="#sg-auditoria" aria-expanded="false">
-                            <i class="fas fa-clipboard-check si-grp-ico"></i>
+                            <span class="si-ico-box"><i class="fas fa-clipboard-check"></i></span>
                             <span class="si-grp-lbl">Coord. Auditoría</span>
                             <i class="fas fa-chevron-down si-chev"></i>
                         </button>
@@ -1120,10 +1123,10 @@ FF
                     </div>
 
                     <!-- GPyC -->
-                    <div class="si-group">
+                    <div class="si-group si-group--gpyc">
                         <button class="si-grp-btn si-grp-btn--area collapsed"
                                 data-bs-toggle="collapse" data-bs-target="#sg-gpyc" aria-expanded="false">
-                            <i class="fas fa-project-diagram si-grp-ico"></i>
+                            <span class="si-ico-box"><i class="fas fa-project-diagram"></i></span>
                             <span class="si-grp-lbl">GPyC</span>
                             <i class="fas fa-chevron-down si-chev"></i>
                         </button>
@@ -1437,13 +1440,21 @@ FF
                         <i class="fas fa-users-cog si-ico"></i><span class="si-txt">Administración</span>
                     </a>
 
-                    <div class="si-sep"></div>
-
-                    <a class="menu-item si-link si-link--logout logout-item" href="#" data-action="logout">
-                        <i class="fas fa-sign-out-alt si-ico"></i><span class="si-txt">Cerrar Sesión</span>
-                    </a>
-
                 </nav>
+
+                <!-- User profile card -->
+                <div class="si-user-card" id="si-user-card">
+                    <div class="si-user-avatar" id="si-user-avatar">?</div>
+                    <div class="si-user-info">
+                        <div class="si-user-name" id="si-user-name">Sesión activa</div>
+                        <div class="si-user-email" id="si-user-email"></div>
+                    </div>
+                </div>
+
+                <a class="menu-item si-link si-link--logout logout-item" href="#" data-action="logout">
+                    <i class="fas fa-sign-out-alt si-ico"></i><span class="si-txt">Cerrar Sesión</span>
+                </a>
+
             </aside>
             <!-- Overlay para dispositivos móviles: permite cerrar el sidebar al tocar fuera -->
             <div id="sidebar-overlay" class="sidebar-overlay"></div>

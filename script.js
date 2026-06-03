@@ -10708,6 +10708,19 @@ function showMainApp() {
         }
         applySectionPermissions(name);
 
+        // Populate sidebar user card
+        (function() {
+            const fullName = sessionStorage.getItem('user_fullname') || name || 'Usuario';
+            const email    = sessionStorage.getItem(SESSION_USER) || '';
+            const initial  = fullName.trim().charAt(0).toUpperCase() || '?';
+            const avatarEl = document.getElementById('si-user-avatar');
+            const nameEl   = document.getElementById('si-user-name');
+            const emailEl  = document.getElementById('si-user-email');
+            if (avatarEl) avatarEl.textContent = initial;
+            if (nameEl)   nameEl.textContent   = fullName;
+            if (emailEl)  emailEl.textContent  = email;
+        })();
+
         // Re-fetch allowed_sections desde Supabase siempre para garantizar datos frescos
         // (sessionStorage puede estar obsoleto si el admin cambió los permisos)
         (async () => {
@@ -19373,146 +19386,3 @@ async function _conciSaveBulkEdits() {
     // agLoadCalendario delegated to js/agenda.js
 
 })(); // end Agenda module
-
-/* ══════════════════════════════════════════════════════════════════
-   SIDEBAR FLYOUT — preview de gerencias al pasar el mouse + navegación
-   ══════════════════════════════════════════════════════════════════ */
-(function () {
-    'use strict';
-
-    var flyout, hideTimer;
-
-    function build() {
-        flyout = document.createElement('div');
-        flyout.id = 'si-flyout';
-        flyout.className = 'si-flyout-panel';
-        document.body.appendChild(flyout);
-
-        flyout.addEventListener('mouseenter', function () { clearTimeout(hideTimer); });
-        flyout.addEventListener('mouseleave', function () { hideTimer = setTimeout(hide, 180); });
-
-        // Delegated click for navigable rows
-        flyout.addEventListener('click', function (e) {
-            var li = e.target.closest('.si-flyout-link');
-            if (!li) return;
-            var sec = li.dataset.section;
-            if (!sec) return;
-            hide();
-            var realLink = document.querySelector('.menu-item[data-section="' + sec + '"]');
-            if (typeof showSection === 'function') {
-                showSection(sec, realLink);
-            } else if (realLink) {
-                realLink.click();
-            }
-        });
-    }
-
-    function buildRows(groupEl) {
-        var gers = groupEl.querySelectorAll('.si-group--ger');
-        if (!gers.length) return '';
-        var html = '';
-        gers.forEach(function (ger) {
-            var gBtn   = ger.querySelector(':scope > .si-grp-btn--ger');
-            if (!gBtn) return;
-            var gBdg   = (gBtn.querySelector('.si-bdg--ger') || {}).textContent || '';
-            var gLbl   = (gBtn.querySelector('.si-grp-lbl') || {}).textContent || '';
-            gBdg = gBdg.trim(); gLbl = gLbl.trim();
-
-            var links  = ger.querySelectorAll('.si-link[data-section]');
-
-            if (links.length === 1) {
-                // Single target → entire gerencia row is clickable
-                var sec = links[0].dataset.section;
-                html += '<li class="si-flyout-link si-flyout-link--ger" data-section="' + sec + '" role="button">' +
-                    '<span class="si-flyout-gbdg">' + gBdg + '</span>' +
-                    '<span class="si-flyout-lbl">' + gLbl + '</span>' +
-                    '</li>';
-            } else if (links.length > 1) {
-                // Multiple targets → header + sub-links
-                html += '<li class="si-flyout-row--ger-hdr">' +
-                    '<span class="si-flyout-gbdg">' + gBdg + '</span>' +
-                    '<span class="si-flyout-lbl">' + gLbl + '</span>' +
-                    '</li>';
-                links.forEach(function (lnk) {
-                    var ltxt   = ((lnk.querySelector('.si-txt') || {}).textContent || lnk.dataset.section).trim();
-                    var icoEl  = lnk.querySelector('i.si-ico');
-                    var icoClass = icoEl ? icoEl.className : 'fas fa-circle si-ico';
-                    html += '<li class="si-flyout-link si-flyout-link--sub" data-section="' + lnk.dataset.section + '" role="button">' +
-                        '<i class="' + icoClass + '" aria-hidden="true"></i>' +
-                        ltxt +
-                        '</li>';
-                });
-            } else {
-                // Coming soon (no nav links)
-                html += '<li class="si-flyout-row--soon">' +
-                    '<span class="si-flyout-gbdg">' + gBdg + '</span>' +
-                    '<span class="si-flyout-lbl">' + gLbl + '</span>' +
-                    '</li>';
-            }
-        });
-        return html;
-    }
-
-    function show(groupEl) {
-        var btn = groupEl.querySelector(':scope > .si-grp-btn--sub');
-        if (!btn || !btn.classList.contains('collapsed')) return;
-        if (document.body.classList.contains('sidebar-collapsed')) return;
-
-        var rows = buildRows(groupEl);
-        if (!rows) return;
-
-        var bdgTxt = ((btn.querySelector('.si-bdg') || {}).textContent || '').trim();
-        var lblTxt = ((btn.querySelector('.si-grp-lbl') || {}).textContent || '').trim();
-        var color  = getComputedStyle(groupEl).getPropertyValue('--sub-c').trim() || '#60a5fa';
-
-        flyout.style.setProperty('--flyout-c', color);
-        flyout.innerHTML =
-            '<div class="si-flyout-hdr">' +
-                '<span class="si-flyout-bdg">' + bdgTxt + '</span>' +
-                '<span class="si-flyout-ttl">' + lblTxt + '</span>' +
-            '</div>' +
-            '<ul class="si-flyout-list">' + rows + '</ul>';
-
-        var bRect  = btn.getBoundingClientRect();
-        var sb     = document.getElementById('sidebar');
-        var sbRect = sb ? sb.getBoundingClientRect() : { right: 278 };
-
-        flyout.style.top     = bRect.top + 'px';
-        flyout.style.left    = (sbRect.right + 6) + 'px';
-        flyout.style.display = 'block';
-
-        // Prevent bottom overflow
-        var fh = flyout.offsetHeight;
-        var vh = window.innerHeight;
-        if (bRect.top + fh > vh - 8) {
-            flyout.style.top = Math.max(8, vh - fh - 8) + 'px';
-        }
-    }
-
-    function hide() {
-        if (flyout) flyout.style.display = 'none';
-    }
-
-    function init() {
-        build();
-        document.querySelectorAll('.si-group--sub').forEach(function (group) {
-            group.addEventListener('mouseenter', function () {
-                clearTimeout(hideTimer);
-                show(group);
-            });
-            group.addEventListener('mouseleave', function (e) {
-                if (flyout && flyout.contains(e.relatedTarget)) return;
-                hideTimer = setTimeout(hide, 180);
-            });
-        });
-        document.addEventListener('show.bs.collapse', function (e) {
-            if (e.target && e.target.closest && e.target.closest('.si-group--sub')) hide();
-        });
-    }
-
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
-    } else {
-        init();
-    }
-})(); // end Sidebar Flyout
