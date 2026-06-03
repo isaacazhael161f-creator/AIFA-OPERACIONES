@@ -1071,85 +1071,187 @@ FF
         <div class="app-body">
             <aside class="sidebar d-flex flex-column p-2" id="sidebar">
                 <nav class="nav flex-column" id="sidebar-nav">
-                    <!-- 1. Inicio -->
-                    <a class="menu-item active" href="#" data-section="operaciones-totales"><i
-                            class="fas fa-home"></i><span>Inicio</span></a>
-                    
-                    <!-- 2. Itinerario Diario -->
-                    <a class="menu-item" href="#" data-section="inicio"><i
-                            class="fas fa-calendar-day"></i><span>Itinerario diario</span></a>
-                            
-                    <!-- 3. Frecuencias Semanales -->
-                    <a class="menu-item" href="#" data-section="frecuencias-semana"><i
-                            class="fas fa-chart-bar"></i><span>Frecuencias Semanales</span></a>
-                            
-                    <!-- 4. Parte de Operaciones -->
-                    <a class="menu-item" href="#" data-section="parte-operaciones"><i
-                            class="fas fa-file-invoice"></i><span>Parte de Operaciones</span></a>
-                            
-                    <!-- 5. Análisis de Operaciones -->
-                    <a class="menu-item" href="#" data-section="analisis-operaciones"><i
-                            class="fas fa-chart-pie"></i><span>Análisis de Operaciones</span></a>
-                            
-                    <!-- 6. Conciliación -->
-                    <a class="menu-item" href="#" data-section="conciliacion"><i
-                            class="fas fa-tasks"></i><span>Conciliación</span></a>
 
-                    <!-- 7. Aerolíneas -->
-                    <a class="menu-item" href="#" data-section="aerolineas"><i
-                            class="fas fa-plane"></i><span>Aerolíneas</span></a>
+                    <!-- ╔══════════════════════════════════════╗
+                         ║   DIRECCIÓN DE OPERACIÓN             ║
+                         ╚══════════════════════════════════════╝ -->
+                    <div class="sidebar-org-header">
+                        <i class="fas fa-sitemap me-2" aria-hidden="true"></i>
+                        <span>Dir. de Operación</span>
+                    </div>
 
-                    <!-- Resto -->
-                    <a class="menu-item" href="#" data-section="puntualidad-agosto">
+                    <!-- Inicio — directo bajo Dirección -->
+                    <a class="menu-item active" href="#" data-section="operaciones-totales">
+                        <i class="fas fa-home"></i><span>Inicio</span>
+                    </a>
+
+                    <!-- ── Archivo ──────────────────────────── -->
+                    <div class="sidebar-area-label">
+                        <i class="fas fa-archive me-2" aria-hidden="true"></i>
+                        <span>Archivo</span>
+                    </div>
+
+                    <!-- ── Coord. de Auditoría ─────────────── -->
+                    <div class="sidebar-area-label">
+                        <i class="fas fa-clipboard-check me-2" aria-hidden="true"></i>
+                        <span>Coord. de Auditoría</span>
+                    </div>
+                    <a class="menu-item menu-item--gerencia" href="#" data-section="colaboradores">
+                        <i class="fas fa-id-badge"></i><span>Colaboradores</span>
+                    </a>
+                    <a class="menu-item menu-item--gerencia" href="#" data-section="coord-auditoria" id="menu-coord-auditoria">
+                        <i class="fas fa-clipboard-list"></i><span>Coord. Auditoría</span>
+                    </a>
+
+                    <!-- ── GPyC ──────────────────────────────── -->
+                    <div class="sidebar-area-label">
+                        <i class="fas fa-project-diagram me-2" aria-hidden="true"></i>
+                        <span>GPyC</span>
+                    </div>
+                    <!-- Contratos AIFA — próximamente -->
+                    <!-- <a class="menu-item menu-item--gerencia" href="https://contratos-aifa.vercel.app/" target="_blank" rel="noopener noreferrer">
+                        <i class="fas fa-file-contract"></i><span>Contratos</span>
+                    </a> -->
+
+                    <!-- Agenda — directo bajo Dirección -->
+                    <a class="menu-item" href="#" data-section="agenda">
+                        <i class="fas fa-calendar-check"></i><span>Agenda de Comités</span>
+                    </a>
+
+                    <!-- ╔══════════════════════════════════════════════╗
+                         ║   SSO: Subdir. Seguridad Operacional         ║
+                         ╚══════════════════════════════════════════════╝ -->
+                    <div class="sidebar-subdir-label">
+                        <span class="sidebar-org-badge">SSO</span>
+                        <span>Sgd. Operacional</span>
+                    </div>
+
+                    <!-- GOPA: Gerencia de Ops. Parte Aeronáutica -->
+                    <div class="sidebar-gerencia-label">
+                        <span class="sidebar-org-badge sidebar-org-badge--sm">GOPA</span>
+                        <span>Ops. Parte Aeronáutica</span>
+                    </div>
+                    <a class="menu-item menu-item--gerencia" href="#" data-section="inicio">
+                        <i class="fas fa-calendar-day"></i><span>Itinerario Diario</span>
+                    </a>
+                    <a class="menu-item menu-item--gerencia" href="#" data-section="frecuencias-semana">
+                        <i class="fas fa-chart-bar"></i><span>Frecuencias Semanales</span>
+                    </a>
+                    <a class="menu-item menu-item--gerencia" href="#" data-section="parte-operaciones">
+                        <i class="fas fa-file-invoice"></i><span>Parte de Operaciones</span>
+                    </a>
+                    <a class="menu-item menu-item--gerencia" href="#" data-section="analisis-operaciones">
+                        <i class="fas fa-chart-pie"></i><span>Análisis de Operaciones</span>
+                    </a>
+                    <a class="menu-item menu-item--gerencia" href="#" data-section="conciliacion">
+                        <i class="fas fa-tasks"></i><span>Conciliación</span>
+                    </a>
+                    <a class="menu-item menu-item--gerencia" href="#" data-section="aerolineas">
+                        <i class="fas fa-plane"></i><span>Aerolíneas</span>
+                    </a>
+                    <a class="menu-item menu-item--gerencia" href="#" data-section="puntualidad-agosto">
                         <span class="icon-clock-check" aria-hidden="true">
                             <i class="fas fa-clock"></i>
                             <i class="fas fa-check check" aria-hidden="true"></i>
                         </span>
                         <span>Puntualidad</span>
                     </a>
-                    <a class="menu-item" href="#" data-section="demoras"><i
-                            class="fas fa-clock"></i><span>Demoras</span></a>
-                    <a class="menu-item" id="itinerario-mensual-menu" href="#" data-section="itinerario-mensual"><i
-                            class="fas fa-table"></i><span>Itinerario Mensual</span></a>
-                        <a class="menu-item" href="#" data-section="portal-digitalizacion" id="menu-portal-digital"><i
-                            class="fas fa-cloud-upload-alt"></i><span>Portal Digital</span></a>
-                    <a class="menu-item" href="#" data-section="fauna"><i
-                            class="fas fa-shield-alt"></i><span>GSO</span></a>
-                    <a class="menu-item" href="#" data-section="email-analisis"><i
-                            class="fas fa-envelope"></i><span>Análisis Correos</span></a>
-                    <a class="menu-item" href="#" data-section="medicas"><i
-                            class="fas fa-briefcase-medical"></i><span>Servicio Médico</span></a>
-                    <a class="menu-item" href="#" data-section="abordadores-mecanicos"><i
-                            class="fas fa-cogs"></i><span>Abordadores Mecánicos</span></a>
-                    <a class="menu-item" href="#" data-section="colaboradores"><i
-                            class="fas fa-id-badge"></i><span>Colaboradores</span></a>
-                    <a class="menu-item" href="#" data-section="agenda"><i
-                            class="fas fa-calendar-check"></i><span>Agenda de Comités</span></a>
-                    <a class="menu-item" href="#" data-section="biblioteca"><i
-                            class="fas fa-book"></i><span>Biblioteca</span></a>
-                    <!-- Coordinación de Auditoría -->
-                    <a class="menu-item" href="#" data-section="coord-auditoria" id="menu-coord-auditoria">
-                        <i class="fas fa-clipboard-check"></i><span>Coord. Auditoría</span>
+                    <a class="menu-item menu-item--gerencia" href="#" data-section="demoras">
+                        <i class="fas fa-clock"></i><span>Demoras</span>
+                    </a>
+                    <a class="menu-item menu-item--gerencia" id="itinerario-mensual-menu" href="#" data-section="itinerario-mensual">
+                        <i class="fas fa-table"></i><span>Itinerario Mensual</span>
+                    </a>
+                    <a class="menu-item menu-item--gerencia" href="#" data-section="portal-digitalizacion" id="menu-portal-digital">
+                        <i class="fas fa-cloud-upload-alt"></i><span>Portal Digital</span>
+                    </a>
+                    <a class="menu-item menu-item--gerencia" href="#" data-section="abordadores-mecanicos">
+                        <i class="fas fa-cogs"></i><span>Abordadores Mecánicos</span>
+                    </a>
+                    <a class="menu-item menu-item--gerencia" href="#" data-section="biblioteca">
+                        <i class="fas fa-book"></i><span>Biblioteca</span>
+                    </a>
+                    <a class="menu-item menu-item--gerencia" href="#" data-section="email-analisis">
+                        <i class="fas fa-envelope"></i><span>Análisis Correos</span>
+                    </a>
+                    <a class="menu-item menu-item--gerencia" href="#" data-section="historia">
+                        <i class="fas fa-history"></i><span>Historia</span>
+                    </a>
+                    <a class="menu-item menu-item--gerencia" href="#" data-section="fids" id="menu-fids">
+                        <i class="fas fa-tv"></i><span>FIDS</span>
                     </a>
 
-                    <a class="menu-item d-none" href="#" data-section="data-management" id="data-management-menu"><i
-                            class="fas fa-database"></i><span>Gestión de Datos</span></a>
-                    <a class="menu-item d-none" href="#" data-section="admin-usuarios" id="admin-users-menu"><i
-                            class="fas fa-users-cog"></i><span>Administración</span></a>
-                    <a class="menu-item" href="#" data-section="historia"><i
-                            class="fas fa-history"></i><span>Historia</span></a>
-                    <a class="menu-item" href="#" data-section="fids" id="menu-fids"><i
-                            class="fas fa-tv"></i><span>FIDS</span></a>
-                            
-                    <!-- Contratos AIFA (sistema externo) — oculto temporalmente -->
-                    <!-- <a class="menu-item" href="https://contratos-aifa.vercel.app/" target="_blank" rel="noopener noreferrer"><i
-                            class="fas fa-file-contract"></i><span>Contratos</span></a> -->
+                    <!-- GOET: Gerencia de Ops. Edificio Terminal (próximamente) -->
+                    <div class="sidebar-gerencia-label sidebar-org-label--pending">
+                        <span class="sidebar-org-badge sidebar-org-badge--sm">GOET</span>
+                        <span>Ops. Ed. Terminal</span>
+                    </div>
 
-                    <a class="menu-item" href="#" data-install-app-info><i class="fas fa-download"></i><span>Instalar
-                            como app</span></a>
+                    <!-- GSO: Gerencia de Seguridad Operacional -->
+                    <div class="sidebar-gerencia-label">
+                        <span class="sidebar-org-badge sidebar-org-badge--sm">GSO</span>
+                        <span>Sgd. Operacional</span>
+                    </div>
+                    <a class="menu-item menu-item--gerencia" href="#" data-section="fauna">
+                        <i class="fas fa-shield-alt"></i><span>GSO</span>
+                    </a>
 
-                    <a class="menu-item logout-item" href="#" data-action="logout"><i
-                            class="fas fa-sign-out-alt"></i><span>Cerrar Sesión</span></a>
+                    <!-- GSM: Gerencia de Servicios Médicos -->
+                    <div class="sidebar-gerencia-label">
+                        <span class="sidebar-org-badge sidebar-org-badge--sm">GSM</span>
+                        <span>Servicios Médicos</span>
+                    </div>
+                    <a class="menu-item menu-item--gerencia" href="#" data-section="medicas">
+                        <i class="fas fa-briefcase-medical"></i><span>Servicio Médico</span>
+                    </a>
+
+                    <!-- ╔══════════════════════════════════════════════════╗
+                         ║   SSA: Subdir. Seguridad de la Aviación          ║
+                         ╚══════════════════════════════════════════════════╝ -->
+                    <div class="sidebar-subdir-label sidebar-org-label--pending">
+                        <span class="sidebar-org-badge">SSA</span>
+                        <span>Sgd. de la Aviación</span>
+                    </div>
+
+                    <!-- ╔══════════════════════════════════════╗
+                         ║   SSC: Subdir. Servicios Conexos      ║
+                         ╚══════════════════════════════════════╝ -->
+                    <div class="sidebar-subdir-label sidebar-org-label--pending">
+                        <span class="sidebar-org-badge">SSC</span>
+                        <span>Servicios Conexos</span>
+                    </div>
+
+                    <!-- ╔══════════════════════════════════╗
+                         ║   SI: Subdir. Ingeniería           ║
+                         ╚══════════════════════════════════╝ -->
+                    <div class="sidebar-subdir-label sidebar-org-label--pending">
+                        <span class="sidebar-org-badge">SI</span>
+                        <span>Ingeniería</span>
+                    </div>
+
+                    <!-- ╔══════════════════════════════════════════╗
+                         ║   SGE: Subdir. Gestión Energética         ║
+                         ╚══════════════════════════════════════════╝ -->
+                    <div class="sidebar-subdir-label sidebar-org-label--pending">
+                        <span class="sidebar-org-badge">SGE</span>
+                        <span>Gestión Energética</span>
+                    </div>
+
+                    <!-- Admin (visibilidad gestionada por permisos) -->
+                    <a class="menu-item d-none" href="#" data-section="data-management" id="data-management-menu">
+                        <i class="fas fa-database"></i><span>Gestión de Datos</span>
+                    </a>
+                    <a class="menu-item d-none" href="#" data-section="admin-usuarios" id="admin-users-menu">
+                        <i class="fas fa-users-cog"></i><span>Administración</span>
+                    </a>
+
+                    <a class="menu-item" href="#" data-install-app-info>
+                        <i class="fas fa-download"></i><span>Instalar como app</span>
+                    </a>
+
+                    <a class="menu-item logout-item" href="#" data-action="logout">
+                        <i class="fas fa-sign-out-alt"></i><span>Cerrar Sesión</span>
+                    </a>
                 </nav>
             </aside>
             <!-- Overlay para dispositivos móviles: permite cerrar el sidebar al tocar fuera -->
@@ -21219,7 +21321,7 @@ FF
                                         data-bs-target="#frecuencias-upload-pane" type="button" role="tab"
                                         aria-controls="frecuencias-upload-pane" aria-selected="false">Subir Archivos</button>
                                 </li>
-                                <li class="nav-item" role="presentation">
+                                <li class="nav-item d-none" role="presentation">
                                     <button class="nav-link" id="frecuencias-playas-tab" data-bs-toggle="tab"
                                         data-bs-target="#frecuencias-playas-pane" type="button" role="tab"
                                         aria-controls="frecuencias-playas-pane" aria-selected="false"
