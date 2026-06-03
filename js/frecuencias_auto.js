@@ -185,6 +185,7 @@
     },
     resetFilters: pane.querySelector('#frecuencias-reset-filters'),
     excelButton: pane.querySelector('#frecuencias-download-excel'),
+    scheduleButton: pane.querySelector('#frecuencias-download-horarios'),
     activeFilters: pane.querySelector('#frecuencias-active-filters'),
     dowList: pane.querySelector('#frecuencias-dow-list'),
     insights: pane.querySelector('#frecuencias-insights'),
@@ -484,6 +485,7 @@
       applyFilters();
     });
     if (dom.excelButton) dom.excelButton.addEventListener('click', downloadExcel);
+    if (dom.scheduleButton) dom.scheduleButton.addEventListener('click', downloadScheduleExcel);
     if (dom.fitButton) {
       // Agrupar botones en un contenedor para mantener el layout
       const header = dom.fitButton.parentNode;
@@ -2289,6 +2291,178 @@ ${uncovered.length ? `<div class="p-3 rounded-3" style="background:#f8fafc;borde
           console.error('Copy failed', err);
           alert('No se pudo copiar al portapapeles');
       });
+  }
+
+  // ─── Exportar Horarios Detallados ────────────────────────────────────────
+  async function downloadScheduleExcel() {
+    if (!state.filtered || state.filtered.length === 0) {
+      alert('No hay datos para exportar.');
+      return;
+    }
+
+    // Helper: parse a dailyDetail string into an array of {flightNum, type, time}
+    function parseDetailFlights(detailStr) {
+      if (!detailStr) return [];
+      const results = [];
+      detailStr.split('<br>').forEach(raw => {
+        const f = raw.trim();
+        if (!f) return;
+        const parts = f.split(' ');
+        let flightNum = '', type = '', time = '';
+        const arrIdx = parts.findIndex(p => p.includes('(Lleg)'));
+        const depIdx = parts.findIndex(p => p.includes('(Sal)'));
+        if (arrIdx !== -1) {
+          type = 'Llegada';
+          flightNum = parts.slice(0, arrIdx).join(' ');
+          time = parts.slice(arrIdx + 1).join(' ');
+        } else if (depIdx !== -1) {
+          type = 'Salida';
+          flightNum = parts.slice(0, depIdx).join(' ');
+          time = parts.slice(depIdx + 1).join(' ');
+        } else {
+          // Legacy: "VB102 14:00" or "VB102 14:00 (Dep)"
+          const lastDepTag = parts.findIndex(p => /\(dep\)/i.test(p));
+          const lastArrTag = parts.findIndex(p => /\(arr\)/i.test(p));
+          const timeIdx = parts.findIndex(p => /^\d{1,2}:\d{2}$/.test(p));
+          if (lastDepTag !== -1) {
+            type = 'Salida';
+            flightNum = parts.slice(0, Math.min(timeIdx !== -1 ? timeIdx : lastDepTag, lastDepTag)).join(' ').replace(/\(dep\)/i,'').trim();
+            time = timeIdx !== -1 ? parts[timeIdx] : '';
+          } else if (lastArrTag !== -1) {
+            type = 'Llegada';
+            flightNum = parts.slice(0, Math.min(timeIdx !== -1 ? timeIdx : lastArrTag, lastArrTag)).join(' ').replace(/\(arr\)/i,'').trim();
+            time = timeIdx !== -1 ? parts[timeIdx] : '';
+          } else if (timeIdx !== -1) {
+            flightNum = parts.slice(0, timeIdx).join(' ');
+            type = 'Salida';
+            time = parts[timeIdx];
+          } else {
+            flightNum = f;
+            type = '';
+            time = '';
+          }
+        }
+        if (flightNum || time) results.push({ flightNum: flightNum.trim(), type, time: time.trim() });
+      });
+      return results;
+    }
+
+    // Build a flat rows array: one row per unique flight per day
+    // Flight key = routeId + airline + flightNum + type
+    // Columns: days with time (or '-' if not operating that day)
+    const DAY_LABELS_SHORT = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+    const flightMap = new Map(); // key -> { routeId, dest, state_, airline, flightNum, type, days:[7 times] }
+
+    state.filtered.forEach(dest => {
+      const airlines = (dest.viewAirlines?.length ? dest.viewAirlines : dest.airlines) || [];
+      airlines.forEach(air => {
+        (air.dailyDetails || []).forEach((detailStr, dayIdx) => {
+          parseDetailFlights(detailStr).forEach(({ flightNum, type, time }) => {
+            const key = `${dest.routeId||dest.iata}||${air.name}||${flightNum}||${type}`;
+            if (!flightMap.has(key)) {
+              flightMap.set(key, {
+                routeId: dest.routeId || dest.iata || '',
+                city: dest.city || dest.name || '',
+                state_: dest.state || '',
+                airline: air.name,
+                flightNum,
+                type,
+                days: ['-','-','-','-','-','-','-']
+              });
+            }
+            flightMap.get(key).days[dayIdx] = time || '✓';
+          });
+        });
+      });
+    });
+
+    if (flightMap.size === 0) {
+      alert('No hay detalle de horarios disponibles en los datos actuales.');
+      return;
+    }
+
+    // Build ExcelJS workbook
+    const workbook = new ExcelJS.Workbook();
+    const ws = workbook.addWorksheet('Horarios Nacionales');
+
+    ws.columns = [
+      { header: 'Id Ruta',    key: 'routeId',  width: 12 },
+      { header: 'Destino',    key: 'city',     width: 22 },
+      { header: 'Estado',     key: 'state_',   width: 18 },
+      { header: 'Aerolínea',  key: 'airline',  width: 20 },
+      { header: 'Vuelo',      key: 'flightNum',width: 14 },
+      { header: 'Tipo',       key: 'type',     width: 12 },
+      { header: DAY_LABELS_SHORT[0], key: 'd0', width: 10 },
+      { header: DAY_LABELS_SHORT[1], key: 'd1', width: 10 },
+      { header: DAY_LABELS_SHORT[2], key: 'd2', width: 10 },
+      { header: DAY_LABELS_SHORT[3], key: 'd3', width: 10 },
+      { header: DAY_LABELS_SHORT[4], key: 'd4', width: 10 },
+      { header: DAY_LABELS_SHORT[5], key: 'd5', width: 10 },
+      { header: DAY_LABELS_SHORT[6], key: 'd6', width: 10 },
+    ];
+
+    // Header style
+    const headerRow = ws.getRow(1);
+    headerRow.eachCell(cell => {
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0A1F44' } };
+      cell.font = { color: { argb: 'FFFFFFFF' }, bold: true };
+      cell.alignment = { horizontal: 'center', vertical: 'middle' };
+    });
+    headerRow.height = 25;
+
+    // Data rows
+    let rowNum = 2;
+    for (const entry of flightMap.values()) {
+      const row = ws.addRow({
+        routeId:  entry.routeId,
+        city:     entry.city,
+        state_:   entry.state_,
+        airline:  entry.airline,
+        flightNum:entry.flightNum,
+        type:     entry.type,
+        d0: entry.days[0], d1: entry.days[1], d2: entry.days[2],
+        d3: entry.days[3], d4: entry.days[4], d5: entry.days[5], d6: entry.days[6],
+      });
+
+      const isSalida = entry.type === 'Salida';
+      const accentArgb = isSalida ? 'FF0D6EFD' : 'FF198754'; // blue / green
+
+      row.eachCell({ includeEmpty: true }, (cell, colNum) => {
+        cell.border = {
+          top: { style: 'thin' }, left: { style: 'thin' },
+          bottom: { style: 'thin' }, right: { style: 'thin' }
+        };
+        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+        if (colNum <= 6) {
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFFFF' } };
+          cell.font = { color: { argb: 'FF000000' } };
+          if (colNum === 2) cell.alignment = { horizontal: 'left', vertical: 'middle' };
+        } else {
+          const hasTime = cell.value && cell.value !== '-';
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: hasTime ? accentArgb : 'FFF5F5F5' } };
+          cell.font = { color: { argb: hasTime ? 'FFFFFFFF' : 'FFAAAAAA' }, bold: hasTime };
+        }
+      });
+      rowNum++;
+    }
+
+    // Zebra stripe: alternate white/light-gray for first 6 info columns
+    ws.eachRow((row, rn) => {
+      if (rn < 2) return;
+      const bg = rn % 2 === 0 ? 'FFF8F9FA' : 'FFFFFFFF';
+      for (let c = 1; c <= 6; c++) {
+        const cell = row.getCell(c);
+        // Only set if not already overridden
+        if (!cell.fill || cell.fill.fgColor?.argb === 'FFFFFFFF') {
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bg } };
+        }
+      }
+    });
+
+    // Save
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    saveAs(blob, 'Horarios_Nacionales_AIFA.xlsx');
   }
 
   function debounce(fn, wait){

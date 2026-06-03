@@ -179,6 +179,7 @@
     },
     resetFilters: pane.querySelector('#frecuencias-int-reset-filters'),
     excelButton: pane.querySelector('#frecuencias-int-download-excel'),
+    scheduleButton: pane.querySelector('#frecuencias-int-download-horarios'),
     // activeFilters: pane.querySelector('#frecuencias-active-filters'), // Not in int HTML
     dowList: pane.querySelector('#frecuencias-int-dow-list'),
     // insights: pane.querySelector('#frecuencias-insights'),
@@ -437,6 +438,7 @@
       applyFilters();
     });
     if (dom.excelButton) dom.excelButton.addEventListener('click', downloadExcel);
+    if (dom.scheduleButton) dom.scheduleButton.addEventListener('click', downloadScheduleExcel);
     if (dom.fitButton) {
       // Agrupar botones en un contenedor para mantener el layout
       const header = dom.fitButton.parentNode;
@@ -1841,6 +1843,152 @@
     const buffer = await workbook.xlsx.writeBuffer();
     const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     saveAs(blob, 'Frecuencias_Internacionales_AIFA.xlsx');
+  }
+
+  // ─── Exportar Horarios Detallados (Internacional) ───────────────────────
+  async function downloadScheduleExcel() {
+    if (!state.filtered || state.filtered.length === 0) {
+      alert('No hay datos para exportar.');
+      return;
+    }
+
+    function parseDetailFlights(detailStr) {
+      if (!detailStr) return [];
+      const results = [];
+      detailStr.split('<br>').forEach(raw => {
+        const f = raw.trim();
+        if (!f) return;
+        const parts = f.split(' ');
+        let flightNum = '', type = '', time = '';
+        const arrIdx = parts.findIndex(p => p.includes('(Lleg)'));
+        const depIdx = parts.findIndex(p => p.includes('(Sal)'));
+        if (arrIdx !== -1) {
+          type = 'Llegada';
+          flightNum = parts.slice(0, arrIdx).join(' ');
+          time = parts.slice(arrIdx + 1).join(' ');
+        } else if (depIdx !== -1) {
+          type = 'Salida';
+          flightNum = parts.slice(0, depIdx).join(' ');
+          time = parts.slice(depIdx + 1).join(' ');
+        } else {
+          const timeIdx = parts.findIndex(p => /^\d{1,2}:\d{2}$/.test(p));
+          const lastDepTag = parts.findIndex(p => /\(dep\)/i.test(p));
+          const lastArrTag = parts.findIndex(p => /\(arr\)/i.test(p));
+          if (lastDepTag !== -1) {
+            type = 'Salida';
+            flightNum = parts.slice(0, Math.min(timeIdx !== -1 ? timeIdx : lastDepTag, lastDepTag)).join(' ').replace(/\(dep\)/i,'').trim();
+            time = timeIdx !== -1 ? parts[timeIdx] : '';
+          } else if (lastArrTag !== -1) {
+            type = 'Llegada';
+            flightNum = parts.slice(0, Math.min(timeIdx !== -1 ? timeIdx : lastArrTag, lastArrTag)).join(' ').replace(/\(arr\)/i,'').trim();
+            time = timeIdx !== -1 ? parts[timeIdx] : '';
+          } else if (timeIdx !== -1) {
+            flightNum = parts.slice(0, timeIdx).join(' ');
+            type = 'Salida';
+            time = parts[timeIdx];
+          } else {
+            flightNum = f; type = ''; time = '';
+          }
+        }
+        if (flightNum || time) results.push({ flightNum: flightNum.trim(), type, time: time.trim() });
+      });
+      return results;
+    }
+
+    const DAY_LABELS_SHORT = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+    const flightMap = new Map();
+
+    state.filtered.forEach(dest => {
+      const airlines = (dest.viewAirlines?.length ? dest.viewAirlines : dest.airlines) || [];
+      airlines.forEach(air => {
+        (air.dailyDetails || []).forEach((detailStr, dayIdx) => {
+          parseDetailFlights(detailStr).forEach(({ flightNum, type, time }) => {
+            const key = `${dest.routeId||dest.iata}||${air.name}||${flightNum}||${type}`;
+            if (!flightMap.has(key)) {
+              flightMap.set(key, {
+                routeId: dest.routeId || dest.iata || '',
+                city: dest.city || dest.name || '',
+                country: dest.country || dest.state || '',
+                airline: air.name,
+                flightNum,
+                type,
+                days: ['-','-','-','-','-','-','-']
+              });
+            }
+            flightMap.get(key).days[dayIdx] = time || '✓';
+          });
+        });
+      });
+    });
+
+    if (flightMap.size === 0) {
+      alert('No hay detalle de horarios disponibles en los datos actuales.');
+      return;
+    }
+
+    const workbook = new ExcelJS.Workbook();
+    const ws = workbook.addWorksheet('Horarios Internacionales');
+
+    ws.columns = [
+      { header: 'Id Ruta',   key: 'routeId',  width: 12 },
+      { header: 'Destino',   key: 'city',     width: 22 },
+      { header: 'País',      key: 'country',  width: 18 },
+      { header: 'Aerolínea', key: 'airline',  width: 20 },
+      { header: 'Vuelo',     key: 'flightNum',width: 14 },
+      { header: 'Tipo',      key: 'type',     width: 12 },
+      { header: DAY_LABELS_SHORT[0], key: 'd0', width: 10 },
+      { header: DAY_LABELS_SHORT[1], key: 'd1', width: 10 },
+      { header: DAY_LABELS_SHORT[2], key: 'd2', width: 10 },
+      { header: DAY_LABELS_SHORT[3], key: 'd3', width: 10 },
+      { header: DAY_LABELS_SHORT[4], key: 'd4', width: 10 },
+      { header: DAY_LABELS_SHORT[5], key: 'd5', width: 10 },
+      { header: DAY_LABELS_SHORT[6], key: 'd6', width: 10 },
+    ];
+
+    const headerRow = ws.getRow(1);
+    headerRow.eachCell(cell => {
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF0A1F44' } };
+      cell.font = { color: { argb: 'FFFFFFFF' }, bold: true };
+      cell.alignment = { horizontal: 'center', vertical: 'middle' };
+    });
+    headerRow.height = 25;
+
+    for (const entry of flightMap.values()) {
+      const row = ws.addRow({
+        routeId:  entry.routeId,
+        city:     entry.city,
+        country:  entry.country,
+        airline:  entry.airline,
+        flightNum:entry.flightNum,
+        type:     entry.type,
+        d0: entry.days[0], d1: entry.days[1], d2: entry.days[2],
+        d3: entry.days[3], d4: entry.days[4], d5: entry.days[5], d6: entry.days[6],
+      });
+
+      const isSalida = entry.type === 'Salida';
+      const accentArgb = isSalida ? 'FF0D6EFD' : 'FF198754';
+
+      row.eachCell({ includeEmpty: true }, (cell, colNum) => {
+        cell.border = {
+          top: { style: 'thin' }, left: { style: 'thin' },
+          bottom: { style: 'thin' }, right: { style: 'thin' }
+        };
+        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+        if (colNum <= 6) {
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFFFF' } };
+          cell.font = { color: { argb: 'FF000000' } };
+          if (colNum === 2) cell.alignment = { horizontal: 'left', vertical: 'middle' };
+        } else {
+          const hasTime = cell.value && cell.value !== '-';
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: hasTime ? accentArgb : 'FFF5F5F5' } };
+          cell.font = { color: { argb: hasTime ? 'FFFFFFFF' : 'FFAAAAAA' }, bold: hasTime };
+        }
+      });
+    }
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    saveAs(blob, 'Horarios_Internacionales_AIFA.xlsx');
   }
 
   function slugify(str){
