@@ -6430,6 +6430,15 @@ function showSection(sectionKey, linkEl) {
             }, 100);
         }
 
+        // Hook: Coordinación de Auditoría — Catálogo de Vehículos
+        if (targetKey === 'coord-auditoria') {
+            setTimeout(() => {
+                if (window.vehiculosModule && typeof window.vehiculosModule.init === 'function') {
+                    window.vehiculosModule.init();
+                }
+            }, 80);
+        }
+
         // Hook: Colaboradores – precarga en segundo plano
         if (targetKey === 'colaboradores') {
             // el módulo IIFE interno maneja su propia precarga via override de showSection;
@@ -6573,6 +6582,8 @@ function handleNavigation(e) {
 
 // Logout centralizado
 function performLogout() {
+    // Detener vigilancia de inactividad si estaba activa
+    try { if (window.SessionTimeout) window.SessionTimeout.stop(); } catch (_) {}
     // Cerrar sesión en Supabase para invalidar el JWT del lado servidor
     // y que al recargar la página NO se restaure automáticamente la sesión.
     try {
@@ -16840,6 +16851,273 @@ async function _conciSaveBulkEdits() {
 (function () {
     'use strict';
 
+    const WHA_AGENDA_DAYS = 30;
+
+    function whaIsoDate(d) {
+        const dt = new Date(d);
+        dt.setHours(0, 0, 0, 0);
+        return dt.toISOString().slice(0, 10);
+    }
+
+    function whaAddDays(d, days) {
+        const dt = new Date(d);
+        dt.setDate(dt.getDate() + days);
+        return dt;
+    }
+
+    function whaParseDate(value) {
+        if (!value) return null;
+        const s = String(value).slice(0, 10);
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return null;
+        const d = new Date(`${s}T00:00:00`);
+        return Number.isNaN(d.getTime()) ? null : d;
+    }
+
+    function whaFmtDate(value) {
+        const d = value instanceof Date ? value : whaParseDate(value);
+        if (!d) return 'sin fecha';
+        return d.toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
+    }
+
+    function whaFmtTime(value) {
+        if (!value) return '';
+        return String(value).slice(0, 5);
+    }
+
+    function whaDiffDays(a, b) {
+        return Math.floor((a.getTime() - b.getTime()) / 86400000);
+    }
+
+    function whaRecurrenceLabel(ev) {
+        if (!ev || !ev.recurrente) return '';
+        const rec = ev.recurrencia && typeof ev.recurrencia === 'object' ? ev.recurrencia : null;
+        if (!rec) return 'Recurrente';
+        if (rec.etiqueta) return String(rec.etiqueta).trim() || 'Recurrente';
+        const tipo = String(rec.tipo || '').toLowerCase();
+        if (tipo === 'semestral') return 'Semestral';
+        if (tipo === 'bimestral') return 'Bimestral';
+        if (tipo === 'anual') return 'Anual';
+        const p = [];
+        const m = Number(rec.meses || 0);
+        const d = Number(rec.dias || 0);
+        if (m > 0) p.push(`${m} mes${m === 1 ? '' : 'es'}`);
+        if (d > 0) p.push(`${d} dia${d === 1 ? '' : 's'}`);
+        return p.length ? p.join(' y ') : 'Recurrente';
+    }
+
+    function whaBuildAgendaText(params) {
+        const { reuniones, cursos, vacaciones, today } = params;
+        const lines = [];
+        const headerDate = today.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        lines.push(`AIFA OPERACIONES - Agenda de calendarios (${headerDate})`);
+        lines.push(`Ventana: proximos ${WHA_AGENDA_DAYS} dias`);
+        lines.push('');
+
+        lines.push(`Resumen:`);
+        lines.push(`- Reuniones de comites: ${reuniones.length}`);
+        lines.push(`- Cursos programados: ${cursos.length}`);
+        lines.push(`- Vacaciones programadas: ${vacaciones.length}`);
+        lines.push('');
+
+        if (reuniones.length) {
+            lines.push('1) Reuniones de comites:');
+            for (const r of reuniones.slice(0, 10)) {
+                const fecha = whaFmtDate(r.fecha_sesion);
+                const hora = whaFmtTime(r.hora_inicio);
+                const comite = r.agenda_comites?.nombre || r.numero_sesion || 'Comite';
+                const base = `- ${fecha}${hora ? ` ${hora}` : ''} | ${comite}`;
+                const extra = r.lugar ? ` | ${r.lugar}` : '';
+                lines.push(base + extra);
+            }
+            if (reuniones.length > 10) lines.push(`- ... y ${reuniones.length - 10} mas`);
+            lines.push('');
+        }
+
+        if (cursos.length) {
+            lines.push('2) Cursos programados (colaboradores):');
+            for (const c of cursos.slice(0, 10)) {
+                const fecha = whaFmtDate(c.fecha);
+                const hora = whaFmtTime(c.hora);
+                const rec = c.recurrente ? ` | ${whaRecurrenceLabel(c)}` : '';
+                lines.push(`- ${fecha}${hora ? ` ${hora}` : ''} | ${c.curso || 'Curso'} | ${c.asistentes.length} asistente(s)${rec}`);
+            }
+            if (cursos.length > 10) lines.push(`- ... y ${cursos.length - 10} mas`);
+            lines.push('');
+        }
+
+        if (vacaciones.length) {
+            lines.push('3) Vacaciones del personal:');
+            for (const v of vacaciones.slice(0, 10)) {
+                const ini = whaParseDate(v.fecha_inicio);
+                const dif = ini ? whaDiffDays(ini, today) : null;
+                const estado = dif == null ? 'programada' : dif === 0 ? 'inicia hoy' : dif < 0 ? 'en curso' : `inicia en ${dif} dias`;
+                lines.push(`- ${v.nombre} | ${whaFmtDate(v.fecha_inicio)} a ${whaFmtDate(v.fecha_fin)} | ${estado}`);
+            }
+            if (vacaciones.length > 10) lines.push(`- ... y ${vacaciones.length - 10} mas`);
+            lines.push('');
+        }
+
+        if (!reuniones.length && !cursos.length && !vacaciones.length) {
+            lines.push('No hay eventos programados en la ventana consultada.');
+            lines.push('');
+        }
+
+        lines.push('Favor de revisar y dar seguimiento a la agenda con cada responsable.');
+        lines.push('AIFA Operaciones');
+
+        const message = lines.join('\n').trim();
+        return message.length > 3500 ? `${message.slice(0, 3450)}\n\n[Mensaje recortado por longitud]` : message;
+    }
+
+    async function whaCollectCalendarData(sb) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const limit = whaAddDays(today, WHA_AGENDA_DAYS);
+        const todayIso = whaIsoDate(today);
+        const limitIso = whaIsoDate(limit);
+
+        const getEmployeeId = (row) => {
+            return row?.num_empleado || row?.numero_empleado || row?.['No. Empleado'] || row?.['No Empleado'] || row?.id || '';
+        };
+
+        const getEmployeeName = (row) => {
+            return row?.nombre || row?.Nombre || row?.['Nombre Completo'] || row?.['Nombre completo'] || '';
+        };
+
+        async function fetchAgendaRows() {
+            const attempts = [
+                'num_empleado, nombre, vacaciones, cursos_programados',
+                '"No. Empleado", nombre, vacaciones, cursos_programados',
+                'num_empleado, "Nombre", vacaciones, cursos_programados',
+                '"No. Empleado", "Nombre", vacaciones, cursos_programados',
+            ];
+
+            let lastError = null;
+            for (const selectCols of attempts) {
+                const res = await sb.from('agenda_2026').select(selectCols);
+                if (!res.error) return res;
+                lastError = res.error;
+            }
+
+            return { data: null, error: lastError };
+        }
+
+        const [reunionesRes, agendaRes] = await Promise.all([
+            sb
+                .from('agenda_reuniones')
+                .select('numero_sesion, fecha_sesion, hora_inicio, lugar, estatus, agenda_comites(nombre, area)')
+                .gte('fecha_sesion', todayIso)
+                .lte('fecha_sesion', limitIso)
+                .order('fecha_sesion', { ascending: true })
+                .order('hora_inicio', { ascending: true })
+                .limit(120),
+            fetchAgendaRows(),
+        ]);
+
+        if (reunionesRes.error) throw reunionesRes.error;
+        if (agendaRes.error) throw agendaRes.error;
+
+        const reuniones = reunionesRes.data || [];
+        const agendaRows = agendaRes.data || [];
+
+        const vacaciones = [];
+        const cursosMap = new Map();
+
+        for (const row of agendaRows) {
+            const empId = String(getEmployeeId(row) || '').trim();
+            const nombre = String(getEmployeeName(row) || empId || 'Colaborador').trim();
+
+            const vacs = Array.isArray(row.vacaciones) ? row.vacaciones : [];
+            for (const v of vacs) {
+                const ini = whaParseDate(v?.fecha_inicio);
+                const fin = whaParseDate(v?.fecha_fin);
+                if (!ini || !fin) continue;
+                if (ini > limit || fin < today) continue;
+                if (String(v?.estado || '').toLowerCase() === 'cancelado') continue;
+                vacaciones.push({
+                    nombre,
+                    fecha_inicio: String(v.fecha_inicio).slice(0, 10),
+                    fecha_fin: String(v.fecha_fin).slice(0, 10),
+                });
+            }
+
+            const events = Array.isArray(row.cursos_programados) ? row.cursos_programados : [];
+            for (const ev of events) {
+                const fecha = String(ev?.fecha || '').slice(0, 10);
+                const d = whaParseDate(fecha);
+                if (!d || d < today || d > limit) continue;
+                const key = String(ev?.session_id || `${fecha}|${ev?.hora || ''}|${ev?.curso || ''}|${ev?.lugar || ''}`);
+                if (!cursosMap.has(key)) {
+                    cursosMap.set(key, {
+                        session_id: key,
+                        curso: String(ev?.curso || '').trim(),
+                        fecha,
+                        hora: String(ev?.hora || '').slice(0, 5),
+                        lugar: String(ev?.lugar || '').trim(),
+                        modalidad: String(ev?.modalidad || '').trim(),
+                        recurrente: !!ev?.recurrente,
+                        recurrencia: ev?.recurrencia && typeof ev.recurrencia === 'object' ? ev.recurrencia : null,
+                        asistentes: [],
+                    });
+                }
+                cursosMap.get(key).asistentes.push({ num: empId, nombre });
+            }
+        }
+
+        const cursos = [...cursosMap.values()].sort((a, b) => {
+            const byDate = String(a.fecha || '').localeCompare(String(b.fecha || ''));
+            if (byDate) return byDate;
+            return String(a.hora || '').localeCompare(String(b.hora || ''));
+        });
+
+        vacaciones.sort((a, b) => String(a.fecha_inicio).localeCompare(String(b.fecha_inicio)) || String(a.nombre).localeCompare(String(b.nombre)));
+
+        return { reuniones, cursos, vacaciones, today };
+    }
+
+    // Exponer helpers para que otros modulos (p. ej. panel WhatsApp) puedan usarlos.
+    window.whaBuildAgendaText = whaBuildAgendaText;
+    window.whaCollectCalendarData = whaCollectCalendarData;
+
+    async function whaSendViaCallmebot(dest, text) {
+        const encoded = encodeURIComponent(text);
+        const url = `https://api.callmebot.com/whatsapp.php?phone=${encodeURIComponent(dest.telefono)}&text=${encoded}&apikey=${encodeURIComponent(dest.apikey)}&_t=${Date.now()}`;
+        return new Promise((resolve, reject) => {
+            try {
+                const beacon = new Image();
+                beacon.referrerPolicy = 'no-referrer';
+                beacon.style.position = 'fixed';
+                beacon.style.width = '1px';
+                beacon.style.height = '1px';
+                beacon.style.opacity = '0';
+                beacon.style.pointerEvents = 'none';
+
+                const cleanup = () => {
+                    try { beacon.onload = null; beacon.onerror = null; } catch (_) {}
+                    try { beacon.remove(); } catch (_) {}
+                };
+
+                // En frontend no hay confirmacion confiable por CORS, asi que
+                // consideramos exitoso cuando el request ya fue despachado.
+                beacon.onload = () => { cleanup(); resolve({ ok: true, status: 200 }); };
+                beacon.onerror = () => { cleanup(); resolve({ ok: true, status: 0 }); };
+
+                document.body.appendChild(beacon);
+                beacon.src = url;
+
+                setTimeout(() => {
+                    cleanup();
+                    resolve({ ok: true, status: 0 });
+                }, 900);
+            } catch (err) {
+                reject(err);
+            }
+        });
+    }
+
+    // Exponer para uso desde otros modulos.
+    window.whaSendViaCallmebot = whaSendViaCallmebot;
+
     // ── Estado ───────────────────────────────────────────────────────────
     let _auRows   = [];
     let _auFilter = 'all';
@@ -17921,6 +18199,78 @@ async function _conciSaveBulkEdits() {
             await whaLoad();
         } catch (e) {
             alert('Error al eliminar: ' + e.message);
+        }
+    };
+
+    window.whaSendCalendarAgenda = async function () {
+        const btn = document.getElementById('wha-send-agenda-btn');
+        const st = document.getElementById('wha-send-status');
+        const prev = btn?.innerHTML || '';
+
+        if (!confirm('Se enviara la agenda consolidada a todos los numeros activos de WhatsApp. Deseas continuar?')) return;
+
+        try {
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Enviando...';
+            }
+            if (st) st.innerHTML = '<span class="text-muted"><i class="fas fa-spinner fa-spin me-1"></i>Construyendo agenda consolidada...</span>';
+
+            const sb = await window.ensureSupabaseClient();
+
+            const { data: destinos, error: destErr } = await sb
+                .from('whatsapp_alertas')
+                .select('id, nombre, telefono, apikey, activo')
+                .eq('activo', true)
+                .order('id', { ascending: true });
+            if (destErr) throw destErr;
+
+            if (!destinos || !destinos.length) {
+                if (st) st.innerHTML = '<span class="text-danger"><i class="fas fa-exclamation-circle me-1"></i>No hay numeros activos para enviar.</span>';
+                return;
+            }
+
+            if (typeof window.whaCollectCalendarData !== 'function' || typeof window.whaBuildAgendaText !== 'function') {
+                throw new Error('No se pudo inicializar el generador de agenda. Recarga la pagina e intenta de nuevo.');
+            }
+            if (typeof window.whaSendViaCallmebot !== 'function') {
+                throw new Error('No se pudo inicializar el modulo de envio WhatsApp. Recarga la pagina e intenta de nuevo.');
+            }
+
+            const agendaData = await window.whaCollectCalendarData(sb);
+            const text = window.whaBuildAgendaText(agendaData);
+
+            if (st) st.innerHTML = `<span class="text-info"><i class="fas fa-paper-plane me-1"></i>Enviando agenda a ${destinos.length} destinatario(s)...</span>`;
+
+            const results = [];
+            for (const dest of destinos) {
+                try {
+                    const res = await window.whaSendViaCallmebot(dest, text);
+                    results.push({ nombre: dest.nombre, telefono: dest.telefono, ok: !!res.ok, status: res.status || 0 });
+                } catch (err) {
+                    results.push({ nombre: dest.nombre, telefono: dest.telefono, ok: false, error: err?.message || String(err) });
+                }
+                await new Promise(resolve => setTimeout(resolve, 1300));
+            }
+
+            const okCount = results.filter(r => r.ok).length;
+            const failCount = results.length - okCount;
+            const detail = results
+                .map(r => `${r.ok ? 'OK' : 'ERR'} ${r.nombre} (${r.telefono})${r.ok ? '' : ` - ${String(r.error || 'Error desconocido')}`}`)
+                .join('<br>');
+            if (st) {
+                st.innerHTML = `${failCount === 0
+                    ? `<span class="text-success"><i class="fas fa-check-circle me-1"></i>Agenda enviada a ${okCount}/${results.length} destinatario(s).</span>`
+                    : `<span class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i>Enviados: ${okCount}/${results.length}. Revisar intentos fallidos.</span>`}
+                    <div class="mt-1 text-muted" style="font-size:.78rem">${detail}</div>`;
+            }
+        } catch (e) {
+            if (st) st.innerHTML = `<span class="text-danger"><i class="fas fa-times-circle me-1"></i>Error al enviar agenda: ${e.message}</span>`;
+        } finally {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = prev;
+            }
         }
     };
 

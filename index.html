@@ -25976,6 +25976,7 @@ FF
     <script src="js/frecuencias_auto_int.js?v=2"></script>
     <script src="js/frecuencias_auto_cargo.js?v=2"></script>
     <script src="js/frecuencias_playas.js?v=1"></script>
+    <script src="js/session-timeout.js?v=1"></script>
     <script src="js/manifiestos.js"></script>
     <script src="js/manifiestos-analisis.js"></script>
     <script src="js/manifiestos-carga.js"></script>
@@ -29422,6 +29423,61 @@ window.AeropuertosModule = (function () {
     };
 })();
 </script>
+
+<!-- ╔══════════════════════════════════════════════════════╗
+     ║  MODAL — CIERRE DE SESIÓN POR INACTIVIDAD           ║
+     ╚══════════════════════════════════════════════════════╝ -->
+<div class="modal fade" id="session-timeout-modal" tabindex="-1"
+     aria-labelledby="sto-title" aria-modal="true" role="alertdialog">
+    <div class="modal-dialog modal-dialog-centered" style="max-width:420px;">
+        <div class="modal-content border-0 shadow-lg overflow-hidden">
+
+            <!-- Estado: Advertencia (sto-state-warning) -->
+            <div class="sto-warning-body p-4 text-center d-none">
+                <div class="sto-icon-wrap mb-3">
+                    <div class="sto-icon-ring">
+                        <i class="fas fa-user-clock" aria-hidden="true"></i>
+                    </div>
+                </div>
+                <h5 id="sto-title" class="fw-bold mb-1">¿Sigues ahí?</h5>
+                <p class="text-muted mb-3" style="font-size:.9rem;">
+                    Tu sesión se cerrará automáticamente por inactividad en
+                </p>
+                <div id="session-timeout-countdown"
+                     class="sto-countdown mb-4" aria-live="polite" aria-atomic="true">
+                    —
+                </div>
+                <button id="session-timeout-continue"
+                        class="btn btn-primary w-100 py-2 fw-semibold mb-2">
+                    <i class="fas fa-check-circle me-2"></i>Continuar sesión
+                </button>
+                <p class="text-muted mb-0" style="font-size:.75rem;">
+                    Mueve el cursor o presiona cualquier tecla para continuar.
+                </p>
+            </div>
+
+            <!-- Estado: Sesión expirada (sto-state-expired) -->
+            <div class="sto-expired-body p-4 text-center d-none">
+                <div class="sto-icon-wrap mb-3">
+                    <div class="sto-icon-ring sto-icon-ring--expired">
+                        <i class="fas fa-lock" aria-hidden="true"></i>
+                    </div>
+                </div>
+                <h5 class="fw-bold mb-1">Sesión cerrada</h5>
+                <p class="text-muted mb-3" style="font-size:.9rem;">
+                    Tu sesión se cerró por inactividad.<br>
+                    Vuelve a iniciar sesión para continuar.
+                </p>
+                <button class="btn btn-primary w-100 py-2 fw-semibold"
+                        id="session-timeout-relogin">
+                    <i class="fas fa-sign-in-alt me-2"></i>Iniciar sesión
+                </button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
 </body>
 </html>
 
