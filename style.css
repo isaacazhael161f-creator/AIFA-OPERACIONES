@@ -14518,12 +14518,12 @@ body.dark-mode #yoy-insights-list li {
 /* ════════════════════════════════════════════════
    PALETA POR SUBDIRECCIÓN
    ════════════════════════════════════════════════ */
-.si-sub--sso { --sub-c: #3b82f6; --sub-cb: rgba(59,130,246,.12); }
-.si-sub--ssa { --sub-c: #8b5cf6; --sub-cb: rgba(139,92,246,.12); }
-.si-sub--ssc { --sub-c: #06b6d4; --sub-cb: rgba(6,182,212,.12); }
-.si-sub--si  { --sub-c: #6366f1; --sub-cb: rgba(99,102,241,.12); }
-.si-sub--sge { --sub-c: #10b981; --sub-cb: rgba(16,185,129,.12); }
 .si-group--sub { --sub-c: #60a5fa; --sub-cb: rgba(96,165,250,.12); }
+.si-group--sub.si-sub--sso { --sub-c: #3b82f6; --sub-cb: rgba(59,130,246,.14); }
+.si-group--sub.si-sub--ssa { --sub-c: #a855f7; --sub-cb: rgba(168,85,247,.14); }
+.si-group--sub.si-sub--ssc { --sub-c: #06b6d4; --sub-cb: rgba(6,182,212,.14); }
+.si-group--sub.si-sub--si  { --sub-c: #f97316; --sub-cb: rgba(249,115,22,.14); }
+.si-group--sub.si-sub--sge { --sub-c: #10b981; --sub-cb: rgba(16,185,129,.14); }
 
 /* ──────────────────────────────────────────────
    CABECERA "DIR. DE OPERACIÓN"
