@@ -82,7 +82,7 @@ class AdminUI {
             const allTabs = [
                 'tab-ops-summary', 'tab-daily-ops', 'tab-parte-ops', 'tab-daily-flights-ops', 
                 'tab-library', 'tab-alerts', 'tab-itinerary', 'tab-weekly-frequencies', 
-                'tab-weekly-frequencies-int', 'tab-punctuality-table', 'tab-wildlife', 
+                'tab-weekly-frequencies-int', 'tab-weekly-frequencies-cargo', 'tab-weekly-frequencies-playas', 'tab-punctuality-table', 'tab-wildlife', 
                 'tab-rescued-wildlife', 'tab-medical', 'tab-delays', 'tab-comparativa',
                 'tab-visitors'
             ];
