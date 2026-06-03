@@ -2114,6 +2114,25 @@ function resetSectionPermissions() {
     userDefaultSectionKey = 'operaciones-totales';
     document.querySelectorAll('.menu-item[data-section]').forEach((item) => item.classList.remove('perm-hidden'));
     document.querySelectorAll('.content-section').forEach((section) => section.classList.remove('perm-hidden'));
+    // Restore all sidebar group containers
+    document.querySelectorAll('#sidebar-nav .si-group').forEach(group => group.classList.remove('perm-hidden'));
+}
+
+/**
+ * After hiding individual menu-item links, also hide any .si-group container
+ * whose every .menu-item[data-section] descendant is already perm-hidden.
+ * Processes innermost groups first so parent groups react correctly.
+ */
+function hideEmptySidebarGroups() {
+    const allGroups = Array.from(document.querySelectorAll('#sidebar-nav .si-group'));
+    // Reverse so deepest (innermost) groups are processed first
+    allGroups.reverse().forEach(group => {
+        const menuItems = Array.from(group.querySelectorAll('.menu-item[data-section]'));
+        // Groups with no menu items are "Próximamente" decorations — leave them alone
+        if (menuItems.length === 0) return;
+        const allHidden = menuItems.every(item => item.classList.contains('perm-hidden'));
+        if (allHidden) group.classList.add('perm-hidden');
+    });
 }
 
 function isSectionAllowed(sectionKey) {
@@ -2158,6 +2177,7 @@ function applySectionPermissions(userName) {
                 sectionEl.classList.remove('active');
             }
         });
+        hideEmptySidebarGroups();
         // Navegar a colaboradores automáticamente
         const colabLink = document.querySelector('.menu-item[data-section="colaboradores"]');
         if (typeof showSection === 'function' && colabLink) showSection('colaboradores', colabLink);
@@ -2228,6 +2248,8 @@ function applySectionPermissions(userName) {
             }
         });
 
+        hideEmptySidebarGroups();
+
         if (!isSectionAllowed(currentSectionKey)) {
             const fallback = getDefaultAllowedSection();
             const fallbackLink = document.querySelector(`.menu-item[data-section="${fallback}"]`);
@@ -2251,6 +2273,8 @@ function applySectionPermissions(userName) {
         const colabSection = document.getElementById('colaboradores-section');
         if (colabSection) { colabSection.classList.add('perm-hidden'); colabSection.classList.remove('active'); }
     }
+    // Re-run after colaboradores adjustment to catch any newly-emptied groups
+    hideEmptySidebarGroups();
 }
 // Hashes de contraseñas (generados en cliente al inicio y luego se descartan passwords en claro)
 const AUTH_HASHES = Object.create(null);
