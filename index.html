@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 
 <head>
@@ -1069,190 +1069,270 @@ FF
         </div>
 
         <div class="app-body">
-            <aside class="sidebar d-flex flex-column p-2" id="sidebar">
-                <nav class="nav flex-column" id="sidebar-nav">
+            <aside class="sidebar d-flex flex-column" id="sidebar">
+                <nav class="nav flex-column si-nav" id="sidebar-nav">
 
-                    <!-- ╔══════════════════════════════════════╗
-                         ║   DIRECCIÓN DE OPERACIÓN             ║
-                         ╚══════════════════════════════════════╝ -->
-                    <div class="sidebar-org-header">
-                        <i class="fas fa-sitemap me-2" aria-hidden="true"></i>
+                    <!-- Cabecera Dirección -->
+                    <div class="si-dir-hdr">
+                        <i class="fas fa-sitemap" aria-hidden="true"></i>
                         <span>Dir. de Operación</span>
                     </div>
 
-                    <!-- Inicio — directo bajo Dirección -->
-                    <a class="menu-item active" href="#" data-section="operaciones-totales">
-                        <i class="fas fa-home"></i><span>Inicio</span>
+                    <!-- Inicio -->
+                    <a class="menu-item si-link" href="#" data-section="operaciones-totales">
+                        <i class="fas fa-home si-ico"></i>
+                        <span class="si-txt">Inicio</span>
                     </a>
 
-                    <!-- ── Archivo ──────────────────────────── -->
-                    <div class="sidebar-area-label">
-                        <i class="fas fa-archive me-2" aria-hidden="true"></i>
-                        <span>Archivo</span>
+                    <!-- ARCHIVO -->
+                    <div class="si-group">
+                        <button class="si-grp-btn si-grp-btn--area collapsed"
+                                data-bs-toggle="collapse" data-bs-target="#sg-archivo" aria-expanded="false">
+                            <i class="fas fa-archive si-grp-ico"></i>
+                            <span class="si-grp-lbl">Archivo</span>
+                            <i class="fas fa-chevron-down si-chev"></i>
+                        </button>
+                        <div class="collapse" id="sg-archivo">
+                            <div class="si-body"><span class="si-coming">Próximamente</span></div>
+                        </div>
                     </div>
 
-                    <!-- ── Coord. de Auditoría ─────────────── -->
-                    <div class="sidebar-area-label">
-                        <i class="fas fa-clipboard-check me-2" aria-hidden="true"></i>
-                        <span>Coord. de Auditoría</span>
-                    </div>
-                    <a class="menu-item menu-item--gerencia" href="#" data-section="colaboradores">
-                        <i class="fas fa-id-badge"></i><span>Colaboradores</span>
-                    </a>
-                    <a class="menu-item menu-item--gerencia" href="#" data-section="coord-auditoria" id="menu-coord-auditoria">
-                        <i class="fas fa-clipboard-list"></i><span>Coord. Auditoría</span>
-                    </a>
-
-                    <!-- ── GPyC ──────────────────────────────── -->
-                    <div class="sidebar-area-label">
-                        <i class="fas fa-project-diagram me-2" aria-hidden="true"></i>
-                        <span>GPyC</span>
-                    </div>
-                    <!-- Contratos AIFA — próximamente -->
-                    <!-- <a class="menu-item menu-item--gerencia" href="https://contratos-aifa.vercel.app/" target="_blank" rel="noopener noreferrer">
-                        <i class="fas fa-file-contract"></i><span>Contratos</span>
-                    </a> -->
-
-                    <!-- Agenda — directo bajo Dirección -->
-                    <a class="menu-item" href="#" data-section="agenda">
-                        <i class="fas fa-calendar-check"></i><span>Agenda de Comités</span>
-                    </a>
-
-                    <!-- ╔══════════════════════════════════════════════╗
-                         ║   SSO: Subdir. Seguridad Operacional         ║
-                         ╚══════════════════════════════════════════════╝ -->
-                    <div class="sidebar-subdir-label">
-                        <span class="sidebar-org-badge">SSO</span>
-                        <span>Sgd. Operacional</span>
+                    <!-- COORD. AUDITORÍA -->
+                    <div class="si-group">
+                        <button class="si-grp-btn si-grp-btn--area"
+                                data-bs-toggle="collapse" data-bs-target="#sg-auditoria" aria-expanded="true">
+                            <i class="fas fa-clipboard-check si-grp-ico"></i>
+                            <span class="si-grp-lbl">Coord. Auditoría</span>
+                            <i class="fas fa-chevron-down si-chev"></i>
+                        </button>
+                        <div class="collapse show" id="sg-auditoria">
+                            <div class="si-body">
+                                <a class="menu-item si-link si-link--l1" href="#" data-section="colaboradores">
+                                    <i class="fas fa-id-badge si-ico"></i>
+                                    <span class="si-txt">Colaboradores</span>
+                                </a>
+                                <a class="menu-item si-link si-link--l1" href="#" data-section="coord-auditoria" id="menu-coord-auditoria">
+                                    <i class="fas fa-clipboard-list si-ico"></i>
+                                    <span class="si-txt">Coord. Auditoría</span>
+                                </a>
+                            </div>
+                        </div>
                     </div>
 
-                    <!-- GOPA: Gerencia de Ops. Parte Aeronáutica -->
-                    <div class="sidebar-gerencia-label">
-                        <span class="sidebar-org-badge sidebar-org-badge--sm">GOPA</span>
-                        <span>Ops. Parte Aeronáutica</span>
-                    </div>
-                    <a class="menu-item menu-item--gerencia" href="#" data-section="inicio">
-                        <i class="fas fa-calendar-day"></i><span>Itinerario Diario</span>
-                    </a>
-                    <a class="menu-item menu-item--gerencia" href="#" data-section="frecuencias-semana">
-                        <i class="fas fa-chart-bar"></i><span>Frecuencias Semanales</span>
-                    </a>
-                    <a class="menu-item menu-item--gerencia" href="#" data-section="parte-operaciones">
-                        <i class="fas fa-file-invoice"></i><span>Parte de Operaciones</span>
-                    </a>
-                    <a class="menu-item menu-item--gerencia" href="#" data-section="analisis-operaciones">
-                        <i class="fas fa-chart-pie"></i><span>Análisis de Operaciones</span>
-                    </a>
-                    <a class="menu-item menu-item--gerencia" href="#" data-section="conciliacion">
-                        <i class="fas fa-tasks"></i><span>Conciliación</span>
-                    </a>
-                    <a class="menu-item menu-item--gerencia" href="#" data-section="aerolineas">
-                        <i class="fas fa-plane"></i><span>Aerolíneas</span>
-                    </a>
-                    <a class="menu-item menu-item--gerencia" href="#" data-section="puntualidad-agosto">
-                        <span class="icon-clock-check" aria-hidden="true">
-                            <i class="fas fa-clock"></i>
-                            <i class="fas fa-check check" aria-hidden="true"></i>
-                        </span>
-                        <span>Puntualidad</span>
-                    </a>
-                    <a class="menu-item menu-item--gerencia" href="#" data-section="demoras">
-                        <i class="fas fa-clock"></i><span>Demoras</span>
-                    </a>
-                    <a class="menu-item menu-item--gerencia" id="itinerario-mensual-menu" href="#" data-section="itinerario-mensual">
-                        <i class="fas fa-table"></i><span>Itinerario Mensual</span>
-                    </a>
-                    <a class="menu-item menu-item--gerencia" href="#" data-section="portal-digitalizacion" id="menu-portal-digital">
-                        <i class="fas fa-cloud-upload-alt"></i><span>Portal Digital</span>
-                    </a>
-                    <a class="menu-item menu-item--gerencia" href="#" data-section="abordadores-mecanicos">
-                        <i class="fas fa-cogs"></i><span>Abordadores Mecánicos</span>
-                    </a>
-                    <a class="menu-item menu-item--gerencia" href="#" data-section="biblioteca">
-                        <i class="fas fa-book"></i><span>Biblioteca</span>
-                    </a>
-                    <a class="menu-item menu-item--gerencia" href="#" data-section="email-analisis">
-                        <i class="fas fa-envelope"></i><span>Análisis Correos</span>
-                    </a>
-                    <a class="menu-item menu-item--gerencia" href="#" data-section="historia">
-                        <i class="fas fa-history"></i><span>Historia</span>
-                    </a>
-                    <a class="menu-item menu-item--gerencia" href="#" data-section="fids" id="menu-fids">
-                        <i class="fas fa-tv"></i><span>FIDS</span>
-                    </a>
-
-                    <!-- GOET: Gerencia de Ops. Edificio Terminal (próximamente) -->
-                    <div class="sidebar-gerencia-label sidebar-org-label--pending">
-                        <span class="sidebar-org-badge sidebar-org-badge--sm">GOET</span>
-                        <span>Ops. Ed. Terminal</span>
+                    <!-- GPyC -->
+                    <div class="si-group">
+                        <button class="si-grp-btn si-grp-btn--area collapsed"
+                                data-bs-toggle="collapse" data-bs-target="#sg-gpyc" aria-expanded="false">
+                            <i class="fas fa-project-diagram si-grp-ico"></i>
+                            <span class="si-grp-lbl">GPyC</span>
+                            <i class="fas fa-chevron-down si-chev"></i>
+                        </button>
+                        <div class="collapse" id="sg-gpyc">
+                            <div class="si-body"><span class="si-coming">Próximamente</span></div>
+                        </div>
                     </div>
 
-                    <!-- GSO: Gerencia de Seguridad Operacional -->
-                    <div class="sidebar-gerencia-label">
-                        <span class="sidebar-org-badge sidebar-org-badge--sm">GSO</span>
-                        <span>Sgd. Operacional</span>
-                    </div>
-                    <a class="menu-item menu-item--gerencia" href="#" data-section="fauna">
-                        <i class="fas fa-shield-alt"></i><span>GSO</span>
+                    <!-- Agenda de Comités -->
+                    <a class="menu-item si-link" href="#" data-section="agenda">
+                        <i class="fas fa-calendar-check si-ico"></i>
+                        <span class="si-txt">Agenda de Comités</span>
                     </a>
 
-                    <!-- GSM: Gerencia de Servicios Médicos -->
-                    <div class="sidebar-gerencia-label">
-                        <span class="sidebar-org-badge sidebar-org-badge--sm">GSM</span>
-                        <span>Servicios Médicos</span>
+                    <div class="si-sep"></div>
+
+                    <!-- SSO -->
+                    <div class="si-group si-group--sub">
+                        <button class="si-grp-btn si-grp-btn--sub"
+                                data-bs-toggle="collapse" data-bs-target="#sg-sso" aria-expanded="true">
+                            <span class="si-bdg">SSO</span>
+                            <span class="si-grp-lbl">Sgd. Operacional</span>
+                            <i class="fas fa-chevron-down si-chev"></i>
+                        </button>
+                        <div class="collapse show" id="sg-sso">
+                            <div class="si-body si-body--sub">
+
+                                <!-- GOPA -->
+                                <div class="si-group si-group--ger">
+                                    <button class="si-grp-btn si-grp-btn--ger"
+                                            data-bs-toggle="collapse" data-bs-target="#sg-gopa" aria-expanded="true">
+                                        <span class="si-bdg si-bdg--ger">GOPA</span>
+                                        <span class="si-grp-lbl">Ops. Parte Aeronáutica</span>
+                                        <i class="fas fa-chevron-down si-chev"></i>
+                                    </button>
+                                    <div class="collapse show" id="sg-gopa">
+                                        <div class="si-body si-body--ger">
+                                            <a class="menu-item si-link si-link--l2" href="#" data-section="inicio">
+                                                <i class="fas fa-calendar-day si-ico"></i><span class="si-txt">Itinerario Diario</span>
+                                            </a>
+                                            <a class="menu-item si-link si-link--l2" href="#" data-section="frecuencias-semana">
+                                                <i class="fas fa-chart-bar si-ico"></i><span class="si-txt">Frecuencias Semanales</span>
+                                            </a>
+                                            <a class="menu-item si-link si-link--l2" href="#" data-section="parte-operaciones">
+                                                <i class="fas fa-file-invoice si-ico"></i><span class="si-txt">Parte de Operaciones</span>
+                                            </a>
+                                            <a class="menu-item si-link si-link--l2" href="#" data-section="analisis-operaciones">
+                                                <i class="fas fa-chart-pie si-ico"></i><span class="si-txt">Análisis de Operaciones</span>
+                                            </a>
+                                            <a class="menu-item si-link si-link--l2" href="#" data-section="conciliacion">
+                                                <i class="fas fa-tasks si-ico"></i><span class="si-txt">Conciliación</span>
+                                            </a>
+                                            <a class="menu-item si-link si-link--l2" href="#" data-section="aerolineas">
+                                                <i class="fas fa-plane si-ico"></i><span class="si-txt">Aerolíneas</span>
+                                            </a>
+                                            <a class="menu-item si-link si-link--l2" href="#" data-section="puntualidad-agosto">
+                                                <span class="icon-clock-check si-ico" aria-hidden="true"><i class="fas fa-clock"></i><i class="fas fa-check check"></i></span>
+                                                <span class="si-txt">Puntualidad</span>
+                                            </a>
+                                            <a class="menu-item si-link si-link--l2" href="#" data-section="demoras">
+                                                <i class="fas fa-clock si-ico"></i><span class="si-txt">Demoras</span>
+                                            </a>
+                                            <a class="menu-item si-link si-link--l2" id="itinerario-mensual-menu" href="#" data-section="itinerario-mensual">
+                                                <i class="fas fa-table si-ico"></i><span class="si-txt">Itinerario Mensual</span>
+                                            </a>
+                                            <a class="menu-item si-link si-link--l2" href="#" data-section="portal-digitalizacion" id="menu-portal-digital">
+                                                <i class="fas fa-cloud-upload-alt si-ico"></i><span class="si-txt">Portal Digital</span>
+                                            </a>
+                                            <a class="menu-item si-link si-link--l2" href="#" data-section="abordadores-mecanicos">
+                                                <i class="fas fa-cogs si-ico"></i><span class="si-txt">Abordadores Mecánicos</span>
+                                            </a>
+                                            <a class="menu-item si-link si-link--l2" href="#" data-section="biblioteca">
+                                                <i class="fas fa-book si-ico"></i><span class="si-txt">Biblioteca</span>
+                                            </a>
+                                            <a class="menu-item si-link si-link--l2" href="#" data-section="email-analisis">
+                                                <i class="fas fa-envelope si-ico"></i><span class="si-txt">Análisis Correos</span>
+                                            </a>
+                                            <a class="menu-item si-link si-link--l2" href="#" data-section="historia">
+                                                <i class="fas fa-history si-ico"></i><span class="si-txt">Historia</span>
+                                            </a>
+                                            <a class="menu-item si-link si-link--l2" href="#" data-section="fids" id="menu-fids">
+                                                <i class="fas fa-tv si-ico"></i><span class="si-txt">FIDS</span>
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- GOET (próximamente) -->
+                                <div class="si-group si-group--ger si-group--pend">
+                                    <button class="si-grp-btn si-grp-btn--ger collapsed"
+                                            data-bs-toggle="collapse" data-bs-target="#sg-goet" aria-expanded="false">
+                                        <span class="si-bdg si-bdg--ger">GOET</span>
+                                        <span class="si-grp-lbl">Ops. Ed. Terminal</span>
+                                        <i class="fas fa-chevron-down si-chev"></i>
+                                    </button>
+                                    <div class="collapse" id="sg-goet">
+                                        <div class="si-body si-body--ger"><span class="si-coming">Próximamente</span></div>
+                                    </div>
+                                </div>
+
+                                <!-- GSO -->
+                                <div class="si-group si-group--ger">
+                                    <button class="si-grp-btn si-grp-btn--ger"
+                                            data-bs-toggle="collapse" data-bs-target="#sg-gso-ger" aria-expanded="true">
+                                        <span class="si-bdg si-bdg--ger">GSO</span>
+                                        <span class="si-grp-lbl">Sgd. Operacional</span>
+                                        <i class="fas fa-chevron-down si-chev"></i>
+                                    </button>
+                                    <div class="collapse show" id="sg-gso-ger">
+                                        <div class="si-body si-body--ger">
+                                            <a class="menu-item si-link si-link--l2" href="#" data-section="fauna">
+                                                <i class="fas fa-shield-alt si-ico"></i><span class="si-txt">GSO</span>
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- GSM -->
+                                <div class="si-group si-group--ger">
+                                    <button class="si-grp-btn si-grp-btn--ger"
+                                            data-bs-toggle="collapse" data-bs-target="#sg-gsm" aria-expanded="true">
+                                        <span class="si-bdg si-bdg--ger">GSM</span>
+                                        <span class="si-grp-lbl">Servicios Médicos</span>
+                                        <i class="fas fa-chevron-down si-chev"></i>
+                                    </button>
+                                    <div class="collapse show" id="sg-gsm">
+                                        <div class="si-body si-body--ger">
+                                            <a class="menu-item si-link si-link--l2" href="#" data-section="medicas">
+                                                <i class="fas fa-briefcase-medical si-ico"></i><span class="si-txt">Servicio Médico</span>
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div><!-- /SSO -->
+
+                    <!-- SSA -->
+                    <div class="si-group si-group--sub si-group--pend">
+                        <button class="si-grp-btn si-grp-btn--sub collapsed"
+                                data-bs-toggle="collapse" data-bs-target="#sg-ssa" aria-expanded="false">
+                            <span class="si-bdg">SSA</span>
+                            <span class="si-grp-lbl">Sgd. de la Aviación</span>
+                            <i class="fas fa-chevron-down si-chev"></i>
+                        </button>
+                        <div class="collapse" id="sg-ssa">
+                            <div class="si-body si-body--sub"><span class="si-coming">Próximamente</span></div>
+                        </div>
                     </div>
-                    <a class="menu-item menu-item--gerencia" href="#" data-section="medicas">
-                        <i class="fas fa-briefcase-medical"></i><span>Servicio Médico</span>
+
+                    <!-- SSC -->
+                    <div class="si-group si-group--sub si-group--pend">
+                        <button class="si-grp-btn si-grp-btn--sub collapsed"
+                                data-bs-toggle="collapse" data-bs-target="#sg-ssc" aria-expanded="false">
+                            <span class="si-bdg">SSC</span>
+                            <span class="si-grp-lbl">Servicios Conexos</span>
+                            <i class="fas fa-chevron-down si-chev"></i>
+                        </button>
+                        <div class="collapse" id="sg-ssc">
+                            <div class="si-body si-body--sub"><span class="si-coming">Próximamente</span></div>
+                        </div>
+                    </div>
+
+                    <!-- SI -->
+                    <div class="si-group si-group--sub si-group--pend">
+                        <button class="si-grp-btn si-grp-btn--sub collapsed"
+                                data-bs-toggle="collapse" data-bs-target="#sg-si" aria-expanded="false">
+                            <span class="si-bdg">SI</span>
+                            <span class="si-grp-lbl">Ingeniería</span>
+                            <i class="fas fa-chevron-down si-chev"></i>
+                        </button>
+                        <div class="collapse" id="sg-si">
+                            <div class="si-body si-body--sub"><span class="si-coming">Próximamente</span></div>
+                        </div>
+                    </div>
+
+                    <!-- SGE -->
+                    <div class="si-group si-group--sub si-group--pend">
+                        <button class="si-grp-btn si-grp-btn--sub collapsed"
+                                data-bs-toggle="collapse" data-bs-target="#sg-sge" aria-expanded="false">
+                            <span class="si-bdg">SGE</span>
+                            <span class="si-grp-lbl">Gestión Energética</span>
+                            <i class="fas fa-chevron-down si-chev"></i>
+                        </button>
+                        <div class="collapse" id="sg-sge">
+                            <div class="si-body si-body--sub"><span class="si-coming">Próximamente</span></div>
+                        </div>
+                    </div>
+
+                    <!-- Admin — visibilidad gestionada por permisos -->
+                    <a class="menu-item si-link d-none" href="#" data-section="data-management" id="data-management-menu">
+                        <i class="fas fa-database si-ico"></i><span class="si-txt">Gestión de Datos</span>
+                    </a>
+                    <a class="menu-item si-link d-none" href="#" data-section="admin-usuarios" id="admin-users-menu">
+                        <i class="fas fa-users-cog si-ico"></i><span class="si-txt">Administración</span>
                     </a>
 
-                    <!-- ╔══════════════════════════════════════════════════╗
-                         ║   SSA: Subdir. Seguridad de la Aviación          ║
-                         ╚══════════════════════════════════════════════════╝ -->
-                    <div class="sidebar-subdir-label sidebar-org-label--pending">
-                        <span class="sidebar-org-badge">SSA</span>
-                        <span>Sgd. de la Aviación</span>
-                    </div>
+                    <div class="si-sep"></div>
 
-                    <!-- ╔══════════════════════════════════════╗
-                         ║   SSC: Subdir. Servicios Conexos      ║
-                         ╚══════════════════════════════════════╝ -->
-                    <div class="sidebar-subdir-label sidebar-org-label--pending">
-                        <span class="sidebar-org-badge">SSC</span>
-                        <span>Servicios Conexos</span>
-                    </div>
-
-                    <!-- ╔══════════════════════════════════╗
-                         ║   SI: Subdir. Ingeniería           ║
-                         ╚══════════════════════════════════╝ -->
-                    <div class="sidebar-subdir-label sidebar-org-label--pending">
-                        <span class="sidebar-org-badge">SI</span>
-                        <span>Ingeniería</span>
-                    </div>
-
-                    <!-- ╔══════════════════════════════════════════╗
-                         ║   SGE: Subdir. Gestión Energética         ║
-                         ╚══════════════════════════════════════════╝ -->
-                    <div class="sidebar-subdir-label sidebar-org-label--pending">
-                        <span class="sidebar-org-badge">SGE</span>
-                        <span>Gestión Energética</span>
-                    </div>
-
-                    <!-- Admin (visibilidad gestionada por permisos) -->
-                    <a class="menu-item d-none" href="#" data-section="data-management" id="data-management-menu">
-                        <i class="fas fa-database"></i><span>Gestión de Datos</span>
+                    <a class="menu-item si-link si-link--util" href="#" data-install-app-info>
+                        <i class="fas fa-download si-ico"></i><span class="si-txt">Instalar como app</span>
                     </a>
-                    <a class="menu-item d-none" href="#" data-section="admin-usuarios" id="admin-users-menu">
-                        <i class="fas fa-users-cog"></i><span>Administración</span>
+                    <a class="menu-item si-link si-link--logout logout-item" href="#" data-action="logout">
+                        <i class="fas fa-sign-out-alt si-ico"></i><span class="si-txt">Cerrar Sesión</span>
                     </a>
 
-                    <a class="menu-item" href="#" data-install-app-info>
-                        <i class="fas fa-download"></i><span>Instalar como app</span>
-                    </a>
-
-                    <a class="menu-item logout-item" href="#" data-action="logout">
-                        <i class="fas fa-sign-out-alt"></i><span>Cerrar Sesión</span>
-                    </a>
                 </nav>
+            </aside>
             </aside>
             <!-- Overlay para dispositivos móviles: permite cerrar el sidebar al tocar fuera -->
             <div id="sidebar-overlay" class="sidebar-overlay"></div>

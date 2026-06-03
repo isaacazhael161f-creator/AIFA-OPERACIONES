@@ -14482,3 +14482,281 @@ body.dark-mode #yoy-insights-list li {
 .menu-item--gerencia:hover {
    transform: translateX(3px);
 }
+
+
+/* ══════════════════════════════════════════════════════════════════
+   SIDEBAR v2 — ORGANIGRAMA CON COLLAPSE  |  AIFA Operaciones
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ── Ampliar ligeramente el ancho ── */
+:root { --sidebar-width: 262px; }
+
+/* ── Nav wrapper ── */
+.si-nav {
+   padding: .35rem 0 1.25rem;
+   flex: 1;
+   overflow-y: auto;
+   overflow-x: hidden;
+}
+
+/* ── Quitar el translateX del hover heredado ── */
+.si-nav .menu-item:hover  { transform: none !important; }
+.si-nav .menu-item.active { transform: none !important; }
+
+/* ──────────────────────────────────────────────
+   CABECERA "DIR. DE OPERACIÓN"
+   ────────────────────────────────────────────── */
+.si-dir-hdr {
+   display: flex;
+   align-items: center;
+   gap: .5rem;
+   padding: .65rem 1.1rem .45rem;
+   margin: 0 .5rem .4rem;
+   font-size: .6rem;
+   font-weight: 800;
+   text-transform: uppercase;
+   letter-spacing: .12em;
+   color: rgba(255,255,255,.28);
+   border-bottom: 1px solid rgba(255,255,255,.07);
+   user-select: none;
+   pointer-events: none;
+}
+.si-dir-hdr i { font-size: .65rem; }
+
+/* ──────────────────────────────────────────────
+   ÍTEMS DE NAVEGACIÓN (links)
+   ────────────────────────────────────────────── */
+.si-link {
+   display: flex !important;
+   align-items: center;
+   gap: 9px;
+   padding: .63rem 1rem !important;
+   margin: 1px 6px !important;
+   border-radius: 8px;
+   color: rgba(255,255,255,.7) !important;
+   text-decoration: none;
+   font-size: .865rem;
+   transition: background .17s, color .17s !important;
+   position: relative;
+   overflow: hidden;
+}
+.si-link:hover {
+   background: rgba(255,255,255,.08) !important;
+   color: #fff !important;
+}
+/* Activo: fondo sutil + barra ámbar izquierda */
+.si-link.active {
+   background: rgba(255,255,255,.12) !important;
+   color: #fff !important;
+   font-weight: 600 !important;
+   box-shadow: none !important;
+}
+.si-link.active::before {
+   content: '';
+   position: absolute;
+   left: 0; top: 18%; bottom: 18%;
+   width: 3px;
+   border-radius: 0 3px 3px 0;
+   background: #f59e0b;
+}
+/* Ícono */
+.si-ico {
+   width: 16px;
+   text-align: center;
+   font-size: .82rem;
+   flex-shrink: 0;
+   color: rgba(255,255,255,.45);
+   transition: color .17s;
+   /* icon-clock-check comparte este espacio */
+   position: relative;
+   display: inline-block;
+}
+.si-link:hover .si-ico,
+.si-link.active .si-ico { color: rgba(255,255,255,.9); }
+
+/* icon-clock-check dentro de si-ico */
+.si-link .icon-clock-check { margin-right: 0; }
+
+/* Texto del ítem */
+.si-txt {
+   flex: 1;
+   overflow: hidden;
+   text-overflow: ellipsis;
+   white-space: nowrap;
+}
+
+/* Niveles de indentación */
+.si-link--l1 { padding-left: 1.9rem !important; font-size: .845rem; }
+.si-link--l2 { padding-left: 2.8rem !important; font-size: .83rem;
+               padding-top: .52rem !important; padding-bottom: .52rem !important; }
+
+/* Util / Logout */
+.si-link--util { color: rgba(255,255,255,.38) !important; font-size: .8rem; }
+.si-link--util:hover { color: rgba(255,255,255,.65) !important; }
+.si-link--logout {
+   color: rgba(248,113,113,.7) !important;
+   font-size: .855rem;
+   border-top: 1px solid rgba(255,255,255,.08) !important;
+   margin-top: 3px !important;
+}
+.si-link--logout:hover { color: #fca5a5 !important; background: rgba(248,113,113,.09) !important; }
+/* Quitar margin-top:auto del logout-item original dentro de si-nav */
+.si-nav .logout-item { margin-top: 3px !important; }
+
+/* ──────────────────────────────────────────────
+   BOTONES DE GRUPO (colapsables)
+   ────────────────────────────────────────────── */
+.si-grp-btn {
+   display: flex;
+   align-items: center;
+   gap: 7px;
+   width: calc(100% - 12px);
+   margin: 1px 6px;
+   padding: .5rem .9rem;
+   background: transparent;
+   border: none;
+   border-radius: 7px;
+   color: rgba(255,255,255,.42);
+   font-size: .68rem;
+   font-weight: 700;
+   text-transform: uppercase;
+   letter-spacing: .07em;
+   cursor: pointer;
+   text-align: left;
+   transition: background .17s, color .17s, border-color .17s;
+   overflow: hidden;
+}
+.si-grp-btn:hover { background: rgba(255,255,255,.055); color: rgba(255,255,255,.65); }
+.si-grp-btn:not(.collapsed) { color: rgba(255,255,255,.62); }
+
+/* Ícono del grupo (áreas: Archivo, Auditoría, GPyC) */
+.si-grp-ico {
+   width: 15px;
+   text-align: center;
+   font-size: .76rem;
+   flex-shrink: 0;
+}
+
+/* Label del grupo */
+.si-grp-lbl {
+   flex: 1;
+   overflow: hidden;
+   text-overflow: ellipsis;
+   white-space: nowrap;
+}
+
+/* Chevron rotatorio */
+.si-chev {
+   font-size: .58rem;
+   flex-shrink: 0;
+   color: rgba(255,255,255,.25);
+   transition: transform .22s ease, color .17s;
+   margin-left: auto;
+}
+.si-grp-btn:not(.collapsed) .si-chev { transform: rotate(180deg); color: rgba(255,255,255,.4); }
+.si-grp-btn.collapsed .si-chev       { transform: rotate(0deg); }
+
+/* ── Variante Área (Archivo, Auditoría, GPyC) ── */
+/* Sin estilo adicional — el base alcanza */
+
+/* ── Variante Subdirección (SSO, SSA…) ── */
+.si-group--sub { margin: 3px 0; }
+.si-grp-btn--sub {
+   font-size: .72rem;
+   color: rgba(255,255,255,.52);
+   border-left: 2px solid transparent;
+   border-radius: 0 7px 7px 0;
+   padding-left: .85rem;
+   margin-left: 6px;
+   width: calc(100% - 12px);
+   gap: 7px;
+}
+.si-grp-btn--sub:hover { border-left-color: rgba(96,165,250,.45); }
+.si-grp-btn--sub:not(.collapsed) {
+   border-left-color: rgba(96,165,250,.65);
+   color: rgba(255,255,255,.78);
+   background: rgba(96,165,250,.07);
+}
+
+/* Cuerpo de subdirección con línea guía */
+.si-body--sub {
+   border-left: 1px solid rgba(96,165,250,.14);
+   margin-left: 18px;
+}
+
+/* ── Variante Gerencia (GOPA, GSO, GSM, GOET) ── */
+.si-group--ger { margin: 1px 0; }
+.si-grp-btn--ger {
+   font-size: .62rem;
+   color: rgba(255,255,255,.38);
+   padding: .38rem .75rem;
+   margin: 0;
+   width: 100%;
+   border-radius: 0;
+}
+.si-grp-btn--ger:hover { color: rgba(255,255,255,.58); border-radius: 6px; }
+.si-grp-btn--ger:not(.collapsed) { color: rgba(255,255,255,.55); }
+
+.si-body--ger { padding: 1px 0 3px; }
+
+/* ──────────────────────────────────────────────
+   BADGES  (SSO, SSA… y GOPA, GSO…)
+   ────────────────────────────────────────────── */
+.si-bdg {
+   display: inline-flex;
+   align-items: center;
+   justify-content: center;
+   min-width: 34px;
+   padding: .13rem .38rem;
+   border-radius: 4px;
+   font-size: .58rem;
+   font-weight: 900;
+   letter-spacing: .03em;
+   flex-shrink: 0;
+   /* Subdirección: azul */
+   background: rgba(96,165,250,.18);
+   color: #93c5fd;
+   border: 1px solid rgba(96,165,250,.22);
+   transition: background .17s;
+}
+.si-grp-btn--sub:not(.collapsed) .si-bdg {
+   background: rgba(96,165,250,.28);
+   color: #bfdbfe;
+}
+/* Gerencia: más discreto */
+.si-bdg--ger {
+   min-width: 28px;
+   padding: .08rem .28rem;
+   font-size: .54rem;
+   background: rgba(255,255,255,.09);
+   color: rgba(255,255,255,.55);
+   border-color: rgba(255,255,255,.1);
+}
+
+/* ──────────────────────────────────────────────
+   GRUPOS PENDIENTES / SIN CONTENIDO
+   ────────────────────────────────────────────── */
+.si-group--pend > .si-grp-btn { opacity: .45; }
+.si-group--pend > .si-grp-btn:hover { opacity: .7; }
+
+.si-coming {
+   display: block;
+   padding: .32rem 1.4rem;
+   font-size: .7rem;
+   color: rgba(255,255,255,.2);
+   font-style: italic;
+}
+
+/* ──────────────────────────────────────────────
+   SEPARADOR
+   ────────────────────────────────────────────── */
+.si-sep {
+   height: 1px;
+   background: rgba(255,255,255,.07);
+   margin: .55rem .75rem;
+}
+
+/* ──────────────────────────────────────────────
+   ANIMACIÓN DE COLLAPSE MÁS SUAVE
+   ────────────────────────────────────────────── */
+.si-nav .collapsing { transition: height .22s ease !important; }
