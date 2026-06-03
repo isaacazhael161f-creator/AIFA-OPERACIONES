@@ -19373,3 +19373,99 @@ async function _conciSaveBulkEdits() {
     // agLoadCalendario delegated to js/agenda.js
 
 })(); // end Agenda module
+
+/* ══════════════════════════════════════════════════════════════════
+   SIDEBAR FLYOUT — preview de gerencias al pasar el mouse
+   ══════════════════════════════════════════════════════════════════ */
+(function () {
+    'use strict';
+
+    var flyout, hideTimer;
+
+    function build() {
+        flyout = document.createElement('div');
+        flyout.id = 'si-flyout';
+        flyout.className = 'si-flyout-panel';
+        document.body.appendChild(flyout);
+        flyout.addEventListener('mouseenter', function () { clearTimeout(hideTimer); });
+        flyout.addEventListener('mouseleave', function () { hideTimer = setTimeout(hide, 180); });
+    }
+
+    function show(groupEl) {
+        var btn = groupEl.querySelector(':scope > .si-grp-btn--sub');
+        if (!btn || !btn.classList.contains('collapsed')) return;
+        if (document.body.classList.contains('sidebar-collapsed')) return;
+
+        var gers = groupEl.querySelectorAll('.si-group--ger');
+        if (!gers.length) return;
+
+        var bdgEl  = btn.querySelector('.si-bdg');
+        var lblEl  = btn.querySelector('.si-grp-lbl');
+        var bdgTxt = bdgEl ? bdgEl.textContent.trim() : '';
+        var lblTxt = lblEl ? lblEl.textContent.trim() : '';
+        var color  = getComputedStyle(groupEl).getPropertyValue('--sub-c').trim() || '#60a5fa';
+
+        flyout.style.setProperty('--flyout-c', color);
+
+        var rows = '';
+        gers.forEach(function (ger) {
+            var gBtn = ger.querySelector(':scope > .si-grp-btn--ger');
+            if (!gBtn) return;
+            var gBdgEl = gBtn.querySelector('.si-bdg--ger');
+            var gLblEl = gBtn.querySelector('.si-grp-lbl');
+            var gBdg   = gBdgEl ? gBdgEl.textContent.trim() : '';
+            var gLbl   = gLblEl ? gLblEl.textContent.trim() : '';
+            rows += '<li><span class="si-flyout-gbdg">' + gBdg + '</span>' + gLbl + '</li>';
+        });
+
+        flyout.innerHTML =
+            '<div class="si-flyout-hdr">' +
+                '<span class="si-flyout-bdg">' + bdgTxt + '</span>' +
+                '<span class="si-flyout-ttl">' + lblTxt + '</span>' +
+            '</div>' +
+            '<ul class="si-flyout-list">' + rows + '</ul>';
+
+        var bRect  = btn.getBoundingClientRect();
+        var sb     = document.getElementById('sidebar');
+        var sbRect = sb ? sb.getBoundingClientRect() : { right: 278 };
+
+        flyout.style.top     = bRect.top + 'px';
+        flyout.style.left    = (sbRect.right + 6) + 'px';
+        flyout.style.display = 'block';
+
+        // Prevent bottom overflow
+        var fh = flyout.offsetHeight;
+        var vh = window.innerHeight;
+        if (bRect.top + fh > vh - 8) {
+            flyout.style.top = Math.max(8, vh - fh - 8) + 'px';
+        }
+    }
+
+    function hide() {
+        if (flyout) flyout.style.display = 'none';
+    }
+
+    function init() {
+        build();
+        document.querySelectorAll('.si-group--sub').forEach(function (group) {
+            group.addEventListener('mouseenter', function () {
+                clearTimeout(hideTimer);
+                show(group);
+            });
+            group.addEventListener('mouseleave', function (e) {
+                if (flyout && flyout.contains(e.relatedTarget)) return;
+                hideTimer = setTimeout(hide, 180);
+            });
+        });
+        // Auto-hide when a collapse opens (content becomes visible inline)
+        document.addEventListener('show.bs.collapse', function (e) {
+            if (e.target && e.target.closest && e.target.closest('.si-group--sub')) hide();
+        });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+})(); // end Sidebar Flyout
