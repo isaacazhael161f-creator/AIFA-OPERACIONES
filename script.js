@@ -17266,6 +17266,7 @@ async function _conciSaveBulkEdits() {
     const AU_SECTIONS = [
         { key: 'operaciones-totales',  label: 'Inicio',                 icon: 'home',              group: 'Operaciones' },
         { key: 'inicio',               label: 'Itinerario Diario',       icon: 'calendar-day',      group: 'Operaciones' },
+        { key: 'itinerario-mensual',   label: 'Itinerario Mensual',      icon: 'table',             group: 'Operaciones' },
         { key: 'frecuencias-semana',   label: 'Frecuencias Semanales',   icon: 'chart-bar',         group: 'Operaciones' },
         { key: 'parte-operaciones',    label: 'Parte de Operaciones',    icon: 'file-invoice',      group: 'Operaciones' },
         { key: 'analisis-operaciones', label: 'Análisis de Operaciones', icon: 'chart-pie',         group: 'Operaciones' },
@@ -17277,7 +17278,10 @@ async function _conciSaveBulkEdits() {
         { key: 'fauna',                label: 'GSO',                     icon: 'shield-alt',        group: 'Módulos' },
         { key: 'medicas',              label: 'Servicio Médico',         icon: 'briefcase-medical', group: 'Módulos' },
         { key: 'abordadores-mecanicos',label: 'Abordadores Mecánicos',   icon: 'cogs',              group: 'Módulos' },
+        { key: 'email-analisis',       label: 'Análisis Correos',        icon: 'envelope',          group: 'Módulos' },
+        { key: 'fids',                 label: 'FIDS',                    icon: 'tv',                group: 'Módulos' },
         { key: 'colaboradores',        label: 'Colaboradores',           icon: 'id-badge',          group: 'Personal' },
+        { key: 'coord-auditoria',      label: 'Coord. Auditoría',        icon: 'clipboard-check',   group: 'Personal' },
         { key: 'agenda',               label: 'Agenda de Comités',       icon: 'calendar-check',    group: 'Personal' },
         { key: 'biblioteca',           label: 'Biblioteca',              icon: 'book',              group: 'Personal' },
         { key: 'historia',             label: 'Historia',                icon: 'history',           group: 'Personal' },
