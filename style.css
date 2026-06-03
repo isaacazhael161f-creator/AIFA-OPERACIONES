@@ -14502,6 +14502,8 @@ body.dark-mode #yoy-insights-list li {
     min-height: 0;
     overflow-y: auto;
     overflow-x: hidden;
+    flex-wrap: nowrap !important;  /* evita que Bootstrap .nav envuelva items en 2ª columna */
+    align-content: flex-start;
 }
 
 /* ── Quitar translateX heredado ── */
