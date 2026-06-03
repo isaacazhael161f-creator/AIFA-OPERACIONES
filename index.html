@@ -1165,6 +1165,9 @@ FF
                                     </button>
                                     <div class="collapse" id="sg-gopa">
                                         <div class="si-body si-body--ger">
+                                            <a class="menu-item si-link si-link--l2" href="#" data-section="operaciones-totales" data-sub-tab="ops-resumen-tab">
+                                                <i class="fas fa-chart-bar si-ico"></i><span class="si-txt">Resumen General</span>
+                                            </a>
                                             <a class="menu-item si-link si-link--l2" href="#" data-section="inicio">
                                                 <i class="fas fa-calendar-day si-ico"></i><span class="si-txt">Itinerario Diario</span>
                                             </a>
@@ -20306,17 +20309,17 @@ FF
                         </div>
                         <div class="card-body">
                             <ul class="nav nav-tabs mb-3" id="opsTabs" role="tablist">
-                                <li class="nav-item" role="presentation">
-                                    <button class="nav-link active" id="ops-resumen-tab" data-bs-toggle="tab"
+                                <li class="nav-item d-none" role="presentation">
+                                    <button class="nav-link" id="ops-resumen-tab" data-bs-toggle="tab"
                                         data-bs-target="#ops-resumen-pane" type="button" role="tab"
-                                        aria-controls="ops-resumen-pane" aria-selected="true"><i
+                                        aria-controls="ops-resumen-pane" aria-selected="false"><i
                                             class="fas fa-chart-line me-2"></i>Resumen general</button>
                                 </li>
                                 <li class="nav-item" role="presentation">
-                                    <button class="nav-link" id="comparativa-yoy-tab" data-bs-toggle="tab"
+                                    <button class="nav-link active" id="comparativa-yoy-tab" data-bs-toggle="tab"
                                         data-bs-target="#analisis-yoy-pane" type="button" role="tab"
-                                        aria-controls="analisis-yoy-pane" aria-selected="false"><i
-                                            class="fas fa-chart-line me-2"></i>Comparativa (YoY)</button>
+                                        aria-controls="analisis-yoy-pane" aria-selected="true"><i
+                                            class="fas fa-chart-line me-2"></i>Comparativa</button>
                                 </li>
 
                                 <li class="nav-item d-none" role="presentation">
@@ -20340,7 +20343,7 @@ FF
 
                             </ul>
                             <div class="tab-content pt-3" id="opsTabsContent">
-                                <div class="tab-pane fade show active" id="ops-resumen-pane" role="tabpanel"
+                                <div class="tab-pane fade" id="ops-resumen-pane" role="tabpanel"
                                     aria-labelledby="ops-resumen-tab" tabindex="0">
                                     <!-- Toolbar compacta -->
                                     <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
@@ -21114,7 +21117,7 @@ FF
                                     </div>
                                 </div>
                                 
-                                <div class="tab-pane fade" id="analisis-yoy-pane" role="tabpanel" aria-labelledby="comparativa-yoy-tab" tabindex="0">
+                                <div class="tab-pane fade show active" id="analisis-yoy-pane" role="tabpanel" aria-labelledby="comparativa-yoy-tab" tabindex="0">
                                     <div class="ag-wrapper">
 
                                         <!-- Sub-navegación YoY -->
