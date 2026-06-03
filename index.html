@@ -1127,6 +1127,11 @@ FF
                             class="fas fa-calendar-check"></i><span>Agenda de Comités</span></a>
                     <a class="menu-item" href="#" data-section="biblioteca"><i
                             class="fas fa-book"></i><span>Biblioteca</span></a>
+                    <!-- Coordinación de Auditoría -->
+                    <a class="menu-item" href="#" data-section="coord-auditoria" id="menu-coord-auditoria">
+                        <i class="fas fa-clipboard-check"></i><span>Coord. Auditoría</span>
+                    </a>
+
                     <a class="menu-item d-none" href="#" data-section="data-management" id="data-management-menu"><i
                             class="fas fa-database"></i><span>Gestión de Datos</span></a>
                     <a class="menu-item d-none" href="#" data-section="admin-usuarios" id="admin-users-menu"><i
@@ -2077,6 +2082,13 @@ FF
                                             Carga</button>
 
                                         <button class="nav-link text-start mb-2 border shadow-sm rounded"
+                                            id="tab-weekly-frequencies-playas" data-bs-toggle="pill"
+                                            data-bs-target="#pane-weekly-frequencies-playas" type="button" role="tab"
+                                            onclick="dataManagement.loadWeeklyFrequenciesPlayas()"><i
+                                                class="fas fa-umbrella-beach me-2 text-info"></i>Destinos
+                                            Playa</button>
+
+                                        <button class="nav-link text-start mb-2 border shadow-sm rounded"
                                             id="tab-punctuality-table" data-bs-toggle="pill"
                                             data-bs-target="#pane-punctuality-table" type="button" role="tab"><i
                                                 class="fas fa-stopwatch me-2 text-info"></i>Puntualidad</button>
@@ -2670,6 +2682,59 @@ FF
                                                             <th class="text-center border-start" style="width: 70px;">
                                                                 Total</th>
                                                             <th class="text-center border-start">Acciones</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody></tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+
+                                        <!-- Destinos Playa Pane -->
+                                        <div class="tab-pane fade" id="pane-weekly-frequencies-playas" role="tabpanel">
+                                            <div class="d-flex gap-2 flex-wrap align-items-center mb-3">
+                                                <div class="input-group w-auto">
+                                                    <span class="input-group-text"><i class="fas fa-calendar-week me-1"></i>Semana</span>
+                                                    <select class="form-select" id="filter-weekly-freq-playas-label"
+                                                        aria-label="Filtrar por semana"
+                                                        onchange="dataManagement.loadWeeklyFrequenciesPlayas()">
+                                                        <option value="">Cargando...</option>
+                                                    </select>
+                                                </div>
+                                                <div class="input-group w-auto">
+                                                    <span class="input-group-text"><i class="fas fa-filter me-1"></i>Tipo</span>
+                                                    <select class="form-select" id="filter-weekly-freq-playas-tipo"
+                                                        aria-label="Filtrar por tipo"
+                                                        onchange="dataManagement.loadWeeklyFrequenciesPlayas()">
+                                                        <option value="">Todos</option>
+                                                        <option value="Nacional">Nacional</option>
+                                                        <option value="Internacional">Internacional</option>
+                                                    </select>
+                                                </div>
+                                                <button class="btn btn-outline-secondary btn-sm ms-auto"
+                                                    onclick="dataManagement.loadWeeklyFrequenciesPlayas(true)"
+                                                    title="Actualizar">
+                                                    <i class="fas fa-sync-alt"></i> Actualizar
+                                                </button>
+                                            </div>
+                                            <!-- Tarjetas resumen por destino -->
+                                            <div id="playas-summary-cards" class="row row-cols-2 row-cols-md-4 g-3 mb-4"></div>
+                                            <!-- Tabla detalle -->
+                                            <div class="table-responsive">
+                                                <table class="table table-hover" id="table-weekly-frequencies-playas">
+                                                    <thead class="table-light">
+                                                        <tr>
+                                                            <th style="width:150px;">Semana</th>
+                                                            <th>Destino</th>
+                                                            <th class="text-center">Tipo</th>
+                                                            <th class="text-center">Aerolínea</th>
+                                                            <th class="text-center border-start" style="width:55px;">L</th>
+                                                            <th class="text-center border-start" style="width:55px;">M</th>
+                                                            <th class="text-center border-start" style="width:55px;">X</th>
+                                                            <th class="text-center border-start" style="width:55px;">J</th>
+                                                            <th class="text-center border-start" style="width:55px;">V</th>
+                                                            <th class="text-center border-start" style="width:55px;">S</th>
+                                                            <th class="text-center border-start" style="width:55px;">D</th>
+                                                            <th class="text-center border-start" style="width:70px;">Total</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody></tbody>
@@ -21154,6 +21219,15 @@ FF
                                         data-bs-target="#frecuencias-upload-pane" type="button" role="tab"
                                         aria-controls="frecuencias-upload-pane" aria-selected="false">Subir Archivos</button>
                                 </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="frecuencias-playas-tab" data-bs-toggle="tab"
+                                        data-bs-target="#frecuencias-playas-pane" type="button" role="tab"
+                                        aria-controls="frecuencias-playas-pane" aria-selected="false"
+                                        style="color:#0891b2">
+                                        <i class="fas fa-umbrella-beach me-1"></i>Destinos Playa
+                                    </button>
+                                </li>
+                                </li>
                             </ul>
                             <div class="tab-content pt-3" id="frecuenciasTabContent">
                                 <div class="tab-pane fade show active" id="frecuencias-auto-pane" role="tabpanel"
@@ -22276,6 +22350,65 @@ FF
                                         </div><!-- /freq-stats-content -->
                                     </div><!-- /p-3 -->
                                 </div><!-- /frecuencias-estadisticas-pane -->
+
+                                <!-- DESTINOS PLAYA PANE -->
+                                <div class="tab-pane fade" id="frecuencias-playas-pane" role="tabpanel"
+                                    aria-labelledby="frecuencias-playas-tab" tabindex="0">
+                                    <div class="p-3">
+                                        <!-- Header -->
+                                        <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+                                            <div>
+                                                <h4 class="mb-0 fw-bold"><i class="fas fa-umbrella-beach me-2" style="color:#0891b2"></i>Destinos Playa</h4>
+                                                <small class="text-muted">Frecuencias semanales hacia destinos de playa nacionales e internacionales</small>
+                                            </div>
+                                            <div class="d-flex gap-2 flex-wrap align-items-center">
+                                                <select id="playas-filter-tipo" class="form-select form-select-sm" aria-label="Tipo de destino" style="min-width:140px;">
+                                                    <option value="">Todos</option>
+                                                    <option value="Nacional">Nacional</option>
+                                                    <option value="Internacional">Internacional</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <!-- Loading -->
+                                        <div id="playas-loading" class="text-center py-5">
+                                            <div class="spinner-border text-info mb-2"></div>
+                                            <p class="text-muted small">Cargando destinos de playa…</p>
+                                        </div>
+                                        <div id="playas-error" class="alert alert-danger d-none"></div>
+                                        <!-- Content -->
+                                        <div id="playas-content" class="d-none">
+                                            <!-- Tarjetas resumen -->
+                                            <div id="playas-cards" class="row row-cols-2 row-cols-sm-3 row-cols-md-4 row-cols-lg-5 g-3 mb-4"></div>
+                                            <!-- Tabla detalle -->
+                                            <div class="card shadow-sm border-0">
+                                                <div class="card-header bg-light d-flex align-items-center justify-content-between py-2">
+                                                    <span class="fw-semibold text-uppercase small text-muted"><i class="fas fa-table me-1"></i>Detalle por aerolínea</span>
+                                                    <span id="playas-total-badge" class="badge bg-info text-dark"></span>
+                                                </div>
+                                                <div class="table-responsive">
+                                                    <table class="table table-hover mb-0" id="playas-table">
+                                                        <thead class="table-light">
+                                                            <tr>
+                                                                <th>Destino</th>
+                                                                <th class="text-center">Tipo</th>
+                                                                <th class="text-center">Aerolínea</th>
+                                                                <th class="text-center border-start" style="width:42px;">L</th>
+                                                                <th class="text-center border-start" style="width:42px;">M</th>
+                                                                <th class="text-center border-start" style="width:42px;">X</th>
+                                                                <th class="text-center border-start" style="width:42px;">J</th>
+                                                                <th class="text-center border-start" style="width:42px;">V</th>
+                                                                <th class="text-center border-start" style="width:42px;">S</th>
+                                                                <th class="text-center border-start" style="width:42px;">D</th>
+                                                                <th class="text-center border-start" style="width:55px;">Total</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody id="playas-tbody"></tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div><!-- /frecuencias-playas-pane -->
 
                                 <!--  ANLISIS PANE  -->
                                 <div class="tab-pane fade" id="frecuencias-analisis-pane" role="tabpanel"
@@ -23636,6 +23769,440 @@ FF
 
                     </div>
                 </div><!-- /portal-digitalizacion-section -->
+
+                <!-- ════════════════════════════════════════════════════════
+                     SECCIÓN: COORDINACIÓN DE AUDITORÍA
+                     Catálogo de Vehículos Terrestres de Cargo
+                     ════════════════════════════════════════════════════════ -->
+                <div id="coord-auditoria-section" class="content-section">
+                  <!-- Toast container (posición fija) -->
+                  <div id="veh-toast-container"
+                       class="position-fixed bottom-0 end-0 p-3"
+                       style="z-index:11000;"></div>
+
+                  <!-- ── Hero Header ── -->
+                  <div class="rounded-4 mb-4 p-4 p-md-5 position-relative overflow-hidden"
+                       style="background:linear-gradient(135deg,#0a1f44 0%,#1a3a6e 55%,#2c5282 100%);">
+                    <!-- Ícono decorativo de fondo -->
+                    <div class="position-absolute top-0 end-0 opacity-5"
+                         style="font-size:14rem;line-height:1;color:#fff;transform:translate(15%,-15%);pointer-events:none;">
+                      <i class="fas fa-car-side"></i>
+                    </div>
+                    <div class="d-flex align-items-center gap-3 mb-3 flex-wrap">
+                      <div class="rounded-3 p-2 d-inline-flex"
+                           style="background:rgba(232,119,10,.18);border:1px solid rgba(232,119,10,.4);">
+                        <i class="fas fa-clipboard-check fa-lg" style="color:#E8770A;"></i>
+                      </div>
+                      <span class="badge rounded-pill px-3 py-2 fw-semibold text-uppercase"
+                            style="font-size:.7rem;background:rgba(232,119,10,.15);color:#FFA040;border:1px solid rgba(232,119,10,.35);">
+                        Coordinación de Auditoría
+                      </span>
+                    </div>
+                    <h1 class="fw-black text-white mb-1" style="font-size:clamp(1.3rem,3vw,2rem);">
+                      Catálogo de Vehículos Terrestres
+                    </h1>
+                    <p class="text-white-50 mb-0">
+                      de Cargo en la Dirección de Operación · AIFA
+                    </p>
+                    <!-- Botón recargar -->
+                    <button class="btn btn-sm btn-light rounded-circle shadow position-absolute bottom-0 end-0 m-3"
+                            style="width:38px;height:38px;padding:0;"
+                            onclick="window.vehiculosModule && window.vehiculosModule.reload()"
+                            title="Actualizar catálogo">
+                      <i class="fas fa-sync-alt text-primary"></i>
+                    </button>
+                  </div>
+
+                  <!-- ── KPIs ── -->
+                  <div class="row g-3 mb-4" id="veh-kpi-row">
+                    <div class="col-6 col-md-3">
+                      <div class="card border-0 shadow-sm rounded-4 h-100 overflow-hidden position-relative">
+                        <div class="position-absolute top-0 start-0 end-0" style="height:3px;background:linear-gradient(90deg,#0a1f44,#0d6efd);"></div>
+                        <div class="card-body p-3 text-center">
+                          <div class="rounded-circle bg-primary bg-opacity-10 d-flex align-items-center justify-content-center mx-auto mb-2" style="width:44px;height:44px;">
+                            <i class="fas fa-car text-primary"></i>
+                          </div>
+                          <div class="fw-black fs-3 text-primary" id="veh-kpi-total">—</div>
+                          <div class="text-muted small fw-semibold">Total Vehículos</div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                      <div class="card border-0 shadow-sm rounded-4 h-100 overflow-hidden position-relative">
+                        <div class="position-absolute top-0 start-0 end-0" style="height:3px;background:linear-gradient(90deg,#198754,#20c997);"></div>
+                        <div class="card-body p-3 text-center">
+                          <div class="rounded-circle bg-success bg-opacity-10 d-flex align-items-center justify-content-center mx-auto mb-2" style="width:44px;height:44px;">
+                            <i class="fas fa-check-circle text-success"></i>
+                          </div>
+                          <div class="fw-black fs-3 text-success" id="veh-kpi-activos">—</div>
+                          <div class="text-muted small fw-semibold">Activos</div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                      <div class="card border-0 shadow-sm rounded-4 h-100 overflow-hidden position-relative">
+                        <div class="position-absolute top-0 start-0 end-0" style="height:3px;background:linear-gradient(90deg,#fd7e14,#ffc107);"></div>
+                        <div class="card-body p-3 text-center">
+                          <div class="rounded-circle d-flex align-items-center justify-content-center mx-auto mb-2" style="width:44px;height:44px;background:rgba(253,126,20,.1);">
+                            <i class="fas fa-tools" style="color:#fd7e14;"></i>
+                          </div>
+                          <div class="fw-black fs-3" style="color:#fd7e14;" id="veh-kpi-mantenimiento">—</div>
+                          <div class="text-muted small fw-semibold">Mantenimiento</div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="col-6 col-md-3">
+                      <div class="card border-0 shadow-sm rounded-4 h-100 overflow-hidden position-relative">
+                        <div class="position-absolute top-0 start-0 end-0" style="height:3px;background:linear-gradient(90deg,#dc3545,#e91e63);"></div>
+                        <div class="card-body p-3 text-center">
+                          <div class="rounded-circle bg-danger bg-opacity-10 d-flex align-items-center justify-content-center mx-auto mb-2" style="width:44px;height:44px;">
+                            <i class="fas fa-exclamation-triangle text-danger"></i>
+                          </div>
+                          <div class="fw-black fs-3 text-danger" id="veh-kpi-vigencia">—</div>
+                          <div class="text-muted small fw-semibold">Póliza por Vencer</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- ── Barra de búsqueda y filtros ── -->
+                  <div class="card border-0 shadow-sm rounded-4 mb-4">
+                    <div class="card-body p-3 d-flex flex-wrap align-items-center gap-3">
+                      <!-- Búsqueda -->
+                      <div class="input-group rounded-pill overflow-hidden flex-grow-1 shadow-sm"
+                           style="max-width:320px;border:1px solid #dee2e6;">
+                        <span class="input-group-text bg-white border-0 ps-3">
+                          <i class="fas fa-search text-muted small"></i>
+                        </span>
+                        <input type="text" id="veh-search"
+                               class="form-control border-0 shadow-none"
+                               placeholder="Buscar por nombre, placa, serie…">
+                      </div>
+                      <!-- Filtro tipo -->
+                      <select id="veh-filter-tipo"
+                              class="form-select form-select-sm rounded-pill shadow-sm border"
+                              style="width:auto;border-color:#dee2e6!important;">
+                        <option value="all">Todos los tipos</option>
+                        <option value="Camioneta">Camioneta</option>
+                        <option value="Camioneta Van">Camioneta Van</option>
+                        <option value="Camión">Camión</option>
+                        <option value="Autobús">Autobús</option>
+                        <option value="Ambulancia">Ambulancia</option>
+                        <option value="Montacargas">Montacargas</option>
+                        <option value="Automóvil">Automóvil</option>
+                        <option value="Motocicleta">Motocicleta</option>
+                      </select>
+                      <!-- Filtro estado -->
+                      <select id="veh-filter-estado"
+                              class="form-select form-select-sm rounded-pill shadow-sm border"
+                              style="width:auto;border-color:#dee2e6!important;">
+                        <option value="all">Todos los estados</option>
+                        <option value="Activo">Activo</option>
+                        <option value="Mantenimiento">Mantenimiento</option>
+                        <option value="Baja">Baja</option>
+                      </select>
+                      <!-- Filtro combustible -->
+                      <select id="veh-filter-combustible"
+                              class="form-select form-select-sm rounded-pill shadow-sm border"
+                              style="width:auto;border-color:#dee2e6!important;">
+                        <option value="all">Todo combustible</option>
+                        <option value="Diesel">Diesel</option>
+                        <option value="Gasolina">Gasolina</option>
+                        <option value="Híbrido">Híbrido</option>
+                        <option value="Eléctrico">Eléctrico</option>
+                      </select>
+                      <!-- Botones vista + agregar -->
+                      <div class="ms-auto d-flex align-items-center gap-2">
+                        <div class="btn-group btn-group-sm" role="group" aria-label="Vista">
+                          <button id="veh-view-grid"
+                                  class="btn btn-primary rounded-start-pill px-3"
+                                  onclick="setVehView('grid')" title="Vista tarjetas">
+                            <i class="fas fa-th-large"></i>
+                          </button>
+                          <button id="veh-view-list"
+                                  class="btn btn-outline-secondary rounded-end-pill px-3"
+                                  onclick="setVehView('list')" title="Vista lista">
+                            <i class="fas fa-list"></i>
+                          </button>
+                        </div>
+                        <button class="btn btn-sm rounded-pill px-3 d-none fw-semibold" id="veh-add-btn"
+                                onclick="openVehModal()"
+                                style="background:#E8770A;color:white;border:none;">
+                          <i class="fas fa-plus me-1"></i>Agregar vehículo
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- ── Spinner de carga ── -->
+                  <div id="veh-loading" class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                      <span class="visually-hidden">Cargando…</span>
+                    </div>
+                    <p class="text-muted mt-3 small">Cargando catálogo de vehículos…</p>
+                  </div>
+
+                  <!-- ── Estado vacío ── -->
+                  <div id="veh-empty" class="text-center py-5 d-none">
+                    <i class="fas fa-car fa-3x text-muted mb-3 d-block"></i>
+                    <p class="text-muted mb-1 fw-semibold">No se encontraron vehículos</p>
+                    <p class="text-muted small">Intenta ajustar los filtros de búsqueda.</p>
+                  </div>
+
+                  <!-- ── Vista Grid (tarjetas) ── -->
+                  <div id="veh-grid-wrapper">
+                    <div id="veh-grid" class="row g-4"></div>
+                  </div>
+
+                  <!-- ── Vista Lista (tabla) ── -->
+                  <div id="veh-list-wrapper" class="d-none">
+                    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+                      <div class="table-responsive">
+                        <table class="table table-hover mb-0 align-middle">
+                          <thead class="table-dark" style="background:#0a1f44!important;">
+                            <tr>
+                              <th scope="col" style="width:90px;">Código</th>
+                              <th scope="col">Vehículo</th>
+                              <th scope="col">Año</th>
+                              <th scope="col">Placas</th>
+                              <th scope="col">Combustible</th>
+                              <th scope="col">Estado</th>
+                              <th scope="col">Póliza</th>
+                              <th scope="col" style="width:60px;"></th>
+                            </tr>
+                          </thead>
+                          <tbody id="veh-table-body"></tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+
+                </div><!-- /coord-auditoria-section -->
+
+                <!-- ════════════════════════════════════
+                     MODAL: Ficha de detalle de vehículo
+                     ════════════════════════════════════ -->
+                <div class="modal fade" id="veh-detail-modal" tabindex="-1"
+                     aria-labelledby="veh-detail-title-label">
+                  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+                    <div class="modal-content rounded-4 overflow-hidden">
+                      <div class="modal-header border-0 pb-0"
+                           style="background:linear-gradient(135deg,#0a1f44,#1a3a6e);">
+                        <h5 class="modal-title text-white fw-bold" id="veh-detail-title">Ficha del vehículo</h5>
+                        <button type="button" class="btn-close btn-close-white"
+                                data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                      </div>
+                      <div class="modal-body p-4" id="veh-detail-body"></div>
+                      <div class="modal-footer border-0 bg-light">
+                        <button type="button" id="veh-detail-edit-btn"
+                                class="btn btn-sm rounded-pill px-3 d-none fw-semibold"
+                                style="background:#E8770A;color:white;border:none;">
+                          <i class="fas fa-edit me-1"></i>Editar
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3"
+                                data-bs-dismiss="modal">
+                          <i class="fas fa-times me-1"></i>Cerrar
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- ════════════════════════════════════
+                     MODAL: Formulario agregar / editar
+                     ════════════════════════════════════ -->
+                <div class="modal fade" id="veh-form-modal" tabindex="-1"
+                     aria-labelledby="veh-form-title-label">
+                  <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+                    <div class="modal-content rounded-4 overflow-hidden">
+                      <div class="modal-header border-0"
+                           style="background:linear-gradient(135deg,#0a1f44,#1a3a6e);">
+                        <h5 class="modal-title text-white fw-bold" id="veh-form-title">Vehículo</h5>
+                        <button type="button" class="btn-close btn-close-white"
+                                data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                      </div>
+                      <div class="modal-body p-4">
+                        <div class="row g-3">
+                          <!-- Identificación -->
+                          <div class="col-12">
+                            <h6 class="fw-bold text-uppercase small text-muted mb-2">
+                              <i class="fas fa-id-card me-1"></i>Identificación
+                            </h6>
+                          </div>
+                          <div class="col-md-3">
+                            <label class="form-label small fw-semibold">Código AIFA *</label>
+                            <input type="text" id="vf-codigo_aifa" class="form-control form-control-sm rounded-3"
+                                   placeholder="AIFA-01" required>
+                          </div>
+                          <div class="col-md-3">
+                            <label class="form-label small fw-semibold">Tipo de vehículo *</label>
+                            <select id="vf-tipo_vehiculo" class="form-select form-select-sm rounded-3">
+                              <option>Camioneta</option>
+                              <option>Camioneta Van</option>
+                              <option>Camión</option>
+                              <option>Autobús</option>
+                              <option>Ambulancia</option>
+                              <option>Montacargas</option>
+                              <option>Automóvil</option>
+                              <option>Motocicleta</option>
+                            </select>
+                          </div>
+                          <div class="col-md-3">
+                            <label class="form-label small fw-semibold">Marca *</label>
+                            <input type="text" id="vf-marca" class="form-control form-control-sm rounded-3"
+                                   placeholder="Ford">
+                          </div>
+                          <div class="col-md-3">
+                            <label class="form-label small fw-semibold">Submarca / Modelo</label>
+                            <input type="text" id="vf-submarca" class="form-control form-control-sm rounded-3"
+                                   placeholder="Ranger">
+                          </div>
+                          <div class="col-md-2">
+                            <label class="form-label small fw-semibold">Año modelo</label>
+                            <input type="number" id="vf-anio_modelo" class="form-control form-control-sm rounded-3"
+                                   placeholder="2022" min="1990" max="2100">
+                          </div>
+                          <div class="col-md-2">
+                            <label class="form-label small fw-semibold">Color</label>
+                            <input type="text" id="vf-color" class="form-control form-control-sm rounded-3"
+                                   placeholder="Blanco">
+                          </div>
+                          <div class="col-md-4">
+                            <label class="form-label small fw-semibold">No. de Serie (VIN)</label>
+                            <input type="text" id="vf-numero_serie" class="form-control form-control-sm rounded-3 font-monospace"
+                                   placeholder="8AF6R5DV0N6261368">
+                          </div>
+                          <div class="col-md-2">
+                            <label class="form-label small fw-semibold">No. Económico</label>
+                            <input type="text" id="vf-numero_economico" class="form-control form-control-sm rounded-3"
+                                   placeholder="2393303">
+                          </div>
+                          <div class="col-md-2">
+                            <label class="form-label small fw-semibold">Placas</label>
+                            <input type="text" id="vf-placas" class="form-control form-control-sm rounded-3"
+                                   placeholder="NZV4423">
+                          </div>
+
+                          <!-- Especificaciones -->
+                          <div class="col-12 mt-2">
+                            <h6 class="fw-bold text-uppercase small text-muted mb-2">
+                              <i class="fas fa-cogs me-1"></i>Especificaciones Técnicas
+                            </h6>
+                          </div>
+                          <div class="col-md-3">
+                            <label class="form-label small fw-semibold">Combustible</label>
+                            <select id="vf-combustible" class="form-select form-select-sm rounded-3">
+                              <option>Gasolina</option>
+                              <option>Diesel</option>
+                              <option>Eléctrico</option>
+                              <option>Híbrido</option>
+                            </select>
+                          </div>
+                          <div class="col-md-3">
+                            <label class="form-label small fw-semibold">Transmisión</label>
+                            <select id="vf-transmision" class="form-select form-select-sm rounded-3">
+                              <option>Automática</option>
+                              <option>Manual</option>
+                            </select>
+                          </div>
+                          <div class="col-md-2">
+                            <label class="form-label small fw-semibold">Capacidad (personas)</label>
+                            <input type="number" id="vf-capacidad_pasajeros" class="form-control form-control-sm rounded-3"
+                                   placeholder="5" min="1" max="20">
+                          </div>
+
+                          <!-- Seguro -->
+                          <div class="col-12 mt-2">
+                            <h6 class="fw-bold text-uppercase small text-muted mb-2">
+                              <i class="fas fa-shield-alt me-1"></i>Seguro Vehicular
+                            </h6>
+                          </div>
+                          <div class="col-md-3">
+                            <label class="form-label small fw-semibold">Aseguradora</label>
+                            <input type="text" id="vf-aseguradora" class="form-control form-control-sm rounded-3"
+                                   placeholder="GNP">
+                          </div>
+                          <div class="col-md-3">
+                            <label class="form-label small fw-semibold">No. de póliza</label>
+                            <input type="text" id="vf-poliza_numero" class="form-control form-control-sm rounded-3">
+                          </div>
+                          <div class="col-md-3">
+                            <label class="form-label small fw-semibold">Vigencia seguro</label>
+                            <input type="date" id="vf-vigencia_seguro" class="form-control form-control-sm rounded-3">
+                          </div>
+                          <div class="col-12">
+                            <label class="form-label small fw-semibold">Descripción de la póliza</label>
+                            <input type="text" id="vf-poliza_descripcion" class="form-control form-control-sm rounded-3"
+                                   placeholder="Carta cobertura de …">
+                          </div>
+
+                          <!-- Operativo -->
+                          <div class="col-12 mt-2">
+                            <h6 class="fw-bold text-uppercase small text-muted mb-2">
+                              <i class="fas fa-building me-1"></i>Datos Operativos
+                            </h6>
+                          </div>
+                          <div class="col-md-3">
+                            <label class="form-label small fw-semibold">Estado</label>
+                            <select id="vf-estado" class="form-select form-select-sm rounded-3">
+                              <option>Activo</option>
+                              <option>Mantenimiento</option>
+                              <option>Baja</option>
+                            </select>
+                          </div>
+                          <div class="col-md-4">
+                            <label class="form-label small fw-semibold">Área responsable</label>
+                            <input type="text" id="vf-area_responsable" class="form-control form-control-sm rounded-3"
+                                   value="Dirección de Operación">
+                          </div>
+                          <div class="col-md-5">
+                            <label class="form-label small fw-semibold">Responsable asignado</label>
+                            <input type="text" id="vf-responsable_nombre" class="form-control form-control-sm rounded-3">
+                          </div>
+                          <div class="col-12">
+                            <label class="form-label small fw-semibold">Notas / Observaciones</label>
+                            <textarea id="vf-notas" class="form-control form-control-sm rounded-3" rows="2"></textarea>
+                          </div>
+
+                          <!-- Foto -->
+                          <div class="col-12 mt-2">
+                            <h6 class="fw-bold text-uppercase small text-muted mb-2">
+                              <i class="fas fa-camera me-1"></i>Fotografía del Vehículo
+                            </h6>
+                            <label class="form-label small">Selecciona una imagen (JPG/PNG/WEBP · máx. 5 MB)</label>
+                            <input type="file" id="vf-foto-input" class="form-control form-control-sm rounded-3"
+                                   accept="image/jpeg,image/png,image/webp"
+                                   onchange="vehPhotoChanged(this)">
+                            <img id="vf-foto-preview"
+                                 class="mt-3 rounded-3 d-none"
+                                 style="max-height:200px;max-width:100%;object-fit:contain;"
+                                 alt="Vista previa">
+                          </div>
+                        </div>
+                      </div>
+                      <div class="modal-footer border-0 bg-light justify-content-between">
+                        <!-- Eliminar (solo en modo edición) -->
+                        <button type="button" id="vf-delete-btn"
+                                class="btn btn-sm btn-outline-danger rounded-pill px-3 d-none"
+                                onclick="window.vehiculosModule.confirmDelete()">
+                          <i class="fas fa-trash me-1"></i>Eliminar
+                        </button>
+                        <div class="d-flex gap-2">
+                          <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3"
+                                  data-bs-dismiss="modal">
+                            Cancelar
+                          </button>
+                          <button type="button" id="vf-save-btn"
+                                  class="btn btn-sm rounded-pill px-4 fw-semibold"
+                                  style="background:#E8770A;color:white;border:none;"
+                                  onclick="saveVehForm()">
+                            <i class="fas fa-save me-1"></i>Guardar
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
 
             </main>
         </div>
@@ -25408,12 +25975,14 @@ FF
     <script src="js/frecuencias_auto.js?v=2"></script>
     <script src="js/frecuencias_auto_int.js?v=2"></script>
     <script src="js/frecuencias_auto_cargo.js?v=2"></script>
+    <script src="js/frecuencias_playas.js?v=1"></script>
     <script src="js/manifiestos.js"></script>
     <script src="js/manifiestos-analisis.js"></script>
     <script src="js/manifiestos-carga.js"></script>
     <script src="js/portal-admin.js"></script>
     <script src="js/medicas.js?v=2"></script>
     <script src="js/fauna.js"></script>
+    <script src="js/vehiculos.js"></script>
     <script src="js/email-analisis.js"></script>
     <script src="js/agenda.js?v=8"></script>
     <script src="js/agenda-assistant.js?v=1"></script>

@@ -52,10 +52,12 @@ class DataManagement {
             arrival:   { mode: 'rel', active: false, dateFrom: null, dateTo: null },
             departure: { mode: 'rel', active: false, dateFrom: null, dateTo: null }
         };
+        this.routeLaunchEvents = [];
+        this.routeLaunchModal = null;
 
         this.schemas = {
             operations_summary: [
-                { name: 'year', label: 'Año', type: 'number' },
+                { name: 'year', label: 'Aï¿½o', type: 'number' },
                 {
                     name: 'month', label: 'Mes', type: 'select', options: [
                         { value: 'Enero', label: 'Enero' }, { value: 'Febrero', label: 'Febrero' }, { value: 'Marzo', label: 'Marzo' },
@@ -65,13 +67,13 @@ class DataManagement {
                     ]
                 },
                 {
-                    name: 'category', label: 'Categoría', type: 'select', options: [
+                    name: 'category', label: 'Categorï¿½a', type: 'select', options: [
                         { value: 'Pasajeros', label: 'Pasajeros' },
                         { value: 'Operaciones', label: 'Operaciones' },
                         { value: 'Carga', label: 'Carga' }
                     ]
                 },
-                { name: 'metric', label: 'Métrica', type: 'text' },
+                { name: 'metric', label: 'Mï¿½trica', type: 'text' },
                 { name: 'value', label: 'Valor', type: 'number' }
             ],
             daily_operations: [
@@ -88,7 +90,7 @@ class DataManagement {
 
             // Monthly operations (per month per year)
             monthly_operations: [
-                { name: 'year', label: 'Año', type: 'number' },
+                { name: 'year', label: 'Aï¿½o', type: 'number' },
                 {
                     name: 'month', label: 'Mes', type: 'select', options: [
                         { value: '01', label: 'Enero' }, { value: '02', label: 'Febrero' }, { value: '03', label: 'Marzo' },
@@ -106,7 +108,7 @@ class DataManagement {
             ],
             // Annual aggregated operations (calculated from monthly)
             annual_operations: [
-                { name: 'year', label: 'Año', type: 'number' },
+                { name: 'year', label: 'Aï¿½o', type: 'number' },
                 { name: 'comercial_ops_total', label: 'Comercial - Operaciones (Total)', type: 'number' },
                 { name: 'comercial_pax_total', label: 'Comercial - Pasajeros (Total)', type: 'number' },
                 { name: 'general_ops_total', label: 'General - Operaciones (Total)', type: 'number' },
@@ -115,7 +117,7 @@ class DataManagement {
                 { name: 'carga_tons_total', label: 'Carga - Toneladas (Total)', type: 'number', step: '0.01' }
             ],
             punctuality_stats: [
-                { name: 'year', label: 'Año', type: 'number' },
+                { name: 'year', label: 'Aï¿½o', type: 'number' },
                 {
                     name: 'month', label: 'Mes', type: 'select', options: [
                         { value: '1', label: 'Enero' }, { value: '2', label: 'Febrero' }, { value: '3', label: 'Marzo' },
@@ -124,9 +126,9 @@ class DataManagement {
                         { value: '10', label: 'Octubre' }, { value: '11', label: 'Noviembre' }, { value: '12', label: 'Diciembre' }
                     ]
                 },
-                { name: 'airline', label: 'Aerolínea', type: 'text' },
+                { name: 'airline', label: 'Aerolï¿½nea', type: 'text' },
                 {
-                    name: 'category', label: 'Categoría', type: 'select', options: [
+                    name: 'category', label: 'Categorï¿½a', type: 'select', options: [
                         { value: 'Pasajeros', label: 'Pasajeros' },
                         { value: 'Carga', label: 'Carga' }
                     ]
@@ -138,14 +140,14 @@ class DataManagement {
             ],
             flight_itinerary: [
                 { name: 'flight_number', label: 'No. Vuelo', type: 'text' },
-                { name: 'airline', label: 'Aerolínea', type: 'text' },
+                { name: 'airline', label: 'Aerolï¿½nea', type: 'text' },
                 { name: 'origin_destination', label: 'Origen/Destino', type: 'text' },
                 { name: 'arrival_date', label: 'Fecha', type: 'date' },
                 { name: 'arrival_time', label: 'Hora', type: 'time' },
                 {
                     name: 'status', label: 'Estado', type: 'select', options: [
                         { value: 'Programado', label: 'Programado' },
-                        { value: 'Aterrizó', label: 'Aterrizó' },
+                        { value: 'Aterrizï¿½', label: 'Aterrizï¿½' },
                         { value: 'Demorado', label: 'Demorado' },
                         { value: 'Cancelado', label: 'Cancelado' }
                     ]
@@ -156,26 +158,26 @@ class DataManagement {
             wildlife_strikes: [
                 { name: 'date', label: 'Fecha del Evento', type: 'date' },
                 { name: 'time', label: 'Hora del Evento', type: 'time' },
-                { name: 'location', label: 'Ubicación General', type: 'text', placeholder: 'Ej. Aproximación Pista 04C' },
+                { name: 'location', label: 'Ubicaciï¿½n General', type: 'text', placeholder: 'Ej. Aproximaciï¿½n Pista 04C' },
                 { name: 'impact_zone', label: 'Zona de Impacto (Aeronave)', type: 'text', placeholder: 'Ej. Radomo, Motor 1, Ala derecha' },
-                { name: 'operation_phase', label: 'Fase de la Operación', type: 'text', placeholder: 'Ej. Aterrizaje, Despegue, Rodaje' },
-                { name: 'airline', label: 'Aerolínea', type: 'text' },
+                { name: 'operation_phase', label: 'Fase de la Operaciï¿½n', type: 'text', placeholder: 'Ej. Aterrizaje, Despegue, Rodaje' },
+                { name: 'airline', label: 'Aerolï¿½nea', type: 'text' },
                 { name: 'aircraft', label: 'Tipo de Aeronave', type: 'text', placeholder: 'Ej. B737-800' },
-                { name: 'registration', label: 'Matrícula', type: 'text' },
+                { name: 'registration', label: 'Matrï¿½cula', type: 'text' },
                 { name: 'impact_zone_remains', label: 'Zona de Hallazgo de Restos', type: 'text', placeholder: 'Ej. Pista 04C cerca de calle Bravo' },
                 { name: 'remains_count', label: 'Cantidad de Restos', type: 'number' },
                 {
-                    name: 'size', label: 'Tamaño de la Fauna', type: 'select', options: [
-                        { value: 'Pequeño', label: 'Pequeño' },
+                    name: 'size', label: 'Tamaï¿½o de la Fauna', type: 'select', options: [
+                        { value: 'Pequeï¿½o', label: 'Pequeï¿½o' },
                         { value: 'Mediano', label: 'Mediano' },
                         { value: 'Grande', label: 'Grande' }
                     ]
                 },
-                { name: 'species', label: 'Especie (Científico)', type: 'text', placeholder: 'Ej. Quiscalus mexicanus' },
-                { name: 'common_name', label: 'Nombre Común', type: 'text', placeholder: 'Ej. Zanate' },
+                { name: 'species', label: 'Especie (Cientï¿½fico)', type: 'text', placeholder: 'Ej. Quiscalus mexicanus' },
+                { name: 'common_name', label: 'Nombre Comï¿½n', type: 'text', placeholder: 'Ej. Zanate' },
                 { name: 'reporter', label: 'Personal que reporta', type: 'text' },
-                { name: 'proactive_measures', label: 'Medidas Proactivas Previas', type: 'textarea', placeholder: 'Descripción de medidas tomadas antes del evento' },
-                { name: 'weather_conditions', label: 'Condiciones Meteorológicas', type: 'text', placeholder: 'Ej. Nublado, Lluvia ligera' },
+                { name: 'proactive_measures', label: 'Medidas Proactivas Previas', type: 'textarea', placeholder: 'Descripciï¿½n de medidas tomadas antes del evento' },
+                { name: 'weather_conditions', label: 'Condiciones Meteorolï¿½gicas', type: 'text', placeholder: 'Ej. Nublado, Lluvia ligera' },
                 { name: 'measure_results', label: 'Resultados de las Medidas', type: 'textarea' }
             ],
             rescued_wildlife: [
@@ -190,25 +192,25 @@ class DataManagement {
                 },
                 { name: 'time', label: 'Hora', type: 'time' },
                 { name: 'capture_number', label: 'No. Captura', type: 'text', placeholder: 'Ej. GSO-2025-001' },
-                { name: 'common_name', label: 'Nombre Común', type: 'text', placeholder: 'Ej. Tlacuache' },
-                { name: 'scientific_name', label: 'Nombre Científico', type: 'text', placeholder: 'Ej. Didelphis marsupialis' },
+                { name: 'common_name', label: 'Nombre Comï¿½n', type: 'text', placeholder: 'Ej. Tlacuache' },
+                { name: 'scientific_name', label: 'Nombre Cientï¿½fico', type: 'text', placeholder: 'Ej. Didelphis marsupialis' },
                 { 
                     name: 'class', label: 'Clase', type: 'select', 
                     options: [
                         { value: 'Aves', label: 'Aves' },
-                        { value: 'Mamíferos', label: 'Mamíferos' },
+                        { value: 'Mamï¿½feros', label: 'Mamï¿½feros' },
                         { value: 'Reptiles', label: 'Reptiles' },
                         { value: 'Anfibios', label: 'Anfibios' },
                         { value: 'Insectos', label: 'Insectos' }
                     ]
                 },
                 { name: 'quantity', label: 'No. Individuos', type: 'number' },
-                { name: 'capture_method', label: 'Método de Captura', type: 'text', placeholder: 'Ej. Trampa Tomahawk, Manual, Red' },
+                { name: 'capture_method', label: 'Mï¿½todo de Captura', type: 'text', placeholder: 'Ej. Trampa Tomahawk, Manual, Red' },
                 { name: 'quadrant', label: 'Cuadrante', type: 'text', placeholder: 'Ej. 14A' },
                 { 
-                    name: 'final_disposition', label: 'Disposición Final', type: 'select',
+                    name: 'final_disposition', label: 'Disposiciï¿½n Final', type: 'select',
                     options: [
-                        { value: 'Liberación', label: 'Liberación' },
+                        { value: 'Liberaciï¿½n', label: 'Liberaciï¿½n' },
                         { value: 'Traslado', label: 'Traslado' },
                         { value: 'Eutanasia', label: 'Eutanasia' },
                         { value: 'Muerto', label: 'Encontrado Muerto' }
@@ -216,7 +218,7 @@ class DataManagement {
                 }
             ],
             medical_attentions: [
-                { name: 'year', label: 'Año', type: 'number' },
+                { name: 'year', label: 'Aï¿½o', type: 'number' },
                 {
                     name: 'month', label: 'Mes', type: 'select', options: [
                         { value: 'Enero', label: 'Enero' }, { value: 'Febrero', label: 'Febrero' }, { value: 'Marzo', label: 'Marzo' },
@@ -225,14 +227,14 @@ class DataManagement {
                         { value: 'Octubre', label: 'Octubre' }, { value: 'Noviembre', label: 'Noviembre' }, { value: 'Diciembre', label: 'Diciembre' }
                     ]
                 },
-                { name: 'aifa_personnel', label: 'Personal AIFA', type: 'number', placeholder: 'Ej. 15', help: 'Número de atenciones a personal militar o civil del AIFA' },
-                { name: 'other_companies', label: 'Otras Empresas', type: 'number', placeholder: 'Ej. 8', help: 'Atenciones a personal de aerolíneas, comercios, etc.' },
+                { name: 'aifa_personnel', label: 'Personal AIFA', type: 'number', placeholder: 'Ej. 15', help: 'Nï¿½mero de atenciones a personal militar o civil del AIFA' },
+                { name: 'other_companies', label: 'Otras Empresas', type: 'number', placeholder: 'Ej. 8', help: 'Atenciones a personal de aerolï¿½neas, comercios, etc.' },
                 { name: 'passengers', label: 'Pasajeros', type: 'number', placeholder: 'Ej. 45', help: 'Atenciones a usuarios/viajeros del aeropuerto' },
-                { name: 'visitors', label: 'Visitantes', type: 'number', placeholder: 'Ej. 3', help: 'Atenciones a público general o visitantes externos' },
-                { name: 'total', label: 'Total', type: 'number', readonly: true, help: 'Calculado automáticamente: Personal + Otros + Pasajeros + Visitantes' } 
+                { name: 'visitors', label: 'Visitantes', type: 'number', placeholder: 'Ej. 3', help: 'Atenciones a pï¿½blico general o visitantes externos' },
+                { name: 'total', label: 'Total', type: 'number', readonly: true, help: 'Calculado automï¿½ticamente: Personal + Otros + Pasajeros + Visitantes' } 
             ],
             medical_types: [
-                { name: 'year', label: 'Año', type: 'number' },
+                { name: 'year', label: 'Aï¿½o', type: 'number' },
                 {
                     name: 'month', label: 'Mes', type: 'select', options: [
                         { value: 'Enero', label: 'Enero' }, { value: 'Febrero', label: 'Febrero' }, { value: 'Marzo', label: 'Marzo' },
@@ -241,9 +243,9 @@ class DataManagement {
                         { value: 'Octubre', label: 'Octubre' }, { value: 'Noviembre', label: 'Noviembre' }, { value: 'Diciembre', label: 'Diciembre' }
                     ]
                 },
-                { name: 'traslado', label: 'Traslado', type: 'number', placeholder: 'Ej. 5', help: 'Número de traslados a hospitales' },
+                { name: 'traslado', label: 'Traslado', type: 'number', placeholder: 'Ej. 5', help: 'Nï¿½mero de traslados a hospitales' },
                 { name: 'ambulatorio', label: 'Ambulatorio', type: 'number', placeholder: 'Ej. 12', help: 'Atenciones en consultorio o sitio' },
-                { name: 'total', label: 'Total', type: 'number', readonly: true, help: 'Calculado automáticamente: Traslado + Ambulatorio' }
+                { name: 'total', label: 'Total', type: 'number', readonly: true, help: 'Calculado automï¿½ticamente: Traslado + Ambulatorio' }
             ],
             medical_directory: [
                 { name: 'asunto', label: 'Asunto', type: 'text' },
@@ -252,7 +254,7 @@ class DataManagement {
                 { name: 'documentos', label: 'Documentos', type: 'file', multiple: true }
             ],
             delays: [
-                { name: 'year', label: 'Año', type: 'number' },
+                { name: 'year', label: 'Aï¿½o', type: 'number' },
                 {
                     name: 'month', label: 'Mes', type: 'select', options: [
                         { value: 'Enero', label: 'Enero' }, { value: 'Febrero', label: 'Febrero' }, { value: 'Marzo', label: 'Marzo' },
@@ -263,65 +265,65 @@ class DataManagement {
                 },
                 { name: 'cause', label: 'Causa', type: 'text' },
                 { name: 'count', label: 'Cantidad', type: 'number' },
-                { name: 'description', label: 'Descripción', type: 'textarea' },
+                { name: 'description', label: 'Descripciï¿½n', type: 'textarea' },
                 { name: 'observations', label: 'Observaciones', type: 'textarea' }
             ],
             weekly_frequencies: [
                 { name: 'week_label', label: 'Etiqueta Semana (ej. 08-14 Dic 2025)', type: 'text' },
-                { name: 'valid_from', label: 'Válido Desde', type: 'date' },
-                { name: 'valid_to', label: 'Válido Hasta', type: 'date' },
+                { name: 'valid_from', label: 'Vï¿½lido Desde', type: 'date' },
+                { name: 'valid_to', label: 'Vï¿½lido Hasta', type: 'date' },
                 { name: 'route_id', label: 'ID Ruta', type: 'number' },
                 { name: 'city', label: 'Ciudad', type: 'text' },
                 { name: 'state', label: 'Estado', type: 'text' },
-                { name: 'iata', label: 'Código IATA', type: 'text' },
-                { name: 'airline', label: 'Aerolínea', type: 'text' },
+                { name: 'iata', label: 'Cï¿½digo IATA', type: 'text' },
+                { name: 'airline', label: 'Aerolï¿½nea', type: 'text' },
                 { name: 'monday', label: 'Lunes', type: 'number' },
                 { name: 'tuesday', label: 'Martes', type: 'number' },
-                { name: 'wednesday', label: 'Miércoles', type: 'number' },
+                { name: 'wednesday', label: 'Miï¿½rcoles', type: 'number' },
                 { name: 'thursday', label: 'Jueves', type: 'number' },
                 { name: 'friday', label: 'Viernes', type: 'number' },
-                { name: 'saturday', label: 'Sábado', type: 'number' },
+                { name: 'saturday', label: 'Sï¿½bado', type: 'number' },
                 { name: 'sunday', label: 'Domingo', type: 'number' },
                 { name: 'weekly_total', label: 'Total Semanal', type: 'number', readonly: true }
             ],
             weekly_frequencies_int: [
                 { name: 'week_label', label: 'Etiqueta Semana (ej. 08-14 Dic 2025)', type: 'text' },
-                { name: 'valid_from', label: 'Válido Desde', type: 'date' },
-                { name: 'valid_to', label: 'Válido Hasta', type: 'date' },
+                { name: 'valid_from', label: 'Vï¿½lido Desde', type: 'date' },
+                { name: 'valid_to', label: 'Vï¿½lido Hasta', type: 'date' },
                 { name: 'route_id', label: 'ID Ruta', type: 'number' },
-                { name: 'city', label: 'Ciudad / País', type: 'text' },
-                { name: 'state', label: 'Región', type: 'text' },
-                { name: 'iata', label: 'Código IATA', type: 'text' },
-                { name: 'airline', label: 'Aerolínea', type: 'text' },
+                { name: 'city', label: 'Ciudad / Paï¿½s', type: 'text' },
+                { name: 'state', label: 'Regiï¿½n', type: 'text' },
+                { name: 'iata', label: 'Cï¿½digo IATA', type: 'text' },
+                { name: 'airline', label: 'Aerolï¿½nea', type: 'text' },
                 { name: 'monday', label: 'Lunes', type: 'number' },
                 { name: 'tuesday', label: 'Martes', type: 'number' },
-                { name: 'wednesday', label: 'Miércoles', type: 'number' },
+                { name: 'wednesday', label: 'Miï¿½rcoles', type: 'number' },
                 { name: 'thursday', label: 'Jueves', type: 'number' },
                 { name: 'friday', label: 'Viernes', type: 'number' },
-                { name: 'saturday', label: 'Sábado', type: 'number' },
+                { name: 'saturday', label: 'Sï¿½bado', type: 'number' },
                 { name: 'sunday', label: 'Domingo', type: 'number' },
                 { name: 'weekly_total', label: 'Total Semanal', type: 'number', readonly: true }
             ],
             weekly_frequencies_cargo: [
                 { name: 'week_label', label: 'Etiqueta Semana (ej. 08-14 Dic 2025)', type: 'text' },
-                { name: 'valid_from', label: 'Válido Desde', type: 'date' },
-                { name: 'valid_to', label: 'Válido Hasta', type: 'date' },
+                { name: 'valid_from', label: 'Vï¿½lido Desde', type: 'date' },
+                { name: 'valid_to', label: 'Vï¿½lido Hasta', type: 'date' },
                 { name: 'route_id', label: 'ID Ruta', type: 'number' },
-                { name: 'city', label: 'Ciudad / País', type: 'text' },
-                { name: 'state', label: 'Región', type: 'text' },
-                { name: 'iata', label: 'Código IATA', type: 'text' },
-                { name: 'airline', label: 'Aerolínea', type: 'text' },
+                { name: 'city', label: 'Ciudad / Paï¿½s', type: 'text' },
+                { name: 'state', label: 'Regiï¿½n', type: 'text' },
+                { name: 'iata', label: 'Cï¿½digo IATA', type: 'text' },
+                { name: 'airline', label: 'Aerolï¿½nea', type: 'text' },
                 { name: 'monday', label: 'Lunes', type: 'number' },
                 { name: 'tuesday', label: 'Martes', type: 'number' },
-                { name: 'wednesday', label: 'Miércoles', type: 'number' },
+                { name: 'wednesday', label: 'Miï¿½rcoles', type: 'number' },
                 { name: 'thursday', label: 'Jueves', type: 'number' },
                 { name: 'friday', label: 'Viernes', type: 'number' },
-                { name: 'saturday', label: 'Sábado', type: 'number' },
+                { name: 'saturday', label: 'Sï¿½bado', type: 'number' },
                 { name: 'sunday', label: 'Domingo', type: 'number' },
                 { name: 'weekly_total', label: 'Total Semanal', type: 'number', readonly: true }
             ],
             punctuality_stats: [
-                { name: 'year', label: 'Año', type: 'number' },
+                { name: 'year', label: 'Aï¿½o', type: 'number' },
                 {
                     name: 'month', label: 'Mes', type: 'select', options: [
                         { value: '1', label: 'Enero' }, { value: '2', label: 'Febrero' }, { value: '3', label: 'Marzo' },
@@ -330,9 +332,9 @@ class DataManagement {
                         { value: '10', label: 'Octubre' }, { value: '11', label: 'Noviembre' }, { value: '12', label: 'Diciembre' }
                     ]
                 },
-                { name: 'airline', label: 'Aerolínea', type: 'select', options: [] }, // Populated dynamically
+                { name: 'airline', label: 'Aerolï¿½nea', type: 'select', options: [] }, // Populated dynamically
                 {
-                    name: 'category', label: 'Categoría', type: 'select', options: [
+                    name: 'category', label: 'Categorï¿½a', type: 'select', options: [
                         { value: 'Pasajeros', label: 'Pasajeros' },
                         { value: 'Carga', label: 'Carga' }
                     ]
@@ -344,14 +346,14 @@ class DataManagement {
             ],
             flight_itinerary: [
                 { name: 'flight_number', label: 'No. Vuelo', type: 'text' },
-                { name: 'airline', label: 'Aerolínea', type: 'text' },
+                { name: 'airline', label: 'Aerolï¿½nea', type: 'text' },
                 { name: 'origin_destination', label: 'Origen/Destino', type: 'text' },
                 { name: 'arrival_date', label: 'Fecha', type: 'date' },
                 { name: 'arrival_time', label: 'Hora', type: 'time' },
                 {
                     name: 'status', label: 'Estado', type: 'select', options: [
                         { value: 'Programado', label: 'Programado' },
-                        { value: 'Aterrizó', label: 'Aterrizó' },
+                        { value: 'Aterrizï¿½', label: 'Aterrizï¿½' },
                         { value: 'Demorado', label: 'Demorado' },
                         { value: 'Cancelado', label: 'Cancelado' }
                     ]
@@ -364,17 +366,17 @@ class DataManagement {
                 { name: 'time', label: 'Hora', type: 'time' },
                 { name: 'capture_number', label: 'No. Captura', type: 'number' },
                 { name: 'class', label: 'Clase', type: 'text' },
-                { name: 'common_name', label: 'Nombre común', type: 'text' },
-                { name: 'scientific_name', label: 'Nombre científico', type: 'text' },
+                { name: 'common_name', label: 'Nombre comï¿½n', type: 'text' },
+                { name: 'scientific_name', label: 'Nombre cientï¿½fico', type: 'text' },
                 { name: 'quantity', label: 'No. Individuos', type: 'number' },
-                { name: 'capture_method', label: 'Método de captura', type: 'text' },
+                { name: 'capture_method', label: 'Mï¿½todo de captura', type: 'text' },
                 { name: 'quadrant', label: 'Cuadrante', type: 'text' },
-                { name: 'final_disposition', label: 'Disposición final', type: 'text' }
+                { name: 'final_disposition', label: 'Disposiciï¿½n final', type: 'text' }
             ],
             daily_flights_ops: [
                 { name: 'fecha', label: 'Fecha', type: 'date' },
                 { name: 'seq_no', label: 'No.', type: 'number' },
-                { name: 'aerolinea', label: 'Aerolínea', type: 'text' },
+                { name: 'aerolinea', label: 'Aerolï¿½nea', type: 'text' },
                 { name: 'vuelo_llegada', label: 'Vuelo Arr', type: 'text' },
                 { name: 'origen', label: 'Origen', type: 'text' },
                 { name: 'fecha_hora_prog_llegada', label: 'H. Prog Arr', type: 'text' },
@@ -385,17 +387,17 @@ class DataManagement {
                 { name: 'fecha_hora_prog_salida', label: 'H. Prog Dep', type: 'text' },
                 { name: 'fecha_hora_real_salida', label: 'H. Real Dep', type: 'text' },
                 { name: 'pasajeros_salida', label: 'Pax Dep', type: 'number' },
-                { name: 'matricula', label: 'Matrícula', type: 'text' }
+                { name: 'matricula', label: 'Matrï¿½cula', type: 'text' }
             ],
             library_categories: [
-                { name: 'title', label: 'Título del Cuadro', type: 'text' },
-                { name: 'description', label: 'Descripción', type: 'textarea' },
+                { name: 'title', label: 'Tï¿½tulo del Cuadro', type: 'text' },
+                { name: 'description', label: 'Descripciï¿½n', type: 'textarea' },
                 { name: 'icon', label: 'Icono (Visual)', type: 'icon', placeholder: 'fas fa-book' },
                 { name: 'order_index', label: 'Orden', type: 'number' }
             ],
             library_items: [
-                { name: 'category_id', label: 'Cuadro / Categoría', type: 'select', options: [] },
-                { name: 'title', label: 'Título del Ítem', type: 'text' },
+                { name: 'category_id', label: 'Cuadro / Categorï¿½a', type: 'select', options: [] },
+                { name: 'title', label: 'Tï¿½tulo del ï¿½tem', type: 'text' },
                 {
                     name: 'type', label: 'Tipo', type: 'select', options: [
                         { value: 'pdf', label: 'Archivo PDF' },
@@ -411,16 +413,16 @@ class DataManagement {
                 { name: 'order_index', label: 'Orden', type: 'number' }
             ],
             system_alerts: [
-                { name: 'title', label: 'Título del Aviso', type: 'text', placeholder: 'Ej. Cierre de Pista' },
+                { name: 'title', label: 'Tï¿½tulo del Aviso', type: 'text', placeholder: 'Ej. Cierre de Pista' },
                 { name: 'message', label: 'Mensaje Detallado', type: 'textarea', placeholder: 'Detalles del aviso o alerta...' },
                 {
-                    name: 'level', label: 'Nivel (Semáforo)', type: 'select', options: [
+                    name: 'level', label: 'Nivel (Semï¿½foro)', type: 'select', options: [
                         { value: 'info', label: 'Informativo (Verde)' },
-                        { value: 'warning', label: 'Precaución (Amarillo)' },
-                        { value: 'critical', label: 'Crítico (Rojo)' }
+                        { value: 'warning', label: 'Precauciï¿½n (Amarillo)' },
+                        { value: 'critical', label: 'Crï¿½tico (Rojo)' }
                     ]
                 },
-                { name: 'active', label: 'Activo', type: 'select', options: [{ value: true, label: 'Sí' }, { value: false, label: 'No' }] },
+                { name: 'active', label: 'Activo', type: 'select', options: [{ value: true, label: 'Sï¿½' }, { value: false, label: 'No' }] },
                 { name: 'expires_at', label: 'Expira (Opcional)', type: 'date' }
             ],
         };
@@ -600,6 +602,10 @@ class DataManagement {
         this.syncChartsData();
         this.setupGlobalRefresh();
         this.initColumnVisibility();
+
+        if (document.getElementById('route-launch-month')) {
+            this.loadRouteLaunchCalendar();
+        }
     }
 
     setupGlobalRefresh() {
@@ -685,9 +691,13 @@ class DataManagement {
 
         if (targetId === '#pane-delays') this.loadDelays();
         if (targetId === '#pane-punctuality-table') this.loadPunctualityStats();
-        if (targetId === '#pane-weekly-frequencies') this.loadWeeklyFrequencies();
+        if (targetId === '#pane-weekly-frequencies') {
+            this.loadWeeklyFrequencies();
+            this.loadRouteLaunchCalendar();
+        }
         if (targetId === '#pane-weekly-frequencies-int') this.loadWeeklyFrequenciesInt();
         if (targetId === '#pane-weekly-frequencies-cargo') this.loadWeeklyFrequenciesCargo();
+        if (targetId === '#pane-weekly-frequencies-playas') this.loadWeeklyFrequenciesPlayas();
         if (targetId === '#pane-library') {
             this.loadLibraryCategories();
             this.loadLibraryItems();
@@ -1462,7 +1472,7 @@ class DataManagement {
                     const input = document.createElement('input');
                     input.type = 'text';
                     input.className = 'flights-col-filter w-100';
-                    input.placeholder = headerText ? 'Filtrar…' : '';
+                    input.placeholder = headerText ? 'Filtrarï¿½' : '';
                     input.title = headerText ? `Filtrar por ${headerText}` : '';
 
                     input.addEventListener('input', function () {
@@ -1472,7 +1482,7 @@ class DataManagement {
 
                     td.appendChild(input);
                 } else {
-                    td.innerHTML = '<span class="text-muted small">—</span>';
+                    td.innerHTML = '<span class="text-muted small">ï¿½</span>';
                 }
 
                 filterRow.appendChild(td);
@@ -2470,11 +2480,11 @@ const loadingMsg = document.createElement('div'); loadingMsg.id = 'deleting-sing
         };
 
         // Ask for the year (default current)
-        const yearVal = prompt('¿A qué año corresponde el CSV? (ejemplo: 2026)', new Date().getFullYear());
+        const yearVal = prompt('ï¿½A quï¿½ aï¿½o corresponde el CSV? (ejemplo: 2026)', new Date().getFullYear());
         if (!yearVal) return;
         const year = parseInt(yearVal, 10);
         if (isNaN(year) || year < 2020 || year > 2100) {
-            alert('Año inválido.');
+            alert('Aï¿½o invï¿½lido.');
             return;
         }
 
@@ -2487,9 +2497,9 @@ const loadingMsg = document.createElement('div'); loadingMsg.id = 'deleting-sing
 
             const text = await file.text();
             const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').filter(l => l.trim());
-            if (lines.length < 2) { alert('El CSV está vacío o no tiene datos.'); return; }
+            if (lines.length < 2) { alert('El CSV estï¿½ vacï¿½o o no tiene datos.'); return; }
 
-            // Parse CSV (simple split — assumes no quoted commas in data)
+            // Parse CSV (simple split ï¿½ assumes no quoted commas in data)
             const parseRow = (line) => line.split(',').map(c => c.trim());
             const headers = parseRow(lines[0]).map(h => h.toLowerCase());
 
@@ -2503,18 +2513,18 @@ const loadingMsg = document.createElement('div'); loadingMsg.id = 'deleting-sing
             };
 
             const colMes       = idx(['mes']);
-            const colAerolinea = idx(['aerolinea', 'aerolínea', 'airline']);
-            const colCategoria = idx(['categoria', 'categoría', 'category']);
+            const colAerolinea = idx(['aerolinea', 'aerolï¿½nea', 'airline']);
+            const colCategoria = idx(['categoria', 'categorï¿½a', 'category']);
             const colATiempo   = idx(['a tiempo', 'on_time', 'tiempo']);
             const colDemora    = idx(['demora', 'delayed']);
             const colCancelado = idx(['cancelado', 'cancelled']);
             const colTotal     = idx(['total_flights', 'total vuelos', 'total']);
-            const colImp       = idx(['imputables a la', 'imputable_airline', 'imp. aerolínea']);
+            const colImp       = idx(['imputables a la', 'imputable_airline', 'imp. aerolï¿½nea']);
             const colCancImp   = idx(['cancelados imputables', 'cancelled_imputable']);
             const colTotImp    = idx(['total imputables', 'total_imputable']);
 
             if (colAerolinea < 0 || colTotal < 0) {
-                alert('No se reconoció el formato del CSV. Asegúrese de que tenga columnas: Aerolinea, A tiempo, Demora, Cancelado, Total.');
+                alert('No se reconociï¿½ el formato del CSV. Asegï¿½rese de que tenga columnas: Aerolinea, A tiempo, Demora, Cancelado, Total.');
                 return;
             }
 
@@ -2527,7 +2537,7 @@ const loadingMsg = document.createElement('div'); loadingMsg.id = 'deleting-sing
 
                 const mesRaw = colMes >= 0 ? (cells[colMes] || '').toLowerCase() : '';
                 const month = MONTH_MAP[mesRaw] || null;
-                if (!month) { console.warn(`Mes no reconocido: "${mesRaw}" en línea ${i + 1}`); continue; }
+                if (!month) { console.warn(`Mes no reconocido: "${mesRaw}" en lï¿½nea ${i + 1}`); continue; }
 
                 const row = {
                     year,
@@ -2551,7 +2561,7 @@ const loadingMsg = document.createElement('div'); loadingMsg.id = 'deleting-sing
             }
 
             if (rows.length === 0) {
-                alert('No se encontraron filas válidas en el CSV.');
+                alert('No se encontraron filas vï¿½lidas en el CSV.');
                 return;
             }
 
@@ -2559,7 +2569,7 @@ const loadingMsg = document.createElement('div'); loadingMsg.id = 'deleting-sing
             const months = [...new Set(rows.map(r => r.month))];
             const monthNames = ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
             const monthsStr = months.map(m => monthNames[m] || m).join(', ');
-            const confirm1 = confirm(`Se encontraron ${rows.length} filas para ${monthsStr} ${year}.\n${hasImputables ? '? Incluye columnas de imputables.' : '? Sin columnas de imputables.'}\n\n¿Desea importar los datos? Los registros existentes para estos meses serán reemplazados.`);
+            const confirm1 = confirm(`Se encontraron ${rows.length} filas para ${monthsStr} ${year}.\n${hasImputables ? '? Incluye columnas de imputables.' : '? Sin columnas de imputables.'}\n\nï¿½Desea importar los datos? Los registros existentes para estos meses serï¿½n reemplazados.`);
             if (!confirm1) return;
 
             try {
@@ -3609,33 +3619,33 @@ const loadingMsg = document.createElement('div'); loadingMsg.id = 'deleting-sing
             // Manual mapping for clean international names
             const IATA_LOCATIONS = {
                 'HAV': { city: 'La Habana', country: 'Cuba' },
-                'PUJ': { city: 'Punta Cana', country: 'República Dominicana' },
-                'SDQ': { city: 'Santo Domingo', country: 'República Dominicana' },
-                'BOG': { city: 'Bogotá', country: 'Colombia' },
+                'PUJ': { city: 'Punta Cana', country: 'Repï¿½blica Dominicana' },
+                'SDQ': { city: 'Santo Domingo', country: 'Repï¿½blica Dominicana' },
+                'BOG': { city: 'Bogotï¿½', country: 'Colombia' },
                 'CCS': { city: 'Caracas', country: 'Venezuela' },
-                'PTY': { city: 'Ciudad de Panamá', country: 'Panamá' },
+                'PTY': { city: 'Ciudad de Panamï¿½', country: 'Panamï¿½' },
                 'IAH': { city: 'Houston', country: 'Estados Unidos' },
                 'MIA': { city: 'Miami', country: 'Estados Unidos' },
                 'JFK': { city: 'Nueva York', country: 'Estados Unidos' },
                 'ORD': { city: 'Chicago', country: 'Estados Unidos' },
                 'DFW': { city: 'Dallas', country: 'Estados Unidos' },
-                'MAD': { city: 'Madrid', country: 'España' },
-                'CDG': { city: 'París', country: 'Francia' },
-                'AMS': { city: 'Ámsterdam', country: 'Países Bajos' },
+                'MAD': { city: 'Madrid', country: 'Espaï¿½a' },
+                'CDG': { city: 'Parï¿½s', country: 'Francia' },
+                'AMS': { city: 'ï¿½msterdam', country: 'Paï¿½ses Bajos' },
                 'LHR': { city: 'Londres', country: 'Reino Unido' },
-                'FRA': { city: 'Fráncfort', country: 'Alemania' },
+                'FRA': { city: 'Frï¿½ncfort', country: 'Alemania' },
                 'DOH': { city: 'Doha', country: 'Catar' },
-                'ICN': { city: 'Seúl', country: 'Corea del Sur' },
-                'NRT': { city: 'Tokio', country: 'Japón' },
+                'ICN': { city: 'Seï¿½l', country: 'Corea del Sur' },
+                'NRT': { city: 'Tokio', country: 'Japï¿½n' },
                 'HKG': { city: 'Hong Kong', country: 'China' },
-                'YYZ': { city: 'Toronto', country: 'Canadá' },
-                'YVR': { city: 'Vancouver', country: 'Canadá' },
-                'YUL': { city: 'Montreal', country: 'Canadá' },
-                'LIM': { city: 'Lima', country: 'Perú' },
+                'YYZ': { city: 'Toronto', country: 'Canadï¿½' },
+                'YVR': { city: 'Vancouver', country: 'Canadï¿½' },
+                'YUL': { city: 'Montreal', country: 'Canadï¿½' },
+                'LIM': { city: 'Lima', country: 'Perï¿½' },
                 'SCL': { city: 'Santiago', country: 'Chile' },
                 'EZE': { city: 'Buenos Aires', country: 'Argentina' },
-                'GRU': { city: 'São Paulo', country: 'Brasil' },
-                'GIG': { city: 'Río de Janeiro', country: 'Brasil' },
+                'GRU': { city: 'Sï¿½o Paulo', country: 'Brasil' },
+                'GIG': { city: 'Rï¿½o de Janeiro', country: 'Brasil' },
                 'MCALLEN': { city: 'McAllen', country: 'Estados Unidos' },
                 'MFE': { city: 'McAllen', country: 'Estados Unidos' }
             };
@@ -4216,8 +4226,8 @@ const loadingMsg = document.createElement('div'); loadingMsg.id = 'deleting-sing
                 const tdLevel = document.createElement('td');
                 let badgeClass = 'bg-info text-dark';
                 let levelLabel = 'Informativo';
-                if (item.level === 'warning') { badgeClass = 'bg-warning text-dark'; levelLabel = 'Precaución'; }
-                if (item.level === 'critical') { badgeClass = 'bg-danger text-white'; levelLabel = 'Crítico'; }
+                if (item.level === 'warning') { badgeClass = 'bg-warning text-dark'; levelLabel = 'Precauciï¿½n'; }
+                if (item.level === 'critical') { badgeClass = 'bg-danger text-white'; levelLabel = 'Crï¿½tico'; }
                 tdLevel.innerHTML = `<span class="badge ${badgeClass}">${levelLabel}</span>`;
                 tr.appendChild(tdLevel);
 
@@ -4472,8 +4482,8 @@ const loadingMsg = document.createElement('div'); loadingMsg.id = 'deleting-sing
                         btnAdd.className = 'btn btn-sm btn-outline-warning d-block mx-auto mt-2';
                         btnAdd.style.fontSize = '0.7rem';
                         btnAdd.style.padding = '2px 6px';
-                        btnAdd.innerHTML = '<i class="fas fa-plus"></i> Aerolínea';
-                        btnAdd.title = 'Agregar aerolínea a este destino de Carga';
+                        btnAdd.innerHTML = '<i class="fas fa-plus"></i> Aerolï¿½nea';
+                        btnAdd.title = 'Agregar aerolï¿½nea a este destino de Carga';
                         btnAdd.onclick = () => this.addCargoAirlineToDestination(groupItem);
                         tdRoute.appendChild(btnAdd);
 
@@ -4553,6 +4563,201 @@ const loadingMsg = document.createElement('div'); loadingMsg.id = 'deleting-sing
         } catch (error) {
             console.error('Error loading cargo weekly frequencies:', error);
         }
+    }
+
+    async loadWeeklyFrequenciesPlayas(forceRefresh = false) {
+        // Destinos de playa nacionales (IATA)
+        const BEACH_NAC = new Set(['CUN','PVR','SJD','ACA','MZT','HUX','ZIH','ZLO','CZM','LTO','LAP','CTM']);
+        // Destinos de playa internacionales (IATA)
+        const BEACH_INT = new Set(['PUJ','HAV','SJU','BGI','HNL','KIN','LIR','MBJ','NAS','FPO','SDQ','CZM']);
+
+        try {
+            const labelSelect = document.getElementById('filter-weekly-freq-playas-label');
+            const tipoSelect  = document.getElementById('filter-weekly-freq-playas-tipo');
+
+            const selectedLabel = labelSelect ? labelSelect.value : '';
+            const selectedTipo  = tipoSelect  ? tipoSelect.value  : '';
+
+            // Fetch national and international concurrently
+            const [nacData, intData] = await Promise.all([
+                window.dataManager.getWeeklyFrequencies(selectedLabel || undefined),
+                window.dataManager.getWeeklyFrequenciesInt(selectedLabel || undefined)
+            ]);
+
+            // Populate week label filter once
+            if (labelSelect && (forceRefresh || labelSelect.options.length <= 1 || !selectedLabel)) {
+                const allLabels = new Set([
+                    ...nacData.map(i => i.week_label),
+                    ...intData.map(i => i.week_label)
+                ]);
+                const sortedLabels = [...allLabels].filter(Boolean).sort().reverse();
+                const prevLabel = labelSelect.value;
+                labelSelect.innerHTML = '<option value="">Todas las semanas</option>';
+                sortedLabels.forEach(label => {
+                    const opt = document.createElement('option');
+                    opt.value = label;
+                    opt.textContent = label;
+                    labelSelect.appendChild(opt);
+                });
+                if (prevLabel) labelSelect.value = prevLabel;
+            }
+
+            // Filter by beach IATA codes and tag type
+            const nacBeach = nacData
+                .filter(item => item.iata && BEACH_NAC.has(item.iata.toUpperCase()))
+                .map(item => ({ ...item, _tipo: 'Nacional' }));
+
+            const intBeach = intData
+                .filter(item => item.iata && BEACH_INT.has(item.iata.toUpperCase()))
+                .map(item => ({ ...item, _tipo: 'Internacional' }));
+
+            let combined = [...nacBeach, ...intBeach];
+            if (selectedTipo) {
+                combined = combined.filter(item => item._tipo === selectedTipo);
+            }
+
+            // Sort: Nacional first, then by city
+            combined.sort((a, b) => {
+                if (a._tipo !== b._tipo) return a._tipo === 'Nacional' ? -1 : 1;
+                return (a.city || '').localeCompare(b.city || '');
+            });
+
+            // Render summary cards
+            this._renderPlayasSummaryCards(combined);
+
+            // Render table
+            const tbody = document.querySelector('#table-weekly-frequencies-playas tbody');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+
+            if (combined.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="12" class="text-center text-muted py-4"><i class="fas fa-umbrella-beach me-2"></i>No se encontraron destinos de playa para la semana seleccionada.</td></tr>';
+                return;
+            }
+
+            combined.forEach(item => {
+                const tr = document.createElement('tr');
+                const slug = this.slugify(item.airline || 'default');
+                const legacyConfig = this.airlineConfig[slug] || this.airlineConfig['default'];
+                const color     = item.color || legacyConfig.color;
+                const textColor = item.color ? '#ffffff' : legacyConfig.text;
+
+                // Semana
+                const tdWeek = document.createElement('td');
+                tdWeek.textContent = item.week_label || '-';
+                tdWeek.style.verticalAlign = 'middle';
+                tdWeek.style.fontSize = '0.82rem';
+                tr.appendChild(tdWeek);
+
+                // Destino
+                const tdDest = document.createElement('td');
+                tdDest.style.verticalAlign = 'middle';
+                tdDest.innerHTML = `<strong>${item.city || item.iata}</strong><br><small class="text-muted">${item.iata || ''}</small>`;
+                tr.appendChild(tdDest);
+
+                // Tipo
+                const tdTipo = document.createElement('td');
+                tdTipo.className = 'text-center';
+                tdTipo.style.verticalAlign = 'middle';
+                tdTipo.innerHTML = item._tipo === 'Nacional'
+                    ? '<span class="badge bg-danger">Nacional</span>'
+                    : '<span class="badge bg-primary">Internacional</span>';
+                tr.appendChild(tdTipo);
+
+                // AerolÃ­nea
+                const tdAirline = document.createElement('td');
+                tdAirline.style.backgroundColor = '#ffffff';
+                tdAirline.style.color = color;
+                tdAirline.style.borderLeft = `6px solid ${color}`;
+                tdAirline.style.verticalAlign = 'middle';
+                tdAirline.className = 'text-center';
+                const logo = item.logo || legacyConfig.logo;
+                if (logo) {
+                    tdAirline.innerHTML = `<img src="images/airlines/${logo}" alt="${item.airline}" title="${item.airline}" style="height:24px;max-width:100px;object-fit:contain;">`;
+                } else {
+                    tdAirline.textContent = item.airline || '-';
+                }
+                tr.appendChild(tdAirline);
+
+                // DÃ­as L-D
+                ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'].forEach(day => {
+                    const td = document.createElement('td');
+                    td.className = 'text-center border-start';
+                    td.style.backgroundColor = color;
+                    td.style.color = textColor;
+                    td.style.verticalAlign = 'middle';
+                    const count = item[day] || 0;
+                    td.textContent = count > 0 ? count : '-';
+                    tr.appendChild(td);
+                });
+
+                // Total
+                const tdTotal = document.createElement('td');
+                tdTotal.className = 'text-center fw-bold border-start';
+                tdTotal.style.backgroundColor = color;
+                tdTotal.style.color = textColor;
+                tdTotal.style.verticalAlign = 'middle';
+                tdTotal.textContent = item.weekly_total || 0;
+                tr.appendChild(tdTotal);
+
+                tbody.appendChild(tr);
+            });
+
+        } catch (error) {
+            console.error('Error loading beach destinations:', error);
+        }
+    }
+
+    _renderPlayasSummaryCards(data) {
+        const container = document.getElementById('playas-summary-cards');
+        if (!container) return;
+
+        // Aggregate by destination + tipo
+        const grouped = {};
+        data.forEach(item => {
+            const key = `${item.iata}||${item._tipo}`;
+            if (!grouped[key]) {
+                grouped[key] = { city: item.city || item.iata, iata: item.iata, tipo: item._tipo, total: 0, airlines: new Set() };
+            }
+            grouped[key].total += Number(item.weekly_total) || 0;
+            if (item.airline) grouped[key].airlines.add(item.airline);
+        });
+
+        container.innerHTML = '';
+
+        if (Object.keys(grouped).length === 0) {
+            container.innerHTML = '<div class="col-12 text-muted small py-1"><i class="fas fa-info-circle me-1"></i>Sin destinos de playa disponibles para la selecciÃ³n actual.</div>';
+            return;
+        }
+
+        // Sort: Nacional first, then alphabetically
+        const sorted = Object.values(grouped).sort((a, b) => {
+            if (a.tipo !== b.tipo) return a.tipo === 'Nacional' ? -1 : 1;
+            return a.city.localeCompare(b.city);
+        });
+
+        sorted.forEach(dest => {
+            const isNac = dest.tipo === 'Nacional';
+            const accentColor = isNac ? '#dc3545' : '#0d6efd';
+            const col = document.createElement('div');
+            col.className = 'col';
+            col.innerHTML = `
+                <div class="card h-100 border-0 shadow-sm" style="border-left:4px solid ${accentColor} !important;">
+                    <div class="card-body p-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="badge ${isNac ? 'bg-danger' : 'bg-primary'}">${dest.tipo}</span>
+                            <span class="text-muted small fw-bold">${dest.iata}</span>
+                        </div>
+                        <h6 class="card-title mb-2 fw-bold" style="font-size:0.95rem;">${dest.city}</h6>
+                        <div class="d-flex align-items-baseline gap-1">
+                            <span class="fw-bold fs-5" style="color:${accentColor};">${dest.total}</span>
+                            <span class="text-muted small">frec/sem</span>
+                        </div>
+                        <div class="text-muted mt-1" style="font-size:0.72rem;line-height:1.3;">${[...dest.airlines].join(' Â· ') || 'N/D'}</div>
+                    </div>
+                </div>`;
+            container.appendChild(col);
+        });
     }
 
     addCargoAirlineToDestination(templateItem) {
@@ -4668,7 +4873,7 @@ const loadingMsg = document.createElement('div'); loadingMsg.id = 'deleting-sing
         const selectedLabel = labelSelect ? labelSelect.value : '';
         if (!selectedLabel) return;
 
-        if (!confirm(`¿Estás seguro de eliminar TODOS los registros de Carga de la semana: ${selectedLabel}?`)) return;
+        if (!confirm(`ï¿½Estï¿½s seguro de eliminar TODOS los registros de Carga de la semana: ${selectedLabel}?`)) return;
 
         try {
             const { error } = await this.client.from('weekly_frequencies_cargo').delete().eq('week_label', selectedLabel);
@@ -4755,6 +4960,473 @@ const loadingMsg = document.createElement('div'); loadingMsg.id = 'deleting-sing
             alert('Error al guardar cambios.');
         }
     }
+
+    parseRouteReminderDays(raw) {
+        const fallback = [30, 14, 7, 3, 1, 0];
+        if (!raw || typeof raw !== 'string') return fallback;
+        const uniq = new Set();
+        raw.split(',').forEach((part) => {
+            const n = parseInt(String(part).trim(), 10);
+            if (Number.isInteger(n) && n >= 0 && n <= 365) uniq.add(n);
+        });
+        const parsed = [...uniq].sort((a, b) => b - a);
+        return parsed.length ? parsed : fallback;
+    }
+
+    async loadRouteLaunchCalendar() {
+        const tbody = document.querySelector('#table-route-launch-calendar tbody');
+        const monthInput = document.getElementById('route-launch-month');
+        if (!tbody || !monthInput) return;
+
+        if (!monthInput.value) {
+            const now = new Date();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            monthInput.value = `${now.getFullYear()}-${month}`;
+        }
+
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-3"><i class="fas fa-spinner fa-spin me-1"></i>Cargando...</td></tr>';
+
+        try {
+            const { data, error } = await this.client
+                .from('route_launch_calendar')
+                .select('*')
+                .eq('is_active', true)
+                .order('launch_date', { ascending: true });
+            if (error) throw error;
+            this.routeLaunchEvents = data || [];
+            this.renderRouteLaunchCalendar();
+        } catch (error) {
+            console.error('Error loading route launch calendar:', error);
+            tbody.innerHTML = `<tr><td colspan="7" class="text-center text-danger py-3">Error: ${error.message}</td></tr>`;
+        }
+    }
+
+    renderRouteLaunchCalendar() {
+        const tbody = document.querySelector('#table-route-launch-calendar tbody');
+        const monthInput = document.getElementById('route-launch-month');
+        const statusFilter = document.getElementById('route-launch-status-filter');
+        const scopeFilter = document.getElementById('route-launch-scope-filter');
+        const searchInput = document.getElementById('route-launch-search');
+        const statusEl = document.getElementById('route-launch-status');
+        const gridEl = document.getElementById('route-launch-calendar-grid');
+        if (!tbody || !monthInput || !gridEl) return;
+
+        const monthVal = monthInput.value || '';
+        const statusVal = (statusFilter?.value || '').trim().toLowerCase();
+        const scopeVal = (scopeFilter?.value || '').trim().toLowerCase();
+        const searchVal = (searchInput?.value || '').trim().toLowerCase();
+
+        const filtered = (this.routeLaunchEvents || []).filter((ev) => {
+            const date = String(ev.launch_date || '');
+            if (monthVal && !date.startsWith(monthVal)) return false;
+            if (statusVal && String(ev.status || '').toLowerCase() !== statusVal) return false;
+            if (scopeVal && String(ev.scope || '').toLowerCase() !== scopeVal) return false;
+            if (searchVal) {
+                const bag = `${ev.route_name || ''} ${ev.airline || ''}`.toLowerCase();
+                if (!bag.includes(searchVal)) return false;
+            }
+            return true;
+        });
+
+        const badgeByStatus = {
+            confirmada: 'success',
+            programada: 'primary',
+            pospuesta: 'warning',
+            cancelada: 'secondary',
+        };
+
+        if (!filtered.length) {
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-3">Sin inauguraciones para los filtros seleccionados.</td></tr>';
+        } else {
+            tbody.innerHTML = filtered.map((ev) => {
+                const status = String(ev.status || 'programada').toLowerCase();
+                const badge = badgeByStatus[status] || 'secondary';
+                const reminderDays = Array.isArray(ev.reminder_days) ? ev.reminder_days : [];
+                const reminderText = reminderDays.length ? reminderDays.join(', ') + ' dias' : 'Sin recordatorios';
+                return `<tr>
+                    <td>${this.formatDisplayDate(ev.launch_date)}</td>
+                    <td>
+                        <div class="fw-semibold">${ev.route_name || '-'}</div>
+                        <small class="text-muted">${ev.route_code || ''}</small>
+                    </td>
+                    <td>${ev.airline || '-'}</td>
+                    <td><span class="badge bg-light text-dark border text-uppercase">${ev.scope || 'nacional'}</span></td>
+                    <td><span class="badge bg-${badge}">${status}</span></td>
+                    <td class="small text-muted">${reminderText}</td>
+                    <td class="text-center">
+                        <button class="btn btn-sm btn-outline-primary me-1" onclick="dataManagement.openRouteLaunchModal('${ev.id}')" title="Editar">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger" onclick="dataManagement.deleteRouteLaunchEvent('${ev.id}')" title="Eliminar">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                </tr>`;
+            }).join('');
+        }
+
+        const eventsByDate = {};
+        filtered.forEach((ev) => {
+            const key = String(ev.launch_date || '').slice(0, 10);
+            if (!eventsByDate[key]) eventsByDate[key] = [];
+            eventsByDate[key].push(ev);
+        });
+
+        const [yearStr, monthStr] = monthVal.split('-');
+        const year = parseInt(yearStr, 10);
+        const month = parseInt(monthStr, 10);
+        if (!Number.isInteger(year) || !Number.isInteger(month)) return;
+
+        const firstDay = new Date(year, month - 1, 1);
+        const daysInMonth = new Date(year, month, 0).getDate();
+        const weekDays = ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab'];
+
+        let html = '<div class="table-responsive"><table class="table table-bordered table-sm mb-0"><thead><tr>';
+        html += weekDays.map((d) => `<th class="text-center small bg-light">${d}</th>`).join('');
+        html += '</tr></thead><tbody><tr>';
+
+        for (let i = 0; i < firstDay.getDay(); i++) {
+            html += '<td style="height:94px;background:#fafbfc"></td>';
+        }
+
+        for (let day = 1; day <= daysInMonth; day++) {
+            const dateIso = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            const events = eventsByDate[dateIso] || [];
+            const mini = events.slice(0, 2).map((ev) => `<div class="small text-truncate"><span class="badge bg-primary-subtle text-primary-emphasis">${ev.airline || ''}</span> ${ev.route_name || ''}</div>`).join('');
+            const extra = events.length > 2 ? `<div class="small text-muted">+${events.length - 2} mas</div>` : '';
+
+            html += `<td style="height:94px;vertical-align:top">
+                <div class="fw-semibold small">${day}</div>
+                ${mini}
+                ${extra}
+            </td>`;
+
+            if ((firstDay.getDay() + day) % 7 === 0 && day < daysInMonth) html += '</tr><tr>';
+        }
+
+        const trailing = (7 - ((firstDay.getDay() + daysInMonth) % 7)) % 7;
+        for (let i = 0; i < trailing; i++) {
+            html += '<td style="height:94px;background:#fafbfc"></td>';
+        }
+
+        html += '</tr></tbody></table></div>';
+        gridEl.innerHTML = html;
+
+        if (statusEl) {
+            statusEl.innerHTML = `<i class="fas fa-info-circle me-1"></i>${filtered.length} inauguracion(es) visibles de ${this.routeLaunchEvents.length} registradas.`;
+        }
+    }
+
+    openRouteLaunchModal(id = '') {
+        const modalEl = document.getElementById('routeLaunchModal');
+        if (!modalEl) return;
+        if (!this.routeLaunchModal) this.routeLaunchModal = new bootstrap.Modal(modalEl, { backdrop: 'static' });
+
+        const event = id ? (this.routeLaunchEvents || []).find((item) => String(item.id) === String(id)) : null;
+        const setVal = (elId, value) => {
+            const el = document.getElementById(elId);
+            if (el) el.value = value || '';
+        };
+
+        setVal('route-launch-id', event?.id || '');
+        setVal('route-launch-route', event?.route_name || '');
+        setVal('route-launch-airline', event?.airline || '');
+        setVal('route-launch-date', event?.launch_date || new Date().toISOString().slice(0, 10));
+        setVal('route-launch-scope', event?.scope || 'nacional');
+        setVal('route-launch-status-field', event?.status || 'confirmada');
+        setVal('route-launch-reminder-days', Array.isArray(event?.reminder_days) ? event.reminder_days.join(',') : '30,14,7,3,1,0');
+        setVal('route-launch-notes', event?.notes || '');
+
+        const statusEl = document.getElementById('route-launch-modal-status');
+        if (statusEl) statusEl.innerHTML = '';
+        this.routeLaunchModal.show();
+    }
+
+    async saveRouteLaunchEvent() {
+        const id = (document.getElementById('route-launch-id')?.value || '').trim();
+        const routeName = (document.getElementById('route-launch-route')?.value || '').trim();
+        const airline = (document.getElementById('route-launch-airline')?.value || '').trim();
+        const launchDate = (document.getElementById('route-launch-date')?.value || '').trim();
+        const scope = (document.getElementById('route-launch-scope')?.value || 'nacional').trim().toLowerCase();
+        const status = (document.getElementById('route-launch-status-field')?.value || 'confirmada').trim().toLowerCase();
+        const reminderRaw = (document.getElementById('route-launch-reminder-days')?.value || '').trim();
+        const notes = (document.getElementById('route-launch-notes')?.value || '').trim();
+        const statusEl = document.getElementById('route-launch-modal-status');
+
+        if (!routeName || !airline || !launchDate) {
+            if (statusEl) statusEl.innerHTML = '<span class="text-danger">Ruta, aerolinea y fecha son obligatorios.</span>';
+            return;
+        }
+
+        const payload = {
+            route_name: routeName,
+            airline,
+            launch_date: launchDate,
+            scope,
+            status,
+            reminder_days: this.parseRouteReminderDays(reminderRaw),
+            notes: notes || null,
+            updated_at: new Date().toISOString(),
+        };
+
+        if (statusEl) statusEl.innerHTML = '<span class="text-muted"><i class="fas fa-spinner fa-spin me-1"></i>Guardando...</span>';
+
+        try {
+            if (id) {
+                const { error } = await this.client.from('route_launch_calendar').update(payload).eq('id', id);
+                if (error) throw error;
+            } else {
+                const { error } = await this.client.from('route_launch_calendar').insert(payload);
+                if (error) throw error;
+            }
+
+            if (this.routeLaunchModal) this.routeLaunchModal.hide();
+            await this.loadRouteLaunchCalendar();
+            this.renderDmCalRutas();
+            alert('Inauguracion guardada correctamente.');
+        } catch (error) {
+            console.error('Error saving route launch event:', error);
+            if (statusEl) statusEl.innerHTML = `<span class="text-danger">Error: ${error.message}</span>`;
+        }
+    }
+
+    async deleteRouteLaunchEvent(id) {
+        if (!id) return;
+        if (!confirm('Deseas eliminar esta inauguracion de ruta?')) return;
+        try {
+            const { error } = await this.client
+                .from('route_launch_calendar')
+                .update({ is_active: false, updated_at: new Date().toISOString() })
+                .eq('id', id);
+            if (error) throw error;
+            await this.loadRouteLaunchCalendar();
+            this.renderDmCalRutas();
+        } catch (error) {
+            console.error('Error deleting route launch event:', error);
+            alert('No se pudo eliminar: ' + error.message);
+        }
+    }
+
+    async sendRouteLaunchRemindersNow() {
+        const statusEl = document.getElementById('route-launch-status');
+        if (!confirm('Se enviaran recordatorios de inauguraciones programadas para hoy. Deseas continuar?')) return;
+
+        try {
+            if (statusEl) statusEl.innerHTML = '<span class="text-muted"><i class="fas fa-spinner fa-spin me-1"></i>Enviando recordatorios...</span>';
+            const { data, error } = await this.client.functions.invoke('send-route-launch-reminders', {
+                body: { source: 'manual-ui' }
+            });
+            if (error) throw error;
+
+            const sentWhatsApp = Number(data?.sent_whatsapp || 0);
+            const sentEmail = Number(data?.sent_email || 0);
+            const totalEvents = Number(data?.events_matched || 0);
+
+            if (statusEl) {
+                statusEl.innerHTML = `<span class="text-success"><i class="fas fa-check-circle me-1"></i>Envio finalizado.</span> Eventos: ${totalEvents}. WhatsApp: ${sentWhatsApp}. Correo: ${sentEmail}.`;
+            }
+        } catch (error) {
+            console.error('Error sending route launch reminders:', error);
+            if (statusEl) statusEl.innerHTML = `<span class="text-danger"><i class="fas fa-times-circle me-1"></i>${error.message}</span>`;
+        }
+    }
+
+    // â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    _esc(text) {
+        return String(text == null ? '' : text)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    // â”€â”€ GestiÃ³n de Datos: Calendario Rutas (pane propio del muro) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    async loadDmCalRutas() {
+        const monthInput = document.getElementById('dm-rlc-month');
+        if (!monthInput) return;
+        if (!monthInput.value) {
+            const now = new Date();
+            monthInput.value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+        }
+        const tbody = document.querySelector('#dm-table-rlc tbody');
+        if (tbody) tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-3"><i class="fas fa-spinner fa-spin me-1"></i>Cargando...</td></tr>';
+        try {
+            const { data, error } = await this.client
+                .from('route_launch_calendar')
+                .select('*')
+                .eq('is_active', true)
+                .order('launch_date', { ascending: true });
+            if (error) throw error;
+            this.routeLaunchEvents = data || [];
+            this.renderDmCalRutas();
+        } catch (err) {
+            if (tbody) tbody.innerHTML = `<tr><td colspan="7" class="text-center text-danger py-3">Error: ${err.message}</td></tr>`;
+        }
+    }
+
+    renderDmCalRutas() {
+        const tbody = document.querySelector('#dm-table-rlc tbody');
+        const monthInput = document.getElementById('dm-rlc-month');
+        const statusFilter = document.getElementById('dm-rlc-status-filter');
+        const scopeFilter = document.getElementById('dm-rlc-scope-filter');
+        const searchInput = document.getElementById('dm-rlc-search');
+        const statusEl = document.getElementById('dm-rlc-status-bar');
+        const gridEl = document.getElementById('dm-rlc-grid');
+        if (!tbody || !monthInput || !gridEl) return;
+
+        const monthVal = monthInput.value || '';
+        const statusVal = (statusFilter?.value || '').trim().toLowerCase();
+        const scopeVal = (scopeFilter?.value || '').trim().toLowerCase();
+        const searchVal = (searchInput?.value || '').trim().toLowerCase();
+
+        const filtered = (this.routeLaunchEvents || []).filter((ev) => {
+            const date = String(ev.launch_date || '');
+            if (monthVal && !date.startsWith(monthVal)) return false;
+            if (statusVal && String(ev.status || '').toLowerCase() !== statusVal) return false;
+            if (scopeVal && String(ev.scope || '').toLowerCase() !== scopeVal) return false;
+            if (searchVal) {
+                const bag = `${ev.route_name || ''} ${ev.airline || ''}`.toLowerCase();
+                if (!bag.includes(searchVal)) return false;
+            }
+            return true;
+        });
+
+        const badgeByStatus = { confirmada: 'success', programada: 'primary', pospuesta: 'warning', cancelada: 'secondary' };
+
+        if (!filtered.length) {
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-3">Sin inauguraciones para los filtros seleccionados.</td></tr>';
+        } else {
+            tbody.innerHTML = filtered.map((ev) => {
+                const status = String(ev.status || 'programada').toLowerCase();
+                const badge = badgeByStatus[status] || 'secondary';
+                const reminderDays = Array.isArray(ev.reminder_days) ? ev.reminder_days : [];
+                const reminderText = reminderDays.length ? reminderDays.join(', ') + ' dÃ­as' : 'Sin recordatorios';
+                return `<tr>
+                    <td>${this.formatDisplayDate(ev.launch_date)}</td>
+                    <td><div class="fw-semibold">${this._esc(ev.route_name || '-')}</div><small class="text-muted">${this._esc(ev.route_code || '')}</small></td>
+                    <td>${this._esc(ev.airline || '-')}</td>
+                    <td><span class="badge bg-light text-dark border text-uppercase">${this._esc(ev.scope || 'nacional')}</span></td>
+                    <td><span class="badge bg-${badge}">${status}</span></td>
+                    <td class="small text-muted">${reminderText}</td>
+                    <td class="text-center">
+                        <button class="btn btn-sm btn-outline-primary me-1" onclick="dataManagement.openRouteLaunchModal('${ev.id}')" title="Editar"><i class="fas fa-edit"></i></button>
+                        <button class="btn btn-sm btn-outline-danger" onclick="dataManagement.deleteRouteLaunchEvent('${ev.id}')" title="Eliminar"><i class="fas fa-trash"></i></button>
+                    </td>
+                </tr>`;
+            }).join('');
+        }
+
+        // Rejilla calendario
+        const eventsByDate = {};
+        filtered.forEach((ev) => {
+            const key = String(ev.launch_date || '').slice(0, 10);
+            if (!eventsByDate[key]) eventsByDate[key] = [];
+            eventsByDate[key].push(ev);
+        });
+        const [yearStr, monthStr] = monthVal.split('-');
+        const year = parseInt(yearStr, 10);
+        const month = parseInt(monthStr, 10);
+        if (!Number.isInteger(year) || !Number.isInteger(month)) { gridEl.innerHTML = ''; return; }
+        const firstDay = new Date(year, month - 1, 1);
+        const daysInMonth = new Date(year, month, 0).getDate();
+        const weekDays = ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab'];
+        let html = '<div class="table-responsive"><table class="table table-bordered table-sm mb-0"><thead><tr>';
+        html += weekDays.map((d) => `<th class="text-center small bg-light">${d}</th>`).join('');
+        html += '</tr></thead><tbody><tr>';
+        for (let i = 0; i < firstDay.getDay(); i++) html += '<td style="height:90px;background:#fafbfc"></td>';
+        for (let day = 1; day <= daysInMonth; day++) {
+            const dateIso = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            const events = eventsByDate[dateIso] || [];
+            const mini = events.slice(0, 2).map((ev) => `<div class="small text-truncate"><span class="badge bg-primary-subtle text-primary-emphasis">${this._esc(ev.airline || '')}</span> ${this._esc(ev.route_name || '')}</div>`).join('');
+            const extra = events.length > 2 ? `<div class="small text-muted">+${events.length - 2} mÃ¡s</div>` : '';
+            html += `<td style="height:90px;vertical-align:top"><div class="fw-semibold small">${day}</div>${mini}${extra}</td>`;
+            if ((firstDay.getDay() + day) % 7 === 0 && day < daysInMonth) html += '</tr><tr>';
+        }
+        const trailing = (7 - ((firstDay.getDay() + daysInMonth) % 7)) % 7;
+        for (let i = 0; i < trailing; i++) html += '<td style="height:90px;background:#fafbfc"></td>';
+        html += '</tr></tbody></table></div>';
+        gridEl.innerHTML = html;
+
+        if (statusEl) statusEl.innerHTML = `<i class="fas fa-info-circle me-1"></i>${filtered.length} inauguraciÃ³n(es) visibles de ${(this.routeLaunchEvents || []).length} registradas.`;
+    }
+
+    // â”€â”€ Notas TV Wall (GestiÃ³n de Datos) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    async loadDmTvNotas() {
+        const list = document.getElementById('dm-notas-list');
+        const count = document.getElementById('dm-notas-count');
+        if (!list) return;
+        list.innerHTML = '<div class="text-center text-muted py-3"><i class="fas fa-spinner fa-spin me-2"></i>Cargando...</div>';
+        try {
+            const { data, error } = await this.client
+                .from('tv_notas')
+                .select('id, titulo, nota, prioridad, activa, updated_at')
+                .eq('activa', true)
+                .order('prioridad', { ascending: false })
+                .order('updated_at', { ascending: false })
+                .limit(50);
+            if (error) throw error;
+            const rows = data || [];
+            if (count) count.textContent = rows.length;
+            if (!rows.length) {
+                list.innerHTML = '<div class="text-center text-muted py-3">Sin notas activas.</div>';
+                return;
+            }
+            const badgeMap = { 10: 'danger', 8: 'warning', 5: 'primary', 3: 'secondary' };
+            const labelMap = { 10: 'CrÃ­tica', 8: 'Alta', 5: 'Media', 3: 'Baja' };
+            list.innerHTML = rows.map((n) => `
+                <div class="d-flex align-items-start border-bottom py-2 gap-3">
+                    <div class="flex-grow-1">
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <span class="badge bg-${badgeMap[n.prioridad] || 'secondary'}">${labelMap[n.prioridad] || n.prioridad}</span>
+                            <span class="fw-semibold">${this._esc(n.titulo || '')}</span>
+                        </div>
+                        <div class="small text-muted">${this._esc(n.nota || '')}</div>
+                        <div class="small text-muted mt-1">${n.updated_at ? new Date(n.updated_at).toLocaleString('es-MX') : ''}</div>
+                    </div>
+                    <button class="btn btn-sm btn-outline-danger flex-shrink-0" onclick="dataManagement.deactivateDmTvNota(${n.id})" title="Desactivar nota">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `).join('');
+        } catch (err) {
+            list.innerHTML = `<div class="text-center text-danger py-3">Error: ${err.message}</div>`;
+        }
+    }
+
+    async addDmTvNota() {
+        const titleEl = document.getElementById('dm-nota-titulo');
+        const bodyEl = document.getElementById('dm-nota-body');
+        const priorEl = document.getElementById('dm-nota-prioridad');
+        const statusEl = document.getElementById('dm-nota-status');
+        const titulo = titleEl?.value.trim() || '';
+        const nota = bodyEl?.value.trim() || '';
+        const prioridad = Number(priorEl?.value || 5);
+        if (!titulo || !nota) {
+            if (statusEl) statusEl.innerHTML = '<span class="text-danger">TÃ­tulo y nota son obligatorios.</span>';
+            return;
+        }
+        if (statusEl) statusEl.innerHTML = '<span class="text-muted"><i class="fas fa-spinner fa-spin me-1"></i>Guardando...</span>';
+        try {
+            const { error } = await this.client.from('tv_notas').insert({ titulo, nota, prioridad, activa: true });
+            if (error) throw error;
+            if (titleEl) titleEl.value = '';
+            if (bodyEl) bodyEl.value = '';
+            if (statusEl) statusEl.innerHTML = '<span class="text-success"><i class="fas fa-check me-1"></i>Nota agregada correctamente.</span>';
+            await this.loadDmTvNotas();
+            setTimeout(() => { if (statusEl) statusEl.innerHTML = ''; }, 3000);
+        } catch (err) {
+            if (statusEl) statusEl.innerHTML = `<span class="text-danger">Error: ${err.message}</span>`;
+        }
+    }
+
+    async deactivateDmTvNota(id) {
+        if (!confirm('Â¿Desactivar esta nota del TV Wall?')) return;
+        try {
+            const { error } = await this.client.from('tv_notas').update({ activa: false }).eq('id', Number(id));
+            if (error) throw error;
+            await this.loadDmTvNotas();
+        } catch (err) {
+            alert('Error al desactivar: ' + err.message);
+        }
+    }
 }
 
 window.dataManagement = new DataManagement();
@@ -4801,7 +5473,7 @@ window.toggleDmSidebar = toggleDmSidebar;
 document.addEventListener('DOMContentLoaded', () => { setTimeout(() => window.dataManagement.renderPublicAlerts(), 2000); });
 
 /* --------------------------------------------------------------------------
-   MÓDULO AEROLÍNEAS — gestión inline en Gestión de Datos
+   Mï¿½DULO AEROLï¿½NEAS ï¿½ gestiï¿½n inline en Gestiï¿½n de Datos
    Tabla: airlines   Bucket: airline-logos
    -------------------------------------------------------------------------- */
 (function () {
@@ -4814,11 +5486,46 @@ document.addEventListener('DOMContentLoaded', () => { setTimeout(() => window.da
     let alFilter   = 'all';
     let alEditId   = null;
     let alPending  = null;
+    let alLoadInFlight = false;
+    let alReloadQueued = false;
+    let alSuspendRender = false;
+    let alModalEl = null;
+    let alModal = null;
 
     // -- helpers --------------------------------------------------------------
     function esc(s)  { return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
     function escA(s) { return String(s ?? '').replace(/'/g,'&#39;').replace(/"/g,'&quot;'); }
     function sb()    { return window.supabaseClient; }
+
+    function alGetModal() {
+        if (!alModalEl) {
+            alModalEl = document.getElementById('dm-airline-modal');
+            if (!alModalEl) return null;
+
+            // Keep modal outside tab panes to avoid parent repaint side-effects.
+            if (alModalEl.parentElement !== document.body) {
+                document.body.appendChild(alModalEl);
+            }
+
+            alModalEl.addEventListener('hidden.bs.modal', () => {
+                alSuspendRender = false;
+                alPending = null;
+                if (alReloadQueued) {
+                    alReloadQueued = false;
+                    alLoad();
+                }
+            });
+        }
+
+        if (!alModal) {
+            alModal = bootstrap.Modal.getOrCreateInstance(alModalEl, {
+                backdrop: 'static',
+                keyboard: false,
+                focus: true
+            });
+        }
+        return alModal;
+    }
 
     function alLogoType(a) { return a.logo_url ? 'storage' : (a.iata ? 'iata' : 'none'); }
 
@@ -4826,20 +5533,38 @@ document.addEventListener('DOMContentLoaded', () => { setTimeout(() => window.da
     window.alLoad = async function () {
         const tbody = document.getElementById('al-tbody');
         if (!tbody) return;
-        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4"><i class="fas fa-spinner fa-spin me-2"></i>Cargando…</td></tr>';
+        if (alSuspendRender) {
+            alReloadQueued = true;
+            return;
+        }
+        if (alLoadInFlight) {
+            alReloadQueued = true;
+            return;
+        }
+
+        alLoadInFlight = true;
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4"><i class="fas fa-spinner fa-spin me-2"></i>Cargando...</td></tr>';
         const client = sb();
         if (!client) {
             tbody.innerHTML = '<tr><td colspan="7" class="alert alert-danger m-2">supabaseClient no disponible.</td></tr>';
+            alLoadInFlight = false;
             return;
         }
         const { data, error } = await client.from(AL_TABLE).select('*').order('name');
         if (error) {
             tbody.innerHTML = `<tr><td colspan="7" class="text-danger p-3">${esc(error.message)}</td></tr>`;
+            alLoadInFlight = false;
             return;
         }
         alAll = data || [];
         alUpdateStats();
         alApplyFilters();
+        alLoadInFlight = false;
+
+        if (alReloadQueued && !alSuspendRender) {
+            alReloadQueued = false;
+            alLoad();
+        }
     };
 
     function alUpdateStats() {
@@ -4874,7 +5599,7 @@ document.addEventListener('DOMContentLoaded', () => { setTimeout(() => window.da
         });
         alRender();
         const cnt = document.getElementById('al-count');
-        if (cnt) cnt.textContent = `${alFiltered.length} aerolíneas mostradas`;
+        if (cnt) cnt.textContent = `${alFiltered.length} aerolineas mostradas`;
     };
 
     function alLogoThumb(a) {
@@ -4924,8 +5649,8 @@ document.addEventListener('DOMContentLoaded', () => { setTimeout(() => window.da
             return `<tr id="al-row-${escA(a.id)}">
                 <td style="vertical-align:middle;padding:.4rem .6rem">${alLogoThumb(a)}</td>
                 <td style="font-weight:600;font-size:.88rem">${esc(a.name)}</td>
-                <td>${codes || '<span class="text-muted small">—</span>'}</td>
-                <td>${alTypeBadges(a) || '<span class="text-muted small">—</span>'}</td>
+                <td>${codes || '<span class="text-muted small">ï¿½</span>'}</td>
+                <td>${alTypeBadges(a) || '<span class="text-muted small">ï¿½</span>'}</td>
                 <td><span style="display:inline-block;width:14px;height:14px;border-radius:3px;border:1px solid rgba(0,0,0,.15);background:${escA(color)};vertical-align:middle;margin-right:4px"></span><code style="font-size:.72rem">${esc(color)}</code></td>
                 <td>${alStatusPill(a)}</td>
                 <td style="text-align:center;white-space:nowrap">
@@ -4982,28 +5707,36 @@ document.addEventListener('DOMContentLoaded', () => { setTimeout(() => window.da
 
     // -- modal: add / edit -----------------------------------------------------
     window.alOpenAdd = function () {
+        const modalEl = document.getElementById('dm-airline-modal');
+        if (modalEl && modalEl.classList.contains('show')) return;
         alEditId = null; alPending = null;
-        document.getElementById('al-modal-title').innerHTML = '<i class="fas fa-plus me-2"></i>Nueva Aerolínea';
+        document.getElementById('al-modal-title').innerHTML = '<i class="fas fa-plus me-2"></i>Nueva Aerolinea';
         document.getElementById('al-btn-delete').classList.add('d-none');
         alClearForm();
-        new bootstrap.Modal(document.getElementById('dm-airline-modal')).show();
+        alSuspendRender = true;
+        const modal = alGetModal();
+        if (modal) modal.show();
     };
 
     window.alOpenEdit = function (id) {
+        const modalEl = document.getElementById('dm-airline-modal');
+        if (modalEl && modalEl.classList.contains('show')) return;
         const a = alAll.find(x => x.id === id);
         if (!a) return;
         alEditId = id; alPending = null;
         document.getElementById('al-modal-title').innerHTML = `<i class="fas fa-edit me-2"></i>${esc(a.name)}`;
         document.getElementById('al-btn-delete').classList.remove('d-none');
         alFillForm(a);
-        new bootstrap.Modal(document.getElementById('dm-airline-modal')).show();
+        alSuspendRender = true;
+        const modal = alGetModal();
+        if (modal) modal.show();
     };
 
     function alClearForm() {
         ['al-f-name','al-f-iata','al-f-icao','al-f-aliases'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
         ['al-f-nac','al-f-int','al-f-car','al-f-pax'].forEach(id => { const el = document.getElementById(id); if (el) el.checked = false; });
         const col = document.getElementById('al-f-color'); if (col) col.value = '#0d6efd';
-        const dt  = document.getElementById('al-drop-text'); if (dt) dt.textContent = 'Arrastra o haz click · PNG, JPG, SVG — máx 2 MB';
+        const dt  = document.getElementById('al-drop-text'); if (dt) dt.textContent = 'Arrastra o haz click - PNG, JPG, SVG - max 2 MB';
         const prev = document.getElementById('al-logo-preview'); if (prev) prev.innerHTML = '<span class="text-muted small">Sube un logo para ver la vista previa</span>';
     }
 
@@ -5021,16 +5754,16 @@ document.addEventListener('DOMContentLoaded', () => { setTimeout(() => window.da
         const prev = document.getElementById('al-logo-preview');
         if (!prev) return;
         if (a.logo_url) {
-            prev.innerHTML = `<img src="${escA(a.logo_url)}" style="max-height:60px;object-fit:contain"><div class="small ms-2 text-muted">Logo actual · <span class="text-success"><i class="fas fa-cloud me-1"></i>Storage</span></div>`;
+            prev.innerHTML = `<img src="${escA(a.logo_url)}" style="max-height:60px;object-fit:contain"><div class="small ms-2 text-muted">Logo actual - <span class="text-success"><i class="fas fa-cloud me-1"></i>Storage</span></div>`;
         } else if (a.iata) {
-            prev.innerHTML = `<img src="${GURL(a.iata)}" style="max-height:50px;object-fit:contain"><div class="small ms-2 text-muted">Logo IATA · <span class="text-warning">No está en Storage</span></div>`;
+            prev.innerHTML = `<img src="${GURL(a.iata)}" style="max-height:50px;object-fit:contain"><div class="small ms-2 text-muted">Logo IATA - <span class="text-warning">No esta en Storage</span></div>`;
         } else {
-            prev.innerHTML = '<span class="text-muted small">Sin logo — sube uno</span>';
+            prev.innerHTML = '<span class="text-muted small">Sin logo - sube uno</span>';
         }
         const dt = document.getElementById('al-drop-text');
         if (dt) dt.innerHTML = a.logo_filename
-            ? `<span class="text-success"><i class="fas fa-check me-1"></i>${esc(a.logo_filename)}</span> <small class="text-muted">· click para cambiar</small>`
-            : 'Arrastra o haz click · PNG, JPG, SVG — máx 2 MB';
+            ? `<span class="text-success"><i class="fas fa-check me-1"></i>${esc(a.logo_filename)}</span> <small class="text-muted">- click para cambiar</small>`
+            : 'Arrastra o haz click - PNG, JPG, SVG - max 2 MB';
     }
 
     window.alHandleDrop = function (e) { e.preventDefault(); if (e.dataTransfer.files[0]) alHandleFile(e.dataTransfer.files[0]); };
@@ -5041,7 +5774,7 @@ document.addEventListener('DOMContentLoaded', () => { setTimeout(() => window.da
         const dt   = document.getElementById('al-drop-text');
         const prev = document.getElementById('al-logo-preview');
         if (dt)   dt.innerHTML = `<span class="text-success"><i class="fas fa-check me-1"></i>${esc(file.name)}</span>`;
-        if (prev) prev.innerHTML = `<img src="${url}" style="max-height:60px;object-fit:contain"><div class="small ms-2 text-muted">Vista previa · ${esc(file.name)}</div>`;
+        if (prev) prev.innerHTML = `<img src="${url}" style="max-height:60px;object-fit:contain"><div class="small ms-2 text-muted">Vista previa - ${esc(file.name)}</div>`;
     };
 
     window.alSave = async function () {
@@ -5073,7 +5806,7 @@ document.addEventListener('DOMContentLoaded', () => { setTimeout(() => window.da
             : await client.from(AL_TABLE).insert(payload);
 
         if (res.error) { alToast(`Error: ${res.error.message}`, 'danger'); return; }
-        bootstrap.Modal.getInstance(document.getElementById('dm-airline-modal'))?.hide();
+        alGetModal()?.hide();
         alToast(`${alEditId ? 'Actualizada' : 'Creada'}: ${name}`, 'success');
         await alLoad();
     };
@@ -5102,12 +5835,12 @@ document.addEventListener('DOMContentLoaded', () => { setTimeout(() => window.da
     // -- delete ----------------------------------------------------------------
     window.alConfirmDelete = async function (id) {
         const a = alAll.find(x => x.id === id);
-        if (!confirm(`¿Eliminar "${a ? a.name : id}"? Esta acción no se puede deshacer.`)) return;
+        if (!confirm(`ï¿½Eliminar "${a ? a.name : id}"? Esta acciï¿½n no se puede deshacer.`)) return;
         const client = sb();
         if (a?.logo_filename) await client.storage.from(AL_BUCKET).remove([a.logo_filename]);
         const { error } = await client.from(AL_TABLE).delete().eq('id', id);
         if (error) { alToast(`Error: ${error.message}`, 'danger'); return; }
-        alToast('Aerolínea eliminada.', 'warning');
+        alToast('Aerolï¿½nea eliminada.', 'warning');
         await alLoad();
     };
 
@@ -5125,10 +5858,10 @@ document.addEventListener('DOMContentLoaded', () => { setTimeout(() => window.da
 })();
 
 /* --------------------------------------------------------------------------
-   MÓDULO AEROLÍNEAS MENSUALES — tabla completa inline-editable
+   Mï¿½DULO AEROLï¿½NEAS MENSUALES ï¿½ tabla completa inline-editable
    -------------------------------------------------------------------------- */
 (function () {
-    const AM_TABLE = 'Aerolíneas';
+    const AM_TABLE = 'Aerolï¿½neas';
     const AM_MONTHS = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
     const AM_MON_SHORT = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 
@@ -5160,7 +5893,7 @@ document.addEventListener('DOMContentLoaded', () => { setTimeout(() => window.da
 
         // Header
         thead.innerHTML = '<tr>'
-            + '<th style="min-width:220px;padding:10px 12px;">Aerolínea</th>'
+            + '<th style="min-width:220px;padding:10px 12px;">Aerolï¿½nea</th>'
             + '<th style="min-width:140px;padding:10px 12px;">Tipo de Servicio</th>'
             + AM_MON_SHORT.map(function(m){ return '<th style="min-width:68px;text-align:center;padding:10px 6px;">' + m + '</th>'; }).join('')
             + '<th style="min-width:80px;text-align:center;padding:10px 6px;">Acciones</th>'
@@ -5182,7 +5915,7 @@ document.addEventListener('DOMContentLoaded', () => { setTimeout(() => window.da
             tbody.appendChild(amBuildRow(row));
         });
 
-        if (countEl) countEl.textContent = visible.length + ' aerolínea(s) mostradas de ' + amAllRows.length + ' en total.';
+        if (countEl) countEl.textContent = visible.length + ' aerolï¿½nea(s) mostradas de ' + amAllRows.length + ' en total.';
     }
 
     function amBuildRow(row) {
@@ -5194,14 +5927,14 @@ document.addEventListener('DOMContentLoaded', () => { setTimeout(() => window.da
         tr.dataset.rowkey = rowKey;
         if (isNew) tr.classList.add('table-warning');
 
-        let cells = '<td style="padding:4px 8px;"><input type="text" class="form-control form-control-sm am-cell-nombre" value="' + esc(nombre) + '" placeholder="Nombre aerolínea" style="min-width:180px;"></td>'
+        let cells = '<td style="padding:4px 8px;"><input type="text" class="form-control form-control-sm am-cell-nombre" value="' + esc(nombre) + '" placeholder="Nombre aerolï¿½nea" style="min-width:180px;"></td>'
             + '<td style="padding:4px 8px;"><input type="text" class="form-control form-control-sm am-cell-servicio" value="' + esc(servicio) + '" placeholder="Ej. Regular de Carga" style="min-width:120px;"></td>';
 
         AM_MONTHS.forEach(function(mon) {
             const colKey = mon + '-' + amSelectedYr;
             const v = row[colKey];
             const val = (v !== null && v !== undefined && v !== '') ? v : '';
-            cells += '<td style="padding:4px 4px;"><input type="number" class="form-control form-control-sm text-center am-cell-month" data-col="' + colKey + '" value="' + esc(val) + '" placeholder="—" min="0" step="1" style="min-width:60px;padding:4px 2px;"></td>';
+            cells += '<td style="padding:4px 4px;"><input type="number" class="form-control form-control-sm text-center am-cell-month" data-col="' + colKey + '" value="' + esc(val) + '" placeholder="ï¿½" min="0" step="1" style="min-width:60px;padding:4px 2px;"></td>';
         });
 
         cells += '<td style="text-align:center;padding:4px 6px;">'
@@ -5222,7 +5955,7 @@ document.addEventListener('DOMContentLoaded', () => { setTimeout(() => window.da
     // -- Load all data ---------------------------------------------------------
     window.amRefresh = async function () {
         const tbody = document.getElementById('am-tbody');
-        if (tbody) tbody.innerHTML = '<tr><td colspan="16" class="text-center py-4 text-muted"><i class="fas fa-spinner fa-spin me-2"></i>Cargando…</td></tr>';
+        if (tbody) tbody.innerHTML = '<tr><td colspan="16" class="text-center py-4 text-muted"><i class="fas fa-spinner fa-spin me-2"></i>Cargandoï¿½</td></tr>';
         const client = sb();
         if (!client) { amToast('Cliente Supabase no disponible.', 'danger'); return; }
         const { data, error } = await client.from(AM_TABLE).select('*').order('AEROLINEA');
@@ -5267,7 +6000,7 @@ document.addEventListener('DOMContentLoaded', () => { setTimeout(() => window.da
 
         const nombre = tr.querySelector('.am-cell-nombre')?.value.trim() || '';
         const servicio = tr.querySelector('.am-cell-servicio')?.value.trim() || '';
-        if (!nombre) { amToast('El nombre de la aerolínea no puede estar vacío.', 'warning'); return; }
+        if (!nombre) { amToast('El nombre de la aerolï¿½nea no puede estar vacï¿½o.', 'warning'); return; }
 
         const updates = { 'AEROLINEA': nombre, 'TIPO DE SERVICIO': servicio };
         tr.querySelectorAll('.am-cell-month').forEach(function(inp) {
@@ -5305,7 +6038,7 @@ document.addEventListener('DOMContentLoaded', () => { setTimeout(() => window.da
             return;
         }
 
-        amToast((isNew ? 'Aerolínea agregada' : 'Cambios guardados') + ': ' + nombre, 'success');
+        amToast((isNew ? 'Aerolï¿½nea agregada' : 'Cambios guardados') + ': ' + nombre, 'success');
         // Reload fresh data
         await amRefresh();
         try { window.aeroDataCache = null; } catch(_) {}
@@ -5326,7 +6059,7 @@ document.addEventListener('DOMContentLoaded', () => { setTimeout(() => window.da
             return;
         }
 
-        if (!confirm('¿Eliminar la aerolínea "' + nombre + '"? Esta acción no se puede deshacer.')) return;
+        if (!confirm('ï¿½Eliminar la aerolï¿½nea "' + nombre + '"? Esta acciï¿½n no se puede deshacer.')) return;
 
         const client = sb();
         if (!client) { amToast('Cliente Supabase no disponible.', 'danger'); return; }
@@ -5341,7 +6074,7 @@ document.addEventListener('DOMContentLoaded', () => { setTimeout(() => window.da
         }
 
         if (queryError) { amToast('Error: ' + queryError.message, 'danger'); return; }
-        amToast('Aerolínea eliminada: ' + nombre, 'warning');
+        amToast('Aerolï¿½nea eliminada: ' + nombre, 'warning');
         await amRefresh();
         try { window.aeroDataCache = null; } catch(_) {}
     };
@@ -5356,7 +6089,7 @@ document.addEventListener('DOMContentLoaded', () => { setTimeout(() => window.da
         const client = sb();
         if (!client) { amToast('Cliente Supabase no disponible.', 'danger'); return; }
 
-        if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Guardando…'; }
+        if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Guardandoï¿½'; }
 
         let ok = 0, fail = 0;
         for (const tr of rows) {
