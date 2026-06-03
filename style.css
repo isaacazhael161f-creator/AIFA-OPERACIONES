@@ -14368,3 +14368,117 @@ body.dark-mode #yoy-insights-list li {
 #session-timeout-modal.sto-state-warning  .sto-expired-body  { display: none  !important; }
 #session-timeout-modal.sto-state-expired  .sto-expired-body  { display: block !important; }
 #session-timeout-modal.sto-state-expired  .sto-warning-body  { display: none  !important; }
+
+
+/* ══════════════════════════════════════════════════════════
+   SIDEBAR ORG-CHART HIERARCHY  –  AIFA Operaciones
+   Escalones: Dirección → Subdirección → Gerencia → Ítem
+   ══════════════════════════════════════════════════════════ */
+
+/* ─── Cabecera "DIRECCIÓN DE OPERACIÓN" ─── */
+.sidebar-org-header {
+   display: flex;
+   align-items: center;
+   padding: .5rem 1.25rem .35rem;
+   margin: .6rem .5rem .1rem;
+   font-size: .65rem;
+   font-weight: 700;
+   text-transform: uppercase;
+   letter-spacing: .1em;
+   color: rgba(255,255,255,.45);
+   border-bottom: 1px solid rgba(255,255,255,.1);
+   pointer-events: none;
+   user-select: none;
+}
+
+/* ─── Etiquetas de Área (Archivo, GPyC, Coord. Auditoría) ─── */
+.sidebar-area-label {
+   display: flex;
+   align-items: center;
+   gap: .35rem;
+   padding: .5rem 1rem .3rem 1.5rem;
+   margin: .4rem .5rem 0;
+   font-size: .67rem;
+   font-weight: 700;
+   text-transform: uppercase;
+   letter-spacing: .07em;
+   color: rgba(255,255,255,.5);
+   border-left: 2px solid rgba(255,255,255,.15);
+   pointer-events: none;
+   user-select: none;
+}
+
+/* ─── Etiquetas de Subdirección (SSO, SSA, SSC, SI, SGE) ─── */
+.sidebar-subdir-label {
+   display: flex;
+   align-items: center;
+   gap: .4rem;
+   padding: .5rem 1rem .3rem 1rem;
+   margin: .55rem .5rem 0;
+   font-size: .67rem;
+   font-weight: 700;
+   text-transform: uppercase;
+   letter-spacing: .07em;
+   color: rgba(255,255,255,.6);
+   border-left: 2px solid rgba(100,160,255,.35);
+   pointer-events: none;
+   user-select: none;
+}
+
+/* ─── Etiquetas de Gerencia (GOPA, GOET, GSO, GSM …) ─── */
+.sidebar-gerencia-label {
+   display: flex;
+   align-items: center;
+   gap: .35rem;
+   padding: .38rem 1rem .22rem 2rem;
+   margin: .3rem .5rem 0;
+   font-size: .63rem;
+   font-weight: 600;
+   text-transform: uppercase;
+   letter-spacing: .06em;
+   color: rgba(255,255,255,.4);
+   pointer-events: none;
+   user-select: none;
+}
+
+/* ─── Labels pendientes / sin contenido aún ─── */
+.sidebar-org-label--pending {
+   opacity: .45;
+}
+
+/* ─── Badge de abreviatura (SSO, GOPA …) ─── */
+.sidebar-org-badge {
+   display: inline-flex;
+   align-items: center;
+   justify-content: center;
+   min-width: 30px;
+   padding: .1rem .28rem;
+   border-radius: 4px;
+   font-size: .58rem;
+   font-weight: 800;
+   letter-spacing: .03em;
+   background: rgba(255,255,255,.14);
+   color: rgba(255,255,255,.88);
+   flex-shrink: 0;
+}
+.sidebar-org-badge--sm {
+   min-width: 26px;
+   font-size: .54rem;
+   padding: .08rem .22rem;
+   background: rgba(255,255,255,.09);
+}
+
+/* ─── Ítems de navegación nivel Gerencia ─── */
+.menu-item--gerencia {
+   padding: .6rem 1rem .6rem 2.25rem;
+   margin: .12rem .5rem;
+   font-size: .85rem;
+}
+.menu-item--gerencia i {
+   width: 16px;
+   font-size: .82rem;
+}
+/* Mantener el mismo desplazamiento hover ─ sin sobre-definir */
+.menu-item--gerencia:hover {
+   transform: translateX(3px);
+}
