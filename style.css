@@ -14751,16 +14751,21 @@ body.dark-mode #yoy-insights-list li {
     width: 100%;
     max-width: 100%;
     border-radius: 7px !important;
+    border-left: 2px solid transparent;
     text-transform: none;
     letter-spacing: 0;
     box-sizing: border-box;
+    transition: background .15s, color .15s, border-color .15s;
 }
 .si-grp-btn--ger:hover {
     color: var(--sub-c, rgba(255,255,255,.88));
     background: var(--sub-cb, rgba(255,255,255,.05));
+    border-left-color: var(--sub-c);
 }
 .si-grp-btn--ger:not(.collapsed) {
     color: var(--sub-c, rgba(255,255,255,.9));
+    border-left-color: var(--sub-c);
+    background: var(--sub-cb);
 }
 .si-grp-btn--ger:not(.collapsed) .si-bdg--ger {
     background: var(--sub-c) !important;
@@ -14769,9 +14774,10 @@ body.dark-mode #yoy-insights-list li {
 }
 
 .si-body--ger {
-    border-left: 1px solid rgba(255,255,255,.07);
+    border-left: 1px solid var(--sub-c, rgba(255,255,255,.1));
     margin-left: 14px;
     padding: 2px 0 4px;
+    opacity: .85;
 }
 
 /* ──────────────────────────────────────────────
@@ -14797,10 +14803,11 @@ body.dark-mode #yoy-insights-list li {
     min-width: 30px;
     padding: .1rem .28rem;
     font-size: .56rem;
-    background: rgba(255,255,255,.09);
-    color: rgba(255,255,255,.55);
-    border: 1px solid rgba(255,255,255,.1);
+    background: var(--sub-cb, rgba(255,255,255,.09));
+    color: var(--sub-c, rgba(255,255,255,.55));
+    border: 1px solid var(--sub-c, rgba(255,255,255,.15));
     border-radius: 5px;
+    opacity: .85;
 }
 
 /* ──────────────────────────────────────────────
