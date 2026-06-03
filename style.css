@@ -14487,107 +14487,129 @@ body.dark-mode #yoy-insights-list li {
 
 
 /* ══════════════════════════════════════════════════════════════════
-   SIDEBAR v2 — ORGANIGRAMA COLAPSABLE CON COLORES POR SUBDIRECCIÓN
+   SIDEBAR v3 — DISEÑO PREMIUM  |  AIFA Dirección de Operación
    ══════════════════════════════════════════════════════════════════ */
 
 /* ── Ancho y overflow ── */
-:root { --sidebar-width: 262px; }
+:root { --sidebar-width: 278px; }
 
 .sidebar { overflow-x: hidden !important; }
 
 /* ── Nav wrapper ── */
 .si-nav {
-    padding: .25rem 0 1.5rem;
+    padding: .3rem 0 2.5rem;
     flex: 1 1 0;
     min-height: 0;
     overflow-y: auto;
     overflow-x: hidden;
-    flex-wrap: nowrap !important;  /* evita que Bootstrap .nav envuelva items en 2ª columna */
+    flex-wrap: nowrap !important;
     align-content: flex-start;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,.1) transparent;
 }
+.si-nav::-webkit-scrollbar { width: 3px; }
+.si-nav::-webkit-scrollbar-track { background: transparent; }
+.si-nav::-webkit-scrollbar-thumb { background: rgba(255,255,255,.12); border-radius: 3px; }
 
 /* ── Quitar translateX heredado ── */
 .si-nav .menu-item:hover,
 .si-nav .menu-item.active { transform: none !important; }
 
 /* ════════════════════════════════════════════════
-   COLORES POR SUBDIRECCIÓN  (cascada con vars CSS)
+   PALETA POR SUBDIRECCIÓN
    ════════════════════════════════════════════════ */
-.si-sub--sso { --sub-c: #38bdf8; --sub-cb: rgba(56,189,248,.13); }
-.si-sub--ssa { --sub-c: #a78bfa; --sub-cb: rgba(167,139,250,.13); }
-.si-sub--ssc { --sub-c: #22d3ee; --sub-cb: rgba(34,211,238,.13); }
-.si-sub--si  { --sub-c: #818cf8; --sub-cb: rgba(129,140,248,.13); }
-.si-sub--sge { --sub-c: #34d399; --sub-cb: rgba(52,211,153,.13); }
-
-/* Fallback para grupos sin clase de color */
-.si-group--sub { --sub-c: #60a5fa; --sub-cb: rgba(96,165,250,.13); }
+.si-sub--sso { --sub-c: #3b82f6; --sub-cb: rgba(59,130,246,.12); }
+.si-sub--ssa { --sub-c: #8b5cf6; --sub-cb: rgba(139,92,246,.12); }
+.si-sub--ssc { --sub-c: #06b6d4; --sub-cb: rgba(6,182,212,.12); }
+.si-sub--si  { --sub-c: #6366f1; --sub-cb: rgba(99,102,241,.12); }
+.si-sub--sge { --sub-c: #10b981; --sub-cb: rgba(16,185,129,.12); }
+.si-group--sub { --sub-c: #60a5fa; --sub-cb: rgba(96,165,250,.12); }
 
 /* ──────────────────────────────────────────────
-   CABECERA DIR. DE OPERACIÓN
+   CABECERA "DIR. DE OPERACIÓN"
    ────────────────────────────────────────────── */
 .si-dir-hdr {
     display: flex;
     align-items: center;
-    gap: .45rem;
-    padding: .7rem 1rem .5rem;
-    margin: 0 .5rem .35rem;
-    font-size: .58rem;
+    gap: .5rem;
+    padding: .85rem 1.1rem .65rem;
+    margin: 0 .5rem .45rem;
+    font-size: .62rem;
     font-weight: 800;
     text-transform: uppercase;
-    letter-spacing: .14em;
-    color: rgba(255,255,255,.25);
+    letter-spacing: .17em;
+    color: rgba(255,255,255,.28);
     border-bottom: 1px solid rgba(255,255,255,.07);
     user-select: none;
     pointer-events: none;
 }
-.si-dir-hdr i { font-size: .6rem; }
+.si-dir-hdr i { font-size: .65rem; opacity: .6; }
 
 /* ──────────────────────────────────────────────
-   LINKS DE NAVEGACIÓN
+   ETIQUETA DE SECCIÓN (Subdirecciones)
+   ────────────────────────────────────────────── */
+.si-section-lbl {
+    padding: .5rem 1.1rem .2rem;
+    font-size: .58rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .15em;
+    color: rgba(255,255,255,.2);
+    user-select: none;
+    pointer-events: none;
+}
+
+/* ──────────────────────────────────────────────
+   LINKS (ítems directos de navegación)
    ────────────────────────────────────────────── */
 .si-link {
     display: flex !important;
     align-items: center;
-    gap: 8px;
-    padding: .6rem .9rem !important;
-    margin: 1px 5px !important;
-    border-radius: 7px;
+    gap: 10px;
+    padding: .7rem 1.05rem !important;
+    margin: 1px 6px !important;
+    border-radius: 9px;
     color: rgba(255,255,255,.82) !important;
     text-decoration: none;
-    font-size: .855rem;
+    font-size: .9rem;
+    font-weight: 450;
     transition: background .15s, color .15s !important;
     position: relative;
     overflow: hidden;
     white-space: nowrap;
     min-width: 0;
 }
-.si-link:hover  { background: rgba(255,255,255,.1) !important; color: #fff !important; }
+.si-link:hover {
+    background: rgba(255,255,255,.08) !important;
+    color: #fff !important;
+}
 .si-link.active {
-    background: rgba(255,255,255,.11) !important;
+    background: rgba(255,255,255,.1) !important;
     color: #fff !important;
     font-weight: 600 !important;
 }
 .si-link.active::before {
     content: '';
     position: absolute;
-    left: 0; top: 20%; bottom: 20%;
+    left: 0; top: 18%; bottom: 18%;
     width: 3px;
     border-radius: 0 3px 3px 0;
     background: #f59e0b;
 }
 
+/* Ícono de link */
 .si-ico {
-    width: 15px;
+    width: 17px;
     text-align: center;
-    font-size: .8rem;
+    font-size: .84rem;
     flex-shrink: 0;
-    color: var(--sub-c, rgba(255,255,255,.55));
+    color: rgba(255,255,255,.42);
     transition: color .15s;
     display: inline-block;
 }
 .si-link:hover .si-ico,
-.si-link.active .si-ico { color: var(--sub-c, #fff); }
-.si-link .icon-clock-check { margin-right: 0; width: 15px; }
+.si-link.active .si-ico { color: rgba(255,255,255,.92); }
+.si-link .icon-clock-check { margin-right: 0; width: 17px; }
 
 .si-txt {
     flex: 1;
@@ -14597,20 +14619,26 @@ body.dark-mode #yoy-insights-list li {
     min-width: 0;
 }
 
-/* Niveles */
-.si-link--l1 { padding-left: 1.8rem !important; font-size: .84rem; }
-.si-link--l2 { padding-left: 2.6rem !important; font-size: .82rem;
-               padding-top: .5rem !important; padding-bottom: .5rem !important; }
-
-/* Util / Logout */
-.si-link--util  { color: rgba(255,255,255,.35) !important; font-size: .8rem; }
-.si-link--util:hover { color: rgba(255,255,255,.6) !important; }
-.si-link--logout {
-    color: rgba(248,113,113,.7) !important;
-    border-top: 1px solid rgba(255,255,255,.07) !important;
-    margin-top: 4px !important;
+/* Indentación por nivel */
+.si-link--l1 { padding-left: 2.1rem !important; font-size: .88rem; }
+.si-link--l2 {
+    padding-left: 2.8rem !important;
+    font-size: .875rem;
+    padding-top: .6rem !important;
+    padding-bottom: .6rem !important;
 }
-.si-link--logout:hover { color: #fca5a5 !important; background: rgba(248,113,113,.09) !important; }
+
+/* Logout */
+.si-link--logout {
+    color: rgba(248,113,113,.72) !important;
+    border-top: 1px solid rgba(255,255,255,.06) !important;
+    margin-top: 4px !important;
+    font-size: .88rem;
+}
+.si-link--logout:hover {
+    color: #fca5a5 !important;
+    background: rgba(248,113,113,.08) !important;
+}
 .si-nav .logout-item { margin-top: 4px !important; }
 
 /* ──────────────────────────────────────────────
@@ -14619,33 +14647,43 @@ body.dark-mode #yoy-insights-list li {
 .si-grp-btn {
     display: flex;
     align-items: center;
-    gap: 7px;
-    width: calc(100% - 10px);
-    max-width: calc(100% - 10px);
-    margin: 1px 5px;
-    padding: .48rem .85rem;
+    gap: 9px;
+    width: calc(100% - 12px);
+    max-width: calc(100% - 12px);
+    margin: 1px 6px;
+    padding: .68rem 1rem;
     background: transparent;
     border: none;
-    border-radius: 7px;
-    color: rgba(255,255,255,.58);
-    font-size: .67rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: .07em;
+    border-radius: 9px;
+    color: rgba(255,255,255,.72);
+    font-size: .9rem;
+    font-weight: 500;
+    text-transform: none;
+    letter-spacing: 0;
     cursor: pointer;
     text-align: left;
-    transition: background .15s, color .15s, border-color .15s;
+    transition: background .15s, color .15s, border-color .18s;
     overflow: hidden;
     box-sizing: border-box;
 }
-.si-grp-btn:hover { background: rgba(255,255,255,.07); color: rgba(255,255,255,.8); }
-
-.si-grp-ico {
-    width: 14px;
-    text-align: center;
-    font-size: .74rem;
-    flex-shrink: 0;
+.si-grp-btn:hover {
+    background: rgba(255,255,255,.07);
+    color: rgba(255,255,255,.95);
 }
+.si-grp-btn:not(.collapsed) { color: rgba(255,255,255,.9); }
+
+/* Ícono de grupo (Archivo, Auditoría, GPyC) */
+.si-grp-ico {
+    width: 17px;
+    text-align: center;
+    font-size: .82rem;
+    flex-shrink: 0;
+    color: rgba(255,255,255,.4);
+    transition: color .15s;
+}
+.si-grp-btn:hover .si-grp-ico { color: rgba(255,255,255,.78); }
+.si-grp-btn:not(.collapsed) .si-grp-ico { color: rgba(255,255,255,.72); }
+
 .si-grp-lbl {
     flex: 1;
     overflow: hidden;
@@ -14656,88 +14694,84 @@ body.dark-mode #yoy-insights-list li {
 
 /* Chevron */
 .si-chev {
-    font-size: .56rem;
+    font-size: .6rem;
     flex-shrink: 0;
     color: rgba(255,255,255,.22);
     transition: transform .2s ease, color .15s;
     margin-left: auto;
 }
-.si-grp-btn:not(.collapsed) .si-chev { transform: rotate(180deg); color: rgba(255,255,255,.38); }
-.si-grp-btn.collapsed .si-chev       { transform: rotate(0deg); }
+.si-grp-btn:not(.collapsed) .si-chev { transform: rotate(180deg); color: rgba(255,255,255,.42); }
+.si-grp-btn.collapsed .si-chev { transform: rotate(0deg); }
 
-/* ─── Nivel SUBDIRECCIÓN ─── */
-.si-group--sub { margin: 2px 0; }
+/* ─── SUBDIRECCIÓN ─── */
+.si-group--sub { margin: 3px 0; }
 
 .si-grp-btn--sub {
-    font-size: .71rem;
-    font-weight: 800;
-    color: rgba(255,255,255,.7);
+    padding: .72rem 1rem;
+    font-size: .9rem;
+    font-weight: 700;
+    color: rgba(255,255,255,.88);
     border-left: 3px solid transparent;
-    border-radius: 0 7px 7px 0 !important;
-    padding-left: .8rem;
+    border-radius: 0 9px 9px 0 !important;
     margin-left: 0;
-    width: calc(100% - 5px);
-    max-width: calc(100% - 5px);
-    transition: background .15s, color .15s, border-color .2s;
+    width: calc(100% - 6px);
+    max-width: calc(100% - 6px);
+    transition: background .15s, color .15s, border-color .18s, border-radius .15s;
 }
-/* Hover */
 .si-grp-btn--sub:hover {
     border-left-color: var(--sub-c);
-    color: rgba(255,255,255,.7);
+    background: var(--sub-cb);
+    color: #fff;
 }
-/* Expandido */
 .si-grp-btn--sub:not(.collapsed) {
     border-left-color: var(--sub-c) !important;
-    color: var(--sub-c) !important;
+    color: #fff !important;
     background: var(--sub-cb) !important;
-    border-radius: 0 7px 0 0 !important;
+    border-radius: 0 9px 0 0 !important;
 }
 .si-grp-btn--sub:not(.collapsed) .si-bdg {
-    background: var(--sub-c) !important;
-    color: #0f172a !important;
-    border-color: transparent !important;
-}
-/* Cuerpo indentado con línea guía del color de la subdirección */
-.si-body--sub {
-    border-left: 2px solid var(--sub-c, rgba(96,165,250,.25));
-    margin-left: 16px;
-    padding-left: 0;
+    box-shadow: 0 0 0 2px rgba(255,255,255,.25);
 }
 
-/* ─── Nivel GERENCIA ─── */
+/* Línea guía de subdirección */
+.si-body--sub {
+    border-left: 2px solid var(--sub-c, rgba(96,165,250,.3));
+    margin-left: 16px;
+}
+
+/* ─── GERENCIA ─── */
 .si-group--ger { margin: 0; }
 
 .si-grp-btn--ger {
-    font-size: .62rem;
-    font-weight: 700;
-    color: rgba(255,255,255,.58);
-    padding: .38rem .7rem;
+    font-size: .845rem;
+    font-weight: 600;
+    color: rgba(255,255,255,.65);
+    padding: .52rem .9rem;
     margin: 0;
     width: 100%;
     max-width: 100%;
-    border-radius: 0 !important;
-    text-transform: uppercase;
-    letter-spacing: .06em;
+    border-radius: 7px !important;
+    text-transform: none;
+    letter-spacing: 0;
     box-sizing: border-box;
 }
 .si-grp-btn--ger:hover {
-    color: var(--sub-c, rgba(255,255,255,.8));
+    color: var(--sub-c, rgba(255,255,255,.88));
     background: var(--sub-cb, rgba(255,255,255,.05));
-    border-radius: 5px !important;
 }
 .si-grp-btn--ger:not(.collapsed) {
-    color: var(--sub-c, rgba(255,255,255,.75));
+    color: var(--sub-c, rgba(255,255,255,.9));
 }
 .si-grp-btn--ger:not(.collapsed) .si-bdg--ger {
-    background: var(--sub-cb) !important;
-    color: var(--sub-c) !important;
-    border-color: var(--sub-c) !important;
+    background: var(--sub-c) !important;
+    color: #fff !important;
+    border-color: transparent !important;
 }
 
 .si-body--ger {
-    border-left: 1px solid var(--sub-c, rgba(255,255,255,.1));
-    margin-left: 12px;
-    padding: 1px 0 3px;
+    border-left: 1px solid rgba(255,255,255,.07);
+    margin-left: 14px;
+    padding: 2px 0 4px;
 }
 
 /* ──────────────────────────────────────────────
@@ -14747,38 +14781,39 @@ body.dark-mode #yoy-insights-list li {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 32px;
-    padding: .1rem .32rem;
-    border-radius: 5px;
-    font-size: .57rem;
+    min-width: 36px;
+    padding: .15rem .42rem;
+    border-radius: 6px;
+    font-size: .6rem;
     font-weight: 900;
     letter-spacing: .02em;
     flex-shrink: 0;
-    background: var(--sub-cb, rgba(96,165,250,.15));
-    color: var(--sub-c, #93c5fd);
-    border: 1px solid var(--sub-c, rgba(96,165,250,.3));
-    transition: background .15s, color .15s;
+    background: var(--sub-c, #3b82f6);
+    color: #fff;
+    border: none;
+    transition: box-shadow .18s;
 }
 .si-bdg--ger {
-    min-width: 26px;
-    padding: .06rem .22rem;
-    font-size: .52rem;
-    background: rgba(255,255,255,.07);
-    color: rgba(255,255,255,.45);
-    border-color: rgba(255,255,255,.1);
+    min-width: 30px;
+    padding: .1rem .28rem;
+    font-size: .56rem;
+    background: rgba(255,255,255,.09);
+    color: rgba(255,255,255,.55);
+    border: 1px solid rgba(255,255,255,.1);
+    border-radius: 5px;
 }
 
 /* ──────────────────────────────────────────────
-   PENDIENTES / PRÓXIMAMENTE
+   PENDIENTES
    ────────────────────────────────────────────── */
-.si-group--pend > .si-grp-btn { opacity: .72; }
+.si-group--pend > .si-grp-btn { opacity: .62; }
 .si-group--pend > .si-grp-btn:hover { opacity: 1; }
 
 .si-coming {
     display: block;
-    padding: .3rem 1.2rem;
-    font-size: .69rem;
-    color: rgba(255,255,255,.32);
+    padding: .35rem 1.3rem;
+    font-size: .72rem;
+    color: rgba(255,255,255,.28);
     font-style: italic;
 }
 
@@ -14788,10 +14823,10 @@ body.dark-mode #yoy-insights-list li {
 .si-sep {
     height: 1px;
     background: rgba(255,255,255,.07);
-    margin: .5rem .6rem;
+    margin: .6rem .75rem;
 }
 
 /* ──────────────────────────────────────────────
-   ANIMACIÓN COLLAPSE
+   ANIMACIÓN
    ────────────────────────────────────────────── */
 .si-nav .collapsing { transition: height .2s ease !important; }
