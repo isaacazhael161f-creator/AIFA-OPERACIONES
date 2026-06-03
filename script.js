@@ -6418,6 +6418,18 @@ function showSection(sectionKey, linkEl) {
         // Actualizar hash
         try { history.replaceState(null, '', `#${targetKey}`); } catch (_) { }
 
+        // Hook: Operaciones Totales — activar sub-pestaña correcta
+        if (displayKey === 'operaciones-totales') {
+            setTimeout(() => {
+                const subTabId = linkEl?.dataset?.subTab || 'comparativa-yoy-tab';
+                const subTabEl = document.getElementById(subTabId);
+                if (subTabEl) {
+                    const bsTab = bootstrap.Tab.getOrCreateInstance(subTabEl);
+                    bsTab.show();
+                }
+            }, 50);
+        }
+
         // Hook específico para Historia
         if (targetKey === 'historia') {
             console.log('Activando sección Historia...');
