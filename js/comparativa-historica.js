@@ -89,6 +89,22 @@
             });
         });
 
+        // Si el pane ya es activo en la carga inicial (tab por defecto),
+        // Bootstrap no dispara shown.bs.tab — inicializar directamente.
+        const pane = document.getElementById('analisis-yoy-pane');
+        if (pane && pane.classList.contains('active')) {
+            // Esperar a que supabaseClient esté disponible
+            const tryInit = (attempts) => {
+                const client = window.supabaseClient;
+                if (client) {
+                    if (!dataLoaded) loadYoYData(client);
+                } else if (attempts > 0) {
+                    setTimeout(() => tryInit(attempts - 1), 300);
+                }
+            };
+            setTimeout(() => tryInit(15), 200);
+        }
+
         const metricSelect = document.getElementById('yoy-metric-select');
         if (metricSelect) {
             metricSelect.addEventListener('change', (e) => {
