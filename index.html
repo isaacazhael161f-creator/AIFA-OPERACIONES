@@ -1415,13 +1415,13 @@ FF
 
                 <!-- Dropdown admin (oculto por defecto, solo se llena para admins) -->
                 <div id="si-user-dropdown" class="d-none" style="background:rgba(0,0,0,.18);border-top:1px solid rgba(255,255,255,.07);">
-                    <a class="menu-item si-link d-none" href="#" data-section="historia" id="historia-admin-menu" onclick="document.getElementById('si-user-dropdown').classList.add('d-none');document.getElementById('si-user-chevron').style.transform=''">
+                    <a class="menu-item si-link d-none" href="#" data-section="historia" id="historia-admin-menu" onclick="event.preventDefault();document.getElementById('si-user-dropdown').classList.add('d-none');document.getElementById('si-user-chevron').style.transform='';showSection('historia',this);">
                         <i class="fas fa-history si-ico"></i><span class="si-txt">Historia</span>
                     </a>
-                    <a class="menu-item si-link d-none" href="#" data-section="data-management" id="data-management-menu" onclick="document.getElementById('si-user-dropdown').classList.add('d-none');document.getElementById('si-user-chevron').style.transform=''">
+                    <a class="menu-item si-link d-none" href="#" data-section="data-management" id="data-management-menu" onclick="event.preventDefault();document.getElementById('si-user-dropdown').classList.add('d-none');document.getElementById('si-user-chevron').style.transform='';showSection('data-management',this);">
                         <i class="fas fa-database si-ico"></i><span class="si-txt">Gestión de Datos</span>
                     </a>
-                    <a class="menu-item si-link d-none" href="#" data-section="admin-usuarios" id="admin-users-menu" onclick="document.getElementById('si-user-dropdown').classList.add('d-none');document.getElementById('si-user-chevron').style.transform=''">
+                    <a class="menu-item si-link d-none" href="#" data-section="admin-usuarios" id="admin-users-menu" onclick="event.preventDefault();document.getElementById('si-user-dropdown').classList.add('d-none');document.getElementById('si-user-chevron').style.transform='';showSection('admin-usuarios',this);">
                         <i class="fas fa-users-cog si-ico"></i><span class="si-txt">Administración</span>
                     </a>
                 </div>
