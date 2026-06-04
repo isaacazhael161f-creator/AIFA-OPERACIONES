@@ -4315,15 +4315,38 @@ FF
                 .bhs-tab-btn.active{background:#1e3a5f;color:#fff;}
                 </style>
 
-                <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
                     <div>
                         <h2 class="section-heading mb-0"><i class="fas fa-suitcase-rolling me-2"></i>BHS — Manejo de Maletas</h2>
                         <small class="text-muted">Gerencia de Operaciones · Edificio Terminal</small>
                     </div>
                     <div class="d-flex align-items-center gap-2">
+                        <button class="btn btn-sm btn-outline-secondary" onclick="bhsToggleDates()" title="Ver fechas con datos"><i class="fas fa-calendar-alt me-1"></i>Fechas con datos</button>
                         <label for="bhs-date-filter" class="small fw-semibold text-secondary mb-0">Fecha:</label>
                         <input type="date" id="bhs-date-filter" class="form-control form-control-sm" style="width:160px;">
                         <button class="btn btn-sm btn-outline-primary" onclick="bhsLoadDate()"><i class="fas fa-sync-alt me-1"></i>Cargar</button>
+                    </div>
+                </div>
+
+                <!-- Panel fechas disponibles -->
+                <div id="bhs-dates-panel" class="d-none mb-3">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-header bg-white border-bottom d-flex align-items-center justify-content-between py-2" style="border-color:#e2e8f0;">
+                            <span class="fw-semibold small"><i class="fas fa-calendar-check me-2 text-primary"></i>Fechas con datos en BHS</span>
+                            <button class="btn btn-xs btn-outline-secondary" onclick="bhsToggleDates()"><i class="fas fa-times"></i></button>
+                        </div>
+                        <div class="card-body p-3">
+                            <div class="row g-2" id="bhs-dates-list"><div class="col-12 text-muted small">Cargando…</div></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Panel diagnóstico de columnas (aparece al cargar archivo) -->
+                <div id="bhs-col-diag" class="d-none mb-3">
+                    <div class="alert alert-info alert-dismissible py-2 mb-0" role="alert" style="font-size:.8rem;">
+                        <strong><i class="fas fa-info-circle me-1"></i>Columnas detectadas:</strong>
+                        <span id="bhs-col-diag-text"></span>
+                        <button type="button" class="btn-close btn-sm" onclick="document.getElementById('bhs-col-diag').classList.add('d-none')"></button>
                     </div>
                 </div>
 
@@ -4458,6 +4481,41 @@ FF
                 function fmtNum(n){ return n==null?'—':new Intl.NumberFormat('es-MX').format(n); }
                 function today(){ return new Date().toISOString().slice(0,10); }
 
+                // ── dates panel ───────────────────────────────────────────────
+                window.bhsToggleDates=function(){
+                    var panel=document.getElementById('bhs-dates-panel');
+                    if(!panel) return;
+                    var hidden=panel.classList.toggle('d-none');
+                    if(!hidden) bhsLoadAvailableDates();
+                };
+                function bhsLoadAvailableDates(){
+                    var client=window.supabaseClient;
+                    if(!client) return;
+                    var list=document.getElementById('bhs-dates-list');
+                    if(list) list.innerHTML='<div class="col-12 text-muted small">Cargando…</div>';
+                    Promise.all([
+                        client.from('bhs_arrivals').select('fecha'),
+                        client.from('bhs_departures').select('fecha'),
+                        client.from('bhs_bags_without_flight').select('fecha')
+                    ]).then(function(res){
+                        var arrD=new Set((res[0].data||[]).map(function(r){return r.fecha;}));
+                        var depD=new Set((res[1].data||[]).map(function(r){return r.fecha;}));
+                        var bwfD=new Set((res[2].data||[]).map(function(r){return r.fecha;}));
+                        var all=[...new Set([...arrD,...depD,...bwfD])].sort().reverse();
+                        if(!all.length){
+                            if(list) list.innerHTML='<div class="col-12 text-muted small">No hay datos cargados aún</div>';
+                            return;
+                        }
+                        if(list) list.innerHTML=all.map(function(d){
+                            var icons='';
+                            if(arrD.has(d)) icons+=' <span class="badge" style="background:#eff6ff;color:#2196f3;font-size:.65rem;" title="Llegadas"><i class="fas fa-plane-arrival"></i></span>';
+                            if(depD.has(d)) icons+=' <span class="badge" style="background:#fff7ed;color:#ea580c;font-size:.65rem;" title="Salidas"><i class="fas fa-plane-departure"></i></span>';
+                            if(bwfD.has(d)) icons+=' <span class="badge" style="background:#f0fdf4;color:#16a34a;font-size:.65rem;" title="Sin vuelo"><i class="fas fa-tag"></i></span>';
+                            return '<div class="col-auto mb-1"><button class="btn btn-sm btn-outline-secondary" style="font-size:.78rem;" onclick="document.getElementById(\'bhs-date-filter\').value=\''+d+'\';document.getElementById(\'bhs-dates-panel\').classList.add(\'d-none\');bhsLoadDate();">'+d+icons+'</button></div>';
+                        }).join('');
+                    }).catch(function(e){ if(list) list.innerHTML='<div class="col-12 text-danger small">Error: '+e.message+'</div>'; });
+                }
+
                 // ── tab switching ─────────────────────────────────────────────
                 window.bhsShowTab=function(tab,btn){
                     ['arr','dep','bwf'].forEach(function(t){
@@ -4545,7 +4603,10 @@ FF
                                 var obj={};headers.forEach(function(h,i){obj[h]=dr[i]!==undefined?dr[i]:'';});rows.push(obj);
                             }
                             if(!rows.length) throw new Error('Sin filas de datos. Header fila '+headerIdx+': '+headers.join(', '));
-                            var colNames=headers.filter(function(h){return h.trim()!='';}).join(' - ');
+                            var colNames=headers.filter(function(h){return h.trim()!='';}).join(' | ');
+                            var diagEl=document.getElementById('bhs-col-diag');
+                            var diagTxt=document.getElementById('bhs-col-diag-text');
+                            if(diagEl&&diagTxt){diagEl.classList.remove('d-none');diagTxt.textContent=' '+colNames;}
                             if(status) status.innerHTML='<small style="color:#0891b2">Detectadas: '+colNames+'</small>';
                             var fecha=document.getElementById('bhs-date-filter').value || today();
                             var records;
