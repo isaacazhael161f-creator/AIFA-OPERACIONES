@@ -284,7 +284,7 @@
     window.cargoYoyReload = function() {
         dataLoaded = false;
         cache = [];
-        var btn = document.querySelector('button[data-bs-target="#yoy-sub-cargo"][aria-selected="true"], button[data-bs-target="#yoy-sub-cargo"].active');
+        var btn = document.querySelector('button[data-bs-target="#yoy-sub-carga"][aria-selected="true"], button[data-bs-target="#yoy-sub-carga"].active');
         if (btn) btn.dispatchEvent(new Event('shown.bs.tab'));
     };
 })();
