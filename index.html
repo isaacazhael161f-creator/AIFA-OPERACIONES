@@ -4483,9 +4483,9 @@ FF
                         <div class="table-responsive">
                             <table class="table table-sm table-hover align-middle text-center mb-0" id="bhs-bwf-table">
                                 <thead class="table-light"><tr>
-                                    <th>Tag</th><th>Aerolínea</th><th>Vuelo</th><th>Origen</th><th>Destino</th>
+                                    <th>Tag</th><th>IATA</th><th>Aerolínea</th><th>Vuelo</th><th>Origen</th><th>Destino</th>
                                 </tr></thead>
-                                <tbody><tr><td colspan="5" class="text-muted small py-4">Carga un archivo de Bags Without Flight para ver los datos</td></tr></tbody>
+                                <tbody><tr><td colspan="6" class="text-muted small py-4">Carga un archivo de Bags Without Flight para ver los datos</td></tr></tbody>
                             </table>
                         </div>
                     </div>
@@ -4504,6 +4504,31 @@ FF
                 }
                 function fmtNum(n){ return n==null?'—':new Intl.NumberFormat('es-MX').format(n); }
                 function today(){ return new Date().toISOString().slice(0,10); }
+                // YYYY-MM-DD → DD-MM-YY
+                function fmtDate(iso){
+                    if(!iso) return '—';
+                    var p=String(iso).split('-');
+                    if(p.length!==3) return iso;
+                    return p[2]+'-'+p[1]+'-'+p[0].slice(2);
+                }
+
+                // Tag prefix → IATA + nombre aerolínea
+                var BHS_TAG_PREFIX={
+                    '3139':['AM','Aeroméxico'],
+                    '0036':['Y4','Volaris'],
+                    '0333':['VB','VivaAerobus'],
+                    '3713':['XN','Xtra Airways'],
+                    '0181':['DM','Aeromar'],
+                    '0723':['ZV','ASUR']
+                };
+                function airlineFromTag(tag){
+                    var t=String(tag).replace(/\D/g,'');
+                    var keys=Object.keys(BHS_TAG_PREFIX);
+                    for(var i=0;i<keys.length;i++){
+                        if(t.startsWith(keys[i])) return BHS_TAG_PREFIX[keys[i]];
+                    }
+                    return null;
+                }
 
                 // ── dates panel ───────────────────────────────────────────────
                 window.bhsToggleDates=function(){
@@ -4535,7 +4560,7 @@ FF
                             if(arrD.has(d)) icons+=' <span class="badge" style="background:#eff6ff;color:#2196f3;font-size:.65rem;" title="Llegadas"><i class="fas fa-plane-arrival"></i></span>';
                             if(depD.has(d)) icons+=' <span class="badge" style="background:#fff7ed;color:#ea580c;font-size:.65rem;" title="Salidas"><i class="fas fa-plane-departure"></i></span>';
                             if(bwfD.has(d)) icons+=' <span class="badge" style="background:#f0fdf4;color:#16a34a;font-size:.65rem;" title="Sin vuelo"><i class="fas fa-tag"></i></span>';
-                            return '<div class="col-auto mb-1"><button class="btn btn-sm btn-outline-secondary" style="font-size:.78rem;" onclick="document.getElementById(\'bhs-date-filter\').value=\''+d+'\';document.getElementById(\'bhs-dates-panel\').classList.add(\'d-none\');bhsLoadDate();">'+d+icons+'</button></div>';
+                            return '<div class="col-auto mb-1"><button class="btn btn-sm btn-outline-secondary" style="font-size:.78rem;" onclick="document.getElementById(\'bhs-date-filter\').value=\''+d+'\';document.getElementById(\'bhs-dates-panel\').classList.add(\'d-none\');bhsLoadDate();">'+fmtDate(d)+icons+'</button></div>';
                         }).join('');
                     }).catch(function(e){ if(list) list.innerHTML='<div class="col-12 text-danger small">Error: '+e.message+'</div>'; });
                 }
@@ -4609,7 +4634,7 @@ FF
                 function bhsLoadFromDB(fecha){
                     var client=window.supabaseClient;
                     if(!client) return;
-                    document.getElementById('bhs-loaded-date').textContent='Cargando '+fecha+'…';
+                    document.getElementById('bhs-loaded-date').textContent='Cargando '+fmtDate(fecha)+'…';
 
                     Promise.all([
                         client.from('bhs_arrivals').select('*').eq('fecha',fecha),
@@ -4619,7 +4644,7 @@ FF
                         if(!results[0].error) bhsRenderArrivals(results[0].data||[]);
                         if(!results[1].error) bhsRenderDepartures(results[1].data||[]);
                         if(!results[2].error) bhsRenderBWF(results[2].data||[]);
-                        document.getElementById('bhs-loaded-date').textContent='📅 '+fecha;
+                        document.getElementById('bhs-loaded-date').textContent='📅 '+fmtDate(fecha);
                     }).catch(function(err){
                         console.error('BHS load error',err);
                     });
@@ -4674,7 +4699,7 @@ FF
                                 if(err){if(card)card.classList.remove('ok');if(status)status.innerHTML='<span style="color:#dc2626">Error: '+(err.message||JSON.stringify(err))+'</span>';console.error('[BHS] Save error:',err);}
                                 else{if(card)card.classList.add('ok');if(status)status.innerHTML='<span style="color:#16a34a">&#x2713; '+records.length+' registros guardados</span>';
                                     if(type==='arrivals')bhsRenderArrivals(records);else if(type==='departures')bhsRenderDepartures(records);else bhsRenderBWF(records);
-                                    document.getElementById('bhs-loaded-date').textContent='&#x1F4C5; '+fecha;}
+                                    document.getElementById('bhs-loaded-date').textContent='&#x1F4C5; '+fmtDate(fecha);}
                             });
                         }catch(err2){
                             if(card) card.classList.remove('loading');
@@ -4781,10 +4806,17 @@ FF
                         var cVuelo  =findCol(r,['vuelo','flight','flt','nro']);
                         var cOrigen =findCol(r,['origen','origin','proc','from']);
                         var cDest   =findCol(r,['destino','dest','destination','to']);
+                        var tagVal  =cTag?String(r[cTag]).trim():'';
+                        // Detect airline from tag prefix if not present in the row
+                        var compRaw =cComp?String(r[cComp]).trim():'';
+                        if(!compRaw){
+                            var detected=airlineFromTag(tagVal);
+                            if(detected) compRaw=detected[0];
+                        }
                         return {
                             fecha:fecha, uploaded_by:user,
-                            tag:      cTag  ?String(r[cTag]).trim():'',
-                            compania: cComp ?String(r[cComp]).trim().toUpperCase():'',
+                            tag:      tagVal,
+                            compania: compRaw.toUpperCase(),
                             vuelo:    cVuelo?String(r[cVuelo]).trim():'',
                             origen:   cOrigen?String(r[cOrigen]).trim().toUpperCase():'',
                             destino:  cDest ?String(r[cDest]).trim().toUpperCase():''
@@ -4887,12 +4919,30 @@ FF
                     document.getElementById('bhs-bwf-airlines').textContent=fmtNum(airlines.size);
                     document.getElementById('bhs-bwf-flights').textContent=fmtNum(flights.size);
 
+                    // Summary by airline
+                    var byAl={};
+                    data.forEach(function(r){
+                        var iata=r.compania||'?';
+                        var info=BHS_TAG_PREFIX[Object.keys(BHS_TAG_PREFIX).find(function(k){return BHS_TAG_PREFIX[k][0]===iata;})];
+                        var nombre=info?info[1]:iata;
+                        if(!byAl[iata]) byAl[iata]={nombre:nombre,total:0};
+                        byAl[iata].total++;
+                    });
+
                     var tbody=document.querySelector('#bhs-bwf-table tbody');
                     if(!data.length){
-                        tbody.innerHTML='<tr><td colspan="5" class="text-muted small py-4">Sin datos</td></tr>'; return;
+                        tbody.innerHTML='<tr><td colspan="6" class="text-muted small py-4">Sin datos</td></tr>'; return;
                     }
-                    tbody.innerHTML=data.map(function(r){
-                        return '<tr><td><code>'+(r.tag||'—')+'</code></td><td>'+(r.compania||'—')+'</td><td>'+(r.vuelo||'—')+'</td><td>'+(r.origen||'—')+'</td><td>'+(r.destino||'—')+'</td></tr>';
+                    // Prepend summary rows then detail
+                    var summaryHtml='<tr class="table-secondary fw-semibold"><td colspan="6" class="text-start ps-3" style="font-size:.78rem;letter-spacing:.05em;">RESUMEN POR AEROLÍNEA</td></tr>';
+                    Object.entries(byAl).sort(function(a,b){return b[1].total-a[1].total;}).forEach(function(e){
+                        summaryHtml+='<tr style="background:#f8fafc;"><td class="fw-bold" style="color:#1e3a5f;">'+e[0]+'</td><td class="text-start" colspan="3">'+e[1].nombre+'</td><td></td><td class="fw-bold">'+fmtNum(e[1].total)+'</td></tr>';
+                    });
+                    summaryHtml+='<tr class="table-secondary fw-semibold"><td colspan="6" class="text-start ps-3" style="font-size:.78rem;letter-spacing:.05em;">DETALLE</td></tr>';
+                    tbody.innerHTML=summaryHtml+data.map(function(r){
+                        var info=airlineFromTag(r.tag);
+                        var nombre=info?info[1]:(r.compania||'—');
+                        return '<tr><td><code style="color:#be185d;">'+r.tag+'</code></td><td class="fw-semibold">'+r.compania+'</td><td><small>'+nombre+'</small></td><td>'+(r.vuelo||'—')+'</td><td>'+(r.origen||'—')+'</td><td>'+(r.destino||'—')+'</td></tr>';
                     }).join('');
                 }
 
