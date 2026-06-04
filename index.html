@@ -21120,347 +21120,301 @@ FF
                                 <div class="tab-pane fade show active" id="analisis-yoy-pane" role="tabpanel" aria-labelledby="comparativa-yoy-tab" tabindex="0">
                                     <div class="ag-wrapper">
 
-                                        <!-- Sub-navegación YoY -->
-                                        <ul class="nav nav-pills mb-2 gap-1" id="yoy-sub-tabs" role="tablist">
-                                            <li class="nav-item" role="presentation">
-                                                <button class="nav-link active" id="yoy-sub-comercial-btn" data-bs-toggle="pill" data-bs-target="#yoy-sub-comercial" type="button" role="tab" aria-controls="yoy-sub-comercial" aria-selected="true" onclick="yoyDismissHint()">
-                                                    <i class="fas fa-plane me-1"></i>Comercial
-                                                </button>
-                                            </li>
-                                            <li class="nav-item" role="presentation">
-                                                <button class="nav-link" id="yoy-sub-general-btn" data-bs-toggle="pill" data-bs-target="#yoy-sub-general" type="button" role="tab" aria-controls="yoy-sub-general" aria-selected="false" onclick="yoyDismissHint()">
-                                                    <i class="fas fa-paper-plane me-1"></i>General
-                                                </button>
-                                            </li>
-                                            <li class="nav-item" role="presentation">
-                                                <button class="nav-link" id="yoy-sub-carga-btn" data-bs-toggle="pill" data-bs-target="#yoy-sub-carga" type="button" role="tab" aria-controls="yoy-sub-carga" aria-selected="false" onclick="yoyDismissHint()">
-                                                    <i class="fas fa-box-open me-1"></i>Carga
-                                                </button>
-                                            </li>
-                                        </ul>
-
-                                        <!-- Banner de orientación -->
-                                        <div id="yoy-nav-hint" style="
-                                            display:flex; align-items:flex-start; gap:.75rem;
-                                            background:linear-gradient(90deg,#eff6ff,#f0fdf4);
-                                            border:1px solid #bfdbfe; border-radius:10px;
-                                            padding:.65rem 1rem; margin-bottom:1.25rem;
-                                            font-size:.8rem; color:#1e40af; line-height:1.5;
-                                            position:relative;">
-                                            <span style="font-size:1.15rem;flex-shrink:0;margin-top:.05rem;">&#x1F4A1;</span>
-                                            <div>
-                                                <strong>¿Sabías que puedes navegar entre tipos de aviación?</strong><br>
-                                                Usa las pestañas de arriba (<strong>Comercial</strong>, <strong>General</strong>, <strong>Carga</strong>) para ver la comparativa de cada segmento.<br>
-                                                <span style="color:#166534;">Dentro de cada vista también puedes cambiar el <strong>Indicador</strong> (Operaciones, Pasajeros, etc.) desde el panel de filtros.</span>
-                                            </div>
-                                            <button onclick="yoyDismissHint()" title="Cerrar" style="
-                                                position:absolute;top:.4rem;right:.55rem;
-                                                background:none;border:none;font-size:.95rem;
-                                                color:#93c5fd;cursor:pointer;line-height:1;padding:0;">&#x2715;</button>
+                                        <!-- Hidden pill triggers kept for JS reload compatibility -->
+                                        <div style="display:none" aria-hidden="true">
+                                            <button id="yoy-sub-comercial-btn" data-bs-toggle="pill" data-bs-target="#yoy-sub-comercial" type="button" onclick="yoyDismissHint()"></button>
+                                            <button id="yoy-sub-general-btn" data-bs-toggle="pill" data-bs-target="#yoy-sub-general" type="button" onclick="yoyDismissHint()"></button>
+                                            <button id="yoy-sub-carga-btn" data-bs-toggle="pill" data-bs-target="#yoy-sub-carga" type="button" onclick="yoyDismissHint()"></button>
                                         </div>
                                         <script>
-                                        function yoyDismissHint(){
-                                            var h=document.getElementById('yoy-nav-hint');
-                                            if(h) h.style.display='none';
-                                        }
+                                        function yoyDismissHint(){}
+                                        (function(){
+                                            function _yoyFireAll(){
+                                                ['yoy-sub-general-btn','yoy-sub-carga-btn'].forEach(function(id){
+                                                    var b=document.getElementById(id);
+                                                    if(b) b.dispatchEvent(new Event('shown.bs.tab'));
+                                                });
+                                            }
+                                            document.addEventListener('DOMContentLoaded',function(){
+                                                document.querySelectorAll('button[data-bs-target="#analisis-yoy-pane"]').forEach(function(btn){
+                                                    btn.addEventListener('shown.bs.tab',function(){ setTimeout(_yoyFireAll,200); });
+                                                });
+                                                var p=document.getElementById('analisis-yoy-pane');
+                                                if(p && p.classList.contains('active')) setTimeout(_yoyFireAll,1000);
+                                            });
+                                        })();
                                         </script>
 
-                                        <div class="tab-content" id="yoy-sub-content">
-
-                                            <!-- -- COMERCIAL ---------------------------------- -->
-                                            <div class="tab-pane fade show active" id="yoy-sub-comercial" role="tabpanel" aria-labelledby="yoy-sub-comercial-btn" tabindex="0">
-                                                <div class="row g-3 mb-4">
-                                                    <div class="col-12 col-xl-3">
-                                                        <div class="card h-100 shadow-sm border-0" style="background: linear-gradient(135deg, #f5f7fa 0%, #f0f3f8 100%); border-left: 4px solid #2196f3;">
-                                                            <div class="card-body">
-                                                                <h6 class="text-uppercase text-muted fw-bold mb-3" style="letter-spacing: 0.5px;"><i class="fas fa-filter me-2 text-primary"></i>Filtros de Comparación</h6>
-                                                                <div class="mb-4">
-                                                                    <label for="yoy-metric-select" class="form-label small fw-semibold mb-2 d-flex align-items-center gap-2" style="color: #334155;">
-                                                                        &#x1F4CA; Indicador
-                                                                        <span id="yoy-metric-pulse" style="
-                                                                            display:inline-flex;align-items:center;gap:.3rem;
-                                                                            background:#dbeafe;color:#1d4ed8;
-                                                                            border-radius:20px;padding:.1rem .55rem;
-                                                                            font-size:.65rem;font-weight:700;letter-spacing:.02em;
-                                                                            animation:yoyPulse 1.8s ease-in-out 3;
-                                                                            cursor:default;">
-                                                                            &#x21BB; cámbialo
-                                                                        </span>
-                                                                    </label>
-                                                                    <style>
-                                                                    @keyframes yoyPulse {
-                                                                        0%,100%{opacity:1;transform:scale(1);}
-                                                                        50%{opacity:.4;transform:scale(.95);}
-                                                                    }
-                                                                    </style>
-                                                                    <select id="yoy-metric-select" class="form-select form-select-sm" style="border-color: #cbd5e1; border-radius: 6px;" onchange="document.getElementById('yoy-metric-pulse').style.display='none';">
-                                                                        <option value="operaciones" selected>Operaciones Comerciales</option>
-                                                                        <option value="pasajeros">Pasajeros Comerciales</option>
-                                                                    </select>
-                                                                </div>
-                                                                <div class="mb-3">
-                                                                    <label class="form-label small fw-semibold mb-2" style="color: #334155;">&#x1F4C5; Años a Comparar</label>
-                                                                    <div id="yoy-years-container" class="d-flex flex-column gap-2"></div>
-                                                                </div>
-                                                                <div class="mb-3">
-                                                                    <label class="form-label small fw-semibold mb-2" style="color:#334155;">&#x1F5D3;&#xFE0F; Meses a incluir</label>
-                                                                    <div class="d-flex flex-wrap gap-1 mb-2">
-                                                                        <button type="button" class="btn btn-xs btn-outline-primary com-yoy-mon-btn active" data-month="1"  onclick="comYoyToggleMonth(1,this)">Ene</button>
-                                                                        <button type="button" class="btn btn-xs btn-outline-primary com-yoy-mon-btn active" data-month="2"  onclick="comYoyToggleMonth(2,this)">Feb</button>
-                                                                        <button type="button" class="btn btn-xs btn-outline-primary com-yoy-mon-btn active" data-month="3"  onclick="comYoyToggleMonth(3,this)">Mar</button>
-                                                                        <button type="button" class="btn btn-xs btn-outline-primary com-yoy-mon-btn active" data-month="4"  onclick="comYoyToggleMonth(4,this)">Abr</button>
-                                                                        <button type="button" class="btn btn-xs btn-outline-primary com-yoy-mon-btn active" data-month="5"  onclick="comYoyToggleMonth(5,this)">May</button>
-                                                                        <button type="button" class="btn btn-xs btn-outline-primary com-yoy-mon-btn active" data-month="6"  onclick="comYoyToggleMonth(6,this)">Jun</button>
-                                                                        <button type="button" class="btn btn-xs btn-outline-primary com-yoy-mon-btn active" data-month="7"  onclick="comYoyToggleMonth(7,this)">Jul</button>
-                                                                        <button type="button" class="btn btn-xs btn-outline-primary com-yoy-mon-btn active" data-month="8"  onclick="comYoyToggleMonth(8,this)">Ago</button>
-                                                                        <button type="button" class="btn btn-xs btn-outline-primary com-yoy-mon-btn active" data-month="9"  onclick="comYoyToggleMonth(9,this)">Sep</button>
-                                                                        <button type="button" class="btn btn-xs btn-outline-primary com-yoy-mon-btn active" data-month="10" onclick="comYoyToggleMonth(10,this)">Oct</button>
-                                                                        <button type="button" class="btn btn-xs btn-outline-primary com-yoy-mon-btn active" data-month="11" onclick="comYoyToggleMonth(11,this)">Nov</button>
-                                                                        <button type="button" class="btn btn-xs btn-outline-primary com-yoy-mon-btn active" data-month="12" onclick="comYoyToggleMonth(12,this)">Dic</button>
-                                                                    </div>
-                                                                    <div class="d-flex flex-wrap gap-1">
-                                                                        <button type="button" class="btn btn-xs btn-secondary" onclick="comYoyMonthPreset('ytd')">Hasta hoy</button>
-                                                                        <button type="button" class="btn btn-xs btn-secondary" onclick="comYoyMonthPreset('h1')">S1</button>
-                                                                        <button type="button" class="btn btn-xs btn-secondary" onclick="comYoyMonthPreset('h2')">S2</button>
-                                                                        <button type="button" class="btn btn-xs btn-secondary" onclick="comYoyMonthPreset('all')">Todo el año</button>
-                                                                    </div>
-                                                                </div>
-                                                                <hr class="my-3" />
-                                                                <p class="small mb-0" style="color: #64748b; line-height: 1.6;">&#x2139; Esta vista superpone los 12 meses de cada año seleccionado para facilitar el análisis de tendencias y patrones estacionales.</p>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <div class="col-12 col-xl-9">
-                                                        <div class="card shadow-sm border-0 h-100">
-                                                            <div class="card-header bg-white border-bottom" style="border-color: #f0f4f8;">
-                                                                <div class="d-flex justify-content-between align-items-center">
-                                                                    <div>
-                                                                        <h5 class="card-title fw-bold mb-0 text-primary" id="yoy-chart-title" style="font-size: 1.1rem; letter-spacing: -0.02em;">&#x1F4C8; Comparativa Mensual de Operaciones Comerciales</h5>
-                                                                        <small class="text-muted d-block mt-2">Análisis de tendencias año a año</small>
-                                                                    </div>
-                                                                    <button class="btn btn-sm btn-outline-secondary" id="yoy-export-btn" title="Exportar a CSV" aria-label="Exportar gráfica a CSV">
-                                                                        <i class="fas fa-download me-1"></i>Exportar
-                                                                    </button>
-                                                                </div>
-                                                            </div>
-                                                            <div class="card-body" style="padding: 1.5rem;">
-                                                                <div class="chart-container" style="position: relative; height: 420px; width: 100%; margin-bottom: 1.5rem;">
-                                                                    <canvas id="yoyCompChart" style="filter: drop-shadow(0 2px 8px rgba(0,0,0,0.05));"></canvas>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
+                                        <!-- ══ AVIACIÓN COMERCIAL ══════════════════════════════════════════ -->
+                                        <div id="yoy-sub-comercial" class="yoy-unified-segment mb-5">
+                                            <div class="d-flex align-items-center gap-3 mb-3">
+                                                <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+                                                     style="width:44px;height:44px;background:linear-gradient(135deg,#1565c0,#42a5f5);box-shadow:0 3px 10px rgba(33,150,243,.35);">
+                                                    <i class="fas fa-plane text-white" style="font-size:1rem;"></i>
                                                 </div>
-                                                <div class="row">
-                                                    <div class="col-12">
-                                                        <div class="card shadow-sm border-0">
-                                                            <div class="card-header bg-white border-bottom d-flex flex-wrap align-items-center justify-content-between gap-2" style="border-color: #f0f4f8;">
-                                                                <h6 class="mb-0 fw-bold text-secondary" style="font-size: 0.95rem;">&#x1F4CB; Detalles por Periodo</h6>
-                                                                <div class="btn-group btn-group-sm" role="group" id="yoy-granularity-group" aria-label="Granularidad">
-                                                                    <input type="radio" class="btn-check" name="yoy-granularity" id="gran-mensual" value="mensual" autocomplete="off" checked>
-                                                                    <label class="btn btn-outline-primary" for="gran-mensual">Mensual</label>
-                                                                    <input type="radio" class="btn-check" name="yoy-granularity" id="gran-bimestral" value="bimestral" autocomplete="off">
-                                                                    <label class="btn btn-outline-primary" for="gran-bimestral">Bimestral</label>
-                                                                    <input type="radio" class="btn-check" name="yoy-granularity" id="gran-trimestral" value="trimestral" autocomplete="off">
-                                                                    <label class="btn btn-outline-primary" for="gran-trimestral">Trimestral</label>
-                                                                    <input type="radio" class="btn-check" name="yoy-granularity" id="gran-semestral" value="semestral" autocomplete="off">
-                                                                    <label class="btn btn-outline-primary" for="gran-semestral">Semestral</label>
-                                                                </div>
-                                                            </div>
-                                                            <div class="card-body p-0">
-                                                                <div class="table-responsive">
-                                                                    <table class="table table-hover table-bordered table-sm align-middle mb-0 text-center" id="yoy-data-table">
-                                                                        <thead class="table-light"></thead>
-                                                                        <tbody></tbody>
-                                                                    </table>
-                                                                </div>
-                                                            </div>
+                                                <div>
+                                                    <h5 class="fw-bold mb-0" style="color:#1565c0;letter-spacing:-.02em;">Aviación Comercial</h5>
+                                                    <small class="text-muted">Operaciones y pasajeros año a año</small>
+                                                </div>
+                                                <div class="flex-grow-1 ms-2" style="height:2px;background:linear-gradient(90deg,#bfdbfe,transparent);border-radius:2px;"></div>
+                                            </div>
+                                            <!-- Filter strip -->
+                                            <div class="card mb-3 border-0 shadow-sm" style="background:linear-gradient(135deg,#f8fbff,#eff6ff);border-left:4px solid #2196f3 !important;">
+                                                <div class="card-body py-2 px-3">
+                                                    <div class="d-flex flex-wrap align-items-center gap-3 mb-2">
+                                                        <div class="d-flex align-items-center gap-2">
+                                                            <span class="small fw-semibold" style="color:#475569;">&#x1F4CA; Indicador:</span>
+                                                            <select id="yoy-metric-select" class="form-select form-select-sm" style="width:auto;min-width:190px;border-color:#bfdbfe;border-radius:6px;">
+                                                                <option value="operaciones" selected>Operaciones Comerciales</option>
+                                                                <option value="pasajeros">Pasajeros Comerciales</option>
+                                                            </select>
                                                         </div>
+                                                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                                                            <span class="small fw-semibold" style="color:#475569;">&#x1F4C5; Años:</span>
+                                                            <div id="yoy-years-container" class="d-flex flex-wrap gap-2"></div>
+                                                        </div>
+                                                        <button class="btn btn-sm btn-outline-primary ms-auto" id="yoy-export-btn" title="Exportar a CSV">
+                                                            <i class="fas fa-download me-1"></i>Exportar
+                                                        </button>
+                                                    </div>
+                                                    <div class="d-flex flex-wrap align-items-center gap-1">
+                                                        <span class="small fw-semibold me-1" style="color:#475569;">&#x1F5D3; Meses:</span>
+                                                        <button type="button" class="btn btn-xs btn-outline-primary com-yoy-mon-btn active" data-month="1"  onclick="comYoyToggleMonth(1,this)">Ene</button>
+                                                        <button type="button" class="btn btn-xs btn-outline-primary com-yoy-mon-btn active" data-month="2"  onclick="comYoyToggleMonth(2,this)">Feb</button>
+                                                        <button type="button" class="btn btn-xs btn-outline-primary com-yoy-mon-btn active" data-month="3"  onclick="comYoyToggleMonth(3,this)">Mar</button>
+                                                        <button type="button" class="btn btn-xs btn-outline-primary com-yoy-mon-btn active" data-month="4"  onclick="comYoyToggleMonth(4,this)">Abr</button>
+                                                        <button type="button" class="btn btn-xs btn-outline-primary com-yoy-mon-btn active" data-month="5"  onclick="comYoyToggleMonth(5,this)">May</button>
+                                                        <button type="button" class="btn btn-xs btn-outline-primary com-yoy-mon-btn active" data-month="6"  onclick="comYoyToggleMonth(6,this)">Jun</button>
+                                                        <button type="button" class="btn btn-xs btn-outline-primary com-yoy-mon-btn active" data-month="7"  onclick="comYoyToggleMonth(7,this)">Jul</button>
+                                                        <button type="button" class="btn btn-xs btn-outline-primary com-yoy-mon-btn active" data-month="8"  onclick="comYoyToggleMonth(8,this)">Ago</button>
+                                                        <button type="button" class="btn btn-xs btn-outline-primary com-yoy-mon-btn active" data-month="9"  onclick="comYoyToggleMonth(9,this)">Sep</button>
+                                                        <button type="button" class="btn btn-xs btn-outline-primary com-yoy-mon-btn active" data-month="10" onclick="comYoyToggleMonth(10,this)">Oct</button>
+                                                        <button type="button" class="btn btn-xs btn-outline-primary com-yoy-mon-btn active" data-month="11" onclick="comYoyToggleMonth(11,this)">Nov</button>
+                                                        <button type="button" class="btn btn-xs btn-outline-primary com-yoy-mon-btn active" data-month="12" onclick="comYoyToggleMonth(12,this)">Dic</button>
+                                                        <span class="mx-1 text-muted">|</span>
+                                                        <button type="button" class="btn btn-xs btn-secondary" onclick="comYoyMonthPreset('ytd')">Hasta hoy</button>
+                                                        <button type="button" class="btn btn-xs btn-secondary" onclick="comYoyMonthPreset('h1')">S1</button>
+                                                        <button type="button" class="btn btn-xs btn-secondary" onclick="comYoyMonthPreset('h2')">S2</button>
+                                                        <button type="button" class="btn btn-xs btn-secondary" onclick="comYoyMonthPreset('all')">Todo el año</button>
                                                     </div>
                                                 </div>
                                             </div>
-
-                                            <!-- -- GENERAL ----------------------------------- -->
-                                            <div class="tab-pane fade" id="yoy-sub-general" role="tabpanel" aria-labelledby="yoy-sub-general-btn" tabindex="0">
-                                                <div class="row g-3 mb-4">
-                                                    <div class="col-12 col-xl-3">
-                                                        <div class="card h-100 shadow-sm border-0" style="background:linear-gradient(135deg,#f5f7fa 0%,#f0f3f8 100%);border-left:4px solid #4caf50;">
-                                                            <div class="card-body">
-                                                                <h6 class="text-uppercase text-muted fw-bold mb-3" style="letter-spacing:0.5px;"><i class="fas fa-filter me-2 text-success"></i>Filtros de Comparación</h6>
-                                                                <div class="mb-4">
-                                                                    <label for="gen-yoy-metric-select" class="form-label small fw-semibold mb-2" style="color:#334155;">&#x1F4CA; Indicador</label>
-                                                                    <select id="gen-yoy-metric-select" class="form-select form-select-sm" style="border-color:#cbd5e1;border-radius:6px;">
-                                                                        <option value="operaciones" selected>Operaciones</option>
-                                                                        <option value="pasajeros">Pasajeros</option>
-                                                                    </select>
-                                                                </div>
-                                                                <div class="mb-3">
-                                                                    <label class="form-label small fw-semibold mb-2" style="color:#334155;">&#x1F4C5; Años a Comparar</label>
-                                                                    <div id="gen-yoy-years" class="d-flex flex-column gap-2"></div>
-                                                                </div>
-                                                                <div class="mb-3">
-                                                                    <label class="form-label small fw-semibold mb-2" style="color:#334155;">&#x1F5D3;&#xFE0F; Meses a incluir</label>
-                                                                    <div class="d-flex flex-wrap gap-1 mb-2">
-                                                                        <button type="button" class="btn btn-xs btn-outline-success gen-yoy-mon-btn active" data-mon="1" onclick="genYoyToggleMonth(1,this)">Ene</button>
-                                                                        <button type="button" class="btn btn-xs btn-outline-success gen-yoy-mon-btn active" data-mon="2" onclick="genYoyToggleMonth(2,this)">Feb</button>
-                                                                        <button type="button" class="btn btn-xs btn-outline-success gen-yoy-mon-btn active" data-mon="3" onclick="genYoyToggleMonth(3,this)">Mar</button>
-                                                                        <button type="button" class="btn btn-xs btn-outline-success gen-yoy-mon-btn active" data-mon="4" onclick="genYoyToggleMonth(4,this)">Abr</button>
-                                                                        <button type="button" class="btn btn-xs btn-outline-success gen-yoy-mon-btn active" data-mon="5" onclick="genYoyToggleMonth(5,this)">May</button>
-                                                                        <button type="button" class="btn btn-xs btn-outline-success gen-yoy-mon-btn active" data-mon="6" onclick="genYoyToggleMonth(6,this)">Jun</button>
-                                                                        <button type="button" class="btn btn-xs btn-outline-success gen-yoy-mon-btn active" data-mon="7" onclick="genYoyToggleMonth(7,this)">Jul</button>
-                                                                        <button type="button" class="btn btn-xs btn-outline-success gen-yoy-mon-btn active" data-mon="8" onclick="genYoyToggleMonth(8,this)">Ago</button>
-                                                                        <button type="button" class="btn btn-xs btn-outline-success gen-yoy-mon-btn active" data-mon="9" onclick="genYoyToggleMonth(9,this)">Sep</button>
-                                                                        <button type="button" class="btn btn-xs btn-outline-success gen-yoy-mon-btn active" data-mon="10" onclick="genYoyToggleMonth(10,this)">Oct</button>
-                                                                        <button type="button" class="btn btn-xs btn-outline-success gen-yoy-mon-btn active" data-mon="11" onclick="genYoyToggleMonth(11,this)">Nov</button>
-                                                                        <button type="button" class="btn btn-xs btn-outline-success gen-yoy-mon-btn active" data-mon="12" onclick="genYoyToggleMonth(12,this)">Dic</button>
-                                                                    </div>
-                                                                    <div class="d-flex flex-wrap gap-1">
-                                                                        <button type="button" class="btn btn-xs btn-secondary" onclick="genYoyMonthPreset('ytd')" title="Enero hasta el mes actual">Hasta hoy</button>
-                                                                        <button type="button" class="btn btn-xs btn-outline-secondary" onclick="genYoyMonthPreset('h1')">S1 (Ene-Jun)</button>
-                                                                        <button type="button" class="btn btn-xs btn-outline-secondary" onclick="genYoyMonthPreset('h2')">S2 (Jul-Dic)</button>
-                                                                        <button type="button" class="btn btn-xs btn-outline-secondary" onclick="genYoyMonthPreset('all')">Todo el año</button>
-                                                                    </div>
-                                                                </div>
-                                                                <hr class="my-3">
-                                                                <p class="small mb-0" style="color:#64748b;line-height:1.6;">&#x2139; Esta vista superpone los datos de cada año seleccionado para facilitar el análisis de tendencias estacionales.</p>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <div class="col-12 col-xl-9">
-                                                        <div class="card shadow-sm border-0 h-100">
-                                                            <div class="card-header bg-white border-bottom" style="border-color:#f0f4f8;">
-                                                                <div class="d-flex justify-content-between align-items-center">
-                                                                    <h5 class="card-title fw-bold mb-0" id="gen-yoy-chart-title" style="font-size:1.1rem;color:#334155;"><i class="fas fa-paper-plane me-2"></i>Comparativa de Operaciones — Aviación General</h5>
-                                                                </div>
-                                                            </div>
-                                                            <div class="card-body" style="padding:1.5rem;">
-                                                                <div class="chart-container" style="position:relative;height:420px;width:100%;margin-bottom:1.5rem;">
-                                                                    <canvas id="gen-yoy-chart" style="filter:drop-shadow(0 2px 8px rgba(0,0,0,0.05));"></canvas>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div class="row">
-                                                    <div class="col-12">
-                                                        <div class="card shadow-sm border-0">
-                                                            <div class="card-header bg-white border-bottom d-flex flex-wrap align-items-center justify-content-between gap-2" style="border-color:#f0f4f8;">
-                                                                <h6 class="mb-0 fw-bold text-secondary" style="font-size:0.95rem;">&#x1F4CB; Detalles por Periodo</h6>
-                                                                <div class="btn-group btn-group-sm" role="group" aria-label="Granularidad">
-                                                                    <input type="radio" class="btn-check" name="gen-yoy-granularity" id="gen-gran-mensual" value="mensual" autocomplete="off" checked>
-                                                                    <label class="btn btn-outline-success" for="gen-gran-mensual">Mensual</label>
-                                                                    <input type="radio" class="btn-check" name="gen-yoy-granularity" id="gen-gran-bimestral" value="bimestral" autocomplete="off">
-                                                                    <label class="btn btn-outline-success" for="gen-gran-bimestral">Bimestral</label>
-                                                                    <input type="radio" class="btn-check" name="gen-yoy-granularity" id="gen-gran-trimestral" value="trimestral" autocomplete="off">
-                                                                    <label class="btn btn-outline-success" for="gen-gran-trimestral">Trimestral</label>
-                                                                    <input type="radio" class="btn-check" name="gen-yoy-granularity" id="gen-gran-semestral" value="semestral" autocomplete="off">
-                                                                    <label class="btn btn-outline-success" for="gen-gran-semestral">Semestral</label>
-                                                                </div>
-                                                            </div>
-                                                            <div class="card-body p-0">
-                                                                <div class="table-responsive">
-                                                                    <table class="table table-hover table-bordered table-sm align-middle mb-0 text-center" id="gen-yoy-table">
-                                                                        <thead class="table-light"></thead>
-                                                                        <tbody></tbody>
-                                                                    </table>
-                                                                </div>
-                                                            </div>
-                                                        </div>
+                                            <!-- Chart -->
+                                            <div class="card shadow-sm border-0 mb-3">
+                                                <div class="card-body" style="padding:1.25rem 1.5rem 1rem;">
+                                                    <h5 class="fw-bold mb-1 text-primary" id="yoy-chart-title" style="font-size:1rem;letter-spacing:-.02em;">
+                                                        <i class="fas fa-chart-line me-2"></i>Comparativa Mensual de Operaciones Comerciales
+                                                    </h5>
+                                                    <small class="text-muted d-block mb-3">Análisis de tendencias año a año</small>
+                                                    <div style="position:relative;height:340px;width:100%;">
+                                                        <canvas id="yoyCompChart" style="filter:drop-shadow(0 2px 8px rgba(0,0,0,0.05));"></canvas>
                                                     </div>
                                                 </div>
                                             </div>
-
-                                            <!-- -- CARGA ------------------------------------- -->
-                                            <div class="tab-pane fade" id="yoy-sub-carga" role="tabpanel" aria-labelledby="yoy-sub-carga-btn" tabindex="0">
-                                                <div class="row g-3 mb-4">
-                                                    <div class="col-12 col-xl-3">
-                                                        <div class="card h-100 shadow-sm border-0" style="background:linear-gradient(135deg,#f5f7fa 0%,#f0f3f8 100%);border-left:4px solid #ff9800;">
-                                                            <div class="card-body">
-                                                                <h6 class="text-uppercase text-muted fw-bold mb-3" style="letter-spacing:0.5px;"><i class="fas fa-filter me-2 text-warning"></i>Filtros de Comparación</h6>
-                                                                <div class="mb-4">
-                                                                    <label for="cargo-yoy-metric-select" class="form-label small fw-semibold mb-2" style="color:#334155;">&#x1F4CA; Indicador</label>
-                                                                    <select id="cargo-yoy-metric-select" class="form-select form-select-sm" style="border-color:#cbd5e1;border-radius:6px;">
-                                                                        <option value="operaciones" selected>Operaciones</option>
-                                                                        <option value="toneladas">Toneladas transportadas</option>
-                                                                    </select>
-                                                                </div>
-                                                                <div class="mb-3">
-                                                                    <label class="form-label small fw-semibold mb-2" style="color:#334155;">&#x1F4C5; Años a Comparar</label>
-                                                                    <div id="cargo-yoy-years" class="d-flex flex-column gap-2"></div>
-                                                                </div>
-                                                                <div class="mb-3">
-                                                                    <label class="form-label small fw-semibold mb-2" style="color:#334155;">&#x1F5D3;&#xFE0F; Meses a incluir</label>
-                                                                    <div class="d-flex flex-wrap gap-1 mb-2">
-                                                                        <button type="button" class="btn btn-xs btn-outline-warning cargo-yoy-mon-btn active" data-mon="1" onclick="cargoYoyToggleMonth(1,this)">Ene</button>
-                                                                        <button type="button" class="btn btn-xs btn-outline-warning cargo-yoy-mon-btn active" data-mon="2" onclick="cargoYoyToggleMonth(2,this)">Feb</button>
-                                                                        <button type="button" class="btn btn-xs btn-outline-warning cargo-yoy-mon-btn active" data-mon="3" onclick="cargoYoyToggleMonth(3,this)">Mar</button>
-                                                                        <button type="button" class="btn btn-xs btn-outline-warning cargo-yoy-mon-btn active" data-mon="4" onclick="cargoYoyToggleMonth(4,this)">Abr</button>
-                                                                        <button type="button" class="btn btn-xs btn-outline-warning cargo-yoy-mon-btn active" data-mon="5" onclick="cargoYoyToggleMonth(5,this)">May</button>
-                                                                        <button type="button" class="btn btn-xs btn-outline-warning cargo-yoy-mon-btn active" data-mon="6" onclick="cargoYoyToggleMonth(6,this)">Jun</button>
-                                                                        <button type="button" class="btn btn-xs btn-outline-warning cargo-yoy-mon-btn active" data-mon="7" onclick="cargoYoyToggleMonth(7,this)">Jul</button>
-                                                                        <button type="button" class="btn btn-xs btn-outline-warning cargo-yoy-mon-btn active" data-mon="8" onclick="cargoYoyToggleMonth(8,this)">Ago</button>
-                                                                        <button type="button" class="btn btn-xs btn-outline-warning cargo-yoy-mon-btn active" data-mon="9" onclick="cargoYoyToggleMonth(9,this)">Sep</button>
-                                                                        <button type="button" class="btn btn-xs btn-outline-warning cargo-yoy-mon-btn active" data-mon="10" onclick="cargoYoyToggleMonth(10,this)">Oct</button>
-                                                                        <button type="button" class="btn btn-xs btn-outline-warning cargo-yoy-mon-btn active" data-mon="11" onclick="cargoYoyToggleMonth(11,this)">Nov</button>
-                                                                        <button type="button" class="btn btn-xs btn-outline-warning cargo-yoy-mon-btn active" data-mon="12" onclick="cargoYoyToggleMonth(12,this)">Dic</button>
-                                                                    </div>
-                                                                    <div class="d-flex flex-wrap gap-1">
-                                                                        <button type="button" class="btn btn-xs btn-secondary" onclick="cargoYoyMonthPreset('ytd')" title="Enero hasta el mes actual">Hasta hoy</button>
-                                                                        <button type="button" class="btn btn-xs btn-outline-secondary" onclick="cargoYoyMonthPreset('h1')">S1 (Ene-Jun)</button>
-                                                                        <button type="button" class="btn btn-xs btn-outline-secondary" onclick="cargoYoyMonthPreset('h2')">S2 (Jul-Dic)</button>
-                                                                        <button type="button" class="btn btn-xs btn-outline-secondary" onclick="cargoYoyMonthPreset('all')">Todo el año</button>
-                                                                    </div>
-                                                                </div>
-                                                                <hr class="my-3">
-                                                                <p class="small mb-0" style="color:#64748b;line-height:1.6;">&#x2139; Compara las operaciones y toneladas de carga año a año para identificar tendencias y variaciones estacionales.</p>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <div class="col-12 col-xl-9">
-                                                        <div class="card shadow-sm border-0 h-100">
-                                                            <div class="card-header bg-white border-bottom" style="border-color:#f0f4f8;">
-                                                                <div class="d-flex justify-content-between align-items-center">
-                                                                    <h5 class="card-title fw-bold mb-0" id="cargo-yoy-chart-title" style="font-size:1.1rem;color:#334155;"><i class="fas fa-box-open me-2"></i>Comparativa de Operaciones — Aviación de Carga</h5>
-                                                                </div>
-                                                            </div>
-                                                            <div class="card-body" style="padding:1.5rem;">
-                                                                <div class="chart-container" style="position:relative;height:420px;width:100%;margin-bottom:1.5rem;">
-                                                                    <canvas id="cargo-yoy-chart" style="filter:drop-shadow(0 2px 8px rgba(0,0,0,0.05));"></canvas>
-                                                                </div>
-                                                            </div>
-                                                        </div>
+                                            <!-- Table -->
+                                            <div class="card shadow-sm border-0">
+                                                <div class="card-header bg-white border-bottom d-flex flex-wrap align-items-center justify-content-between gap-2" style="border-color:#f0f4f8;">
+                                                    <h6 class="mb-0 fw-bold text-secondary" style="font-size:.9rem;">&#x1F4CB; Detalles por Periodo</h6>
+                                                    <div class="btn-group btn-group-sm" role="group" id="yoy-granularity-group" aria-label="Granularidad">
+                                                        <input type="radio" class="btn-check" name="yoy-granularity" id="gran-mensual" value="mensual" autocomplete="off" checked>
+                                                        <label class="btn btn-outline-primary" for="gran-mensual">Mensual</label>
+                                                        <input type="radio" class="btn-check" name="yoy-granularity" id="gran-bimestral" value="bimestral" autocomplete="off">
+                                                        <label class="btn btn-outline-primary" for="gran-bimestral">Bimestral</label>
+                                                        <input type="radio" class="btn-check" name="yoy-granularity" id="gran-trimestral" value="trimestral" autocomplete="off">
+                                                        <label class="btn btn-outline-primary" for="gran-trimestral">Trimestral</label>
+                                                        <input type="radio" class="btn-check" name="yoy-granularity" id="gran-semestral" value="semestral" autocomplete="off">
+                                                        <label class="btn btn-outline-primary" for="gran-semestral">Semestral</label>
                                                     </div>
                                                 </div>
-                                                <div class="row">
-                                                    <div class="col-12">
-                                                        <div class="card shadow-sm border-0">
-                                                            <div class="card-header bg-white border-bottom d-flex flex-wrap align-items-center justify-content-between gap-2" style="border-color:#f0f4f8;">
-                                                                <h6 class="mb-0 fw-bold text-secondary" style="font-size:0.95rem;">&#x1F4CB; Detalles por Periodo</h6>
-                                                                <div class="btn-group btn-group-sm" role="group" aria-label="Granularidad">
-                                                                    <input type="radio" class="btn-check" name="cargo-yoy-granularity" id="cargo-gran-mensual" value="mensual" autocomplete="off" checked>
-                                                                    <label class="btn btn-outline-warning" for="cargo-gran-mensual">Mensual</label>
-                                                                    <input type="radio" class="btn-check" name="cargo-yoy-granularity" id="cargo-gran-bimestral" value="bimestral" autocomplete="off">
-                                                                    <label class="btn btn-outline-warning" for="cargo-gran-bimestral">Bimestral</label>
-                                                                    <input type="radio" class="btn-check" name="cargo-yoy-granularity" id="cargo-gran-trimestral" value="trimestral" autocomplete="off">
-                                                                    <label class="btn btn-outline-warning" for="cargo-gran-trimestral">Trimestral</label>
-                                                                    <input type="radio" class="btn-check" name="cargo-yoy-granularity" id="cargo-gran-semestral" value="semestral" autocomplete="off">
-                                                                    <label class="btn btn-outline-warning" for="cargo-gran-semestral">Semestral</label>
-                                                                </div>
-                                                            </div>
-                                                            <div class="card-body p-0">
-                                                                <div class="table-responsive">
-                                                                    <table class="table table-hover table-bordered table-sm align-middle mb-0 text-center" id="cargo-yoy-table">
-                                                                        <thead class="table-light"></thead>
-                                                                        <tbody></tbody>
-                                                                    </table>
-                                                                </div>
-                                                            </div>
-                                                        </div>
+                                                <div class="card-body p-0">
+                                                    <div class="table-responsive">
+                                                        <table class="table table-hover table-bordered table-sm align-middle mb-0 text-center" id="yoy-data-table">
+                                                            <thead class="table-light"></thead>
+                                                            <tbody></tbody>
+                                                        </table>
                                                     </div>
                                                 </div>
                                             </div>
+                                        </div>
 
-                                        </div><!-- /tab-content yoy-sub-content -->
+                                        <!-- ══ AVIACIÓN GENERAL ════════════════════════════════════════════ -->
+                                        <div id="yoy-sub-general" class="yoy-unified-segment mb-5">
+                                            <div class="d-flex align-items-center gap-3 mb-3">
+                                                <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+                                                     style="width:44px;height:44px;background:linear-gradient(135deg,#2e7d32,#66bb6a);box-shadow:0 3px 10px rgba(76,175,80,.35);">
+                                                    <i class="fas fa-paper-plane text-white" style="font-size:1rem;"></i>
+                                                </div>
+                                                <div>
+                                                    <h5 class="fw-bold mb-0" style="color:#2e7d32;letter-spacing:-.02em;">Aviación General</h5>
+                                                    <small class="text-muted">Operaciones y pasajeros año a año</small>
+                                                </div>
+                                                <div class="flex-grow-1 ms-2" style="height:2px;background:linear-gradient(90deg,#bbf7d0,transparent);border-radius:2px;"></div>
+                                            </div>
+                                            <!-- Filter strip -->
+                                            <div class="card mb-3 border-0 shadow-sm" style="background:linear-gradient(135deg,#f0fdf4,#dcfce7);border-left:4px solid #4caf50 !important;">
+                                                <div class="card-body py-2 px-3">
+                                                    <div class="d-flex flex-wrap align-items-center gap-3 mb-2">
+                                                        <div class="d-flex align-items-center gap-2">
+                                                            <span class="small fw-semibold" style="color:#475569;">&#x1F4CA; Indicador:</span>
+                                                            <select id="gen-yoy-metric-select" class="form-select form-select-sm" style="width:auto;min-width:160px;border-color:#bbf7d0;border-radius:6px;">
+                                                                <option value="operaciones" selected>Operaciones</option>
+                                                                <option value="pasajeros">Pasajeros</option>
+                                                            </select>
+                                                        </div>
+                                                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                                                            <span class="small fw-semibold" style="color:#475569;">&#x1F4C5; Años:</span>
+                                                            <div id="gen-yoy-years" class="d-flex flex-wrap gap-2"></div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="d-flex flex-wrap align-items-center gap-1">
+                                                        <span class="small fw-semibold me-1" style="color:#475569;">&#x1F5D3; Meses:</span>
+                                                        <button type="button" class="btn btn-xs btn-outline-success gen-yoy-mon-btn active" data-mon="1"  onclick="genYoyToggleMonth(1,this)">Ene</button>
+                                                        <button type="button" class="btn btn-xs btn-outline-success gen-yoy-mon-btn active" data-mon="2"  onclick="genYoyToggleMonth(2,this)">Feb</button>
+                                                        <button type="button" class="btn btn-xs btn-outline-success gen-yoy-mon-btn active" data-mon="3"  onclick="genYoyToggleMonth(3,this)">Mar</button>
+                                                        <button type="button" class="btn btn-xs btn-outline-success gen-yoy-mon-btn active" data-mon="4"  onclick="genYoyToggleMonth(4,this)">Abr</button>
+                                                        <button type="button" class="btn btn-xs btn-outline-success gen-yoy-mon-btn active" data-mon="5"  onclick="genYoyToggleMonth(5,this)">May</button>
+                                                        <button type="button" class="btn btn-xs btn-outline-success gen-yoy-mon-btn active" data-mon="6"  onclick="genYoyToggleMonth(6,this)">Jun</button>
+                                                        <button type="button" class="btn btn-xs btn-outline-success gen-yoy-mon-btn active" data-mon="7"  onclick="genYoyToggleMonth(7,this)">Jul</button>
+                                                        <button type="button" class="btn btn-xs btn-outline-success gen-yoy-mon-btn active" data-mon="8"  onclick="genYoyToggleMonth(8,this)">Ago</button>
+                                                        <button type="button" class="btn btn-xs btn-outline-success gen-yoy-mon-btn active" data-mon="9"  onclick="genYoyToggleMonth(9,this)">Sep</button>
+                                                        <button type="button" class="btn btn-xs btn-outline-success gen-yoy-mon-btn active" data-mon="10" onclick="genYoyToggleMonth(10,this)">Oct</button>
+                                                        <button type="button" class="btn btn-xs btn-outline-success gen-yoy-mon-btn active" data-mon="11" onclick="genYoyToggleMonth(11,this)">Nov</button>
+                                                        <button type="button" class="btn btn-xs btn-outline-success gen-yoy-mon-btn active" data-mon="12" onclick="genYoyToggleMonth(12,this)">Dic</button>
+                                                        <span class="mx-1 text-muted">|</span>
+                                                        <button type="button" class="btn btn-xs btn-secondary" onclick="genYoyMonthPreset('ytd')">Hasta hoy</button>
+                                                        <button type="button" class="btn btn-xs btn-outline-secondary" onclick="genYoyMonthPreset('h1')">S1 (Ene-Jun)</button>
+                                                        <button type="button" class="btn btn-xs btn-outline-secondary" onclick="genYoyMonthPreset('h2')">S2 (Jul-Dic)</button>
+                                                        <button type="button" class="btn btn-xs btn-outline-secondary" onclick="genYoyMonthPreset('all')">Todo el año</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <!-- Chart -->
+                                            <div class="card shadow-sm border-0 mb-3">
+                                                <div class="card-body" style="padding:1.25rem 1.5rem 1rem;">
+                                                    <h5 class="fw-bold mb-1" id="gen-yoy-chart-title" style="font-size:1rem;color:#2e7d32;letter-spacing:-.02em;">
+                                                        <i class="fas fa-paper-plane me-2"></i>Comparativa de Operaciones — Aviación General
+                                                    </h5>
+                                                    <small class="text-muted d-block mb-3">Análisis de tendencias año a año</small>
+                                                    <div style="position:relative;height:340px;width:100%;">
+                                                        <canvas id="gen-yoy-chart" style="filter:drop-shadow(0 2px 8px rgba(0,0,0,0.05));"></canvas>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <!-- Table -->
+                                            <div class="card shadow-sm border-0">
+                                                <div class="card-header bg-white border-bottom d-flex flex-wrap align-items-center justify-content-between gap-2" style="border-color:#f0f4f8;">
+                                                    <h6 class="mb-0 fw-bold text-secondary" style="font-size:.9rem;">&#x1F4CB; Detalles por Periodo</h6>
+                                                    <div class="btn-group btn-group-sm" role="group" aria-label="Granularidad">
+                                                        <input type="radio" class="btn-check" name="gen-yoy-granularity" id="gen-gran-mensual" value="mensual" autocomplete="off" checked>
+                                                        <label class="btn btn-outline-success" for="gen-gran-mensual">Mensual</label>
+                                                        <input type="radio" class="btn-check" name="gen-yoy-granularity" id="gen-gran-bimestral" value="bimestral" autocomplete="off">
+                                                        <label class="btn btn-outline-success" for="gen-gran-bimestral">Bimestral</label>
+                                                        <input type="radio" class="btn-check" name="gen-yoy-granularity" id="gen-gran-trimestral" value="trimestral" autocomplete="off">
+                                                        <label class="btn btn-outline-success" for="gen-gran-trimestral">Trimestral</label>
+                                                        <input type="radio" class="btn-check" name="gen-yoy-granularity" id="gen-gran-semestral" value="semestral" autocomplete="off">
+                                                        <label class="btn btn-outline-success" for="gen-gran-semestral">Semestral</label>
+                                                    </div>
+                                                </div>
+                                                <div class="card-body p-0">
+                                                    <div class="table-responsive">
+                                                        <table class="table table-hover table-bordered table-sm align-middle mb-0 text-center" id="gen-yoy-table">
+                                                            <thead class="table-light"></thead>
+                                                            <tbody></tbody>
+                                                        </table>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- ══ AVIACIÓN DE CARGA ═══════════════════════════════════════════ -->
+                                        <div id="yoy-sub-carga" class="yoy-unified-segment mb-5">
+                                            <div class="d-flex align-items-center gap-3 mb-3">
+                                                <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+                                                     style="width:44px;height:44px;background:linear-gradient(135deg,#e65100,#ffa726);box-shadow:0 3px 10px rgba(255,152,0,.35);">
+                                                    <i class="fas fa-box-open text-white" style="font-size:1rem;"></i>
+                                                </div>
+                                                <div>
+                                                    <h5 class="fw-bold mb-0" style="color:#e65100;letter-spacing:-.02em;">Aviación de Carga</h5>
+                                                    <small class="text-muted">Operaciones y toneladas transportadas año a año</small>
+                                                </div>
+                                                <div class="flex-grow-1 ms-2" style="height:2px;background:linear-gradient(90deg,#fed7aa,transparent);border-radius:2px;"></div>
+                                            </div>
+                                            <!-- Filter strip -->
+                                            <div class="card mb-3 border-0 shadow-sm" style="background:linear-gradient(135deg,#fff7ed,#ffedd5);border-left:4px solid #ff9800 !important;">
+                                                <div class="card-body py-2 px-3">
+                                                    <div class="d-flex flex-wrap align-items-center gap-3 mb-2">
+                                                        <div class="d-flex align-items-center gap-2">
+                                                            <span class="small fw-semibold" style="color:#475569;">&#x1F4CA; Indicador:</span>
+                                                            <select id="cargo-yoy-metric-select" class="form-select form-select-sm" style="width:auto;min-width:210px;border-color:#fed7aa;border-radius:6px;">
+                                                                <option value="operaciones" selected>Operaciones</option>
+                                                                <option value="toneladas">Toneladas transportadas</option>
+                                                            </select>
+                                                        </div>
+                                                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                                                            <span class="small fw-semibold" style="color:#475569;">&#x1F4C5; Años:</span>
+                                                            <div id="cargo-yoy-years" class="d-flex flex-wrap gap-2"></div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="d-flex flex-wrap align-items-center gap-1">
+                                                        <span class="small fw-semibold me-1" style="color:#475569;">&#x1F5D3; Meses:</span>
+                                                        <button type="button" class="btn btn-xs btn-outline-warning cargo-yoy-mon-btn active" data-mon="1"  onclick="cargoYoyToggleMonth(1,this)">Ene</button>
+                                                        <button type="button" class="btn btn-xs btn-outline-warning cargo-yoy-mon-btn active" data-mon="2"  onclick="cargoYoyToggleMonth(2,this)">Feb</button>
+                                                        <button type="button" class="btn btn-xs btn-outline-warning cargo-yoy-mon-btn active" data-mon="3"  onclick="cargoYoyToggleMonth(3,this)">Mar</button>
+                                                        <button type="button" class="btn btn-xs btn-outline-warning cargo-yoy-mon-btn active" data-mon="4"  onclick="cargoYoyToggleMonth(4,this)">Abr</button>
+                                                        <button type="button" class="btn btn-xs btn-outline-warning cargo-yoy-mon-btn active" data-mon="5"  onclick="cargoYoyToggleMonth(5,this)">May</button>
+                                                        <button type="button" class="btn btn-xs btn-outline-warning cargo-yoy-mon-btn active" data-mon="6"  onclick="cargoYoyToggleMonth(6,this)">Jun</button>
+                                                        <button type="button" class="btn btn-xs btn-outline-warning cargo-yoy-mon-btn active" data-mon="7"  onclick="cargoYoyToggleMonth(7,this)">Jul</button>
+                                                        <button type="button" class="btn btn-xs btn-outline-warning cargo-yoy-mon-btn active" data-mon="8"  onclick="cargoYoyToggleMonth(8,this)">Ago</button>
+                                                        <button type="button" class="btn btn-xs btn-outline-warning cargo-yoy-mon-btn active" data-mon="9"  onclick="cargoYoyToggleMonth(9,this)">Sep</button>
+                                                        <button type="button" class="btn btn-xs btn-outline-warning cargo-yoy-mon-btn active" data-mon="10" onclick="cargoYoyToggleMonth(10,this)">Oct</button>
+                                                        <button type="button" class="btn btn-xs btn-outline-warning cargo-yoy-mon-btn active" data-mon="11" onclick="cargoYoyToggleMonth(11,this)">Nov</button>
+                                                        <button type="button" class="btn btn-xs btn-outline-warning cargo-yoy-mon-btn active" data-mon="12" onclick="cargoYoyToggleMonth(12,this)">Dic</button>
+                                                        <span class="mx-1 text-muted">|</span>
+                                                        <button type="button" class="btn btn-xs btn-secondary" onclick="cargoYoyMonthPreset('ytd')">Hasta hoy</button>
+                                                        <button type="button" class="btn btn-xs btn-outline-secondary" onclick="cargoYoyMonthPreset('h1')">S1 (Ene-Jun)</button>
+                                                        <button type="button" class="btn btn-xs btn-outline-secondary" onclick="cargoYoyMonthPreset('h2')">S2 (Jul-Dic)</button>
+                                                        <button type="button" class="btn btn-xs btn-outline-secondary" onclick="cargoYoyMonthPreset('all')">Todo el año</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <!-- Chart -->
+                                            <div class="card shadow-sm border-0 mb-3">
+                                                <div class="card-body" style="padding:1.25rem 1.5rem 1rem;">
+                                                    <h5 class="fw-bold mb-1" id="cargo-yoy-chart-title" style="font-size:1rem;color:#e65100;letter-spacing:-.02em;">
+                                                        <i class="fas fa-box-open me-2"></i>Comparativa de Operaciones — Aviación de Carga
+                                                    </h5>
+                                                    <small class="text-muted d-block mb-3">Análisis de tendencias año a año</small>
+                                                    <div style="position:relative;height:340px;width:100%;">
+                                                        <canvas id="cargo-yoy-chart" style="filter:drop-shadow(0 2px 8px rgba(0,0,0,0.05));"></canvas>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <!-- Table -->
+                                            <div class="card shadow-sm border-0">
+                                                <div class="card-header bg-white border-bottom d-flex flex-wrap align-items-center justify-content-between gap-2" style="border-color:#f0f4f8;">
+                                                    <h6 class="mb-0 fw-bold text-secondary" style="font-size:.9rem;">&#x1F4CB; Detalles por Periodo</h6>
+                                                    <div class="btn-group btn-group-sm" role="group" aria-label="Granularidad">
+                                                        <input type="radio" class="btn-check" name="cargo-yoy-granularity" id="cargo-gran-mensual" value="mensual" autocomplete="off" checked>
+                                                        <label class="btn btn-outline-warning" for="cargo-gran-mensual">Mensual</label>
+                                                        <input type="radio" class="btn-check" name="cargo-yoy-granularity" id="cargo-gran-bimestral" value="bimestral" autocomplete="off">
+                                                        <label class="btn btn-outline-warning" for="cargo-gran-bimestral">Bimestral</label>
+                                                        <input type="radio" class="btn-check" name="cargo-yoy-granularity" id="cargo-gran-trimestral" value="trimestral" autocomplete="off">
+                                                        <label class="btn btn-outline-warning" for="cargo-gran-trimestral">Trimestral</label>
+                                                        <input type="radio" class="btn-check" name="cargo-yoy-granularity" id="cargo-gran-semestral" value="semestral" autocomplete="off">
+                                                        <label class="btn btn-outline-warning" for="cargo-gran-semestral">Semestral</label>
+                                                    </div>
+                                                </div>
+                                                <div class="card-body p-0">
+                                                    <div class="table-responsive">
+                                                        <table class="table table-hover table-bordered table-sm align-middle mb-0 text-center" id="cargo-yoy-table">
+                                                            <thead class="table-light"></thead>
+                                                            <tbody></tbody>
+                                                        </table>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
                                     </div>
                                 </div>
 
