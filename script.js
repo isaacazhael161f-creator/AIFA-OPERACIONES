@@ -2116,9 +2116,6 @@ function resetSectionPermissions() {
     document.querySelectorAll('.content-section').forEach((section) => section.classList.remove('perm-hidden'));
     // Restore all sidebar group containers
     document.querySelectorAll('#sidebar-nav .si-group').forEach(group => group.classList.remove('perm-hidden'));
-    // Clear any inline style.display that may have been set on special menu items
-    const itinerarioItem = document.querySelector('.menu-item[data-section="itinerario-mensual"]');
-    if (itinerarioItem) itinerarioItem.style.display = '';
 }
 
 /**
