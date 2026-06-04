@@ -59,9 +59,14 @@
 
         // Hide sidebar group containers whose every menu-item is now hidden
         const allGroups = Array.from(document.querySelectorAll('#sidebar-nav .si-group'));
+        const hasHiddenItems = document.querySelectorAll('#sidebar-nav .menu-item[data-section].d-none-auth, #sidebar-nav .menu-item[data-section].perm-hidden').length > 0;
         allGroups.reverse().forEach(group => {
             const items = Array.from(group.querySelectorAll('.menu-item[data-section]'));
-            if (items.length === 0) return; // "Próximamente" — leave alone
+            if (items.length === 0) {
+                // "Próximamente" decoration group — hide it when user is in restricted mode
+                if (hasHiddenItems) group.classList.add('d-none-auth');
+                return;
+            }
             const allHidden = items.every(i => i.classList.contains('d-none-auth') || i.classList.contains('perm-hidden'));
             if (allHidden) group.classList.add('d-none-auth');
         });

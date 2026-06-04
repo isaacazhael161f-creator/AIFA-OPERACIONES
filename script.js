@@ -2116,6 +2116,9 @@ function resetSectionPermissions() {
     document.querySelectorAll('.content-section').forEach((section) => section.classList.remove('perm-hidden'));
     // Restore all sidebar group containers
     document.querySelectorAll('#sidebar-nav .si-group').forEach(group => group.classList.remove('perm-hidden'));
+    // Clear any inline style.display that may have been set on special menu items
+    const itinerarioItem = document.querySelector('.menu-item[data-section="itinerario-mensual"]');
+    if (itinerarioItem) itinerarioItem.style.display = '';
 }
 
 /**
@@ -2124,12 +2127,18 @@ function resetSectionPermissions() {
  * Processes innermost groups first so parent groups react correctly.
  */
 function hideEmptySidebarGroups() {
+    // If any menu items are currently perm-hidden, the user is in restricted mode.
+    // In restricted mode, also hide "Próximamente" groups that have no real links.
+    const hasHiddenItems = document.querySelectorAll('#sidebar-nav .menu-item[data-section].perm-hidden').length > 0;
     const allGroups = Array.from(document.querySelectorAll('#sidebar-nav .si-group'));
     // Reverse so deepest (innermost) groups are processed first
     allGroups.reverse().forEach(group => {
         const menuItems = Array.from(group.querySelectorAll('.menu-item[data-section]'));
-        // Groups with no menu items are "Próximamente" decorations — leave them alone
-        if (menuItems.length === 0) return;
+        if (menuItems.length === 0) {
+            // "Próximamente" decoration group — hide it when user is in restricted mode
+            if (hasHiddenItems) group.classList.add('perm-hidden');
+            return;
+        }
         const allHidden = menuItems.every(item => item.classList.contains('perm-hidden'));
         if (allHidden) group.classList.add('perm-hidden');
     });
@@ -2275,6 +2284,27 @@ function applySectionPermissions(userName) {
     }
     // Re-run after colaboradores adjustment to catch any newly-emptied groups
     hideEmptySidebarGroups();
+
+    // Itinerario Mensual: unify hiding under the perm-hidden system so it re-runs
+    // correctly every time applySectionPermissions is called (including async re-fetches).
+    const itinerarioItem = document.querySelector('.menu-item[data-section="itinerario-mensual"]');
+    const itinerarioSection = document.getElementById('itinerario-mensual-section');
+    if (itinerarioItem || itinerarioSection) {
+        const inWhitelist = Array.isArray(userSectionWhitelist) && userSectionWhitelist.includes('itinerario-mensual');
+        // If a whitelist is active, rely solely on the whitelist (already applied above).
+        // If no whitelist: fall back to the legacy canViewItinerarioMensual flag.
+        const legacyUser = (dashboardData?.users || {})[userName];
+        const legacyCanView = !!(legacyUser && legacyUser.canViewItinerarioMensual);
+        const hasWhitelist = Array.isArray(userSectionWhitelist) && userSectionWhitelist.length > 0;
+        const canView = hasWhitelist ? inWhitelist : legacyCanView;
+        if (!canView) {
+            if (itinerarioItem) itinerarioItem.classList.add('perm-hidden');
+            if (itinerarioSection) {
+                itinerarioSection.classList.add('perm-hidden');
+                itinerarioSection.classList.remove('active');
+            }
+        }
+    }
 }
 // Hashes de contraseñas (generados en cliente al inicio y luego se descartan passwords en claro)
 const AUTH_HASHES = Object.create(null);
@@ -6423,9 +6453,8 @@ function showSection(sectionKey, linkEl) {
             const fallback = getDefaultAllowedSection();
             if (!fallback) return;
             targetKey = fallback;
-            if (!linkEl) {
-                linkEl = document.querySelector(`.menu-item[data-section="${fallback}"]`);
-            }
+            // Always update linkEl to match the actual section being shown
+            linkEl = document.querySelector(`.menu-item[data-section="${fallback}"]`);
         }
         if (!linkEl && targetKey) {
             linkEl = document.querySelector(`.menu-item[data-section="${targetKey}"]`);
@@ -10810,13 +10839,6 @@ function showMainApp() {
             detail: { isAdmin: isAdmin, role: currentRole } 
         }));
 
-        // Permisos: Itinerario mensual
-        const menu = document.getElementById('itinerario-mensual-menu');
-        if (menu) {
-            const u = dashboardData.users[name];
-            const can = !!(u && u.canViewItinerarioMensual);
-            menu.style.display = can ? '' : 'none';
-        }
         try {
             ensureOpsEntryPanel();
             const hasSummary = !!(parteOperacionesSummaryCache && Array.isArray(parteOperacionesSummaryCache.dates));
