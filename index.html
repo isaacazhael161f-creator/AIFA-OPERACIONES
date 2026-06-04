@@ -1180,9 +1180,6 @@ FF
                                             <a class="menu-item si-link si-link--l2" href="#" data-section="biblioteca">
                                                 <i class="fas fa-book si-ico"></i><span class="si-txt">Biblioteca</span>
                                             </a>
-                                            <a class="menu-item si-link si-link--l2" href="#" data-section="historia">
-                                                <i class="fas fa-history si-ico"></i><span class="si-txt">Historia</span>
-                                            </a>
                                         </div>
                                     </div>
                                 </div>
@@ -1404,23 +1401,29 @@ FF
                         </div>
                     </div>
 
-                    <!-- Admin — visibilidad gestionada por permisos -->
-                    <a class="menu-item si-link d-none" href="#" data-section="data-management" id="data-management-menu">
-                        <i class="fas fa-database si-ico"></i><span class="si-txt">Gestión de Datos</span>
-                    </a>
-                    <a class="menu-item si-link d-none" href="#" data-section="admin-usuarios" id="admin-users-menu">
-                        <i class="fas fa-users-cog si-ico"></i><span class="si-txt">Administración</span>
-                    </a>
-
                 </nav>
 
-                <!-- User profile card -->
-                <div class="si-user-card" id="si-user-card">
+                <!-- User profile card — click abre menú admin -->
+                <div class="si-user-card" id="si-user-card" role="button" title="Opciones" style="cursor:pointer;" onclick="(function(){var d=document.getElementById('si-user-dropdown');var c=document.getElementById('si-user-chevron');if(d){var hidden=d.classList.toggle('d-none');if(c)c.style.transform=hidden?'':'rotate(180deg)';}})()">
                     <div class="si-user-avatar" id="si-user-avatar">?</div>
                     <div class="si-user-info">
                         <div class="si-user-name" id="si-user-name">Sesión activa</div>
                         <div class="si-user-email" id="si-user-email"></div>
                     </div>
+                    <i class="fas fa-chevron-up" id="si-user-chevron" style="font-size:.65rem;opacity:.45;margin-left:auto;transition:transform .2s;"></i>
+                </div>
+
+                <!-- Dropdown admin (oculto por defecto, solo se llena para admins) -->
+                <div id="si-user-dropdown" class="d-none" style="background:rgba(0,0,0,.18);border-top:1px solid rgba(255,255,255,.07);">
+                    <a class="menu-item si-link d-none" href="#" data-section="historia" id="historia-admin-menu" onclick="document.getElementById('si-user-dropdown').classList.add('d-none');document.getElementById('si-user-chevron').style.transform=''">
+                        <i class="fas fa-history si-ico"></i><span class="si-txt">Historia</span>
+                    </a>
+                    <a class="menu-item si-link d-none" href="#" data-section="data-management" id="data-management-menu" onclick="document.getElementById('si-user-dropdown').classList.add('d-none');document.getElementById('si-user-chevron').style.transform=''">
+                        <i class="fas fa-database si-ico"></i><span class="si-txt">Gestión de Datos</span>
+                    </a>
+                    <a class="menu-item si-link d-none" href="#" data-section="admin-usuarios" id="admin-users-menu" onclick="document.getElementById('si-user-dropdown').classList.add('d-none');document.getElementById('si-user-chevron').style.transform=''">
+                        <i class="fas fa-users-cog si-ico"></i><span class="si-txt">Administración</span>
+                    </a>
                 </div>
 
                 <a class="menu-item si-link si-link--logout logout-item" href="#" data-action="logout">

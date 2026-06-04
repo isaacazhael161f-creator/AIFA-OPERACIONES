@@ -76,6 +76,19 @@ class AdminUI {
             }
         }
 
+        // Toggle Historia menu — SOLO para role estrictamente 'admin'
+        const historiaMenu = document.getElementById('historia-admin-menu');
+        if (historiaMenu) {
+            if (role === 'admin') {
+                historiaMenu.classList.remove('d-none');
+                historiaMenu.classList.remove('perm-hidden');
+                historiaMenu.style.display = 'flex';
+            } else {
+                historiaMenu.classList.add('d-none');
+                historiaMenu.style.display = 'none';
+            }
+        }
+
         // --- Role Based Tab Visibility (Data Management) ---
         // If logged in at all (implied by this function call context usually, but checking isAdmin/role safely)
         if (isAdmin || role) {
