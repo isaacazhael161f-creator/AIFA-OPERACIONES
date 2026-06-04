@@ -4475,10 +4475,18 @@ FF
 
                     <!-- TAB BWF -->
                     <div id="bhs-tab-bwf" class="p-3 d-none">
+                        <!-- KPI strip -->
                         <div class="row g-3 mb-3">
                             <div class="col-6 col-md-4"><div class="card border-0 bg-light text-center p-3"><div class="bhs-stat text-primary" id="bhs-bwf-total">—</div><small class="text-muted">Maletas procesadas manual</small></div></div>
                             <div class="col-6 col-md-4"><div class="card border-0 bg-light text-center p-3"><div class="bhs-stat text-secondary" id="bhs-bwf-airlines">—</div><small class="text-muted">Aerolíneas distintas</small></div></div>
                             <div class="col-6 col-md-4"><div class="card border-0 bg-light text-center p-3"><div class="bhs-stat text-warning" id="bhs-bwf-flights">—</div><small class="text-muted">Vuelos distintos</small></div></div>
+                        </div>
+                        <!-- Airline summary cards -->
+                        <div id="bhs-bwf-summary" class="mb-4"></div>
+                        <!-- Detail table -->
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <span style="font-size:.75rem;font-weight:600;letter-spacing:.08em;color:#64748b;text-transform:uppercase;">Detalle de registros</span>
+                            <div class="flex-grow-1" style="height:1px;background:#e2e8f0;"></div>
                         </div>
                         <div class="table-responsive">
                             <table class="table table-sm table-hover align-middle text-center mb-0" id="bhs-bwf-table">
@@ -4912,37 +4920,82 @@ FF
                     }).join('');
                 }
 
-                function bhsRenderBWF(data){
-                    var airlines=new Set(data.map(function(r){return r.compania;}));
-                    var flights =new Set(data.map(function(r){return r.vuelo;}).filter(Boolean));
-                    document.getElementById('bhs-bwf-total').textContent=fmtNum(data.length);
-                    document.getElementById('bhs-bwf-airlines').textContent=fmtNum(airlines.size);
-                    document.getElementById('bhs-bwf-flights').textContent=fmtNum(flights.size);
+                // Airline brand colors
+                var BHS_AL_COLOR={
+                    'AM':'#00529B','Y4':'#7B2D8B','VB':'#FFB800',
+                    'XN':'#CC0000','DM':'#0070CD','ZV':'#006341'
+                };
 
-                    // Summary by airline
+                function bhsRenderBWF(data){
+                    var total=data.length;
+                    var flights=new Set(data.map(function(r){return r.vuelo;}).filter(Boolean));
+
+                    // Build summary: resolve IATA from tag if compania blank
                     var byAl={};
                     data.forEach(function(r){
-                        var iata=r.compania||'?';
-                        var info=BHS_TAG_PREFIX[Object.keys(BHS_TAG_PREFIX).find(function(k){return BHS_TAG_PREFIX[k][0]===iata;})];
-                        var nombre=info?info[1]:iata;
-                        if(!byAl[iata]) byAl[iata]={nombre:nombre,total:0};
-                        byAl[iata].total++;
+                        var info=airlineFromTag(r.tag);
+                        var iata=r.compania||(info?info[0]:'');
+                        var nombre=info?info[1]:(iata||'Otros');
+                        var key=iata||'XX';
+                        if(!byAl[key]) byAl[key]={iata:key,nombre:nombre,total:0};
+                        byAl[key].total++;
                     });
 
+                    var airlineCount=Object.keys(byAl).filter(function(k){return k!=='XX';}).length;
+                    document.getElementById('bhs-bwf-total').textContent=fmtNum(total);
+                    document.getElementById('bhs-bwf-airlines').textContent=fmtNum(airlineCount);
+                    document.getElementById('bhs-bwf-flights').textContent=fmtNum(flights.size);
+
+                    // ── Summary cards ─────────────────────────────────────────
+                    var summaryEl=document.getElementById('bhs-bwf-summary');
+                    if(summaryEl){
+                        if(!total){ summaryEl.innerHTML=''; }
+                        else{
+                            var sorted=Object.values(byAl).sort(function(a,b){return b.total-a.total;});
+                            summaryEl.innerHTML=
+                                '<p class="text-uppercase fw-semibold mb-2" style="font-size:.72rem;letter-spacing:.1em;color:#94a3b8;">Resumen por aerolínea</p>'+
+                                '<div class="row g-2">'+sorted.map(function(al){
+                                    var color=BHS_AL_COLOR[al.iata]||'#6c757d';
+                                    var pct=total>0?(al.total/total*100).toFixed(1):0;
+                                    var lightBg=al.iata==='VB'?'#fffbeb':'#f8fafc';
+                                    var badgeTxt=al.iata==='VB'?'color:#92400e;':'color:#fff;';
+                                    return '<div class="col-6 col-md-4 col-xl-3">'+
+                                        '<div class="card border-0 h-100" style="background:'+lightBg+';border-left:4px solid '+color+' !important;box-shadow:0 1px 4px rgba(0,0,0,.07);">'+
+                                        '<div class="card-body p-3">'+
+                                        '<div class="d-flex align-items-center gap-2 mb-2">'+
+                                        '<span class="badge rounded-pill px-2" style="background:'+color+';'+badgeTxt+'font-size:.82rem;min-width:2.6rem;text-align:center;letter-spacing:.02em;">'+al.iata+'</span>'+
+                                        '<span class="fw-semibold text-truncate" style="font-size:.82rem;color:#374151;" title="'+al.nombre+'">'+al.nombre+'</span>'+
+                                        '</div>'+
+                                        '<div class="fw-bold" style="font-size:2rem;line-height:1;color:'+color+';">'+fmtNum(al.total)+'</div>'+
+                                        '<div class="text-muted mt-1" style="font-size:.72rem;">maletas &nbsp;·&nbsp; <strong style="color:'+color+';">'+pct+'%</strong> del total</div>'+
+                                        '<div class="progress mt-2" style="height:5px;border-radius:3px;background:'+color+'22;">'+
+                                        '<div class="progress-bar" role="progressbar" style="width:'+pct+'%;background:'+color+';border-radius:3px;transition:width .6s ease;"></div>'+
+                                        '</div>'+
+                                        '</div></div></div>';
+                                }).join('')+'</div>';
+                        }
+                    }
+
+                    // ── Detail table ──────────────────────────────────────────
                     var tbody=document.querySelector('#bhs-bwf-table tbody');
-                    if(!data.length){
+                    if(!total){
                         tbody.innerHTML='<tr><td colspan="6" class="text-muted small py-4">Sin datos</td></tr>'; return;
                     }
-                    // Prepend summary rows then detail
-                    var summaryHtml='<tr class="table-secondary fw-semibold"><td colspan="6" class="text-start ps-3" style="font-size:.78rem;letter-spacing:.05em;">RESUMEN POR AEROLÍNEA</td></tr>';
-                    Object.entries(byAl).sort(function(a,b){return b[1].total-a[1].total;}).forEach(function(e){
-                        summaryHtml+='<tr style="background:#f8fafc;"><td class="fw-bold" style="color:#1e3a5f;">'+e[0]+'</td><td class="text-start" colspan="3">'+e[1].nombre+'</td><td></td><td class="fw-bold">'+fmtNum(e[1].total)+'</td></tr>';
-                    });
-                    summaryHtml+='<tr class="table-secondary fw-semibold"><td colspan="6" class="text-start ps-3" style="font-size:.78rem;letter-spacing:.05em;">DETALLE</td></tr>';
-                    tbody.innerHTML=summaryHtml+data.map(function(r){
+                    tbody.innerHTML=data.map(function(r){
                         var info=airlineFromTag(r.tag);
-                        var nombre=info?info[1]:(r.compania||'—');
-                        return '<tr><td><code style="color:#be185d;">'+r.tag+'</code></td><td class="fw-semibold">'+r.compania+'</td><td><small>'+nombre+'</small></td><td>'+(r.vuelo||'—')+'</td><td>'+(r.origen||'—')+'</td><td>'+(r.destino||'—')+'</td></tr>';
+                        var iata=r.compania||(info?info[0]:'');
+                        var nombre=info?info[1]:(iata||'—');
+                        var color=BHS_AL_COLOR[iata]||'#6c757d';
+                        var badgeTxt=iata==='VB'?'color:#92400e;':'color:#fff;';
+                        var badge=iata?'<span class="badge rounded-pill" style="background:'+color+';'+badgeTxt+'font-size:.68rem;min-width:2.2rem;">'+iata+'</span>':'<span class="text-muted small">—</span>';
+                        return '<tr>'+
+                            '<td><code style="color:#be185d;font-size:.78rem;">'+r.tag+'</code></td>'+
+                            '<td>'+badge+'</td>'+
+                            '<td style="font-size:.82rem;color:#374151;">'+nombre+'</td>'+
+                            '<td>'+(r.vuelo||'—')+'</td>'+
+                            '<td>'+(r.origen||'—')+'</td>'+
+                            '<td>'+(r.destino||'—')+'</td>'+
+                            '</tr>';
                     }).join('');
                 }
 
