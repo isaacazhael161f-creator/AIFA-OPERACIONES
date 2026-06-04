@@ -4341,12 +4341,36 @@ FF
                     </div>
                 </div>
 
-                <!-- Panel diagnóstico de columnas (aparece al cargar archivo) -->
+                <!-- Diagnóstico de columnas -->
                 <div id="bhs-col-diag" class="d-none mb-3">
                     <div class="alert alert-info alert-dismissible py-2 mb-0" role="alert" style="font-size:.8rem;">
                         <strong><i class="fas fa-info-circle me-1"></i>Columnas detectadas:</strong>
                         <span id="bhs-col-diag-text"></span>
                         <button type="button" class="btn-close btn-sm" onclick="document.getElementById('bhs-col-diag').classList.add('d-none')"></button>
+                    </div>
+                </div>
+
+                <!-- Modal: confirmar fecha del archivo -->
+                <div class="modal fade" id="bhs-date-modal" tabindex="-1" aria-labelledby="bhs-date-modal-label" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered" style="max-width:380px;">
+                        <div class="modal-content shadow border-0">
+                            <div class="modal-header py-3" style="background:#1e3a5f;">
+                                <h6 class="modal-title text-white mb-0" id="bhs-date-modal-label">
+                                    <i class="fas fa-calendar-day me-2"></i>¿De qué fecha son los datos?
+                                </h6>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body p-4">
+                                <p class="text-muted small mb-3" id="bhs-date-modal-desc">Archivo: <span id="bhs-date-modal-fname" class="fw-semibold text-dark"></span></p>
+                                <label class="form-label fw-semibold" style="font-size:.85rem;">Fecha de los datos</label>
+                                <input type="date" id="bhs-date-modal-input" class="form-control">
+                                <p class="text-muted mt-2 mb-0" style="font-size:.75rem;">Confirma la fecha a la que corresponden los registros de este archivo Excel.</p>
+                            </div>
+                            <div class="modal-footer py-2 gap-2">
+                                <button class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                                <button class="btn btn-primary btn-sm" id="bhs-date-modal-ok"><i class="fas fa-check me-1"></i>Procesar</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -4531,17 +4555,47 @@ FF
                 };
 
                 // ── drag & drop ───────────────────────────────────────────────
+                var _bhsPendingFile=null, _bhsPendingType=null;
+
+                function bhsAskDate(file,type){
+                    _bhsPendingFile=file; _bhsPendingType=type;
+                    var inp=document.getElementById('bhs-date-modal-input');
+                    var fname=document.getElementById('bhs-date-modal-fname');
+                    if(inp) inp.value=document.getElementById('bhs-date-filter').value||today();
+                    if(fname) fname.textContent=file.name;
+                    var labels={'arrivals':'Llegadas (Arrivals)','departures':'Salidas (Departures)','bwf':'Bags Without Flight'};
+                    var lbl=document.getElementById('bhs-date-modal-label');
+                    if(lbl) lbl.innerHTML='<i class="fas fa-calendar-day me-2"></i>Fecha del archivo: '+labels[type];
+                    var modal=bootstrap.Modal.getOrCreateInstance(document.getElementById('bhs-date-modal'));
+                    modal.show();
+                }
+
+                document.addEventListener('DOMContentLoaded',function(){
+                    var okBtn=document.getElementById('bhs-date-modal-ok');
+                    if(okBtn) okBtn.addEventListener('click',function(){
+                        var inp=document.getElementById('bhs-date-modal-input');
+                        if(!inp||!inp.value){alert('Selecciona una fecha');return;}
+                        // sync main date filter
+                        var df=document.getElementById('bhs-date-filter');
+                        if(df) df.value=inp.value;
+                        var modal=bootstrap.Modal.getInstance(document.getElementById('bhs-date-modal'));
+                        if(modal) modal.hide();
+                        if(_bhsPendingFile) bhsProcess(_bhsPendingFile,_bhsPendingType);
+                        _bhsPendingFile=null; _bhsPendingType=null;
+                    });
+                });
+
                 window.bhsHandleDrop=function(e,type){
                     e.preventDefault();
                     var id={'arrivals':'bhs-arr-drop','departures':'bhs-dep-drop','bwf':'bhs-bwf-drop'}[type];
                     var card=document.getElementById(id);
                     if(card) card.classList.remove('dragover');
                     var file=e.dataTransfer.files[0];
-                    if(file) bhsProcess(file,type);
+                    if(file) bhsAskDate(file,type);
                 };
 
                 window.bhsHandleFile=function(input,type){
-                    if(input.files[0]) bhsProcess(input.files[0],type);
+                    if(input.files[0]) bhsAskDate(input.files[0],type);
                     input.value='';
                 };
 
