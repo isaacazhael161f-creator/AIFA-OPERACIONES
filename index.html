@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 
 <head>
@@ -4527,33 +4527,39 @@ FF
                         try{
                             var wb=XLSX.read(e.target.result,{type:'array',cellDates:true});
                             var ws=wb.Sheets[wb.SheetNames[0]];
-                            var rows=XLSX.utils.sheet_to_json(ws,{defval:''});
-                            if(!rows.length){ throw new Error('Sin datos'); }
-
-                            // Detect fecha from filename e.g. "ARRIVALS - 28JAN.xlsx"
+                            var raw=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+                            if(!raw.length) throw new Error('Archivo vacio');
+                            var HDR_KW=['cia','vuelo','flight','tag','hora','plat','dest','proc','term','tras','maleta','origen','destino','compan','primera','ultima','etd'];
+                            var headerIdx=0,bestScore=-1;
+                            for(var ri=0;ri<Math.min(raw.length,15);ri++){
+                                var rowArr=raw[ri];var score=0;
+                                for(var ci=0;ci<rowArr.length;ci++){var cell=norm(String(rowArr[ci]));HDR_KW.forEach(function(kw){if(cell.includes(kw))score+=3;});if(cell.length>1&&cell.length<40)score+=1;}
+                                if(score>bestScore){bestScore=score;headerIdx=ri;}
+                            }
+                            var headers=raw[headerIdx].map(function(h){return String(h).trim();});
+                            console.log('[BHS] File:',file.name,'| Header row:',headerIdx,'| Cols:',headers);
+                            var rows=[];
+                            for(var di=headerIdx+1;di<raw.length;di++){
+                                var dr=raw[di];
+                                if(dr.every(function(c){return String(c).trim()=='';})){continue;}
+                                var obj={};headers.forEach(function(h,i){obj[h]=dr[i]!==undefined?dr[i]:'';});rows.push(obj);
+                            }
+                            if(!rows.length) throw new Error('Sin filas de datos. Header fila '+headerIdx+': '+headers.join(', '));
+                            var colNames=headers.filter(function(h){return h.trim()!='';}).join(' - ');
+                            if(status) status.innerHTML='<small style="color:#0891b2">Detectadas: '+colNames+'</small>';
                             var fecha=document.getElementById('bhs-date-filter').value || today();
-
                             var records;
-                            if(type==='arrivals')    records=bhsParseArrivals(rows,fecha);
+                            if(type==='arrivals')        records=bhsParseArrivals(rows,fecha);
                             else if(type==='departures') records=bhsParseDepartures(rows,fecha);
-                            else                     records=bhsParseBWF(rows,fecha);
-
-                            // Save to Supabase
+                            else                         records=bhsParseBWF(rows,fecha);
+                            console.log('[BHS] Records:',records.length,type,records.length?records[0]:'');
+                            if(!records.length){if(card)card.classList.remove('loading');if(status)status.innerHTML='<span style="color:#dc2626">0 registros. Cols: '+colNames+'</span>';return;}
                             bhsSaveToDB(type,fecha,records,function(err){
                                 if(card) card.classList.remove('loading');
-                                if(err){
-                                    if(card) card.classList.remove('ok');
-                                    if(status) status.innerHTML='<span class="text-danger">Error al guardar</span>';
-                                    console.error(err);
-                                } else {
-                                    if(card){card.classList.add('ok');card.classList.remove('loading');}
-                                    if(status) status.innerHTML='<span class="text-success">✓ '+records.length+' registros guardados</span>';
-                                    // Render locally
-                                    if(type==='arrivals')    bhsRenderArrivals(records);
-                                    else if(type==='departures') bhsRenderDepartures(records);
-                                    else                     bhsRenderBWF(records);
-                                    document.getElementById('bhs-loaded-date').textContent='📅 '+fecha;
-                                }
+                                if(err){if(card)card.classList.remove('ok');if(status)status.innerHTML='<span style="color:#dc2626">Error: '+(err.message||JSON.stringify(err))+'</span>';console.error('[BHS] Save error:',err);}
+                                else{if(card)card.classList.add('ok');if(status)status.innerHTML='<span style="color:#16a34a">&#x2713; '+records.length+' registros guardados</span>';
+                                    if(type==='arrivals')bhsRenderArrivals(records);else if(type==='departures')bhsRenderDepartures(records);else bhsRenderBWF(records);
+                                    document.getElementById('bhs-loaded-date').textContent='&#x1F4C5; '+fecha;}
                             });
                         }catch(err2){
                             if(card) card.classList.remove('loading');
