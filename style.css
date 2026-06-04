@@ -112,6 +112,10 @@ body {
 .perm-hidden {
    display: none !important;
 }
+/* Items permanentemente ocultos del sidebar (accesibles por otras vías) */
+.nav-hidden {
+    display: none !important;
+}
 
 /* --- Mejoras visuales globales modernas --- */
 .btn {
