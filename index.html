@@ -1184,8 +1184,8 @@ FF
                                     </div>
                                 </div>
 
-                                <!-- GOET (próximamente) -->
-                                <div class="si-group si-group--ger si-group--pend">
+                                <!-- GOET -->
+                                <div class="si-group si-group--ger">
                                     <button class="si-grp-btn si-grp-btn--ger collapsed"
                                             data-bs-toggle="collapse" data-bs-target="#sg-goet" aria-expanded="false">
                                         <span class="si-bdg si-bdg--ger">GOET</span>
@@ -1193,7 +1193,11 @@ FF
                                         <i class="fas fa-chevron-down si-chev"></i>
                                     </button>
                                     <div class="collapse" id="sg-goet">
-                                        <div class="si-body si-body--ger"><span class="si-coming">Próximamente</span></div>
+                                        <div class="si-body si-body--ger">
+                                            <a class="menu-item si-link si-link--l2" href="#" data-section="bhs">
+                                                <i class="fas fa-suitcase-rolling si-ico"></i><span class="si-txt">BHS — Manejo de Maletas</span>
+                                            </a>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -4299,6 +4303,487 @@ FF
                         </div>
                     </div>
                 </div>
+
+                <!-- BHS — Baggage Handling System (GOET) -->
+                <div id="bhs-section" class="content-section">
+                <style>
+                .bhs-upload-card{border:2px dashed #cbd5e1;border-radius:12px;transition:border-color .2s,background .2s;cursor:pointer;}
+                .bhs-upload-card:hover,.bhs-upload-card.dragover{border-color:#6366f1;background:#f5f3ff;}
+                .bhs-upload-card.ok{border-color:#16a34a;background:#f0fdf4;}
+                .bhs-upload-card.loading{border-color:#f59e0b;background:#fffbeb;}
+                .bhs-stat{font-size:1.6rem;font-weight:700;line-height:1;}
+                .bhs-tab-btn.active{background:#1e3a5f;color:#fff;}
+                </style>
+
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+                    <div>
+                        <h2 class="section-heading mb-0"><i class="fas fa-suitcase-rolling me-2"></i>BHS — Manejo de Maletas</h2>
+                        <small class="text-muted">Gerencia de Operaciones · Edificio Terminal</small>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <label for="bhs-date-filter" class="small fw-semibold text-secondary mb-0">Fecha:</label>
+                        <input type="date" id="bhs-date-filter" class="form-control form-control-sm" style="width:160px;">
+                        <button class="btn btn-sm btn-outline-primary" onclick="bhsLoadDate()"><i class="fas fa-sync-alt me-1"></i>Cargar</button>
+                    </div>
+                </div>
+
+                <!-- Upload cards -->
+                <div class="row g-3 mb-4">
+                    <!-- ARRIVALS -->
+                    <div class="col-12 col-md-4">
+                        <div class="bhs-upload-card p-3 text-center h-100" id="bhs-arr-drop"
+                             onclick="document.getElementById('bhs-arr-input').click()"
+                             ondragover="event.preventDefault();this.classList.add('dragover')"
+                             ondragleave="this.classList.remove('dragover')"
+                             ondrop="bhsHandleDrop(event,'arrivals')">
+                            <div class="rounded-circle mx-auto mb-2 d-flex align-items-center justify-content-center" style="width:48px;height:48px;background:#eff6ff;">
+                                <i class="fas fa-plane-arrival" style="color:#2196f3;font-size:1.2rem;"></i>
+                            </div>
+                            <div class="fw-semibold mb-1" style="color:#1e3a5f;">Llegadas (Arrivals)</div>
+                            <small class="text-muted d-block mb-2">Arrastra o haz click para cargar .xlsx</small>
+                            <div id="bhs-arr-status" class="small text-muted"></div>
+                            <input type="file" id="bhs-arr-input" accept=".xlsx,.xls" class="d-none" onchange="bhsHandleFile(this,'arrivals')">
+                        </div>
+                    </div>
+                    <!-- DEPARTURES -->
+                    <div class="col-12 col-md-4">
+                        <div class="bhs-upload-card p-3 text-center h-100" id="bhs-dep-drop"
+                             onclick="document.getElementById('bhs-dep-input').click()"
+                             ondragover="event.preventDefault();this.classList.add('dragover')"
+                             ondragleave="this.classList.remove('dragover')"
+                             ondrop="bhsHandleDrop(event,'departures')">
+                            <div class="rounded-circle mx-auto mb-2 d-flex align-items-center justify-content-center" style="width:48px;height:48px;background:#fff7ed;">
+                                <i class="fas fa-plane-departure" style="color:#ea580c;font-size:1.2rem;"></i>
+                            </div>
+                            <div class="fw-semibold mb-1" style="color:#1e3a5f;">Salidas (Departures)</div>
+                            <small class="text-muted d-block mb-2">Arrastra o haz click para cargar .xlsx</small>
+                            <div id="bhs-dep-status" class="small text-muted"></div>
+                            <input type="file" id="bhs-dep-input" accept=".xlsx,.xls" class="d-none" onchange="bhsHandleFile(this,'departures')">
+                        </div>
+                    </div>
+                    <!-- BAGS WITHOUT FLIGHT -->
+                    <div class="col-12 col-md-4">
+                        <div class="bhs-upload-card p-3 text-center h-100" id="bhs-bwf-drop"
+                             onclick="document.getElementById('bhs-bwf-input').click()"
+                             ondragover="event.preventDefault();this.classList.add('dragover')"
+                             ondragleave="this.classList.remove('dragover')"
+                             ondrop="bhsHandleDrop(event,'bwf')">
+                            <div class="rounded-circle mx-auto mb-2 d-flex align-items-center justify-content-center" style="width:48px;height:48px;background:#f0fdf4;">
+                                <i class="fas fa-tag" style="color:#16a34a;font-size:1.2rem;"></i>
+                            </div>
+                            <div class="fw-semibold mb-1" style="color:#1e3a5f;">Bags Without Flight</div>
+                            <small class="text-muted d-block mb-2">Arrastra o haz click para cargar .xlsx</small>
+                            <div id="bhs-bwf-status" class="small text-muted"></div>
+                            <input type="file" id="bhs-bwf-input" accept=".xlsx,.xls" class="d-none" onchange="bhsHandleFile(this,'bwf')">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tabs de resultados -->
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-white border-bottom d-flex flex-wrap gap-2 py-2" style="border-color:#e2e8f0;">
+                        <button class="btn btn-sm bhs-tab-btn active" onclick="bhsShowTab('arr',this)"><i class="fas fa-plane-arrival me-1"></i>Llegadas</button>
+                        <button class="btn btn-sm bhs-tab-btn btn-outline-secondary" onclick="bhsShowTab('dep',this)"><i class="fas fa-plane-departure me-1"></i>Salidas</button>
+                        <button class="btn btn-sm bhs-tab-btn btn-outline-secondary" onclick="bhsShowTab('bwf',this)"><i class="fas fa-tag me-1"></i>Sin Vuelo</button>
+                        <span id="bhs-loaded-date" class="badge bg-light text-secondary ms-auto align-self-center" style="font-size:.75rem;"></span>
+                    </div>
+
+                    <!-- TAB ARRIVALS -->
+                    <div id="bhs-tab-arr" class="p-3">
+                        <!-- KPIs -->
+                        <div class="row g-3 mb-3" id="bhs-arr-kpis">
+                            <div class="col-6 col-md-3"><div class="card border-0 bg-light text-center p-3"><div class="bhs-stat text-primary" id="bhs-arr-total">—</div><small class="text-muted">Total maletas</small></div></div>
+                            <div class="col-6 col-md-3"><div class="card border-0 bg-light text-center p-3"><div class="bhs-stat text-success" id="bhs-arr-term">—</div><small class="text-muted">Terminación</small></div></div>
+                            <div class="col-6 col-md-3"><div class="card border-0 bg-light text-center p-3"><div class="bhs-stat text-warning" id="bhs-arr-tras">—</div><small class="text-muted">Tránsito</small></div></div>
+                            <div class="col-6 col-md-3"><div class="card border-0 bg-light text-center p-3"><div class="bhs-stat text-secondary" id="bhs-arr-vuelos">—</div><small class="text-muted">Vuelos</small></div></div>
+                        </div>
+                        <!-- Tabla por aerolínea -->
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover align-middle text-center mb-0" id="bhs-arr-table">
+                                <thead class="table-light"><tr>
+                                    <th>Aerolínea</th><th>Vuelos</th><th>Total Maletas</th><th>Terminación</th><th>Tránsito</th><th>Posiciones</th>
+                                </tr></thead>
+                                <tbody><tr><td colspan="6" class="text-muted small py-4">Carga un archivo de Arrivals para ver los datos</td></tr></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- TAB DEPARTURES -->
+                    <div id="bhs-tab-dep" class="p-3 d-none">
+                        <div class="row g-3 mb-3">
+                            <div class="col-6 col-md-3"><div class="card border-0 bg-light text-center p-3"><div class="bhs-stat text-primary" id="bhs-dep-vuelos">—</div><small class="text-muted">Vuelos</small></div></div>
+                            <div class="col-6 col-md-3"><div class="card border-0 bg-light text-center p-3"><div class="bhs-stat text-success" id="bhs-dep-avg-primera">—</div><small class="text-muted">Avg. anticip. 1ª maleta (min)</small></div></div>
+                            <div class="col-6 col-md-3"><div class="card border-0 bg-light text-center p-3"><div class="bhs-stat text-warning" id="bhs-dep-avg-ultima">—</div><small class="text-muted">Avg. anticip. última (min)</small></div></div>
+                            <div class="col-6 col-md-3"><div class="card border-0 bg-light text-center p-3"><div class="bhs-stat text-danger" id="bhs-dep-tarde">—</div><small class="text-muted">Vuelos con última tardía</small></div></div>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover align-middle text-center mb-0" id="bhs-dep-table">
+                                <thead class="table-light"><tr>
+                                    <th>Vuelo</th><th>Aerolínea</th><th>Hora Prog.</th><th>Destino</th><th>Plat.</th><th>1ª Maleta</th><th>Última Maleta</th><th>ETD</th><th>Anticip. 1ª (min)</th><th>Anticip. Últ. (min)</th>
+                                </tr></thead>
+                                <tbody><tr><td colspan="10" class="text-muted small py-4">Carga un archivo de Departures para ver los datos</td></tr></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- TAB BWF -->
+                    <div id="bhs-tab-bwf" class="p-3 d-none">
+                        <div class="row g-3 mb-3">
+                            <div class="col-6 col-md-4"><div class="card border-0 bg-light text-center p-3"><div class="bhs-stat text-primary" id="bhs-bwf-total">—</div><small class="text-muted">Maletas procesadas manual</small></div></div>
+                            <div class="col-6 col-md-4"><div class="card border-0 bg-light text-center p-3"><div class="bhs-stat text-secondary" id="bhs-bwf-airlines">—</div><small class="text-muted">Aerolíneas distintas</small></div></div>
+                            <div class="col-6 col-md-4"><div class="card border-0 bg-light text-center p-3"><div class="bhs-stat text-warning" id="bhs-bwf-flights">—</div><small class="text-muted">Vuelos distintos</small></div></div>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover align-middle text-center mb-0" id="bhs-bwf-table">
+                                <thead class="table-light"><tr>
+                                    <th>Tag</th><th>Aerolínea</th><th>Vuelo</th><th>Origen</th><th>Destino</th>
+                                </tr></thead>
+                                <tbody><tr><td colspan="5" class="text-muted small py-4">Carga un archivo de Bags Without Flight para ver los datos</td></tr></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div><!-- /card -->
+
+                <script>
+                (function(){
+                'use strict';
+
+                // ── helpers ──────────────────────────────────────────────────
+                function timeToMinutes(t){
+                    if(!t) return null;
+                    var parts=String(t).split(':');
+                    if(parts.length<2) return null;
+                    return parseInt(parts[0],10)*60+parseInt(parts[1],10);
+                }
+                function fmtNum(n){ return n==null?'—':new Intl.NumberFormat('es-MX').format(n); }
+                function today(){ return new Date().toISOString().slice(0,10); }
+
+                // ── tab switching ─────────────────────────────────────────────
+                window.bhsShowTab=function(tab,btn){
+                    ['arr','dep','bwf'].forEach(function(t){
+                        var el=document.getElementById('bhs-tab-'+t);
+                        if(el) el.classList.toggle('d-none', t!==tab);
+                    });
+                    document.querySelectorAll('.bhs-tab-btn').forEach(function(b){
+                        b.classList.remove('active');
+                        b.classList.add('btn-outline-secondary');
+                        b.classList.remove('btn-secondary');
+                    });
+                    if(btn){btn.classList.add('active');btn.classList.remove('btn-outline-secondary');}
+                };
+
+                // ── drag & drop ───────────────────────────────────────────────
+                window.bhsHandleDrop=function(e,type){
+                    e.preventDefault();
+                    var id={'arrivals':'bhs-arr-drop','departures':'bhs-dep-drop','bwf':'bhs-bwf-drop'}[type];
+                    var card=document.getElementById(id);
+                    if(card) card.classList.remove('dragover');
+                    var file=e.dataTransfer.files[0];
+                    if(file) bhsProcess(file,type);
+                };
+
+                window.bhsHandleFile=function(input,type){
+                    if(input.files[0]) bhsProcess(input.files[0],type);
+                    input.value='';
+                };
+
+                // ── date loader (from Supabase) ───────────────────────────────
+                window.bhsLoadDate=function(){
+                    var d=document.getElementById('bhs-date-filter').value;
+                    if(!d){ alert('Selecciona una fecha'); return; }
+                    bhsLoadFromDB(d);
+                };
+
+                function bhsLoadFromDB(fecha){
+                    var client=window.supabaseClient;
+                    if(!client) return;
+                    document.getElementById('bhs-loaded-date').textContent='Cargando '+fecha+'…';
+
+                    Promise.all([
+                        client.from('bhs_arrivals').select('*').eq('fecha',fecha),
+                        client.from('bhs_departures').select('*').eq('fecha',fecha),
+                        client.from('bhs_bags_without_flight').select('*').eq('fecha',fecha)
+                    ]).then(function(results){
+                        if(!results[0].error) bhsRenderArrivals(results[0].data||[]);
+                        if(!results[1].error) bhsRenderDepartures(results[1].data||[]);
+                        if(!results[2].error) bhsRenderBWF(results[2].data||[]);
+                        document.getElementById('bhs-loaded-date').textContent='📅 '+fecha;
+                    }).catch(function(err){
+                        console.error('BHS load error',err);
+                    });
+                }
+
+                // ── PROCESS Excel ─────────────────────────────────────────────
+                function bhsProcess(file,type){
+                    var cardId={'arrivals':'bhs-arr-drop','departures':'bhs-dep-drop','bwf':'bhs-bwf-drop'}[type];
+                    var statusId={'arrivals':'bhs-arr-status','departures':'bhs-dep-status','bwf':'bhs-bwf-status'}[type];
+                    var card=document.getElementById(cardId);
+                    var status=document.getElementById(statusId);
+                    if(card) card.classList.add('loading');
+                    if(status) status.textContent='Procesando…';
+
+                    var reader=new FileReader();
+                    reader.onload=function(e){
+                        try{
+                            var wb=XLSX.read(e.target.result,{type:'array',cellDates:true});
+                            var ws=wb.Sheets[wb.SheetNames[0]];
+                            var rows=XLSX.utils.sheet_to_json(ws,{defval:''});
+                            if(!rows.length){ throw new Error('Sin datos'); }
+
+                            // Detect fecha from filename e.g. "ARRIVALS - 28JAN.xlsx"
+                            var fecha=document.getElementById('bhs-date-filter').value || today();
+
+                            var records;
+                            if(type==='arrivals')    records=bhsParseArrivals(rows,fecha);
+                            else if(type==='departures') records=bhsParseDepartures(rows,fecha);
+                            else                     records=bhsParseBWF(rows,fecha);
+
+                            // Save to Supabase
+                            bhsSaveToDB(type,fecha,records,function(err){
+                                if(card) card.classList.remove('loading');
+                                if(err){
+                                    if(card) card.classList.remove('ok');
+                                    if(status) status.innerHTML='<span class="text-danger">Error al guardar</span>';
+                                    console.error(err);
+                                } else {
+                                    if(card){card.classList.add('ok');card.classList.remove('loading');}
+                                    if(status) status.innerHTML='<span class="text-success">✓ '+records.length+' registros guardados</span>';
+                                    // Render locally
+                                    if(type==='arrivals')    bhsRenderArrivals(records);
+                                    else if(type==='departures') bhsRenderDepartures(records);
+                                    else                     bhsRenderBWF(records);
+                                    document.getElementById('bhs-loaded-date').textContent='📅 '+fecha;
+                                }
+                            });
+                        }catch(err2){
+                            if(card) card.classList.remove('loading');
+                            if(status) status.innerHTML='<span class="text-danger">'+err2.message+'</span>';
+                            console.error(err2);
+                        }
+                    };
+                    reader.readAsArrayBuffer(file);
+                }
+
+                // ── PARSE functions ───────────────────────────────────────────
+                // Normalize column keys (trim, lower, remove accents)
+                function norm(s){ return String(s).trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); }
+                function findCol(row,candidates){
+                    var keys=Object.keys(row);
+                    for(var i=0;i<candidates.length;i++){
+                        var c=candidates[i];
+                        for(var k=0;k<keys.length;k++){
+                            if(norm(keys[k])===norm(c)||norm(keys[k]).includes(norm(c))) return keys[k];
+                        }
+                    }
+                    return null;
+                }
+                function cellTime(v){
+                    if(!v) return null;
+                    if(v instanceof Date) return v.toTimeString().slice(0,5);
+                    var s=String(v).trim();
+                    if(/^\d{1,2}:\d{2}/.test(s)) return s.slice(0,5);
+                    return null;
+                }
+
+                function bhsParseArrivals(rows,fecha){
+                    var user=sessionStorage.getItem('user_fullname')||sessionStorage.getItem('currentUser')||'';
+                    return rows.map(function(r){
+                        var cComp=findCol(r,['compania','company','aerolinea','airline','cia']);
+                        var cProc=findCol(r,['procedencia','origen','origin','proc']);
+                        var cPlat=findCol(r,['plat','posicion','stand','gate']);
+                        var cVuelo=findCol(r,['vuelo','flight','flt','nro']);
+                        var cTotal=findCol(r,['total','total_maletas','bags','maletas']);
+                        var cTerm=findCol(r,['terminacion','term','local','dest']);
+                        var cTras=findCol(r,['tras','transito','transit','transfer']);
+                        return {
+                            fecha:fecha, uploaded_by:user,
+                            vuelo:      cVuelo?String(r[cVuelo]).trim():'',
+                            compania:   cComp ?String(r[cComp]).trim().toUpperCase():'',
+                            procedencia:cProc ?String(r[cProc]).trim().toUpperCase():'',
+                            plat:       cPlat ?String(r[cPlat]).trim():'',
+                            total_maletas: parseInt(r[cTotal])||0,
+                            terminacion:   parseInt(r[cTerm])||0,
+                            tras:          parseInt(r[cTras])||0
+                        };
+                    }).filter(function(r){ return r.compania; });
+                }
+
+                function bhsParseDepartures(rows,fecha){
+                    var user=sessionStorage.getItem('user_fullname')||sessionStorage.getItem('currentUser')||'';
+                    return rows.map(function(r){
+                        var cComp   =findCol(r,['compania','company','aerolinea','airline','cia']);
+                        var cVuelo  =findCol(r,['vuelo','flight','flt','nro']);
+                        var cHora   =findCol(r,['hora','hora_prog','scheduled','std','sched']);
+                        var cDest   =findCol(r,['destino','dest','destination']);
+                        var cPlat   =findCol(r,['plat','posicion','stand','gate']);
+                        var cPrimera=findCol(r,['1a','primera','first','1ª','1a maleta','primera maleta']);
+                        var cUltima =findCol(r,['ultima','last','ult','última','ultima maleta']);
+                        var cEtd    =findCol(r,['etd','estimated','est']);
+
+                        var horaProg =cellTime(cHora?r[cHora]:null);
+                        var primera  =cellTime(cPrimera?r[cPrimera]:null);
+                        var ultima   =cellTime(cUltima?r[cUltima]:null);
+                        var etd      =cellTime(cEtd?r[cEtd]:null);
+
+                        // minutes of anticipation
+                        var minPrimera=null, minUltima=null;
+                        if(horaProg && primera){
+                            minPrimera=timeToMinutes(horaProg)-timeToMinutes(primera);
+                        }
+                        if(etd && ultima){
+                            minUltima=timeToMinutes(etd)-timeToMinutes(ultima);
+                        } else if(horaProg && ultima){
+                            minUltima=timeToMinutes(horaProg)-timeToMinutes(ultima);
+                        }
+
+                        return {
+                            fecha:fecha, uploaded_by:user,
+                            vuelo:    cVuelo?String(r[cVuelo]).trim():'',
+                            compania: cComp ?String(r[cComp]).trim().toUpperCase():'',
+                            hora_programada: horaProg,
+                            destino:  cDest ?String(r[cDest]).trim().toUpperCase():'',
+                            plat:     cPlat ?String(r[cPlat]).trim():'',
+                            primera_maleta: primera,
+                            ultima_maleta:  ultima,
+                            etd:            etd,
+                            min_anticip_primera: minPrimera,
+                            min_anticip_ultima:  minUltima
+                        };
+                    }).filter(function(r){ return r.compania; });
+                }
+
+                function bhsParseBWF(rows,fecha){
+                    var user=sessionStorage.getItem('user_fullname')||sessionStorage.getItem('currentUser')||'';
+                    return rows.map(function(r){
+                        var cTag    =findCol(r,['tag','etiqueta','label','bag tag']);
+                        var cComp   =findCol(r,['compania','company','aerolinea','airline','cia']);
+                        var cVuelo  =findCol(r,['vuelo','flight','flt','nro']);
+                        var cOrigen =findCol(r,['origen','origin','proc','from']);
+                        var cDest   =findCol(r,['destino','dest','destination','to']);
+                        return {
+                            fecha:fecha, uploaded_by:user,
+                            tag:      cTag  ?String(r[cTag]).trim():'',
+                            compania: cComp ?String(r[cComp]).trim().toUpperCase():'',
+                            vuelo:    cVuelo?String(r[cVuelo]).trim():'',
+                            origen:   cOrigen?String(r[cOrigen]).trim().toUpperCase():'',
+                            destino:  cDest ?String(r[cDest]).trim().toUpperCase():''
+                        };
+                    }).filter(function(r){ return r.tag||r.compania; });
+                }
+
+                // ── SAVE to Supabase ──────────────────────────────────────────
+                function bhsSaveToDB(type,fecha,records,cb){
+                    var client=window.supabaseClient;
+                    if(!client) return cb(new Error('No Supabase client'));
+                    var table={'arrivals':'bhs_arrivals','departures':'bhs_departures','bwf':'bhs_bags_without_flight'}[type];
+                    // Delete existing records for this date first, then insert
+                    client.from(table).delete().eq('fecha',fecha).then(function(){
+                        if(!records.length) return cb(null);
+                        // Supabase insert in batches of 500
+                        var batches=[];
+                        for(var i=0;i<records.length;i+=500) batches.push(records.slice(i,i+500));
+                        var chain=Promise.resolve();
+                        batches.forEach(function(batch){
+                            chain=chain.then(function(){
+                                return client.from(table).insert(batch);
+                            });
+                        });
+                        chain.then(function(){ cb(null); }).catch(cb);
+                    }).catch(cb);
+                }
+
+                // ── RENDER functions ──────────────────────────────────────────
+                function bhsRenderArrivals(data){
+                    // KPIs
+                    var total=data.reduce(function(a,r){return a+(r.total_maletas||0);},0);
+                    var term =data.reduce(function(a,r){return a+(r.terminacion||0);},0);
+                    var tras =data.reduce(function(a,r){return a+(r.tras||0);},0);
+                    document.getElementById('bhs-arr-total').textContent=fmtNum(total);
+                    document.getElementById('bhs-arr-term').textContent=fmtNum(term);
+                    document.getElementById('bhs-arr-tras').textContent=fmtNum(tras);
+                    document.getElementById('bhs-arr-vuelos').textContent=fmtNum(data.length);
+
+                    // Group by airline
+                    var byAl={};
+                    data.forEach(function(r){
+                        var k=r.compania||'—';
+                        if(!byAl[k]) byAl[k]={vuelos:0,total:0,term:0,tras:0,plats:new Set()};
+                        byAl[k].vuelos++;
+                        byAl[k].total+=r.total_maletas||0;
+                        byAl[k].term +=r.terminacion||0;
+                        byAl[k].tras +=r.tras||0;
+                        if(r.plat) byAl[k].plats.add(r.plat);
+                    });
+                    var tbody=document.querySelector('#bhs-arr-table tbody');
+                    if(!Object.keys(byAl).length){
+                        tbody.innerHTML='<tr><td colspan="6" class="text-muted small py-4">Sin datos para esta fecha</td></tr>'; return;
+                    }
+                    tbody.innerHTML=Object.entries(byAl).sort(function(a,b){return b[1].total-a[1].total;}).map(function(e){
+                        var k=e[0],v=e[1];
+                        return '<tr><td class="fw-semibold">'+k+'</td><td>'+v.vuelos+'</td><td>'+fmtNum(v.total)+'</td><td>'+fmtNum(v.term)+'</td><td>'+fmtNum(v.tras)+'</td><td><small>'+Array.from(v.plats).sort().join(', ')+'</small></td></tr>';
+                    }).join('');
+                }
+
+                function bhsRenderDepartures(data){
+                    var vuelos=data.length;
+                    var avgP=data.filter(function(r){return r.min_anticip_primera!=null;});
+                    var avgU=data.filter(function(r){return r.min_anticip_ultima!=null;});
+                    var avgPrimera=avgP.length?Math.round(avgP.reduce(function(a,r){return a+r.min_anticip_primera;},0)/avgP.length):null;
+                    var avgUltima =avgU.length?Math.round(avgU.reduce(function(a,r){return a+r.min_anticip_ultima;},0)/avgU.length):null;
+                    var tarde=data.filter(function(r){return r.min_anticip_ultima!=null&&r.min_anticip_ultima<0;}).length;
+
+                    document.getElementById('bhs-dep-vuelos').textContent=fmtNum(vuelos);
+                    document.getElementById('bhs-dep-avg-primera').textContent=avgPrimera!=null?avgPrimera:' —';
+                    document.getElementById('bhs-dep-avg-ultima').textContent=avgUltima!=null?avgUltima:' —';
+                    document.getElementById('bhs-dep-tarde').textContent=fmtNum(tarde);
+
+                    var tbody=document.querySelector('#bhs-dep-table tbody');
+                    if(!data.length){
+                        tbody.innerHTML='<tr><td colspan="10" class="text-muted small py-4">Sin datos</td></tr>'; return;
+                    }
+                    tbody.innerHTML=data.map(function(r){
+                        var pColor=r.min_anticip_primera<0?'text-danger':(r.min_anticip_primera>60?'text-success':'');
+                        var uColor=r.min_anticip_ultima<0?'text-danger':'';
+                        return '<tr>'
+                            +'<td class="fw-semibold">'+(r.vuelo||'—')+'</td>'
+                            +'<td>'+(r.compania||'—')+'</td>'
+                            +'<td>'+(r.hora_programada||'—')+'</td>'
+                            +'<td>'+(r.destino||'—')+'</td>'
+                            +'<td>'+(r.plat||'—')+'</td>'
+                            +'<td>'+(r.primera_maleta||'—')+'</td>'
+                            +'<td>'+(r.ultima_maleta||'—')+'</td>'
+                            +'<td>'+(r.etd||'—')+'</td>'
+                            +'<td class="'+pColor+' fw-semibold">'+(r.min_anticip_primera!=null?r.min_anticip_primera:' —')+'</td>'
+                            +'<td class="'+uColor+' fw-semibold">'+(r.min_anticip_ultima!=null?r.min_anticip_ultima:' —')+'</td>'
+                            +'</tr>';
+                    }).join('');
+                }
+
+                function bhsRenderBWF(data){
+                    var airlines=new Set(data.map(function(r){return r.compania;}));
+                    var flights =new Set(data.map(function(r){return r.vuelo;}).filter(Boolean));
+                    document.getElementById('bhs-bwf-total').textContent=fmtNum(data.length);
+                    document.getElementById('bhs-bwf-airlines').textContent=fmtNum(airlines.size);
+                    document.getElementById('bhs-bwf-flights').textContent=fmtNum(flights.size);
+
+                    var tbody=document.querySelector('#bhs-bwf-table tbody');
+                    if(!data.length){
+                        tbody.innerHTML='<tr><td colspan="5" class="text-muted small py-4">Sin datos</td></tr>'; return;
+                    }
+                    tbody.innerHTML=data.map(function(r){
+                        return '<tr><td><code>'+(r.tag||'—')+'</code></td><td>'+(r.compania||'—')+'</td><td>'+(r.vuelo||'—')+'</td><td>'+(r.origen||'—')+'</td><td>'+(r.destino||'—')+'</td></tr>';
+                    }).join('');
+                }
+
+                // ── Auto-init with today's date ───────────────────────────────
+                document.addEventListener('DOMContentLoaded',function(){
+                    var df=document.getElementById('bhs-date-filter');
+                    if(df) df.value=today();
+                });
+
+                })();
+                </script>
+                </div><!-- /bhs-section -->
 
                 <!-- FIDS Section -->
                 <div id="fids-section" class="content-section"></div>
