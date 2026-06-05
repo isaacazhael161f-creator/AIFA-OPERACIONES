@@ -4946,8 +4946,8 @@ FF
 
                 // Airline brand colors
                 var BHS_AL_COLOR={
-                    'AM':'#00529B','Y4':'#7B2D8B','VB':'#FFB800',
-                    'XN':'#CC0000','DM':'#0070CD','ZV':'#006341'
+                    'AM':'#0b2161','Y4':'#a300e6','VB':'#00a850',
+                    'XN':'#008375','DM':'#632683','ZV':'#bed62f'
                 };
                 var BHS_AL_LOGO={
                     'AM':'images/airlines/logo_aeromexico.png',
@@ -4991,8 +4991,8 @@ FF
                                     var color=BHS_AL_COLOR[al.iata]||'#6c757d';
                                     var pct=total>0?(al.total/total*100).toFixed(1):0;
                                     var logoSrc=BHS_AL_LOGO[al.iata]||'';
-                                    var isDark=al.iata==='VB';
-                                    var bgCard=isDark?'#fffdf0':'#fff';
+                                    var isDark=false; // all airline colors are dark enough for white text
+                                    var bgCard='#fff';
                                     var logoHtml=logoSrc
                                         ?'<img src="'+logoSrc+'" alt="'+al.nombre+'" style="height:42px;max-width:120px;object-fit:contain;" onload="this.style.display=\'block\'" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'block\'" /><span style="display:none;font-size:1.1rem;font-weight:900;color:'+color+';">'+al.nombre+'</span>'
                                         :'<span style="font-size:1.1rem;font-weight:900;color:'+color+';">'+al.nombre+'</span>';
@@ -5014,6 +5014,7 @@ FF
                     }
 
                     // ── Charts ──────────────────────────────────────────
+                    var tbody=document.querySelector('#bhs-bwf-table tbody');
                     var chartsWrap=document.getElementById('bhs-bwf-charts');
                     if(chartsWrap && total){
                         chartsWrap.style.display='';
@@ -5071,7 +5072,10 @@ FF
                                         datalabels:{
                                             anchor:'end',align:'end',
                                             color:'#374151',font:{weight:'700',size:11},
-                                            formatter:function(v){ return fmtNum(v); }
+                                            formatter:function(v,ctx){
+                                                var pct=(v/total*100).toFixed(1);
+                                                return fmtNum(v)+' ('+pct+'%)';
+                                            }
                                         }
                                     },
                                     scales:{
