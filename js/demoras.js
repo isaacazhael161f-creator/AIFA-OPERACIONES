@@ -7,7 +7,8 @@
   const demorasState = {
     initialized: false,
     periods: [],
-    activeKey: null
+    activeKey: null,
+    navYear: null
   };
   const DEMORAS_DATA_PATH = 'data/demoras.json';
   let demorasDataCache = null;
@@ -511,9 +512,8 @@
       return;
     }
 
-    // Separar periodos anuales y mensuales, agrupar por año
     const annualByYear = {};
-    const monthsByYear  = {};
+    const monthsByYear = {};
     demorasState.periods.forEach((period) => {
       const yr = String(period.year || 'Sin año');
       if (period.scope === 'annual') {
@@ -524,70 +524,112 @@
       }
     });
 
-    // Años distintos ordenados de mayor a menor
     const allYears = [...new Set([
       ...Object.keys(annualByYear),
       ...Object.keys(monthsByYear)
     ])].sort((a, b) => Number(b) - Number(a));
 
-    // Construir grupos
+    if (!allYears.length) {
+      container.classList.add('d-none');
+      return;
+    }
+
+    const activePeriod = demorasState.periods.find((period) => period.key === demorasState.activeKey) || null;
+    const activeYear = String(activePeriod?.year || '');
+    if (!demorasState.navYear || !allYears.includes(String(demorasState.navYear))) {
+      demorasState.navYear = allYears.includes(activeYear) ? activeYear : allYears[0];
+    }
+
+    const navYear = String(demorasState.navYear);
+    const yearMonths = (monthsByYear[navYear] || []).slice().sort((a, b) => (Number(a.sortOrder) || 0) - (Number(b.sortOrder) || 0));
+    const yearAnnual = annualByYear[navYear] || null;
+
+    const periodsForYear = [];
+    if (yearAnnual) periodsForYear.push(yearAnnual);
+    periodsForYear.push(...yearMonths);
+
+    const firstEnabledPeriod = periodsForYear.find((p) => !shouldDisablePeriod(p)) || periodsForYear[0] || null;
+    const activeInYear = periodsForYear.some((p) => p.key === demorasState.activeKey);
+    const selectedPeriodKey = activeInYear
+      ? demorasState.activeKey
+      : (firstEnabledPeriod?.key || periodsForYear[0]?.key || '');
+
+    const shell = document.createElement('div');
+    shell.className = 'dem-combo-shell';
+
+    const comboRow = document.createElement('div');
+    comboRow.className = 'dem-combo-row';
+
+    const yearField = document.createElement('label');
+    yearField.className = 'dem-combo-field';
+    yearField.innerHTML = '<span class="dem-combo-caption"><i class="fas fa-calendar-alt me-1" aria-hidden="true"></i>Año</span>';
+    const yearSelect = document.createElement('select');
+    yearSelect.className = 'dem-combo-select';
+    yearSelect.dataset.role = 'dem-year-select';
     allYears.forEach((yr) => {
-      const months  = monthsByYear[yr]  || [];
-      const annual  = annualByYear[yr]  || null;
-      if (!months.length && !annual) return;
+      const opt = document.createElement('option');
+      opt.value = String(yr);
+      opt.textContent = String(yr);
+      if (String(yr) === navYear) opt.selected = true;
+      yearSelect.appendChild(opt);
+    });
+    yearField.appendChild(yearSelect);
 
-      const group = document.createElement('div');
-      group.className = 'dem-yr-group';
+    const periodField = document.createElement('label');
+    periodField.className = 'dem-combo-field dem-combo-field-period';
+    periodField.innerHTML = '<span class="dem-combo-caption"><i class="fas fa-clock me-1" aria-hidden="true"></i>Periodo</span>';
+    const periodSelect = document.createElement('select');
+    periodSelect.className = 'dem-combo-select';
+    periodSelect.dataset.role = 'dem-period-select';
 
-      const labelEl = document.createElement('span');
-      labelEl.className = 'dem-yr-label';
-      labelEl.textContent = yr;
-      group.appendChild(labelEl);
-
-      const btnsRow = document.createElement('div');
-      btnsRow.className = 'dem-yr-btns';
-
-      const makeBtn = (period) => {
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'demoras-period-btn';
-        if (period.scope === 'annual')  btn.classList.add('dem-btn-annual');
-        if (period.scope === 'current') btn.classList.add('demoras-period-btn-current');
-        if (period.key === demorasState.activeKey) btn.classList.add('active');
-        btn.dataset.periodKey = period.key;
-        const disabled = shouldDisablePeriod(period);
-        if (disabled) {
-          btn.classList.add('is-disabled');
-          btn.disabled = true;
-          btn.setAttribute('aria-disabled', 'true');
-        }
-        btn.setAttribute('aria-pressed', period.key === demorasState.activeKey ? 'true' : 'false');
-        let title = period.periodo || period.label || 'Periodo de demoras';
-        if (disabled) title += ' · Disponible al cierre del mes.';
-        btn.title = title;
-
-        if (period.scope === 'annual') {
-          btn.innerHTML = `<i class="fas fa-calendar-alt me-1" aria-hidden="true"></i>${yr}`;
-        } else {
-          btn.textContent = period.shortLabel || period.label || 'Periodo';
-        }
-        return btn;
-      };
-
-      // Botón de año completo primero
-      if (annual) btnsRow.appendChild(makeBtn(annual));
-      // Meses del año (orden: más reciente primero)
-      months.forEach((p) => btnsRow.appendChild(makeBtn(p)));
-
-      group.appendChild(btnsRow);
-      container.appendChild(group);
+    periodsForYear.forEach((period) => {
+      const opt = document.createElement('option');
+      const isAnnual = period.scope === 'annual';
+      const disabled = shouldDisablePeriod(period);
+      opt.value = period.key;
+      opt.disabled = disabled;
+      opt.textContent = isAnnual
+        ? `Año ${navYear}`
+        : (period.periodo || period.label || period.shortLabel || 'Periodo');
+      opt.title = period.periodo || period.label || 'Periodo de demoras';
+      if (period.key === selectedPeriodKey) opt.selected = true;
+      periodSelect.appendChild(opt);
     });
 
+    periodField.appendChild(periodSelect);
+    comboRow.appendChild(yearField);
+    comboRow.appendChild(periodField);
+    shell.appendChild(comboRow);
+    container.appendChild(shell);
+
     if (!container._wired) {
-      container.addEventListener('click', (event) => {
-        const btn = event.target.closest('.demoras-period-btn');
-        if (!btn || btn.disabled || btn.classList.contains('is-disabled')) return;
-        const key = btn.dataset.periodKey;
+      container.addEventListener('change', (event) => {
+        const target = event.target;
+        if (!(target instanceof HTMLSelectElement)) return;
+
+        if (target.dataset.role === 'dem-year-select') {
+          const yr = String(target.value || '').trim();
+          if (!yr || yr === String(demorasState.navYear || '')) return;
+          demorasState.navYear = yr;
+
+          const annual = annualByYear[yr] || null;
+          const months = (monthsByYear[yr] || []).slice().sort((a, b) => (Number(a.sortOrder) || 0) - (Number(b.sortOrder) || 0));
+          const list = [];
+          if (annual) list.push(annual);
+          list.push(...months);
+          const firstEnabled = list.find((p) => !shouldDisablePeriod(p)) || list[0] || null;
+          if (firstEnabled && firstEnabled.key !== demorasState.activeKey) {
+            demorasState.activeKey = firstEnabled.key;
+            renderDemorasPeriodControls();
+            window.renderDemoras(firstEnabled);
+            return;
+          }
+          renderDemorasPeriodControls();
+          return;
+        }
+
+        if (target.dataset.role !== 'dem-period-select') return;
+        const key = String(target.value || '').trim();
         if (key) selectDemorasPeriod(key);
       });
       container._wired = true;
@@ -599,7 +641,9 @@
     if (!key || demorasState.activeKey === key) return;
     const target = demorasState.periods.find((period) => period.key === key);
     if (!target) return;
+    if (target.year) demorasState.navYear = String(target.year);
     demorasState.activeKey = key;
+    renderDemorasPeriodControls();
     window.renderDemoras(target);
   }
 
@@ -612,9 +656,103 @@
     'meteorología': 'fa-cloud-rain',
     'aeropuerto': 'fa-tower-broadcast'
   };
+  const DEMORAS_COLOR_MAP = {
+    'repercusión': '#2563eb',
+    'compañía': '#7c3aed',
+    'meteorología': '#06b6d4',
+    'evento circunstancial': '#f97316',
+    'autoridad': '#ef4444',
+    'aeropuerto': '#f59e0b',
+    'combustible': '#10b981'
+  };
+  const DEMORAS_FALLBACK_COLORS = ['#2563eb', '#7c3aed', '#06b6d4', '#f97316', '#ef4444', '#f59e0b', '#10b981', '#0f766e', '#64748b'];
 
   let demorasStatsMap = {};
   let demorasPeriodo = '';
+  let demorasViewMeta = null;
+
+  function formatDemorasNumber(value) {
+    return new Intl.NumberFormat('es-MX').format(Number(value) || 0);
+  }
+
+  function getDemorasPalette(data = []) {
+    return data.map((item, idx) => {
+      const key = normalizeCausaKey(item?.causa);
+      return DEMORAS_COLOR_MAP[key] || DEMORAS_FALLBACK_COLORS[idx % DEMORAS_FALLBACK_COLORS.length];
+    });
+  }
+
+  function buildDemorasViewMeta(demorasData, total, causeCount) {
+    const scope = demorasData?.scope || 'monthly';
+    const year = demorasData?.year || extractYearFromString(demorasData?.periodo || demorasData?.label || '') || '';
+    const monthlyPeriods = demorasState.periods.filter((period) => period.scope !== 'annual' && String(period.year || '') === String(year || ''));
+    const monthlyCount = monthlyPeriods.length;
+    const isAnnual = scope === 'annual';
+    const isCurrent = scope === 'current';
+
+    if (isAnnual) {
+      return {
+        scope: 'annual',
+        scopeLabel: 'Vista acumulada anual',
+        scopeChip: 'Acumulado anual',
+        titleSuffix: year ? `Acumulado anual ${year}` : 'Acumulado anual',
+        periodLabel: demorasData?.periodo || (year ? `Año ${year}` : 'Año completo'),
+        note: monthlyCount
+          ? `Integra ${monthlyCount} ${monthlyCount === 1 ? 'mes registrado' : 'meses registrados'} del ${year}.`
+          : 'Consolida toda la informacion disponible del año seleccionado.',
+        tableTitle: 'Demoras acumuladas en vuelos de salida',
+        chartTitle: 'Distribucion acumulada anual de demoras',
+        metricChip: `${formatDemorasNumber(total)} demoras acumuladas`,
+        causeChip: `${causeCount} causas con participacion`
+      };
+    }
+
+    return {
+      scope: isCurrent ? 'current' : 'monthly',
+      scopeLabel: isCurrent ? 'Corte operativo del periodo' : 'Vista mensual',
+      scopeChip: isCurrent ? 'Corte del periodo' : 'Mensual',
+      titleSuffix: demorasData?.periodo || 'Vista mensual',
+      periodLabel: demorasData?.periodo || demorasData?.label || 'Periodo mensual',
+      note: year
+        ? `Corresponde a un periodo puntual dentro de ${year}; usalo para comparar el comportamiento mes contra mes.`
+        : 'Corresponde a un periodo puntual; usalo para comparar variaciones en el tiempo.',
+      tableTitle: 'Demoras mensuales en vuelos de salida',
+      chartTitle: 'Distribucion mensual de demoras',
+      metricChip: `${formatDemorasNumber(total)} demoras del periodo`,
+      causeChip: `${causeCount} causas activas`
+    };
+  }
+
+  function updateDemorasPeriodSummary(meta) {
+    const summary = document.querySelector('#demoras-section .demoras-period-summary');
+    const captionEl = document.querySelector('#demoras-section .demoras-period-caption');
+    const valueEl = document.getElementById('demoras-period-active-label');
+    if (captionEl) {
+      captionEl.textContent = meta?.scope === 'annual' ? 'Vista acumulada' : 'Periodo seleccionado';
+    }
+    if (valueEl) {
+      valueEl.textContent = meta?.periodLabel || 'Selecciona un periodo';
+    }
+    if (!summary) return;
+
+    let metaEl = document.getElementById('demoras-period-meta');
+    if (!metaEl) {
+      metaEl = document.createElement('div');
+      metaEl.id = 'demoras-period-meta';
+      metaEl.className = 'demoras-period-meta';
+      summary.appendChild(metaEl);
+    }
+    if (!meta) {
+      metaEl.innerHTML = '';
+      return;
+    }
+
+    metaEl.innerHTML = `
+      <span class="demoras-period-badge ${meta.scope === 'annual' ? 'is-annual' : 'is-monthly'}">${meta.scopeLabel}</span>
+      <span class="demoras-period-chip">${meta.metricChip}</span>
+      <span class="demoras-period-chip">${meta.causeChip}</span>
+      <span class="demoras-period-note">${meta.note}</span>`;
+  }
 
   // Función para destruir/limpiar la gráfica de demoras (canvas)
   window.destroyDemorasCharts = function () {
@@ -646,8 +784,9 @@
     g.clearRect(0, 0, w, h);
 
     const total = (values || []).reduce((a, b) => a + (Number(b) || 0), 0);
-    const cx = Math.floor(w * 0.42), cy = Math.floor(h * 0.55);
-    const r = Math.max(40, Math.min(w, h) * 0.32);
+    const cx = Math.floor(w * 0.5), cy = Math.floor(h * 0.56);
+    const r = Math.max(56, Math.min(w, h) * 0.36);
+    const innerR = Math.max(28, r * 0.54);
     const slices = [];
     let focusedSliceIndex = 0;
 
@@ -676,11 +815,11 @@
       // etiqueta si el sector es suficientemente grande
       if (frac >= 0.08) {
         const mid = (start + end) / 2;
-        const lx = cx + (r * 0.62) * Math.cos(mid);
-        const ly = cy + (r * 0.62) * Math.sin(mid);
+        const lx = cx + (r * 0.72) * Math.cos(mid);
+        const ly = cy + (r * 0.72) * Math.sin(mid);
         const pct = Math.round(frac * 100) + '%';
         g.fillStyle = '#ffffff';
-        g.font = '600 12px Roboto, Arial';
+        g.font = '700 12px Poppins, Nunito Sans, Arial';
         g.textAlign = 'center';
         g.textBaseline = 'middle';
         g.fillText(pct, lx, ly);
@@ -688,6 +827,25 @@
       slices.push({ start, end, label: labels[i] || '', value: v, index: i });
       start = end;
     }
+
+    // Centro tipo dona para reforzar lectura del total
+    const dark = document.body.classList.contains('dark-mode');
+    g.beginPath();
+    g.arc(cx, cy, innerR, 0, Math.PI * 2);
+    g.fillStyle = dark ? 'rgba(15, 23, 42, 0.95)' : 'rgba(248, 250, 252, 0.98)';
+    g.fill();
+    g.strokeStyle = dark ? 'rgba(96, 165, 250, 0.28)' : 'rgba(37, 99, 235, 0.22)';
+    g.lineWidth = 1.5;
+    g.stroke();
+
+    g.fillStyle = dark ? '#e2e8f0' : '#0f2d57';
+    g.font = '800 16px Poppins, Nunito Sans, Arial';
+    g.textAlign = 'center';
+    g.textBaseline = 'middle';
+    g.fillText(formatDemorasNumber(total), cx, cy - 7);
+    g.fillStyle = dark ? '#93c5fd' : '#2563eb';
+    g.font = '600 11px Poppins, Nunito Sans, Arial';
+    g.fillText('demoras', cx, cy + 11);
 
     if (typeof onSliceClick === 'function') {
       const triggerSlice = (label) => {
@@ -707,7 +865,7 @@
         const dx = nx - cx;
         const dy = ny - cy;
         const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist > r) return;
+        if (dist > r || dist < innerR) return;
         let angle = Math.atan2(dy, dx);
         if (angle < -Math.PI / 2) angle += Math.PI * 2;
         for (const slice of slices) {
@@ -761,12 +919,18 @@
       const key = normalizeCausaKey(item.causa);
       const stats = demorasStatsMap[key];
       const pct = stats ? stats.porcentaje : '0.0';
+      const pctNumber = Math.max(0, Math.min(100, Number(pct) || 0));
       const swatchColor = colors[idx % colors.length];
       const node = document.createElement('div');
       node.className = 'demoras-legend-item';
       node.innerHTML = `
+        <span class="demoras-legend-rank">#${idx + 1}</span>
         <span class="demoras-legend-swatch" style="background:${swatchColor};"></span>
-        <span class="demoras-legend-text"><strong>${item.causa}</strong><span>${item.demoras} demoras · ${pct}%</span></span>
+        <span class="demoras-legend-text">
+          <strong>${item.causa}</strong>
+          <span>${formatDemorasNumber(item.demoras)} demoras · ${pct}%</span>
+          <span class="demoras-legend-bar"><span style="width:${pctNumber}%; background:${swatchColor};"></span></span>
+        </span>
       `;
       node.dataset.causa = item.causa;
       node.tabIndex = 0;
@@ -935,7 +1099,10 @@
           text: hasObservaciones ? 'Con observaciones' : 'Sin observaciones'
         });
         if (demorasPeriodo) {
-          chips.push({ icon: 'fa-calendar-alt', text: `Periodo ${demorasPeriodo}` });
+          chips.push({
+            icon: demorasViewMeta?.scope === 'annual' ? 'fa-layer-group' : 'fa-calendar-alt',
+            text: demorasViewMeta?.scopeChip ? `${demorasViewMeta.scopeChip} · ${demorasPeriodo}` : `Periodo ${demorasPeriodo}`
+          });
         }
         chips.forEach(chip => {
           const span = document.createElement('span');
@@ -1000,6 +1167,7 @@
         label: data.label || data.periodo || 'Periodo',
         periodo: data.periodo || data.label || 'Periodo',
         shortLabel: data.shortLabel,
+        year: data.year,
         scope: data.scope || 'custom',
         causas: normalizeDemorasCausas(data.causas)
       };
@@ -1021,6 +1189,7 @@
       const tbody = document.getElementById('demoras-tbody');
       const tfoot = document.getElementById('demoras-tfoot');
       const title = document.getElementById('demoras-title');
+      const tableTitle = document.getElementById('demoras-table-title');
       if (tbody) tbody.innerHTML = '';
       demorasStatsMap = Object.create(null);
       demorasPeriodo = demorasData.periodo || '';
@@ -1028,13 +1197,23 @@
         demorasState.activeKey = demorasData.key;
       }
       const total = (d || []).reduce((acc, r) => acc + (Number(r.demoras || 0)), 0);
-      if (title) { title.textContent = `Análisis de Demoras${demorasData.periodo ? ' · ' + demorasData.periodo : ''}`; }
-      (d || []).forEach(r => {
+      demorasViewMeta = buildDemorasViewMeta(demorasData, total, d.length);
+      const sectionEl = document.getElementById('demoras-section');
+      if (sectionEl) {
+        sectionEl.dataset.demorasScope = demorasViewMeta?.scope || 'monthly';
+        sectionEl.dataset.demorasYear = demorasData?.year ? String(demorasData.year) : '';
+      }
+      if (title) { title.textContent = `Análisis de Demoras${demorasViewMeta?.titleSuffix ? ' · ' + demorasViewMeta.titleSuffix : ''}`; }
+      if (tableTitle) {
+        tableTitle.textContent = demorasViewMeta?.tableTitle || 'Demoras en vuelos de salida';
+      }
+      (d || []).forEach((r, idx) => {
         if (tbody) {
           const delays = Number(r.demoras || 0);
           const pct = ((delays / Math.max(1, total)) * 100).toFixed(1);
           const tr = document.createElement('tr');
-          tr.innerHTML = `<td>${r.causa}</td><td>${r.demoras}</td><td>${pct}%</td>`;
+          if (idx === 0) tr.classList.add('is-top-cause');
+          tr.innerHTML = `<td>${r.causa}</td><td>${formatDemorasNumber(r.demoras)}</td><td>${pct}%</td>`;
           tr.tabIndex = 0;
           demorasStatsMap[normalizeCausaKey(r.causa)] = {
             demoras: delays,
@@ -1051,15 +1230,15 @@
           tbody.appendChild(tr);
         }
       });
-      if (tfoot) tfoot.innerHTML = `<tr class="table-light"><th>Total</th><th>${total}</th><th>100%</th></tr>`;
+      if (tfoot) tfoot.innerHTML = `<tr class="table-light"><th>Total</th><th>${formatDemorasNumber(total)}</th><th>100%</th></tr>`;
       // Pastel (canvas)
       const pie = document.getElementById('delaysPieChart');
       if (pie) {
         const labels = Array.from(document.querySelectorAll('#demoras-tbody tr')).map(tr => tr.children[0]?.textContent || '');
-        const values = Array.from(document.querySelectorAll('#demoras-tbody tr')).map(tr => parseFloat(tr.children[1]?.textContent || '0') || 0);
-        const baseColors = ['#0d6efd', '#6610f2', '#6f42c1', '#d63384', '#dc3545', '#fd7e14', '#ffc107', '#198754', '#20c997', '#0dcaf0'];
+        const values = Array.from(document.querySelectorAll('#demoras-tbody tr')).map(tr => parseFloat((tr.children[1]?.textContent || '0').toString().replace(/,/g, '')) || 0);
+        const baseColors = getDemorasPalette(d);
         const onSliceSelect = (label) => showDemorasDetail(label, { fromChart: true });
-        drawPie(pie, labels, values, baseColors, 'Demoras en vuelos de salida', onSliceSelect);
+        drawPie(pie, labels, values, baseColors, demorasViewMeta?.chartTitle || 'Demoras en vuelos de salida', onSliceSelect);
         renderDemorasLegend(d, baseColors);
         window._delaysPieDrawn = true;
       }
@@ -1084,6 +1263,7 @@
       }
 
       syncDemorasActiveUI(demorasState.activeKey, demorasPeriodo || demorasData.label);
+      updateDemorasPeriodSummary(demorasViewMeta);
 
       const hintCTA = document.getElementById('demoras-hint-cta');
       if (hintCTA) {
