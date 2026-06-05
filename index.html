@@ -4482,7 +4482,31 @@ FF
                             <div class="col-6 col-md-4"><div class="card border-0 bg-light text-center p-3"><div class="bhs-stat text-warning" id="bhs-bwf-flights">—</div><small class="text-muted">Vuelos distintos</small></div></div>
                         </div>
                         <!-- Airline summary cards -->
-                        <div id="bhs-bwf-summary" class="mb-4"></div>
+                        <div id="bhs-bwf-summary" class="mb-3"></div>
+                        <!-- Charts -->
+                        <div id="bhs-bwf-charts" class="mb-4" style="display:none;">
+                            <div class="d-flex align-items-center gap-2 mb-3">
+                                <span style="font-size:.75rem;font-weight:600;letter-spacing:.08em;color:#64748b;text-transform:uppercase;"><i class="fas fa-chart-pie me-1"></i>Distribución gráfica</span>
+                                <div class="flex-grow-1" style="height:1px;background:#e2e8f0;"></div>
+                            </div>
+                            <div class="row g-3">
+                                <div class="col-12 col-md-5">
+                                    <div class="card border-0" style="border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,.07);padding:20px;">
+                                        <div style="font-size:.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#94a3b8;margin-bottom:12px;">Proporción por aerolínea</div>
+                                        <div style="position:relative;max-width:260px;margin:0 auto;">
+                                            <canvas id="bhs-chart-donut" height="260"></canvas>
+                                            <div id="bhs-donut-center" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none;"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-md-7">
+                                    <div class="card border-0" style="border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,.07);padding:20px;">
+                                        <div style="font-size:.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#94a3b8;margin-bottom:12px;">Maletas por aerolínea</div>
+                                        <canvas id="bhs-chart-bar" height="220"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                         <!-- Detail table -->
                         <div class="d-flex align-items-center gap-2 mb-2">
                             <span style="font-size:.75rem;font-weight:600;letter-spacing:.08em;color:#64748b;text-transform:uppercase;">Detalle de registros</span>
@@ -4989,8 +5013,77 @@ FF
                         }
                     }
 
-                    // ── Detail table ──────────────────────────────────────────
-                    var tbody=document.querySelector('#bhs-bwf-table tbody');
+                    // ── Charts ──────────────────────────────────────────
+                    var chartsWrap=document.getElementById('bhs-bwf-charts');
+                    if(chartsWrap && total){
+                        chartsWrap.style.display='';
+                        var sorted2=Object.values(byAl).sort(function(a,b){return b.total-a.total;});
+                        var labels=sorted2.map(function(a){return a.nombre;});
+                        var vals=sorted2.map(function(a){return a.total;});
+                        var colors=sorted2.map(function(a){return BHS_AL_COLOR[a.iata]||'#94a3b8';});
+
+                        // Donut
+                        var ctxD=document.getElementById('bhs-chart-donut');
+                        if(ctxD){
+                            if(ctxD._bhsChart) ctxD._bhsChart.destroy();
+                            ctxD._bhsChart=new Chart(ctxD,{
+                                type:'doughnut',
+                                data:{labels:labels,datasets:[{data:vals,backgroundColor:colors,borderWidth:2,borderColor:'#fff',hoverBorderColor:'#fff',hoverOffset:6}]},
+                                options:{
+                                    cutout:'70%',
+                                    plugins:{
+                                        legend:{display:false},
+                                        datalabels:{
+                                            color:'#fff',
+                                            font:{weight:'bold',size:11},
+                                            formatter:function(v,ctx){
+                                                var pct=(v/total*100);
+                                                return pct>=5?pct.toFixed(0)+'%':'';
+                                            }
+                                        }
+                                    },
+                                    animation:{animateRotate:true,duration:900}
+                                }
+                            });
+                            // Center label
+                            var center=document.getElementById('bhs-donut-center');
+                            if(center) center.innerHTML='<div style="font-size:1.6rem;font-weight:800;color:#1e3a5f;line-height:1;">'+fmtNum(total)+'</div><div style="font-size:.6rem;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em;">maletas</div>';
+                        }
+
+                        // Horizontal bar
+                        var ctxB=document.getElementById('bhs-chart-bar');
+                        if(ctxB){
+                            if(ctxB._bhsChart) ctxB._bhsChart.destroy();
+                            ctxB._bhsChart=new Chart(ctxB,{
+                                type:'bar',
+                                data:{labels:labels,datasets:[{
+                                    data:vals,
+                                    backgroundColor:colors.map(function(c){return c+'cc';}),
+                                    borderColor:colors,
+                                    borderWidth:0,
+                                    borderRadius:6,
+                                    borderSkipped:false
+                                }]},
+                                options:{
+                                    indexAxis:'y',
+                                    plugins:{
+                                        legend:{display:false},
+                                        datalabels:{
+                                            anchor:'end',align:'end',
+                                            color:'#374151',font:{weight:'700',size:11},
+                                            formatter:function(v){ return fmtNum(v); }
+                                        }
+                                    },
+                                    scales:{
+                                        x:{display:false,grid:{display:false}},
+                                        y:{grid:{display:false},ticks:{font:{size:12},color:'#374151'}}
+                                    },
+                                    layout:{padding:{right:40}},
+                                    animation:{duration:900}
+                                }
+                            });
+                        }
+                    } else if(chartsWrap){ chartsWrap.style.display='none'; }
                     if(!total){
                         tbody.innerHTML='<tr><td colspan="6" class="text-muted small py-4">Sin datos</td></tr>'; return;
                     }
