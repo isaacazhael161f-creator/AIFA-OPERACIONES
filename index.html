@@ -4298,7 +4298,7 @@ FF
                                         </div>
 
                                     </div>
-                                </div>
+                                </div>8
                             </div>
                         </div>
                     </div>
@@ -4963,39 +4963,28 @@ FF
                             var rankColors=['#f59e0b','#94a3b8','#b45309'];
                             summaryEl.innerHTML=
                                 '<p class="text-uppercase fw-semibold mb-3" style="font-size:.7rem;letter-spacing:.12em;color:#94a3b8;"><i class="fas fa-tag me-1"></i>Resumen por aerolínea</p>'+
-                                '<div class="row g-3">'+sorted.map(function(al,idx){
+                                '<div class="d-flex flex-wrap gap-3">'+sorted.map(function(al,idx){
                                     var color=BHS_AL_COLOR[al.iata]||'#6c757d';
                                     var pct=total>0?(al.total/total*100).toFixed(1):0;
                                     var logoSrc=BHS_AL_LOGO[al.iata]||'';
                                     var isDark=al.iata==='VB';
                                     var bgCard=isDark?'#fffdf0':'#fff';
                                     var logoHtml=logoSrc
-                                        ?'<img src="'+logoSrc+'" alt="'+al.nombre+'" style="height:46px;max-width:140px;object-fit:contain;" onerror="this.outerHTML=\'<span style=\\"font-size:1.3rem;font-weight:900;color:'+color+';\\">'+al.iata+'</span>\'" />'
-                                        :'<span style="font-size:1.4rem;font-weight:900;letter-spacing:-.02em;color:'+color+';">'+al.iata+'</span>';
+                                        ?'<img src="'+logoSrc+'" alt="'+al.nombre+'" style="height:42px;max-width:120px;object-fit:contain;" onload="this.style.display=\'block\'" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'block\'" /><span style="display:none;font-size:1.1rem;font-weight:900;color:'+color+';">'+al.nombre+'</span>'
+                                        :'<span style="font-size:1.1rem;font-weight:900;color:'+color+';">'+al.nombre+'</span>';
                                     var rankHtml=idx<3
-                                        ?'<span style="position:absolute;top:10px;right:10px;background:'+rankColors[idx]+';color:#fff;border-radius:50%;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-size:.6rem;font-weight:800;box-shadow:0 1px 3px rgba(0,0,0,.25);">'+(idx+1)+'</span>'
+                                        ?'<span style="position:absolute;top:8px;right:8px;background:'+rankColors[idx]+';color:#fff;border-radius:50%;width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;font-size:.58rem;font-weight:800;box-shadow:0 1px 3px rgba(0,0,0,.25);">'+(idx+1)+'</span>'
                                         :'';
-                                    return '<div class="col-6 col-md-4 col-xl-3">'+
-                                        '<div class="card border-0 h-100" style="position:relative;background:'+bgCard+';border-radius:14px;border-top:3px solid '+color+';box-shadow:0 2px 12px rgba(0,0,0,.08);overflow:hidden;">'+
+                                    return '<div style="position:relative;flex:1 1 140px;min-width:130px;max-width:220px;background:'+bgCard+';border-radius:14px;border-top:3px solid '+color+';box-shadow:0 2px 10px rgba(0,0,0,.07);padding:14px 16px 12px;overflow:hidden;">'+
                                         rankHtml+
-                                        '<div class="card-body px-3 pt-3 pb-2">'+
-                                        // Logo
-                                        '<div style="min-height:52px;display:flex;align-items:center;margin-bottom:14px;">'+logoHtml+'</div>'+
-                                        // Number
-                                        '<div style="font-size:2.6rem;font-weight:800;line-height:1;color:'+color+';font-variant-numeric:tabular-nums;">'+fmtNum(al.total)+'</div>'+
-                                        '<div style="font-size:.66rem;color:#94a3b8;margin-top:3px;letter-spacing:.06em;text-transform:uppercase;">maletas procesadas manual</div>'+
-                                        // Pct
-                                        '<div style="margin-top:8px;">'+
-                                        '<span style="font-size:.88rem;font-weight:700;color:'+color+';">'+pct+'%</span>'+
-                                        '<span style="font-size:.72rem;color:#94a3b8;"> del total</span>'+
+                                        '<div style="min-height:44px;display:flex;align-items:center;margin-bottom:10px;">'+logoHtml+'</div>'+
+                                        '<div style="font-size:2.2rem;font-weight:800;line-height:1;color:'+color+';font-variant-numeric:tabular-nums;">'+fmtNum(al.total)+'</div>'+
+                                        '<div style="font-size:.62rem;color:#94a3b8;margin-top:2px;letter-spacing:.06em;text-transform:uppercase;">maletas manual</div>'+
+                                        '<div style="margin-top:6px;"><span style="font-size:.85rem;font-weight:700;color:'+color+';">'+pct+'%</span><span style="font-size:.7rem;color:#94a3b8;"> del total</span></div>'+
+                                        '<div style="height:4px;border-radius:3px;background:'+color+'1a;margin-top:8px;overflow:hidden;">'+
+                                        '<div style="height:4px;width:'+pct+'%;background:linear-gradient(90deg,'+color+','+color+'77);border-radius:3px;transition:width 1s cubic-bezier(.4,0,.2,1);"></div>'+
                                         '</div>'+
-                                        // Progress bar
-                                        '<div style="height:5px;border-radius:3px;background:'+color+'1a;margin-top:10px;overflow:hidden;">'+
-                                        '<div style="height:5px;width:'+pct+'%;background:linear-gradient(90deg,'+color+','+color+'88);border-radius:3px;transition:width 1s cubic-bezier(.4,0,.2,1);"></div>'+
-                                        '</div>'+
-                                        // Airline name footer
-                                        '<div style="font-size:.72rem;color:#64748b;margin-top:10px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="'+al.nombre+'">'+al.nombre+'</div>'+
-                                        '</div></div></div>';
+                                        '</div>';
                                 }).join('')+'</div>';
                         }
                     }
