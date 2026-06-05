@@ -43,7 +43,7 @@
 
   let _data        = null;
   let _allYearData = [];
-  let _minFlights  = 30;
+  let _minFlights  = 20;
   let _viewMode    = 'monthly';
   let _selectedMonth = null;
   let _selectedYear  = null;
