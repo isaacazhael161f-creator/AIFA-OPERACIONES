@@ -5024,6 +5024,7 @@ FF
                         var colors=sorted2.map(function(a){return BHS_AL_COLOR[a.iata]||'#94a3b8';});
 
                         // Donut
+                        if(window.ChartDataLabels) Chart.register(ChartDataLabels);
                         var ctxD=document.getElementById('bhs-chart-donut');
                         if(ctxD){
                             if(ctxD._bhsChart) ctxD._bhsChart.destroy();
@@ -5031,18 +5032,35 @@ FF
                                 type:'doughnut',
                                 data:{labels:labels,datasets:[{data:vals,backgroundColor:colors,borderWidth:2,borderColor:'#fff',hoverBorderColor:'#fff',hoverOffset:6}]},
                                 options:{
-                                    cutout:'70%',
+                                    cutout:'68%',
                                     plugins:{
                                         legend:{display:false},
                                         datalabels:{
-                                            color:'#fff',
+                                            display:true,
+                                            anchor:function(ctx){
+                                                var pct=ctx.dataset.data[ctx.dataIndex]/total*100;
+                                                return pct>=8?'center':'end';
+                                            },
+                                            align:function(ctx){
+                                                var pct=ctx.dataset.data[ctx.dataIndex]/total*100;
+                                                return pct>=8?'center':'end';
+                                            },
+                                            offset:function(ctx){
+                                                var pct=ctx.dataset.data[ctx.dataIndex]/total*100;
+                                                return pct>=8?0:6;
+                                            },
+                                            color:function(ctx){
+                                                var pct=ctx.dataset.data[ctx.dataIndex]/total*100;
+                                                return pct>=8?'#fff':ctx.dataset.backgroundColor[ctx.dataIndex];
+                                            },
                                             font:{weight:'bold',size:11},
-                                            formatter:function(v,ctx){
+                                            formatter:function(v){
                                                 var pct=(v/total*100);
-                                                return pct>=5?pct.toFixed(0)+'%':'';
+                                                return pct.toFixed(1)+'%';
                                             }
                                         }
                                     },
+                                    layout:{padding:20},
                                     animation:{animateRotate:true,duration:900}
                                 }
                             });
@@ -5070,11 +5088,13 @@ FF
                                     plugins:{
                                         legend:{display:false},
                                         datalabels:{
+                                            display:true,
                                             anchor:'end',align:'end',
+                                            clamp:true,
                                             color:'#374151',font:{weight:'700',size:11},
-                                            formatter:function(v,ctx){
+                                            formatter:function(v){
                                                 var pct=(v/total*100).toFixed(1);
-                                                return fmtNum(v)+' ('+pct+'%)';
+                                                return fmtNum(v)+' · '+pct+'%';
                                             }
                                         }
                                     },
@@ -5082,7 +5102,7 @@ FF
                                         x:{display:false,grid:{display:false}},
                                         y:{grid:{display:false},ticks:{font:{size:12},color:'#374151'}}
                                     },
-                                    layout:{padding:{right:40}},
+                                    layout:{padding:{right:130}},
                                     animation:{duration:900}
                                 }
                             });
