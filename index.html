@@ -64,6 +64,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> 
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3"></script>
     <!-- Chart.js for visualizations -->
 
     <!-- jQuery (Required for DataTables & PivotTable.js) -->
@@ -4457,11 +4458,61 @@ FF
 
                     <!-- TAB DEPARTURES -->
                     <div id="bhs-tab-dep" class="p-3 d-none">
+                        <!-- KPI strip -->
                         <div class="row g-3 mb-3">
                             <div class="col-6 col-md-3"><div class="card border-0 bg-light text-center p-3"><div class="bhs-stat text-primary" id="bhs-dep-vuelos">—</div><small class="text-muted">Vuelos</small></div></div>
                             <div class="col-6 col-md-3"><div class="card border-0 bg-light text-center p-3"><div class="bhs-stat text-success" id="bhs-dep-avg-primera">—</div><small class="text-muted">Avg. anticip. 1ª maleta (min)</small></div></div>
                             <div class="col-6 col-md-3"><div class="card border-0 bg-light text-center p-3"><div class="bhs-stat text-warning" id="bhs-dep-avg-ultima">—</div><small class="text-muted">Avg. anticip. última (min)</small></div></div>
                             <div class="col-6 col-md-3"><div class="card border-0 bg-light text-center p-3"><div class="bhs-stat text-danger" id="bhs-dep-tarde">—</div><small class="text-muted">Vuelos con última tardía</small></div></div>
+                        </div>
+
+                        <!-- ── ANALYTICS PANEL ── -->
+                        <div id="bhs-dep-analytics" style="display:none;" class="mb-4">
+                            <!-- Section header -->
+                            <div class="d-flex align-items-center gap-2 mb-3">
+                                <span style="font-size:.75rem;font-weight:700;letter-spacing:.08em;color:#64748b;text-transform:uppercase;white-space:nowrap;"><i class="fas fa-clock me-1 text-primary"></i>Análisis de anticipación al almacenamiento</span>
+                                <div class="flex-grow-1" style="height:1px;background:#e2e8f0;"></div>
+                                <span class="badge" style="background:#eff6ff;color:#1d4ed8;font-size:.68rem;font-weight:600;padding:4px 8px;border-radius:6px;white-space:nowrap;">Norma nacional: 2 h &nbsp;·&nbsp; Internacional: 3 h</span>
+                            </div>
+
+                            <!-- Airline summary cards -->
+                            <div id="bhs-dep-al-cards" class="mb-4"></div>
+
+                            <!-- Two charts -->
+                            <div class="row g-3 mb-3">
+                                <div class="col-12 col-lg-6">
+                                    <div class="card border-0" style="border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,.07);padding:20px;height:100%;">
+                                        <div style="font-size:.68rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#94a3b8;margin-bottom:4px;">Anticipación promedio por aerolínea</div>
+                                        <div style="font-size:.7rem;color:#94a3b8;margin-bottom:14px;">Minutos antes de la hora programada en que llegó la 1ª maleta</div>
+                                        <div style="position:relative;">
+                                            <canvas id="bhs-dep-chart-avg" height="230"></canvas>
+                                        </div>
+                                        <div id="bhs-dep-avg-legend" style="margin-top:10px;display:flex;gap:16px;flex-wrap:wrap;">
+                                            <span style="font-size:.68rem;color:#64748b;"><span style="display:inline-block;width:18px;height:3px;background:#3b82f6;vertical-align:middle;margin-right:4px;border-radius:2px;"></span>Norma nac. 2h (120 min)</span>
+                                            <span style="font-size:.68rem;color:#64748b;"><span style="display:inline-block;width:18px;height:3px;background:#f59e0b;vertical-align:middle;margin-right:4px;border-radius:2px;"></span>Norma int. 3h (180 min)</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-lg-6">
+                                    <div class="card border-0" style="border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,.07);padding:20px;height:100%;">
+                                        <div style="font-size:.68rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#94a3b8;margin-bottom:4px;">Distribución de vuelos por categoría</div>
+                                        <div style="font-size:.7rem;color:#94a3b8;margin-bottom:14px;">Cuántos vuelos caen en cada rango de anticipación, por aerolínea</div>
+                                        <canvas id="bhs-dep-chart-dist" height="230"></canvas>
+                                        <div style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap;">
+                                            <span style="font-size:.68rem;color:#64748b;"><span style="display:inline-block;width:10px;height:10px;background:#16a34a;border-radius:2px;vertical-align:middle;margin-right:3px;"></span>Muy temprano (&gt;3h)</span>
+                                            <span style="font-size:.68rem;color:#64748b;"><span style="display:inline-block;width:10px;height:10px;background:#3b82f6;border-radius:2px;vertical-align:middle;margin-right:3px;"></span>Normal (2–3h)</span>
+                                            <span style="font-size:.68rem;color:#64748b;"><span style="display:inline-block;width:10px;height:10px;background:#f59e0b;border-radius:2px;vertical-align:middle;margin-right:3px;"></span>Justo (1–2h)</span>
+                                            <span style="font-size:.68rem;color:#64748b;"><span style="display:inline-block;width:10px;height:10px;background:#ef4444;border-radius:2px;vertical-align:middle;margin-right:3px;"></span>Tardío (&lt;1h)</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div><!-- /analytics -->
+
+                        <!-- Detail table header -->
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <span style="font-size:.75rem;font-weight:600;letter-spacing:.08em;color:#64748b;text-transform:uppercase;">Detalle de vuelos</span>
+                            <div class="flex-grow-1" style="height:1px;background:#e2e8f0;"></div>
                         </div>
                         <div class="table-responsive">
                             <table class="table table-sm table-hover align-middle text-center mb-0" id="bhs-dep-table">
@@ -4543,6 +4594,23 @@ FF
                     var p=String(iso).split('-');
                     if(p.length!==3) return iso;
                     return p[2]+'-'+p[1]+'-'+p[0].slice(2);
+                }
+                // Correct day-boundary anticipation values:
+                // hora_prog_mins - primera_maleta_mins can go very negative when bag
+                // was stored the night before (e.g. 06:00 flight, bag at 23:48 = -1068)
+                // Adding 1440 gives real anticipation: 372 min = 6h12m
+                function correctAnticip(v){
+                    if(v==null) return null;
+                    return v < -480 ? v+1440 : v;
+                }
+                // Format minutes as 'Xh YYm'
+                function fmtMinutos(m){
+                    if(m==null) return '—';
+                    var abs=Math.abs(m);
+                    var h=Math.floor(abs/60), min=abs%60;
+                    var sign=m<0?'-':'';
+                    if(h>0) return sign+h+'h'+(min>0?' '+min+'m':'');
+                    return sign+min+'m';
                 }
 
                 // Tag prefix → IATA + nombre aerolínea
@@ -4911,25 +4979,188 @@ FF
                 }
 
                 function bhsRenderDepartures(data){
+                    var NORM_NAC=120, NORM_INT=180; // minutes
+
+                    // Correct day-boundary values in all records
+                    data.forEach(function(r){
+                        r._anticip = correctAnticip(r.min_anticip_primera);
+                    });
+
                     var vuelos=data.length;
-                    var avgP=data.filter(function(r){return r.min_anticip_primera!=null;});
+                    var withBags=data.filter(function(r){return r._anticip!=null;});
+                    var avgPrimera=withBags.length?Math.round(withBags.reduce(function(a,r){return a+r._anticip;},0)/withBags.length):null;
                     var avgU=data.filter(function(r){return r.min_anticip_ultima!=null;});
-                    var avgPrimera=avgP.length?Math.round(avgP.reduce(function(a,r){return a+r.min_anticip_primera;},0)/avgP.length):null;
-                    var avgUltima =avgU.length?Math.round(avgU.reduce(function(a,r){return a+r.min_anticip_ultima;},0)/avgU.length):null;
+                    var avgUltima=avgU.length?Math.round(avgU.reduce(function(a,r){return a+r.min_anticip_ultima;},0)/avgU.length):null;
                     var tarde=data.filter(function(r){return r.min_anticip_ultima!=null&&r.min_anticip_ultima<0;}).length;
 
                     document.getElementById('bhs-dep-vuelos').textContent=fmtNum(vuelos);
-                    document.getElementById('bhs-dep-avg-primera').textContent=avgPrimera!=null?avgPrimera:' —';
-                    document.getElementById('bhs-dep-avg-ultima').textContent=avgUltima!=null?avgUltima:' —';
+                    document.getElementById('bhs-dep-avg-primera').textContent=avgPrimera!=null?avgPrimera+' min':'—';
+                    document.getElementById('bhs-dep-avg-ultima').textContent=avgUltima!=null?avgUltima+' min':'—';
                     document.getElementById('bhs-dep-tarde').textContent=fmtNum(tarde);
 
+                    // ── Build per-airline stats ────────────────────────────────────────
+                    var byAl={};
+                    data.forEach(function(r){
+                        var k=r.compania||'?';
+                        if(!byAl[k]) byAl[k]={iata:k,total:0,withBags:0,sum:0,cat:{muy:0,normal:0,justo:0,tarde:0}};
+                        byAl[k].total++;
+                        if(r._anticip!=null){
+                            byAl[k].withBags++;
+                            byAl[k].sum+=r._anticip;
+                            if(r._anticip>180)       byAl[k].cat.muy++;
+                            else if(r._anticip>120)  byAl[k].cat.normal++;
+                            else if(r._anticip>60)   byAl[k].cat.justo++;
+                            else                     byAl[k].cat.tarde++;
+                        }
+                    });
+                    var airlines=Object.values(byAl).sort(function(a,b){
+                        var avgA=a.withBags?a.sum/a.withBags:0;
+                        var avgB=b.withBags?b.sum/b.withBags:0;
+                        return avgB-avgA;
+                    });
+
+                    // ── Analytics panel ──────────────────────────────────────────
+                    var panel=document.getElementById('bhs-dep-analytics');
+                    if(panel) panel.style.display=withBags.length?'':'none';
+
+                    // Airline cards
+                    var cardsEl=document.getElementById('bhs-dep-al-cards');
+                    if(cardsEl && withBags.length){
+                        cardsEl.innerHTML='<div class="d-flex flex-wrap gap-3">'+airlines.map(function(al){
+                            if(!al.withBags) return '';
+                            var avg=Math.round(al.sum/al.withBags);
+                            var color=BHS_AL_COLOR[al.iata]||'#6c757d';
+                            var logo=BHS_AL_LOGO[al.iata]||'';
+                            var pctMuy=(al.cat.muy/al.withBags*100).toFixed(0);
+                            // Status
+                            var status,statusBg,statusTxt;
+                            if(avg>180){      status='Muy temprano'; statusBg='#dcfce7'; statusTxt='#16a34a';}
+                            else if(avg>120){ status='Normal';       statusBg='#dbeafe'; statusTxt='#1d4ed8';}
+                            else if(avg>60){  status='Justo';        statusBg='#fef3c7'; statusTxt='#92400e';}
+                            else{             status='Tardío';        statusBg='#fee2e2'; statusTxt='#dc2626';}
+                            var logoHtml=logo
+                                ?'<img src="'+logo+'" alt="'+al.iata+'" style="height:34px;max-width:110px;object-fit:contain;" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'block\'" /><span style="display:none;font-size:.9rem;font-weight:900;color:'+color+';">'+al.iata+'</span>'
+                                :'<span style="font-size:.9rem;font-weight:900;color:'+color+';">'+al.iata+'</span>';
+                            return '<div style="position:relative;flex:1 1 160px;min-width:155px;max-width:230px;background:#fff;border-radius:14px;border-top:3px solid '+color+';box-shadow:0 2px 10px rgba(0,0,0,.07);padding:14px 16px 12px;">'+
+                                '<div style="min-height:38px;display:flex;align-items:center;margin-bottom:10px;">'+logoHtml+'</div>'+
+                                '<div style="font-size:2rem;font-weight:800;line-height:1;color:'+color+';">'+fmtMinutos(avg)+'</div>'+
+                                '<div style="font-size:.62rem;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em;margin-top:2px;">anticip. promedio</div>'+
+                                '<div style="margin-top:8px;display:flex;align-items:center;gap:6px;">'+
+                                '<span style="background:'+statusBg+';color:'+statusTxt+';font-size:.65rem;font-weight:700;padding:2px 8px;border-radius:99px;">'+status+'</span>'+
+                                '<span style="font-size:.68rem;color:#94a3b8;">'+al.withBags+'/'+al.total+' vuelos</span>'+
+                                '</div>'+
+                                // Mini distribution bar
+                                '<div style="margin-top:10px;display:flex;height:6px;border-radius:4px;overflow:hidden;gap:1px;">'+
+                                (al.cat.muy   ?'<div style="flex:'+al.cat.muy  +';background:#16a34a;" title="Muy temprano: '+al.cat.muy+'"></div>':'')+
+                                (al.cat.normal?'<div style="flex:'+al.cat.normal+';background:#3b82f6;" title="Normal: '+al.cat.normal+'"></div>':'')+
+                                (al.cat.justo ?'<div style="flex:'+al.cat.justo +';background:#f59e0b;" title="Justo: '+al.cat.justo+'"></div>':'')+
+                                (al.cat.tarde ?'<div style="flex:'+al.cat.tarde +';background:#ef4444;" title="Tardío: '+al.cat.tarde+'"></div>':'')+
+                                '</div>'+
+                                '<div style="font-size:.62rem;color:#94a3b8;margin-top:4px;">'+pctMuy+'% muy temprano (vs norma 2h)</div>'+
+                                '</div>';
+                        }).join('')+'</div>';
+                    }
+
+                    // ── Chart A: avg anticipation per airline ─────────────────────────
+                    if(window.ChartDataLabels) Chart.register(ChartDataLabels);
+                    if(window.ChartAnnotation) Chart.register(ChartAnnotation);
+                    var ctxA=document.getElementById('bhs-dep-chart-avg');
+                    if(ctxA && withBags.length){
+                        if(ctxA._bhsChart) ctxA._bhsChart.destroy();
+                        var alLabels=airlines.filter(function(a){return a.withBags>0;}).map(function(a){return a.iata;});
+                        var alAvgs=airlines.filter(function(a){return a.withBags>0;}).map(function(a){return Math.round(a.sum/a.withBags);});
+                        var alColors=alLabels.map(function(k){return (BHS_AL_COLOR[k]||'#94a3b8')+'cc';});
+                        var alBorders=alLabels.map(function(k){return BHS_AL_COLOR[k]||'#94a3b8';});
+                        var maxVal=Math.max.apply(null,alAvgs.concat([NORM_INT+60]));
+                        ctxA._bhsChart=new Chart(ctxA,{
+                            type:'bar',
+                            data:{labels:alLabels,datasets:[{
+                                label:'Avg anticip. (min)',
+                                data:alAvgs,
+                                backgroundColor:alColors,
+                                borderColor:alBorders,
+                                borderWidth:0,
+                                borderRadius:6,
+                                borderSkipped:false
+                            }]},
+                            options:{
+                                indexAxis:'y',
+                                plugins:{
+                                    legend:{display:false},
+                                    datalabels:{
+                                        display:true,anchor:'end',align:'end',clamp:true,
+                                        color:'#374151',font:{weight:'700',size:11},
+                                        formatter:function(v){ return fmtMinutos(v); }
+                                    },
+                                    annotation:{
+                                        annotations:{
+                                            norm120:{
+                                                type:'line',scaleID:'x',value:NORM_NAC,
+                                                borderColor:'#3b82f6',borderWidth:2,borderDash:[4,3],
+                                                label:{display:true,content:'2h',color:'#3b82f6',font:{size:9,weight:'bold'},position:'end',yAdjust:-8}
+                                            },
+                                            norm180:{
+                                                type:'line',scaleID:'x',value:NORM_INT,
+                                                borderColor:'#f59e0b',borderWidth:2,borderDash:[4,3],
+                                                label:{display:true,content:'3h',color:'#f59e0b',font:{size:9,weight:'bold'},position:'end',yAdjust:8}
+                                            }
+                                        }
+                                    }
+                                },
+                                scales:{
+                                    x:{display:false,max:maxVal+60,grid:{display:false}},
+                                    y:{grid:{display:false},ticks:{font:{size:12,weight:'600'},color:'#374151'}}
+                                },
+                                layout:{padding:{right:80}},
+                                animation:{duration:900}
+                            }
+                        });
+                    }
+
+                    // ── Chart B: distribution stacked bar per airline ──────────────────
+                    var ctxB=document.getElementById('bhs-dep-chart-dist');
+                    if(ctxB && withBags.length){
+                        if(ctxB._bhsChart) ctxB._bhsChart.destroy();
+                        var alF=airlines.filter(function(a){return a.withBags>0;});
+                        var alL=alF.map(function(a){return a.iata;});
+                        ctxB._bhsChart=new Chart(ctxB,{
+                            type:'bar',
+                            data:{labels:alL,datasets:[
+                                {label:'Muy temprano (>3h)', data:alF.map(function(a){return a.cat.muy;}),   backgroundColor:'#16a34acc', borderRadius:0},
+                                {label:'Normal (2–3h)',      data:alF.map(function(a){return a.cat.normal;}),backgroundColor:'#3b82f6cc', borderRadius:0},
+                                {label:'Justo (1–2h)',        data:alF.map(function(a){return a.cat.justo;}), backgroundColor:'#f59e0bcc', borderRadius:0},
+                                {label:'Tardío (<1h)',          data:alF.map(function(a){return a.cat.tarde;}), backgroundColor:'#ef4444cc', borderRadius:0}
+                            ]},
+                            options:{
+                                indexAxis:'y',
+                                plugins:{
+                                    legend:{display:false},
+                                    datalabels:{
+                                        display:function(ctx){ return ctx.dataset.data[ctx.dataIndex]>0; },
+                                        anchor:'center',align:'center',
+                                        color:'#fff',font:{weight:'700',size:10},
+                                        formatter:function(v){ return v>0?v:''; }
+                                    }
+                                },
+                                scales:{
+                                    x:{stacked:true,display:false,grid:{display:false}},
+                                    y:{stacked:true,grid:{display:false},ticks:{font:{size:12,weight:'600'},color:'#374151'}}
+                                },
+                                animation:{duration:900}
+                            }
+                        });
+                    }
+
+                    // ── Detail table ──────────────────────────────────────────
                     var tbody=document.querySelector('#bhs-dep-table tbody');
                     if(!data.length){
                         tbody.innerHTML='<tr><td colspan="10" class="text-muted small py-4">Sin datos</td></tr>'; return;
                     }
                     tbody.innerHTML=data.map(function(r){
-                        var pColor=r.min_anticip_primera<0?'text-danger':(r.min_anticip_primera>60?'text-success':'');
-                        var uColor=r.min_anticip_ultima<0?'text-danger':'';
+                        var real=r._anticip;
+                        var pColor=real!=null?(real<60?'color:#dc2626':(real>=120?'color:#16a34a':'color:#f59e0b')):''; 
+                        var uColor=r.min_anticip_ultima!=null&&r.min_anticip_ultima<0?'color:#dc2626':'';
+                        var pTxt=real!=null?('<span style="font-weight:700;'+pColor+';">'+real+'</span><small style="color:#94a3b8;"> ('+fmtMinutos(real)+')</small>'):'—';
                         return '<tr>'
                             +'<td class="fw-semibold">'+(r.vuelo||'—')+'</td>'
                             +'<td>'+(r.compania||'—')+'</td>'
@@ -4939,8 +5170,8 @@ FF
                             +'<td>'+(r.primera_maleta||'—')+'</td>'
                             +'<td>'+(r.ultima_maleta||'—')+'</td>'
                             +'<td>'+(r.etd||'—')+'</td>'
-                            +'<td class="'+pColor+' fw-semibold">'+(r.min_anticip_primera!=null?r.min_anticip_primera:' —')+'</td>'
-                            +'<td class="'+uColor+' fw-semibold">'+(r.min_anticip_ultima!=null?r.min_anticip_ultima:' —')+'</td>'
+                            +'<td>'+pTxt+'</td>'
+                            +'<td style="font-weight:700;'+uColor+'">'+(r.min_anticip_ultima!=null?r.min_anticip_ultima:'—')+'</td>'
                             +'</tr>';
                     }).join('');
                 }
