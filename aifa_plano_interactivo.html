@@ -13,6 +13,9 @@
 <link rel="stylesheet" href="https://unpkg.com/@geoman-io/leaflet-geoman-free@2/dist/leaflet-geoman.css">
 <script src="https://unpkg.com/@geoman-io/leaflet-geoman-free@2/dist/leaflet-geoman.min.js"></script>
 
+<!-- Supabase JS -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <!-- Tipografía -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -547,6 +550,10 @@ button{font-family:inherit;cursor:pointer}
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.4"/></svg>
     GeoJSON
   </button>
+  <button class="ebtn" id="eb-seed" title="Subir TODAS las instalaciones actuales a Supabase (sincronizar / sembrar DB)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M17 8l-5-5-5 5M5 21h14"/></svg>
+    Subir a DB
+  </button>
   <label class="ebtn" style="cursor:pointer" title="Importar JSON o GeoJSON">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M12 21V9M7 14l5-5 5 5M5 3h14"/></svg>
     Importar
@@ -629,6 +636,11 @@ const CONFIG = {
     opacidad:0.55
   }
 };
+
+/* Supabase */
+const SUPABASE_URL  = 'https://fgstncvuuhpgyzmjceyr.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZnc3RuY3Z1dWhwZ3l6bWpjZXlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4NzQ0NDQsImV4cCI6MjA4MTQ1MDQ0NH0.YEDIKuWt5iKUEI0BAvidINUz0aZBvQM0h6XRJ-uslB8';
+let $db = null;  /* cliente Supabase — nombre distinto para no chocar con variables locales */
 
 /* Categorías (id, etiqueta, color) */
 const CATS = {
@@ -810,6 +822,124 @@ let FACILITIES = [
    desc:'Conexión ferroviaria (Ramal Lechería–AIFA) y líneas 2 y 4 de Mexibús.', datos:[['Modos','Tren · Mexibús']]},
 ];
 
+/* ═══════════════ SUPABASE · lectura y escritura ═══════════════════ */
+
+async function loadFromSupabase(){
+  if(!$db) return;
+
+  // Nivel 1 (preferido): RPC get_all_instalaciones_geojson — incluye visible=false y geometría completa
+  try{
+    const {data: rpcData, error: rpcErr} = await $db.rpc('get_all_instalaciones_geojson');
+    if(!rpcErr && rpcData){
+      const gj = typeof rpcData === 'string' ? JSON.parse(rpcData) : rpcData;
+      const loaded = fromGeoJSON(gj);
+      if(loaded.length > 0){
+        FACILITIES = loaded;
+        console.log('[Plano] '+loaded.length+' instalaciones cargadas (RPC).');
+        return;
+      }
+      console.log('[Plano] RPC devuelve tabla vacía — usando datos locales.');
+      return;
+    }
+    console.warn('[Plano] RPC no disponible:', rpcErr?.message, '— probando vista...');
+  } catch(e){ console.warn('[Plano] RPC error:', e?.message); }
+
+  // Nivel 2: vista instalaciones_geojson (solo visible=true)
+  try{
+    const {data, error} = await $db.from('instalaciones_geojson').select('geojson');
+    if(!error){
+      const row = Array.isArray(data) ? data[0] : data;
+      const gj  = row ? (typeof row.geojson === 'string' ? JSON.parse(row.geojson) : row.geojson) : null;
+      if(gj){
+        const loaded = fromGeoJSON(gj);
+        if(loaded.length > 0){
+          FACILITIES = loaded;
+          console.log('[Plano] '+loaded.length+' instalaciones cargadas (vista geojson).');
+          return;
+        }
+        console.log('[Plano] Vista vacía — usando datos locales.');
+        return;
+      }
+    } else {
+      console.warn('[Plano] Vista no disponible:', error.message, '— probando tabla...');
+    }
+  } catch(e){ console.warn('[Plano] Vista error:', e?.message); }
+
+  // Nivel 3: tabla directa (solo lat/lng, sin geometría de zonas)
+  try{
+    const {data, error} = await $db
+      .from('instalaciones')
+      .select('clave,etiqueta,nombre,nombre_corto,categoria,tipo,estado,nivel_acceso,lado,descripcion,datos_clave,color,visible,lat,lng')
+      .order('orden');
+    if(error) throw error;
+    if(!data || !data.length){ console.log('[Plano] Tabla vacía — usando datos locales.'); return; }
+    const loaded = data.map(r=>({
+      id:r.clave, n:r.etiqueta||(r.tipo==='zona'?'★':'+'),
+      cat:(r.categoria&&CATS[r.categoria])?r.categoria:'servicios',
+      tipo:r.tipo||'punto',
+      coords:(r.tipo==='zona')?[]:[+(r.lat||0),+(r.lng||0)],
+      nombre:r.nombre||'(sin nombre)', nombre_corto:r.nombre_corto||'',
+      estado:r.estado||'operativo', nivel:r.nivel_acceso||'publico',
+      lado:r.lado||'', desc:r.descripcion||'',
+      datos:Array.isArray(r.datos_clave)?r.datos_clave:[],
+      color:r.color||'', visible:r.visible!==false
+    })).filter(f=>f.tipo==='punto'?(f.coords[0]||f.coords[1]):true);
+    if(loaded.length){ FACILITIES = loaded; console.log('[Plano] '+loaded.length+' instalaciones (tabla directa).'); }
+    else console.log('[Plano] Sin filas — usando datos locales.');
+  } catch(err){
+    console.error('[Plano] Error carga:', err?.message||err);
+    toast('Error al cargar desde Supabase — usando datos locales');
+  }
+}
+
+async function sbUpsertFac(fac, silent){
+  if(!$db) return;
+  let geometry;
+  if(fac.tipo === 'zona'){
+    const ring = (fac.coords||[]).map(c=>[+c[1],+c[0]]);
+    if(ring.length>1){ const a=ring[0],b=ring[ring.length-1]; if(a[0]!==b[0]||a[1]!==b[1]) ring.push([a[0],a[1]]); }
+    geometry = {type:'Polygon', coordinates:[ring]};
+  } else {
+    geometry = {type:'Point', coordinates:[+fac.coords[1],+fac.coords[0]]};
+  }
+  const {error} = await $db.rpc('upsert_instalacion',{
+    p_clave:        fac.id,
+    p_nombre:       fac.nombre,
+    p_categoria:    fac.cat,
+    p_tipo:         fac.tipo,
+    p_geojson_geom: JSON.stringify(geometry),
+    p_etiqueta:     (fac.n&&fac.n!=='+'&&fac.n!=='★') ? fac.n : null,
+    p_nombre_corto: fac.nombre_corto||null,
+    p_estado:       estadoKey(fac),
+    p_nivel_acceso: fac.nivel||'publico',
+    p_lado:         fac.lado||null,
+    p_descripcion:  fac.desc||null,
+    p_datos_clave:  JSON.stringify(fac.datos||[]),
+    p_color:        fac.color||null,
+    p_visible:      fac.visible!==false
+  });
+  if(!silent){
+    if(error){
+      const msg = error.message || '';
+      if(msg.includes('Could not find the function') || msg.includes('schema cache')){
+        toast('Ejecuta db/plano_interactivo_rpc.sql en Supabase para habilitar escritura');
+      } else {
+        toast('Error Supabase: '+msg);
+      }
+    } else {
+      toast('Guardado en Supabase ✓');
+    }
+  }
+  if(error) console.error('[Plano] sbUpsertFac:', error);
+}
+
+async function sbDeleteFac(clave){
+  if(!$db) return;
+  const {error} = await $db.rpc('delete_instalacion', { p_clave: clave });
+  if(error) toast('Error al eliminar: '+error.message);
+  else toast('Instalación eliminada ✓');
+}
+
 /* ════════════════════════════════════════════════════════════════════
    MAPA
    ════════════════════════════════════════════════════════════════════ */
@@ -877,11 +1007,11 @@ function buildLayers(){
     } else {
       layer = L.marker(fac.coords, {icon:pinIcon(fac,false), draggable:true, riseOnHover:true});
       layer.bindTooltip(fac.nombre,{className:'mk-label',direction:'top',offset:[0,-24]});
-      layer.on('dragend', e=>{
+      layer.on('dragend', async e=>{
         const ll = e.target.getLatLng();
         fac.coords = [ +ll.lat.toFixed(6), +ll.lng.toFixed(6) ];
         if(selectedId === fac.id) openDetail(fac);
-        toast('Posición actualizada — recuerda Exportar');
+        await sbUpsertFac(fac);
       });
     }
     layer.on('click', ()=>{ if(mode==='borrar') deleteFacility(fac.id); else selectFacility(fac.id); });
@@ -892,11 +1022,11 @@ function buildLayers(){
   applyDragState();
 }
 
-function syncZoneCoords(fac, layer){
+async function syncZoneCoords(fac, layer){
   let lls = layer.getLatLngs(); if(Array.isArray(lls[0])) lls = lls[0];
   fac.coords = lls.map(ll=>[ +ll.lat.toFixed(6), +ll.lng.toFixed(6) ]);
   if(selectedId === fac.id) openDetail(fac);
-  toast('Contorno actualizado — recuerda Exportar');
+  await sbUpsertFac(fac);
 }
 
 function refreshGroups(){
@@ -1118,7 +1248,7 @@ function addDatoRow(k, v){
   $('ed-datos').appendChild(row);
 }
 
-function saveEditor(){
+async function saveEditor(){
   const fac = (layerById[editingId] && layerById[editingId].fac) || FACILITIES.find(f=>f.id===editingId);
   if(!fac){ closeEditor(); return; }
   const nombre = $('ed-name').value.trim();
@@ -1148,17 +1278,17 @@ function saveEditor(){
   activeCats.add(fac.cat);
   closeEditor();
   buildLayers(); renderCats(); renderList(); selectFacility(fac.id);
-  toast('Cambios guardados — recuerda Exportar');
+  await sbUpsertFac(fac);
 }
 
-function deleteFacility(id){
+async function deleteFacility(id){
   const f = FACILITIES.find(x=>x.id===id); if(!f) return;
   if(!confirm('¿Eliminar «'+f.nombre+'» del plano?')) return;
   if(editingId===id){ editingId=null; $('editor').classList.remove('open'); }
   if(selectedId===id) closeDetail();
   FACILITIES = FACILITIES.filter(x=>x.id!==id);
   buildLayers(); renderCats(); renderList();
-  toast('Instalación eliminada');
+  await sbDeleteFac(id);
 }
 
 /* poblar los <select> del editor una sola vez */
@@ -1227,6 +1357,7 @@ function fromGeoJSON(gj){
       cat:(p.categoria && CATS[p.categoria]) ? p.categoria : 'servicios',
       tipo, coords,
       nombre: p.nombre || '(sin nombre)',
+      nombre_corto: p.nombre_corto || '',
       estado: p.estado || 'operativo',
       nivel:  p.nivel_acceso || p.nivel || 'publico',
       lado:   p.lado || '',
@@ -1254,6 +1385,18 @@ $('eb-import').onchange = (e)=>{
     }catch(err){ toast('Archivo no válido (usa JSON o GeoJSON)'); }
   };
   r.readAsText(file); e.target.value='';
+};
+
+$('eb-seed').onclick = async ()=>{
+  if(!$db){ toast('Supabase no disponible'); return; }
+  const total = FACILITIES.length;
+  if(!total){ toast('Sin datos para subir'); return; }
+  toast('Subiendo '+total+' instalaciones…');
+  let ok=0, fail=0;
+  for(const fac of FACILITIES){
+    try{ await sbUpsertFac(fac, true); ok++; } catch(e){ fail++; }
+  }
+  toast(ok+'/'+total+' instalaciones guardadas en Supabase'+(fail?' (⚠ '+fail+' errores)':' ✓')+'.');
 };
 
 /* ───── Cableado de botones (barra + detalle + editor) ───── */
@@ -1395,11 +1538,18 @@ function toast(msg){
 /* ════════════════════════════════════════════════════════════════════
    INIT
    ════════════════════════════════════════════════════════════════════ */
-buildLayers();
-renderCats();
-renderList();
-setTimeout(()=>document.getElementById('loader').classList.add('hide'), 650);
-map.whenReady(()=>document.getElementById('loader').classList.add('hide'));
+(async function(){
+  if(window.supabase && window.supabase.createClient){
+    $db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+    try{ await $db.auth.getSession(); }catch(_){}
+  }
+  await loadFromSupabase();
+  buildLayers();
+  renderCats();
+  renderList();
+  setTimeout(()=>document.getElementById('loader').classList.add('hide'), 650);
+  map.whenReady(()=>document.getElementById('loader').classList.add('hide'));
+})();
 </script>
 </body>
 </html>
