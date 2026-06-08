@@ -13799,6 +13799,35 @@ body.dark-mode #yoy-insights-list li {
     0%, 100% { opacity: .5; }
     50% { opacity: 1; }
 }
+.ag-tb-actions {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+}
+
+#mapa-interactivo-section {
+    display: none;
+}
+#mapa-interactivo-section.active {
+    display: block;
+    position: fixed;
+    top: 160px; /* overridden by JS measurement */
+    left: var(--sidebar-width);
+    right: 0;
+    bottom: 0;
+    z-index: 500;
+    transition: left 0.3s ease;
+    animation: none !important;  /* suppress fadeIn: its transform breaks fixed positioning */
+    transform: none !important;
+}
+body.sidebar-collapsed #mapa-interactivo-section.active {
+    left: 0;
+}
+@media (max-width: 991.98px) {
+    #mapa-interactivo-section.active {
+        left: 0;
+    }
+}
 /* HOY / MAÑANA as solid pill badges */
 .ag-tb-day-label {
     display: inline-flex;

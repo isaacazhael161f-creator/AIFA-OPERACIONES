@@ -43,7 +43,7 @@
 
   let _data        = null;
   let _allYearData = [];
-  let _minFlights  = 30;
+  let _minFlights  = 20;
   let _viewMode    = 'monthly';
   let _selectedMonth = null;
   let _selectedYear  = null;
@@ -111,9 +111,36 @@
       btnAnnual.classList.toggle('btn-outline-primary',  mode !== 'annual');
     }
     if (monthDiv) monthDiv.style.display = mode === 'monthly' ? '' : 'none';
+    const section = document.getElementById('puntualidad-agosto-section');
+    const pane = document.getElementById('punc-interactivo-pane');
+    if (section) section.dataset.puncView = mode;
+    if (pane) {
+      pane.classList.toggle('punc-view-annual', mode === 'annual');
+      pane.classList.toggle('punc-view-monthly', mode !== 'annual');
+    }
     _monthlyWins = _computeMonthlyWins(_allYearData);
     _applyViewFilter();
   };
+
+  function updatePuncModeHero() {
+    const badge = document.getElementById('punc-mode-badge');
+    const title = document.getElementById('punc-mode-title');
+    const note = document.getElementById('punc-mode-note');
+    if (!badge || !title || !note) return;
+
+    const monthName = (_selectedMonth >= 1 && _selectedMonth <= 12) ? MONTH_NAMES[_selectedMonth - 1] : 'Periodo';
+    const yearLabel = _selectedYear || new Date().getFullYear();
+
+    if (_viewMode === 'annual') {
+      badge.innerHTML = '<i class="fas fa-layer-group me-1"></i>Vista anual acumulada';
+      title.textContent = `Consolidado ${yearLabel} con ponderacion por volumen`;
+      note.textContent = `Integra ${_totalMonths || 0} ${(_totalMonths || 0) === 1 ? 'mes disponible' : 'meses disponibles'} y destaca consistencia con el indicador Meses #1.`;
+    } else {
+      badge.innerHTML = '<i class="fas fa-calendar-day me-1"></i>Vista mensual';
+      title.textContent = `${monthName} ${yearLabel} · Corte operativo`; 
+      note.textContent = 'Muestra el rendimiento puntual del mes seleccionado para comparar aerolineas en condiciones del mismo periodo.';
+    }
+  }
 
   function _applyViewFilter() {
     let source;
@@ -151,6 +178,8 @@
         total_imputables:      (row.total_imputable     !== undefined && row.total_imputable     !== null) ? row.total_imputable     : null
       };
     });
+
+    updatePuncModeHero();
 
     renderTopLists();
     renderTable();
@@ -313,10 +342,12 @@
       const el = document.getElementById(elId);
       if (!el) return;
       el.innerHTML = '';
-      items.forEach(r => {
+      items.forEach((r, idx) => {
         const pct = parsePercent(r.puntualidad);
+        const pctClamped = Math.max(0, Math.min(100, pct));
+        const rank = idx + 1;
         const li  = document.createElement('li');
-        li.className = 'd-flex align-items-center justify-content-between gap-2 mb-1';
+        li.className = `punc-airline-row rank-${rank}`;
         const logo = logoHtmlFor(r.aerolinea);
 
         let winsBadge = '';
@@ -327,11 +358,13 @@
         }
 
         li.innerHTML = `
-          <span class="airline-header d-flex align-items-center gap-2 text-truncate" title="${r.aerolinea}">${logo}<span class="airline-name">${r.aerolinea}</span>${winsBadge}</span>
-          <span class="d-flex align-items-center gap-2">
+          <span class="punc-rank-pill punc-rank-${rank}" aria-label="Posicion ${rank}">#${rank}</span>
+          <span class="airline-header punc-airline-main" title="${r.aerolinea}">${logo}<span class="airline-name">${r.aerolinea}</span>${winsBadge}</span>
+          <span class="punc-airline-metrics">
             <span class="badge ${clsForPct(pct)}">${pct.toFixed(1)}%</span>
             <span class="small text-muted">(${r.total} vuelos)</span>
-          </span>`;
+          </span>
+          <span class="punc-airline-track" aria-hidden="true"><span style="width:${pctClamped}%;"></span></span>`;
         el.appendChild(li);
       });
     }
@@ -349,31 +382,150 @@
   function renderTopCharts({ paxBest, paxWorst, cargoBest, cargoWorst }) {
     if (!window.Chart) return;
     const charts = window._puncCharts = window._puncCharts || {};
+    const dark = document.body.classList.contains('dark-mode');
+    const gridColor = dark ? 'rgba(148, 163, 184, 0.22)' : 'rgba(148, 163, 184, 0.28)';
+    const axisColor = dark ? '#cbd5e1' : '#475569';
+    const thresholdColor = dark ? '#fbbf24' : '#b45309';
+
+    const puncGuidePlugin = {
+      id: 'puncGuidePlugin',
+      afterDatasetsDraw(chart, _args, pluginOptions) {
+        const xScale = chart.scales?.x;
+        const yScale = chart.scales?.y;
+        if (!xScale || !yScale) return;
+        const threshold = Number(pluginOptions?.threshold ?? THRESHOLD);
+        const ctx = chart.ctx;
+        const chartArea = chart.chartArea;
+        if (!ctx || !chartArea) return;
+
+        const lineX = xScale.getPixelForValue(threshold);
+        ctx.save();
+        ctx.setLineDash([5, 4]);
+        ctx.strokeStyle = pluginOptions?.thresholdColor || thresholdColor;
+        ctx.lineWidth = 1.4;
+        ctx.beginPath();
+        ctx.moveTo(lineX, chartArea.top + 2);
+        ctx.lineTo(lineX, chartArea.bottom - 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = pluginOptions?.thresholdColor || thresholdColor;
+        ctx.font = '700 10px Poppins, Nunito Sans, Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText(`Umbral ${threshold}%`, lineX, chartArea.top - 6);
+
+        const dataset = chart.data?.datasets?.[0];
+        if (dataset && Array.isArray(dataset.data)) {
+          dataset.data.forEach((value, idx) => {
+            const v = Number(value) || 0;
+            const px = xScale.getPixelForValue(v);
+            const py = yScale.getPixelForValue(chart.data.labels[idx]);
+            const isInsideBar = v >= 88;
+            const valueText = `${v.toFixed(1)}%`;
+            ctx.font = '800 10px Poppins, Nunito Sans, Arial';
+            ctx.textAlign = isInsideBar ? 'right' : 'left';
+            ctx.textBaseline = 'middle';
+            const textX = isInsideBar ? (px - 8) : (px + 8);
+
+            if (isInsideBar) {
+              // Strong contrast when drawing over the colored bar.
+              ctx.strokeStyle = dark ? 'rgba(2, 6, 23, 0.7)' : 'rgba(15, 23, 42, 0.55)';
+              ctx.lineWidth = 2.6;
+              ctx.strokeText(valueText, textX, py);
+              ctx.fillStyle = '#ffffff';
+            } else {
+              ctx.fillStyle = pluginOptions?.labelColor || (dark ? '#e2e8f0' : '#334155');
+            }
+
+            ctx.fillText(valueText, textX, py);
+          });
+        }
+        ctx.restore();
+      }
+    };
+
     function destroy(id) { try { if (charts[id]) { charts[id].destroy(); charts[id] = null; } } catch (_) { } }
-    function mk(canvasId, items, color) {
+    function mk(canvasId, items, colorsByRank) {
       const el = document.getElementById(canvasId); if (!el) return;
       const labels = items.map(r => r.aerolinea);
       const data   = items.map(r => parsePercent(r.puntualidad));
       destroy(canvasId);
       charts[canvasId] = new Chart(el.getContext('2d'), {
         type: 'bar',
-        data: { labels, datasets: [{ label: 'Puntualidad %', data, backgroundColor: color, borderRadius: 6 }] },
+        data: {
+          labels,
+          datasets: [{
+            label: 'Puntualidad %',
+            data,
+            backgroundColor: (ctx) => {
+              const i = ctx.dataIndex || 0;
+              return colorsByRank[i] || colorsByRank[colorsByRank.length - 1];
+            },
+            borderColor: dark ? 'rgba(255,255,255,0.22)' : 'rgba(15,23,42,0.16)',
+            borderWidth: 1,
+            borderRadius: 8,
+            borderSkipped: false,
+            barThickness: 28,
+            maxBarThickness: 30
+          }]
+        },
+        plugins: [puncGuidePlugin],
         options: {
           indexAxis: 'y',
           maintainAspectRatio: false,
           responsive: true,
-          plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => `${ctx.parsed.x.toFixed(1)}%` } } },
+          layout: { padding: { top: 14, right: 6, left: 2, bottom: 2 } },
+          plugins: {
+            legend: { display: false },
+            datalabels: { display: false },
+            tooltip: {
+              callbacks: {
+                label: ctx => `${ctx.parsed.x.toFixed(1)}%`,
+                afterLabel: ctx => `Posicion #${ctx.dataIndex + 1}`
+              }
+            },
+            puncGuidePlugin: {
+              threshold: THRESHOLD,
+              thresholdColor,
+              labelColor: axisColor
+            }
+          },
           scales: {
-            x: { suggestedMin: 0, suggestedMax: 100, ticks: { callback: v => v + '%' } },
-            y: { ticks: { autoSkip: false, maxRotation: 0, minRotation: 0 } }
+            x: {
+              suggestedMin: 0,
+              suggestedMax: 100,
+              ticks: {
+                callback: v => v + '%',
+                color: axisColor,
+                stepSize: 20,
+                font: { weight: '600' }
+              },
+              grid: { color: gridColor }
+            },
+            y: {
+              ticks: {
+                autoSkip: false,
+                maxRotation: 0,
+                minRotation: 0,
+                color: axisColor,
+                font: { weight: '700' }
+              },
+              grid: { display: false }
+            }
           }
         }
       });
     }
-    mk('punc-pax-best-chart',    paxBest,    'rgba(25,135,84,0.7)');
-    mk('punc-pax-worst-chart',   paxWorst,   'rgba(220,53,69,0.7)');
-    mk('punc-cargo-best-chart',  cargoBest,  'rgba(25,135,84,0.7)');
-    mk('punc-cargo-worst-chart', cargoWorst, 'rgba(220,53,69,0.7)');
+    const isAnnual = _viewMode === 'annual';
+    const bestColors = isAnnual
+      ? ['rgba(30,64,175,0.9)', 'rgba(37,99,235,0.82)', 'rgba(96,165,250,0.76)']
+      : ['rgba(5,150,105,0.9)', 'rgba(16,185,129,0.82)', 'rgba(52,211,153,0.76)'];
+    const worstColors = isAnnual
+      ? ['rgba(217,119,6,0.92)', 'rgba(245,158,11,0.84)', 'rgba(251,191,36,0.78)']
+      : ['rgba(185,28,28,0.9)', 'rgba(220,38,38,0.84)', 'rgba(248,113,113,0.78)'];
+    mk('punc-pax-best-chart',    paxBest,    bestColors);
+    mk('punc-pax-worst-chart',   paxWorst,   worstColors);
+    mk('punc-cargo-best-chart',  cargoBest,  bestColors);
+    mk('punc-cargo-worst-chart', cargoWorst, worstColors);
   }
 
   // ─── DETAIL TABLE ─────────────────────────────────────────────────────────────
@@ -396,12 +548,12 @@
       container.appendChild(header);
 
       const table = document.createElement('table');
-      table.className = 'table table-hover align-middle mb-4';
+      table.className = 'table table-hover align-middle text-center mb-4';
 
       const imputableHeaders = hasImputables
-        ? `<th class="text-end" title="Demoras imputables a la aerolínea">Imp. Aerolínea</th>
-           <th class="text-end" title="Cancelados imputables a la aerolínea">Canc. Imputables</th>
-           <th class="text-end" title="Total imputables a la aerolínea">Total Imputables</th>`
+        ? `<th class="text-center" title="Demoras imputables a la aerolínea">Imp. Aerolínea</th>
+          <th class="text-center" title="Cancelados imputables a la aerolínea">Canc. Imputables</th>
+          <th class="text-center" title="Total imputables a la aerolínea">Total Imputables</th>`
         : '';
 
       const winsHeader = isAnnual
@@ -413,12 +565,12 @@
       table.innerHTML = `
         <thead class="table-light">
           <tr>
-            <th>Aerolínea</th>
-            <th class="text-end">A tiempo</th>
-            <th class="text-end">Demora</th>
-            <th class="text-end">Cancelado</th>
-            <th class="text-end">Total</th>${imputableHeaders}${winsHeader}
-            <th style="min-width:160px;">Puntualidad</th>
+            <th class="text-center">Aerolínea</th>
+            <th class="text-center">A tiempo</th>
+            <th class="text-center">Demora</th>
+            <th class="text-center">Cancelado</th>
+            <th class="text-center">Total</th>${imputableHeaders}${winsHeader}
+            <th class="text-center" style="min-width:160px;">Puntualidad</th>
           </tr>
         </thead>
         <tbody></tbody>`;
@@ -445,26 +597,27 @@
           } catch (_) { }
 
           const imputableCells = hasImputables
-            ? `<td class="text-end">${r.imputable_aerolinea   !== null ? Number(r.imputable_aerolinea   || 0) : '—'}</td>
-               <td class="text-end">${r.cancelados_imputables !== null ? Number(r.cancelados_imputables || 0) : '—'}</td>
-               <td class="text-end">${r.total_imputables      !== null ? Number(r.total_imputables      || 0) : '—'}</td>`
+            ? `<td class="text-center">${r.imputable_aerolinea   !== null ? Number(r.imputable_aerolinea   || 0) : '—'}</td>
+              <td class="text-center">${r.cancelados_imputables !== null ? Number(r.cancelados_imputables || 0) : '—'}</td>
+              <td class="text-center">${r.total_imputables      !== null ? Number(r.total_imputables      || 0) : '—'}</td>`
             : '';
 
           let winsCell = '';
           if (isAnnual) {
-            const wins = _monthlyWins[`${r.aerolinea}|||${cat}`] || 0;
+            const canonKey = normalizeAirlineName(canonicalizeAirline(r.aerolinea));
+            const wins = _monthlyWins[`${canonKey}|||${cat}`] || 0;
             winsCell   = `<td class="text-center">${wins > 0
               ? `<span class="badge bg-warning text-dark"><i class="fas fa-trophy me-1"></i>${wins}/${_totalMonths}</span>`
               : '<span class="text-muted">—</span>'}</td>`;
           }
 
           tr.innerHTML = `
-            <td><div class="airline-cell">${logoHtml}<span class="airline-name">${r.aerolinea || ''}</span></div></td>
-            <td class="text-end">${Number(r.a_tiempo  || 0)}</td>
-            <td class="text-end">${Number(r.demora    || 0)}</td>
-            <td class="text-end">${Number(r.cancelado || 0)}</td>
-            <td class="text-end">${Number(r.total     || 0)}</td>${imputableCells}${winsCell}
-            <td>
+            <td class="text-center"><div class="airline-cell">${logoHtml}<span class="airline-name">${r.aerolinea || ''}</span></div></td>
+            <td class="text-center">${Number(r.a_tiempo  || 0)}</td>
+            <td class="text-center">${Number(r.demora    || 0)}</td>
+            <td class="text-center">${Number(r.cancelado || 0)}</td>
+            <td class="text-center">${Number(r.total     || 0)}</td>${imputableCells}${winsCell}
+            <td class="text-center">
               <div class="progress" style="height: 18px;">
                 <div class="progress-bar ${clsForPct(pct)}" role="progressbar" style="width: ${Math.max(0, Math.min(100, pct))}%">${pct.toFixed(1)}%</div>
               </div>
@@ -518,6 +671,11 @@
 
     const toggleWorstBtn  = document.getElementById('puntualidad-toggle-worst');
     const interactivePane = document.getElementById('punc-interactivo-pane');
+    const section = document.getElementById('puntualidad-agosto-section');
+    if (section) section.dataset.puncView = _viewMode;
+    if (interactivePane) {
+      interactivePane.classList.add('punc-view-monthly');
+    }
     if (toggleWorstBtn && interactivePane) {
       const updateToggleUi = () => {
         const showing = interactivePane.classList.contains('punc-show-worst');

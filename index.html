@@ -1061,6 +1061,12 @@ FF
 
                 <span class="ag-tb-hint" aria-hidden="true"><i class="fas fa-calendar-alt"></i> Ver agenda</span>
             </div>
+            <div class="ag-tb-actions ms-auto">
+                <button id="btn-mapa-interactivo" class="btn btn-sm btn-outline-primary d-flex align-items-center gap-1" onclick="toggleMapaInteractivo()" title="Abrir Mapa Interactivo del Aeropuerto">
+                    <i class="fas fa-map-marked-alt"></i>
+                    <span class="d-none d-md-inline">Mapa Interactivo</span>
+                </button>
+            </div>
         </div>
         <!-- ------------------------------------------------------- -->
 
@@ -1439,6 +1445,11 @@ FF
             <!-- Overlay para dispositivos móviles: permite cerrar el sidebar al tocar fuera -->
             <div id="sidebar-overlay" class="sidebar-overlay"></div>
             <main class="main-content flex-grow-1 p-3 p-md-4">
+                <!-- Mapa Interactivo Section -->
+                <div id="mapa-interactivo-section" class="content-section">
+                    <iframe id="mapa-interactivo-iframe" src="" style="position:absolute;top:0;left:0;width:100%;height:100%;border:none;"></iframe>
+                </div>
+
                 <!-- Alerts moved to fixed position -->
                 <div id="file-protocol-warning" class="alert alert-warning alert-dismissible fade show d-none"
                     role="alert">
@@ -30768,9 +30779,62 @@ window.AeropuertosModule = (function () {
     </div>
 </div>
 
+<script>
+(function() {
+    var _mapaActiveSectionKey = null;
+    var _mapaActiveSectionEl  = null;
+
+    window.toggleMapaInteractivo = function() {
+        var section = document.getElementById('mapa-interactivo-section');
+        var iframe  = document.getElementById('mapa-interactivo-iframe');
+        var btn     = document.getElementById('btn-mapa-interactivo');
+        var isOpen  = section.classList.contains('active');
+
+        if (isOpen) {
+            // Close: restore previous section
+            section.classList.remove('active');
+            iframe.src = '';
+            if (btn) btn.classList.remove('active');
+            if (_mapaActiveSectionEl) {
+                _mapaActiveSectionEl.classList.add('active');
+            } else if (typeof showSection === 'function' && _mapaActiveSectionKey) {
+                showSection(_mapaActiveSectionKey);
+            }
+            _mapaActiveSectionKey = null;
+            _mapaActiveSectionEl  = null;
+        } else {
+            // Measure top offset (header + agenda bar bottom)
+            var agBar = document.getElementById('ag-today-bar');
+            var topPx = agBar ? (agBar.getBoundingClientRect().bottom) : 160;
+            section.style.top = topPx + 'px';
+
+            // Save currently active section
+            _mapaActiveSectionEl  = document.querySelector('.content-section.active');
+            _mapaActiveSectionKey = typeof getActiveSectionKey === 'function' ? getActiveSectionKey() : null;
+            // Hide all sections, show mapa
+            document.querySelectorAll('.content-section').forEach(function(s) { s.classList.remove('active'); });
+            section.classList.add('active');
+            iframe.src = 'aifa_plano_interactivo.html';
+            if (btn) btn.classList.add('active');
+        }
+    };
+
+    // When any sidebar link navigates away, unload the iframe and reset button state
+    document.addEventListener('click', function(e) {
+        var menuItem = e.target.closest('.menu-item[data-section]');
+        if (!menuItem) return;
+        var iframe = document.getElementById('mapa-interactivo-iframe');
+        var btn    = document.getElementById('btn-mapa-interactivo');
+        if (iframe) iframe.src = '';
+        if (btn) btn.classList.remove('active');
+        _mapaActiveSectionKey = null;
+        _mapaActiveSectionEl  = null;
+    });
+})();
+</script>
+
 </body>
 </html>
-
 
 
 

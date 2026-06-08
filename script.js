@@ -2408,6 +2408,7 @@ const airlineLogoFileMap = {
     'cathay pacific': ['logo_cathay_pacific.png', 'logo_cathay.png'],
     'conviasa': ['logo_conviasa.png'],
     'estafeta': ['logo_estafeta.jpg'],
+    'atlas air': ['logo_atlas_air.png'],
     'ethiopian airlines': ['logo_ethiopian_airlines.png'],
     'kalitta air': ['logo_kalitta_air.jpg', 'logo_kalitta.png'],
     'lufthansa': ['logo_lufthansa.png'],

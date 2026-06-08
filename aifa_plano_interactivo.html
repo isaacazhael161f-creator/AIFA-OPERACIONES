@@ -1,0 +1,1405 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+<title>AIFA · Plano Interactivo de Instalaciones</title>
+
+<!-- Leaflet (CDN). Para una instalación interna/offline puede auto-hospedar estos archivos. -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+
+<!-- Leaflet-Geoman (edición de puntos y polígonos "a placer"). También auto-hospedable. -->
+<link rel="stylesheet" href="https://unpkg.com/@geoman-io/leaflet-geoman-free@2/dist/leaflet-geoman.css">
+<script src="https://unpkg.com/@geoman-io/leaflet-geoman-free@2/dist/leaflet-geoman.min.js"></script>
+
+<!-- Tipografía -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Saira:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --bg:#0c1118;
+  --panel:#121a24;
+  --panel-2:#0f1620;
+  --panel-soft:#172230;
+  --line:#23303f;
+  --line-soft:#1a2632;
+  --txt:#e7edf3;
+  --txt-dim:#9bb0c2;
+  --txt-faint:#6a7e90;
+  --accent:#f4b740;        /* dorado AIFA/SEDENA */
+  --accent-2:#38bdf8;      /* cian operativo */
+  --danger:#f87171;
+  --ok:#34d399;
+  --radius:12px;
+  --shadow:0 18px 50px -12px rgba(0,0,0,.65);
+  --mono:'DM Mono',ui-monospace,monospace;
+
+  /* Colores por categoría */
+  --c-operacion:#38bdf8;
+  --c-terminal:#fbbf24;
+  --c-carga:#a855f7;
+  --c-servicios:#22c55e;
+  --c-comercial:#ec4899;
+  --c-militar:#ef4444;
+  --c-accesos:#f97316;
+}
+
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{
+  font-family:'Saira',system-ui,sans-serif;
+  background:var(--bg);
+  color:var(--txt);
+  overflow:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+button{font-family:inherit;cursor:pointer}
+::selection{background:rgba(244,183,64,.3)}
+
+/* Scrollbars */
+*::-webkit-scrollbar{width:9px;height:9px}
+*::-webkit-scrollbar-thumb{background:#27384a;border-radius:10px}
+*::-webkit-scrollbar-track{background:transparent}
+
+/* ───────────── Topbar ───────────── */
+.topbar{
+  position:fixed;top:0;left:0;right:0;height:58px;z-index:1200;
+  display:flex;align-items:center;gap:18px;padding:0 18px;
+  background:linear-gradient(180deg,rgba(12,17,24,.96),rgba(12,17,24,.82));
+  border-bottom:1px solid var(--line);
+  backdrop-filter:blur(10px);
+}
+.brand{display:flex;align-items:center;gap:12px;min-width:0}
+.brand__mark{
+  width:36px;height:36px;border-radius:9px;flex:0 0 auto;
+  display:grid;place-items:center;
+  background:radial-gradient(120% 120% at 30% 20%,#1e2b3a,#0c141d);
+  border:1px solid var(--line);box-shadow:inset 0 0 0 1px rgba(244,183,64,.12);
+}
+.brand__mark svg{width:20px;height:20px;color:var(--accent)}
+.brand__txt{display:flex;flex-direction:column;line-height:1.05;min-width:0}
+.brand__txt b{font-size:15px;font-weight:600;letter-spacing:.4px}
+.brand__txt span{font-size:10.5px;color:var(--txt-faint);letter-spacing:1.4px;text-transform:uppercase}
+
+.search{position:relative;margin-left:auto;width:min(340px,40vw)}
+.search input{
+  width:100%;height:38px;border-radius:9px;border:1px solid var(--line);
+  background:var(--panel-2);color:var(--txt);font-size:13.5px;
+  padding:0 14px 0 38px;outline:none;transition:.15s;
+}
+.search input::placeholder{color:var(--txt-faint)}
+.search input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(244,183,64,.12)}
+.search svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:var(--txt-faint)}
+
+.topbtn{
+  height:38px;padding:0 14px;border-radius:9px;border:1px solid var(--line);
+  background:var(--panel-2);color:var(--txt-dim);font-size:12.5px;font-weight:500;
+  display:inline-flex;align-items:center;gap:7px;letter-spacing:.3px;transition:.15s;white-space:nowrap;
+}
+.topbtn:hover{border-color:#34465a;color:var(--txt)}
+.topbtn svg{width:15px;height:15px}
+.topbtn.is-on{background:var(--accent);color:#1a1205;border-color:var(--accent);font-weight:600}
+
+/* ───────────── Layout ───────────── */
+#map{position:fixed;top:58px;left:0;right:0;bottom:0;background:#0a0f15}
+.leaflet-container{background:#0a0f15;font-family:'Saira',sans-serif}
+
+/* Panel izquierdo */
+.sidebar{
+  position:fixed;top:74px;left:14px;z-index:1100;width:312px;max-height:calc(100vh - 92px);
+  background:linear-gradient(180deg,var(--panel),var(--panel-2));
+  border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);
+  display:flex;flex-direction:column;overflow:hidden;transition:transform .25s ease,opacity .2s;
+}
+.sidebar.collapsed{transform:translateX(-340px);opacity:0;pointer-events:none}
+.sidebar__scroll{overflow-y:auto;padding:4px 0}
+.sec{padding:13px 16px;border-bottom:1px solid var(--line-soft)}
+.sec:last-child{border-bottom:none}
+.sec__title{
+  font-size:10.5px;font-weight:600;letter-spacing:1.6px;text-transform:uppercase;
+  color:var(--txt-faint);margin:0 0 11px;display:flex;align-items:center;gap:7px;
+}
+.sec__title .dot{width:5px;height:5px;border-radius:50%;background:var(--accent)}
+
+/* Selector de capas (segmentado) */
+.seg{display:flex;background:var(--panel-2);border:1px solid var(--line);border-radius:9px;padding:3px;gap:3px}
+.seg button{
+  flex:1;height:30px;border:none;background:transparent;color:var(--txt-dim);
+  font-size:12px;font-weight:500;border-radius:6px;letter-spacing:.3px;transition:.12s;
+}
+.seg button:hover{color:var(--txt)}
+.seg button.active{background:var(--panel-soft);color:var(--accent);box-shadow:inset 0 0 0 1px var(--line)}
+
+.toggle{display:flex;align-items:center;justify-content:space-between;margin-top:11px;font-size:12.5px;color:var(--txt-dim)}
+.switch{position:relative;width:38px;height:21px;flex:0 0 auto}
+.switch input{opacity:0;width:0;height:0;position:absolute}
+.switch .track{position:absolute;inset:0;background:#26323f;border-radius:20px;transition:.18s}
+.switch .track::before{content:"";position:absolute;left:2px;top:2px;width:17px;height:17px;background:#7e93a6;border-radius:50%;transition:.18s}
+.switch input:checked + .track{background:rgba(56,189,248,.35)}
+.switch input:checked + .track::before{transform:translateX(17px);background:var(--accent-2)}
+.slider-row{display:flex;align-items:center;gap:10px;margin-top:10px}
+.slider-row input[type=range]{flex:1;accent-color:var(--accent)}
+.slider-row .v{font-family:var(--mono);font-size:11px;color:var(--txt-faint);width:34px;text-align:right}
+
+/* Categorías / leyenda */
+.cat{
+  display:flex;align-items:center;gap:10px;width:100%;padding:7px 9px;margin:2px 0;
+  background:transparent;border:1px solid transparent;border-radius:8px;color:var(--txt);
+  font-size:12.8px;text-align:left;transition:.12s;
+}
+.cat:hover{background:var(--panel-soft)}
+.cat.off{opacity:.4}
+.cat .chip{width:13px;height:13px;border-radius:4px;flex:0 0 auto;box-shadow:0 0 0 1px rgba(255,255,255,.15)}
+.cat .name{flex:1;letter-spacing:.2px}
+.cat .count{font-family:var(--mono);font-size:10.5px;color:var(--txt-faint);background:var(--panel-2);padding:1px 7px;border-radius:20px}
+.cat .eye{width:14px;height:14px;color:var(--txt-faint)}
+.cat.off .eye{color:var(--txt-faint)}
+
+.minirow{display:flex;gap:8px;margin-top:10px}
+.minibtn{flex:1;height:30px;border:1px solid var(--line);background:var(--panel-2);color:var(--txt-dim);border-radius:8px;font-size:11.5px;letter-spacing:.3px;transition:.12s}
+.minibtn:hover{color:var(--txt);border-color:#34465a}
+
+/* Lista de instalaciones */
+.list{display:flex;flex-direction:column;gap:3px}
+.item{
+  display:flex;align-items:center;gap:10px;padding:8px 9px;border-radius:8px;
+  border:1px solid transparent;background:transparent;text-align:left;width:100%;transition:.12s;color:var(--txt);
+}
+.item:hover{background:var(--panel-soft);border-color:var(--line)}
+.item.active{background:rgba(244,183,64,.1);border-color:rgba(244,183,64,.4)}
+.item__badge{
+  width:24px;height:24px;border-radius:6px;flex:0 0 auto;display:grid;place-items:center;
+  font-family:var(--mono);font-size:10.5px;font-weight:500;color:#0b0f14;
+}
+.item__t{display:flex;flex-direction:column;min-width:0;line-height:1.2}
+.item__t b{font-size:12.8px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item__t span{font-size:10.5px;color:var(--txt-faint)}
+.list-empty{padding:18px 6px;text-align:center;color:var(--txt-faint);font-size:12px}
+
+/* Panel de detalle (derecha) */
+.detail{
+  position:fixed;top:74px;right:14px;z-index:1100;width:360px;max-width:calc(100vw - 28px);
+  max-height:calc(100vh - 92px);background:linear-gradient(180deg,var(--panel),var(--panel-2));
+  border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);
+  transform:translateX(420px);opacity:0;pointer-events:none;transition:transform .28s cubic-bezier(.2,.8,.2,1),opacity .2s;
+  display:flex;flex-direction:column;overflow:hidden;
+}
+.detail.open{transform:none;opacity:1;pointer-events:auto}
+.detail__head{position:relative;padding:18px 18px 16px;border-bottom:1px solid var(--line)}
+.detail__bar{position:absolute;top:0;left:0;right:0;height:4px}
+.detail__close{
+  position:absolute;top:13px;right:13px;width:30px;height:30px;border-radius:8px;
+  border:1px solid var(--line);background:var(--panel-2);color:var(--txt-dim);display:grid;place-items:center;transition:.12s;
+}
+.detail__close:hover{color:var(--txt);border-color:#34465a}
+.detail__num{font-family:var(--mono);font-size:12px;color:var(--txt-faint);letter-spacing:1px}
+.detail__name{font-size:20px;font-weight:600;margin:6px 0 12px;line-height:1.15;padding-right:34px}
+.detail__chips{display:flex;flex-wrap:wrap;gap:7px}
+.dchip{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:500;letter-spacing:.4px;padding:4px 10px;border-radius:20px;background:var(--panel-2);border:1px solid var(--line);color:var(--txt-dim)}
+.dchip .d{width:8px;height:8px;border-radius:50%}
+.dchip.estado{color:var(--ok);border-color:rgba(52,211,153,.3);background:rgba(52,211,153,.08)}
+.dchip.estado.plan{color:var(--accent-2);border-color:rgba(56,189,248,.3);background:rgba(56,189,248,.08)}
+
+.detail__body{overflow-y:auto;padding:16px 18px}
+.detail__desc{font-size:13.5px;line-height:1.6;color:var(--txt-dim);margin:0 0 16px}
+.kv{display:grid;grid-template-columns:1fr;gap:1px;background:var(--line-soft);border:1px solid var(--line-soft);border-radius:9px;overflow:hidden;margin-bottom:16px}
+.kv__row{display:flex;justify-content:space-between;gap:14px;padding:9px 12px;background:var(--panel-2)}
+.kv__row dt{font-size:11.5px;color:var(--txt-faint);letter-spacing:.3px}
+.kv__row dd{font-size:12.5px;color:var(--txt);margin:0;text-align:right;font-weight:500}
+.coordbox{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  background:var(--panel-2);border:1px solid var(--line);border-radius:9px;padding:10px 12px;margin-bottom:14px;
+}
+.coordbox .lbl{font-size:10px;color:var(--txt-faint);letter-spacing:1px;text-transform:uppercase}
+.coordbox .val{font-family:var(--mono);font-size:12.5px;color:var(--accent)}
+.coordbox button{border:none;background:transparent;color:var(--txt-faint);display:grid;place-items:center;width:26px;height:26px;border-radius:6px;transition:.12s}
+.coordbox button:hover{background:var(--panel-soft);color:var(--txt)}
+.detail__actions{display:flex;gap:8px}
+.act{flex:1;height:40px;border-radius:9px;border:1px solid var(--line);background:var(--panel-2);color:var(--txt);font-size:12.5px;font-weight:500;display:inline-flex;align-items:center;justify-content:center;gap:7px;transition:.12s}
+.act:hover{border-color:#34465a}
+.act.primary{background:var(--accent);color:#1a1205;border-color:var(--accent);font-weight:600}
+.act.danger{color:var(--danger);border-color:rgba(248,113,113,.3)}
+.act.danger:hover{background:rgba(248,113,113,.1)}
+.act svg{width:15px;height:15px}
+
+/* Barra de edición */
+.editbar{
+  position:fixed;left:50%;bottom:18px;transform:translateX(-50%) translateY(120px);z-index:1150;
+  background:linear-gradient(180deg,var(--panel),var(--panel-2));border:1px solid var(--accent);
+  border-radius:12px;box-shadow:var(--shadow);padding:11px 14px;display:flex;align-items:center;gap:12px;
+  transition:transform .25s ease;max-width:calc(100vw - 28px);
+}
+.editbar.show{transform:translateX(-50%)}
+.editbar .tag{display:inline-flex;align-items:center;gap:7px;font-size:11px;font-weight:600;letter-spacing:.6px;color:var(--accent);text-transform:uppercase}
+.editbar .tag .pulse{width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 0 rgba(244,183,64,.6);animation:pulse 1.6s infinite}
+@keyframes pulse{70%{box-shadow:0 0 0 9px rgba(244,183,64,0)}100%{box-shadow:0 0 0 0 rgba(244,183,64,0)}}
+.editbar .sep{width:1px;height:24px;background:var(--line)}
+.ebtn{height:34px;padding:0 13px;border-radius:8px;border:1px solid var(--line);background:var(--panel-2);color:var(--txt);font-size:12px;font-weight:500;display:inline-flex;align-items:center;gap:7px;transition:.12s}
+.ebtn:hover{border-color:#34465a}
+.ebtn.green{color:var(--ok);border-color:rgba(52,211,153,.35)}
+.ebtn.on{background:var(--accent);color:#1a1205;border-color:var(--accent)}
+.ebtn svg{width:14px;height:14px}
+.editbar .hint{font-size:11.5px;color:var(--txt-faint);max-width:230px;line-height:1.3}
+
+/* Lectura de coordenadas */
+.coordreadout{
+  position:fixed;left:14px;bottom:14px;z-index:900;font-family:var(--mono);font-size:11px;
+  color:var(--txt-dim);background:rgba(12,17,24,.82);border:1px solid var(--line);border-radius:8px;
+  padding:6px 11px;backdrop-filter:blur(6px);letter-spacing:.3px;
+}
+.coordreadout b{color:var(--accent);font-weight:500}
+
+/* Toast */
+.toast{
+  position:fixed;left:50%;top:70px;transform:translateX(-50%) translateY(-20px);z-index:2000;
+  background:#1b2735;border:1px solid var(--line);border-left:3px solid var(--ok);color:var(--txt);
+  font-size:12.5px;padding:10px 16px;border-radius:9px;box-shadow:var(--shadow);
+  opacity:0;pointer-events:none;transition:.25s;display:flex;align-items:center;gap:9px;
+}
+.toast.show{opacity:1;transform:translateX(-50%)}
+.toast svg{width:16px;height:16px;color:var(--ok)}
+
+/* Botón colapsar sidebar (móvil/desktop) */
+.collapse-btn{
+  position:fixed;top:74px;left:14px;z-index:1101;width:40px;height:40px;border-radius:10px;
+  border:1px solid var(--line);background:var(--panel);color:var(--txt-dim);display:none;place-items:center;box-shadow:var(--shadow);
+}
+.collapse-btn.show{display:grid}
+
+/* Marcadores */
+.mk{position:relative;width:26px;height:26px}
+.mk__pin{
+  width:26px;height:26px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);
+  border:2px solid #fff;box-shadow:0 3px 8px rgba(0,0,0,.5);display:grid;place-items:center;transition:transform .12s;
+}
+.mk__num{transform:rotate(45deg);font-family:var(--mono);font-size:9.5px;font-weight:600;color:#0a0f14}
+.mk:hover .mk__pin{transform:rotate(-45deg) scale(1.18)}
+.mk.sel .mk__pin{box-shadow:0 0 0 4px rgba(255,255,255,.55),0 3px 10px rgba(0,0,0,.6)}
+.mk-label{
+  background:rgba(12,17,24,.9)!important;border:1px solid var(--line)!important;color:var(--txt)!important;
+  border-radius:6px!important;font-family:'Saira',sans-serif!important;font-size:11.5px!important;font-weight:500!important;
+  padding:3px 8px!important;box-shadow:0 4px 12px rgba(0,0,0,.4)!important;white-space:nowrap;
+}
+.mk-label::before{border-top-color:var(--line)!important}
+.zone-label{
+  background:transparent!important;border:none!important;box-shadow:none!important;
+  color:#fff!important;font-family:'Saira',sans-serif!important;font-weight:600!important;font-size:11px!important;
+  letter-spacing:.6px;text-transform:uppercase;text-shadow:0 1px 4px rgba(0,0,0,.9);
+}
+.zone-label::before{display:none}
+
+/* Leaflet controls themed */
+.leaflet-bar a{background:var(--panel)!important;color:var(--txt-dim)!important;border-color:var(--line)!important}
+.leaflet-bar a:hover{background:var(--panel-soft)!important;color:var(--txt)!important}
+.leaflet-control-attribution{background:rgba(12,17,24,.7)!important;color:var(--txt-faint)!important;font-size:9.5px!important}
+.leaflet-control-attribution a{color:var(--txt-dim)!important}
+.leaflet-control-scale-line{background:rgba(12,17,24,.7)!important;color:var(--txt-dim)!important;border-color:var(--line)!important}
+
+/* Loading */
+.loader{position:fixed;inset:0;z-index:3000;display:grid;place-items:center;background:var(--bg);transition:opacity .4s}
+.loader.hide{opacity:0;pointer-events:none}
+.loader .ring{width:46px;height:46px;border:3px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:spin 1s linear infinite}
+.loader p{position:absolute;bottom:38%;color:var(--txt-faint);font-size:12px;letter-spacing:1px;text-transform:uppercase}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ───── Editor: barra ampliada ───── */
+.editbar{flex-wrap:wrap;justify-content:center;row-gap:8px}
+.ebgroup{display:flex;gap:6px;flex-wrap:wrap}
+.ebtn.mode svg{opacity:.85}
+
+/* Chips de estado (modificadores por color) */
+.dchip.estado{color:var(--txt-dim);border-color:var(--line);background:var(--panel-2)}
+.dchip.estado.ok{color:var(--ok);border-color:rgba(52,211,153,.3);background:rgba(52,211,153,.08)}
+.dchip.estado.info{color:var(--accent-2);border-color:rgba(56,189,248,.3);background:rgba(56,189,248,.08)}
+.dchip.estado.warn{color:var(--accent);border-color:rgba(244,183,64,.3);background:rgba(244,183,64,.08)}
+.dchip.estado.danger{color:var(--danger);border-color:rgba(248,113,113,.3);background:rgba(248,113,113,.08)}
+.dchip.estado.mut{color:var(--txt-faint)}
+.item.hidden-f{opacity:.45}
+
+/* ───── Modal de edición ───── */
+.modal{position:fixed;inset:0;z-index:1600;display:none;align-items:center;justify-content:center;padding:18px;
+  background:rgba(6,10,15,.62);backdrop-filter:blur(3px)}
+.modal.open{display:flex}
+.modal__card{width:min(560px,100%);max-height:calc(100vh - 36px);display:flex;flex-direction:column;
+  background:linear-gradient(180deg,var(--panel),var(--panel-2));border:1px solid var(--line);
+  border-radius:14px;box-shadow:var(--shadow);overflow:hidden}
+.modal__head{display:flex;align-items:center;gap:10px;padding:15px 18px;border-bottom:1px solid var(--line)}
+.modal__head h3{margin:0;font-size:15.5px;font-weight:600;letter-spacing:.3px;flex:1}
+.modal__head .tagn{font-family:var(--mono);font-size:11px;color:var(--accent);background:rgba(244,183,64,.1);
+  border:1px solid rgba(244,183,64,.25);padding:2px 8px;border-radius:6px}
+.modal__close{width:30px;height:30px;border-radius:8px;border:1px solid var(--line);background:var(--panel-2);
+  color:var(--txt-dim);display:grid;place-items:center;transition:.12s}
+.modal__close:hover{color:var(--txt);border-color:#34465a}
+.modal__close svg{width:16px;height:16px}
+.modal__body{overflow-y:auto;padding:16px 18px;display:flex;flex-direction:column;gap:13px}
+.modal__foot{display:flex;align-items:center;gap:8px;padding:13px 18px;border-top:1px solid var(--line);background:var(--panel-2)}
+
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.fld{display:flex;flex-direction:column;gap:6px}
+.fld>span{font-size:10.5px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--txt-faint)}
+.fld input,.fld select,.fld textarea{
+  border:1px solid var(--line);background:var(--panel-2);color:var(--txt);font-family:inherit;
+  font-size:13px;border-radius:8px;padding:9px 11px;outline:none;transition:.12s;width:100%}
+.fld textarea{resize:vertical;line-height:1.5}
+.fld input:focus,.fld select:focus,.fld textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(244,183,64,.1)}
+.fld.chk{flex-direction:row;align-items:center;gap:9px;align-self:end;padding:9px 0}
+.fld.chk input{width:auto}
+.fld.chk span{font-size:12.5px;color:var(--txt-dim);letter-spacing:0;text-transform:none;font-weight:400}
+
+.datos{display:flex;flex-direction:column;gap:7px}
+.datorow{display:grid;grid-template-columns:1fr 1.3fr auto;gap:7px}
+.datorow input{border:1px solid var(--line);background:var(--panel-2);color:var(--txt);font-family:inherit;
+  font-size:12.5px;border-radius:7px;padding:7px 9px;outline:none}
+.datorow input:focus{border-color:var(--accent)}
+.delrow{width:34px;border:1px solid var(--line);background:var(--panel-2);color:var(--txt-faint);
+  border-radius:7px;display:grid;place-items:center;transition:.12s}
+.delrow:hover{color:var(--danger);border-color:rgba(248,113,113,.3)}
+.addrow{margin-top:4px;align-self:flex-start;border:1px dashed var(--line);background:transparent;color:var(--txt-dim);
+  font-size:12px;border-radius:7px;padding:7px 11px;transition:.12s}
+.addrow:hover{color:var(--txt);border-color:#34465a}
+.geoinfo{font-size:12px;line-height:1.55;color:var(--txt-faint);background:var(--panel-2);
+  border:1px solid var(--line-soft);border-radius:8px;padding:11px 12px}
+.geoinfo b{color:var(--txt-dim)}
+
+/* Vértices de Geoman acordes al tema */
+.leaflet-pm-draggable, .marker-icon, .marker-icon-middle{
+  border-radius:50%!important;border:2px solid #fff!important;background:var(--accent)!important;box-shadow:0 1px 5px rgba(0,0,0,.5)!important}
+.marker-icon-middle{background:#fff!important;border-color:var(--accent)!important;opacity:.85}
+
+@media (max-width:560px){ .grid2{grid-template-columns:1fr} .modal{padding:0;align-items:flex-end}
+  .modal__card{max-height:92vh;border-radius:16px 16px 0 0} }
+
+/* Responsive */
+@media (max-width:820px){
+  .topbar{gap:10px;padding:0 12px;height:54px}
+  .brand__txt{display:none}
+  #map{top:54px}
+  .search{width:auto;flex:1}
+  .topbtn span{display:none}
+  .sidebar{top:64px;left:8px;right:8px;width:auto;max-height:46vh}
+  .sidebar.collapsed{transform:translateY(-120%)}
+  .collapse-btn{top:64px;left:auto;right:8px}
+  .detail{top:auto;bottom:0;right:0;left:0;width:auto;max-width:none;max-height:62vh;border-radius:14px 14px 0 0;transform:translateY(110%)}
+  .detail.open{transform:none}
+  .coordreadout{display:none}
+}
+</style>
+</head>
+<body>
+
+<div class="loader" id="loader"><div class="ring"></div><p>Cargando plano AIFA…</p></div>
+
+<!-- ░░░ Topbar ░░░ -->
+<header class="topbar">
+  <div class="brand">
+    <div class="brand__mark" title="AIFA">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.18 9 2 14l1 2 8.5-2.5L16 22h2l-2.5-9L22 9.5 21 7l-6 3.5L12 2h-2z"/></svg>
+    </div>
+    <div class="brand__txt">
+      <b>Plano Interactivo de Instalaciones</b>
+      <span>Aeropuerto Internacional Felipe Ángeles</span>
+    </div>
+  </div>
+
+  <div class="search">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+    <input id="search" type="text" placeholder="Buscar instalación, zona o número…" autocomplete="off">
+  </div>
+
+  <button class="topbtn" id="btn-edit" title="Activar modo edición">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+    <span>Editar</span>
+  </button>
+  <button class="topbtn" id="btn-fs" title="Pantalla completa">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H3v5M21 8V3h-5M16 21h5v-5M3 16v5h5"/></svg>
+    <span>Pantalla</span>
+  </button>
+</header>
+
+<!-- ░░░ Mapa ░░░ -->
+<div id="map"></div>
+
+<!-- botón para reabrir el panel -->
+<button class="collapse-btn" id="reopen" title="Mostrar panel">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+</button>
+
+<!-- ░░░ Sidebar ░░░ -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar__scroll">
+
+    <div class="sec">
+      <div class="sec__title"><span class="dot"></span>Capa base</div>
+      <div class="seg" id="baseseg">
+        <button data-base="satelite" class="active">Satélite</button>
+        <button data-base="hibrido">Híbrido</button>
+        <button data-base="calles">Calles</button>
+      </div>
+      <label class="toggle">
+        <span>Plano maestro (overlay)</span>
+        <span class="switch"><input type="checkbox" id="tg-plano"><span class="track"></span></span>
+      </label>
+      <div class="slider-row" id="plano-op" style="display:none">
+        <span style="font-size:11px;color:var(--txt-faint)">Opacidad</span>
+        <input type="range" id="plano-opacity" min="10" max="100" value="55">
+        <span class="v" id="plano-opval">55%</span>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec__title"><span class="dot"></span>Categorías</div>
+      <div id="cats"></div>
+      <div class="minirow">
+        <button class="minibtn" id="show-all">Mostrar todo</button>
+        <button class="minibtn" id="hide-all">Ocultar todo</button>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec__title"><span class="dot"></span>Instalaciones <span id="count-pill" style="margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--txt-faint)"></span></div>
+      <div class="list" id="list"></div>
+    </div>
+
+  </div>
+</aside>
+
+<!-- ░░░ Panel de detalle ░░░ -->
+<section class="detail" id="detail">
+  <div class="detail__head">
+    <div class="detail__bar" id="d-bar"></div>
+    <button class="detail__close" id="d-close" title="Cerrar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+    <div class="detail__num" id="d-num"></div>
+    <h2 class="detail__name" id="d-name"></h2>
+    <div class="detail__chips" id="d-chips"></div>
+  </div>
+  <div class="detail__body">
+    <p class="detail__desc" id="d-desc"></p>
+    <dl class="kv" id="d-kv"></dl>
+    <div class="coordbox">
+      <div><div class="lbl">Coordenadas</div><div class="val" id="d-coord"></div></div>
+      <button id="d-copy" title="Copiar coordenadas">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+      </button>
+    </div>
+    <div class="detail__actions">
+      <button class="act primary" id="d-center">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
+        Centrar
+      </button>
+      <button class="act" id="d-edit" style="display:none">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+        Editar
+      </button>
+      <button class="act danger" id="d-del" style="display:none">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M6 6l1 14a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-14"/></svg>
+        Eliminar
+      </button>
+    </div>
+  </div>
+</section>
+
+<!-- ░░░ Barra de edición ░░░ -->
+<div class="editbar" id="editbar">
+  <span class="tag"><span class="pulse"></span>Edición</span>
+  <span class="sep"></span>
+  <div class="ebgroup">
+    <button class="ebtn mode on" id="m-sel" title="Seleccionar / ver detalle">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m3 3 7.5 18 2.5-7 7-2.5L3 3z"/></svg>
+      Seleccionar
+    </button>
+    <button class="ebtn mode" id="m-move" title="Arrastrar puntos para reubicarlos">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M5 9 2 12l3 3M9 5l3-3 3 3M15 19l-3 3-3-3M19 9l3 3-3 3M2 12h20M12 2v20"/></svg>
+      Mover
+    </button>
+    <button class="ebtn mode" id="m-shape" title="Editar el contorno de las zonas">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19V7l7-4 7 4v8l-7 4-7-2z"/><circle cx="5" cy="19" r="1.6"/><circle cx="5" cy="7" r="1.6"/><circle cx="12" cy="3" r="1.6"/><circle cx="19" cy="7" r="1.6"/><circle cx="19" cy="15" r="1.6"/><circle cx="12" cy="19" r="1.6"/></svg>
+      Formas
+    </button>
+    <button class="ebtn mode" id="m-point" title="Crear una instalación (punto)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><path d="M12 7v5M9.5 9.5h5"/></svg>
+      + Punto
+    </button>
+    <button class="ebtn mode" id="m-zone" title="Dibujar una zona (polígono)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7l8-4 8 4v8l-8 4-8-4z"/></svg>
+      + Zona
+    </button>
+    <button class="ebtn mode" id="m-del" title="Eliminar tocando una instalación">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M6 6l1 14a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-14"/></svg>
+      Borrar
+    </button>
+  </div>
+  <span class="sep"></span>
+  <button class="ebtn" id="eb-edit" title="Editar datos de la instalación seleccionada">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H5a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h13a2 2 0 0 0 2-2v-6"/><path d="M18.5 2.5a2.1 2.1 0 0 1 3 3L12 15l-4 1 1-4z"/></svg>
+    Editar datos
+  </button>
+  <span class="sep"></span>
+  <button class="ebtn green" id="eb-export" title="Descargar JSON interno (para el propio mapa)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>
+    JSON
+  </button>
+  <button class="ebtn green" id="eb-geojson" title="Descargar GeoJSON (para Supabase / PostGIS)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.4"/></svg>
+    GeoJSON
+  </button>
+  <label class="ebtn" style="cursor:pointer" title="Importar JSON o GeoJSON">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M12 21V9M7 14l5-5 5 5M5 3h14"/></svg>
+    Importar
+    <input type="file" id="eb-import" accept="application/json,.json,.geojson" style="display:none">
+  </label>
+</div>
+
+<!-- ░░░ Editor de instalación (modal) ░░░ -->
+<div class="modal" id="editor">
+  <div class="modal__card">
+    <div class="modal__head">
+      <span class="tagn" id="ed-tag">N.º —</span>
+      <h3 id="ed-title">Editar instalación</h3>
+      <button class="modal__close" id="ed-close" title="Cerrar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="modal__body">
+      <div class="grid2">
+        <label class="fld"><span>Etiqueta (N.º)</span><input id="ed-n" placeholder="p. ej. 7a · A · ★"></label>
+        <label class="fld"><span>Categoría</span><select id="ed-cat"></select></label>
+      </div>
+      <label class="fld"><span>Nombre</span><input id="ed-name" placeholder="Nombre de la instalación"></label>
+      <div class="grid2">
+        <label class="fld"><span>Nombre corto</span><input id="ed-short" placeholder="opcional"></label>
+        <label class="fld"><span>Estado</span><select id="ed-estado"></select></label>
+      </div>
+      <div class="grid2">
+        <label class="fld"><span>Nivel de acceso</span><select id="ed-nivel"></select></label>
+        <label class="fld"><span>Lado</span><select id="ed-lado"></select></label>
+      </div>
+      <label class="fld"><span>Descripción</span><textarea id="ed-desc" rows="3" placeholder="Descripción de la instalación…"></textarea></label>
+      <div class="fld">
+        <span>Datos clave</span>
+        <div class="datos" id="ed-datos"></div>
+        <button class="addrow" id="ed-adddato" type="button">+ Agregar dato</button>
+      </div>
+      <div class="grid2">
+        <label class="fld"><span>Color (opcional)</span><input id="ed-color" placeholder="hereda de la categoría · ej. #38bdf8"></label>
+        <label class="fld chk"><input type="checkbox" id="ed-visible" checked><span>Visible en el mapa</span></label>
+      </div>
+      <div class="geoinfo" id="ed-geoinfo"></div>
+    </div>
+    <div class="modal__foot">
+      <button class="act danger" id="ed-del" style="flex:0 0 auto;min-width:120px">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M6 6l1 14a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-14"/></svg>
+        Eliminar
+      </button>
+      <div style="flex:1"></div>
+      <button class="act" id="ed-cancel" style="flex:0 0 auto;min-width:110px">Cancelar</button>
+      <button class="act primary" id="ed-save" style="flex:0 0 auto;min-width:130px">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<div class="coordreadout" id="coordread">lat <b>—</b> · lng <b>—</b></div>
+
+<div class="toast" id="toast">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg>
+  <span id="toast-txt"></span>
+</div>
+
+<script>
+/* ════════════════════════════════════════════════════════════════════
+   CONFIGURACIÓN  ·  ajuste aquí lo básico
+   ════════════════════════════════════════════════════════════════════ */
+const CONFIG = {
+  centro:[19.7438, -99.0140],
+  zoomInicial:14,
+  zoomMax:19,
+  // Encuadre inicial del aeropuerto (esquina SO y NE). Ajustable.
+  limites:[[19.722,-99.034],[19.762,-98.996]],
+
+  // Overlay del plano maestro. Coloque su imagen (PNG/JPG) junto a este
+  // archivo, ponga 'url' y active la casilla "Plano maestro".
+  // 'limites' = [[lat_SO, lng_SO],[lat_NE, lng_NE]] para estirar la imagen.
+  plano:{
+    url:'plano_maestro.png',
+    limites:[[19.7245,-99.0320],[19.7600,-98.9980]],
+    opacidad:0.55
+  }
+};
+
+/* Categorías (id, etiqueta, color) */
+const CATS = {
+  operacion : {label:'Operación aérea',            color:'#38bdf8'},
+  terminal  : {label:'Terminal y pasajeros',        color:'#fbbf24'},
+  carga     : {label:'Carga y logística',           color:'#a855f7'},
+  servicios : {label:'Servicios e infraestructura', color:'#22c55e'},
+  comercial : {label:'Comercial / Ciudad aeropt.',  color:'#ec4899'},
+  militar   : {label:'Zona militar (FAM / SEDENA)',  color:'#ef4444'},
+  accesos   : {label:'Accesos y vialidad',          color:'#f97316'},
+};
+
+/* Estados, niveles de acceso y lado (aire/tierra) */
+const ESTADOS = {
+  operativo    : {label:'Operativo',        cls:'ok'},
+  construccion : {label:'En construcción',  cls:'warn'},
+  proyecto     : {label:'Proyecto',         cls:'info'},
+  mantenimiento: {label:'Mantenimiento',    cls:'warn'},
+  cerrado      : {label:'Cerrado',          cls:'mut'},
+  restringido  : {label:'Restringido',      cls:'danger'},
+};
+const NIVELES = {publico:'Público', restringido:'Restringido', privado:'Privado', militar:'Militar'};
+const LADOS   = {aire:'Lado aire', tierra:'Lado tierra', mixto:'Mixto'};
+
+/* Helpers */
+const $ = id => document.getElementById(id);
+function facColor(f){ return (f && f.color) ? f.color : CATS[f.cat].color; }
+function estadoKey(f){ const e=f&&f.estado; if(e==='op')return 'operativo'; if(e==='plan')return 'proyecto'; return ESTADOS[e]?e:'operativo'; }
+function escapeAttr(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+/* ════════════════════════════════════════════════════════════════════
+   DATOS DE INSTALACIONES
+   --------------------------------------------------------------------
+   Las coordenadas son APROXIMADAS (ubicadas a partir del plano maestro).
+   Use el "Modo edición" para arrastrarlas a su posición real sobre el
+   satélite y luego "Exportar JSON" para conservar los cambios.
+   tipo: 'punto' -> coords:[lat,lng]   |   'zona' -> coords:[[lat,lng],...]
+   ════════════════════════════════════════════════════════════════════ */
+let FACILITIES = [
+  /* ── Operación aérea ── */
+  {id:'f1', n:'1', cat:'operacion', tipo:'punto', coords:[19.7452,-99.0148],
+   nombre:'Torre de control de tráfico aéreo', estado:'op',
+   desc:'Control de tránsito aéreo del aeródromo. Coordina aterrizajes, despegues y movimientos en plataforma y calles de rodaje.',
+   datos:[['Función','Control de tránsito aéreo'],['Lado','Aire'],['Altura','— por completar']]},
+  {id:'f2', n:'2', cat:'operacion', tipo:'punto', coords:[19.7500,-99.0095],
+   nombre:'Radar primario / secundario', estado:'op',
+   desc:'Sistema de vigilancia radar para la detección y seguimiento de aeronaves en el espacio aéreo terminal.',
+   datos:[['Tipo','Vigilancia (PSR / SSR)'],['Cobertura','Terminal AIFA']]},
+  {id:'f3', n:'3', cat:'operacion', tipo:'punto', coords:[19.7445,-99.0172],
+   nombre:'SEI · Estación primaria (Rescate y Extinción de Incendios)', estado:'op',
+   desc:'Servicio de Extinción de Incendios. Estación principal de respuesta ante emergencias en el área operativa.',
+   datos:[['Servicio','Rescate y extinción'],['Tiempo de respuesta','Objetivo ≤ 3 min']]},
+  {id:'f4', n:'4', cat:'operacion', tipo:'punto', coords:[19.7392,-99.0098],
+   nombre:'SEI · Estación secundaria', estado:'op',
+   desc:'Estación secundaria del Servicio de Extinción de Incendios para cobertura del extremo opuesto del aeródromo.',
+   datos:[['Servicio','Rescate y extinción'],['Cobertura','Extremo S del campo']]},
+  {id:'f5', n:'5', cat:'operacion', tipo:'punto', coords:[19.7428,-99.0186],
+   nombre:'Estación de entrenamiento para bomberos', estado:'op',
+   desc:'Instalación de adiestramiento y simulacros para el personal del SEI.',
+   datos:[['Uso','Adiestramiento SEI']]},
+  {id:'f16', n:'16', cat:'operacion', tipo:'punto', coords:[19.7480,-99.0115],
+   nombre:'Instalaciones para helicópteros (helipuerto)', estado:'op',
+   desc:'Área destinada a operaciones de ala rotativa.',
+   datos:[['Uso','Ala rotativa']]},
+  {id:'f29', n:'29', cat:'operacion', tipo:'punto', coords:[19.7415,-99.0205],
+   nombre:'Subestación de iluminación del aeródromo', estado:'op',
+   desc:'Suministro y control de las ayudas visuales luminosas de pista y calles de rodaje.',
+   datos:[['Función','Ayudas visuales']]},
+
+  /* ── Terminal y pasajeros ── */
+  {id:'f6', n:'6', cat:'terminal', tipo:'zona',
+   coords:[[19.7468,-99.0168],[19.7468,-99.0148],[19.7452,-99.0148],[19.7452,-99.0168]],
+   nombre:'Edificio terminal de pasajeros', estado:'op',
+   desc:'Terminal principal con áreas de documentación, salas de última espera, comercios y bandas de equipaje. Reconocida por su diseño temático mexicano.',
+   datos:[['Tipo','Terminal de pasajeros'],['Salas','Última espera'],['Servicios','Documentación · PIPE · equipaje']]},
+  {id:'f7', n:'7', cat:'terminal', tipo:'punto', coords:[19.7474,-99.0172],
+   nombre:'Terminal intermodal de transporte terrestre', estado:'op',
+   desc:'Conexión con transporte terrestre: autobuses, taxi, tren suburbano y Mexibús.',
+   datos:[['Modos','Bus · taxi · tren · Mexibús']]},
+  {id:'f7a', n:'7a', cat:'terminal', tipo:'punto', coords:[19.7487,-99.0182],
+   nombre:'Estacionamiento remoto para pasajeros', estado:'op',
+   desc:'Estacionamiento de larga estancia para usuarios del aeropuerto.', datos:[['Uso','Larga estancia']]},
+  {id:'f7b', n:'7b', cat:'terminal', tipo:'punto', coords:[19.7491,-99.0168],
+   nombre:'Estacionamiento de espera (vehículos y autobuses)', estado:'op',
+   desc:'Zona de espera para vehículos particulares y autobuses.', datos:[['Uso','Espera / lanzadera']]},
+  {id:'f7c', n:'7c', cat:'terminal', tipo:'punto', coords:[19.7466,-99.0184],
+   nombre:'Estacionamiento para vehículos de alquiler', estado:'op',
+   desc:'Área de las empresas de renta de autos (AVASA, Mex Rent A Car, etc.).', datos:[['Uso','Renta de autos']]},
+  {id:'fhotel', n:'—', cat:'terminal', tipo:'punto', coords:[19.7459,-99.0178],
+   nombre:'Hotel del aeropuerto', estado:'op',
+   desc:'Servicio de hospedaje dentro del recinto aeroportuario.', datos:[['Tipo','Hotel']]},
+
+  /* ── Carga y logística ── */
+  {id:'f21', n:'21', cat:'carga', tipo:'zona',
+   coords:[[19.7412,-99.0210],[19.7412,-99.0190],[19.7392,-99.0190],[19.7392,-99.0210]],
+   nombre:'Terminal de carga aérea', estado:'op',
+   desc:'Manejo, almacenaje y despacho de carga aérea nacional e internacional.',
+   datos:[['Tipo','Carga aérea'],['Operación','Nac. / Int.']]},
+  {id:'f23', n:'23', cat:'carga', tipo:'punto', coords:[19.7402,-99.0214],
+   nombre:'Carga doméstica', estado:'op',
+   desc:'Instalaciones de carga de ámbito nacional.', datos:[['Ámbito','Nacional']]},
+  {id:'f25', n:'25', cat:'carga', tipo:'punto', coords:[19.7498,-99.0118],
+   nombre:'Instalaciones de Aviación General / FBO', estado:'op',
+   desc:'Operador de Base Fija (FBO) para aviación general y privada.', datos:[['Tipo','FBO / Aviación general']]},
+  {id:'f9', n:'9', cat:'carga', tipo:'punto', coords:[19.7448,-99.0185],
+   nombre:'Instalaciones de avituallamiento (catering)', estado:'op',
+   desc:'Preparación y abastecimiento de alimentos para vuelos.', datos:[['Uso','Catering']]},
+  {id:'f10', n:'10', cat:'carga', tipo:'punto', coords:[19.7452,-99.0190],
+   nombre:'Cocina aeroportuaria', estado:'op',
+   desc:'Producción de alimentos para servicios del aeropuerto.', datos:[['Uso','Cocina']]},
+  {id:'f27', n:'27', cat:'carga', tipo:'punto', coords:[19.7435,-99.0194],
+   nombre:'Estación de combustible (equipos de asistencia en tierra)', estado:'op',
+   desc:'Abastecimiento de combustible para los equipos de rampa / GSE.', datos:[['Uso','Combustible GSE']]},
+  {id:'f31', n:'31', cat:'carga', tipo:'punto', coords:[19.7420,-99.0200],
+   nombre:'Servicio Postal Mexicano (SEPOMEX)', estado:'op',
+   desc:'Instalaciones del servicio postal dentro del aeropuerto.', datos:[['Operador','SEPOMEX']]},
+
+  /* ── Servicios e infraestructura ── */
+  {id:'f8', n:'8', cat:'servicios', tipo:'punto', coords:[19.7456,-99.0152],
+   nombre:'Cuarto eléctrico', estado:'op',
+   desc:'Distribución eléctrica de la terminal (2 unidades según plano).', datos:[['Cantidad','2'],['Función','Distribución eléctrica']]},
+  {id:'f22', n:'22', cat:'servicios', tipo:'punto', coords:[19.7425,-99.0212],
+   nombre:'Subestación eléctrica «Felipe Ángeles»', estado:'op',
+   desc:'Subestación principal de suministro eléctrico del recinto.', datos:[['Tipo','Subestación']]},
+  {id:'f26', n:'26', cat:'servicios', tipo:'punto', coords:[19.7430,-99.0218],
+   nombre:'Planta de cogeneración', estado:'op',
+   desc:'Generación combinada de energía para el aeropuerto.', datos:[['Función','Cogeneración']]},
+  {id:'f12', n:'12', cat:'servicios', tipo:'punto', coords:[19.7400,-99.0216],
+   nombre:'Planta de manejo de residuos sólidos urbanos', estado:'op',
+   desc:'Acopio y manejo de residuos sólidos del aeropuerto.', datos:[['Uso','Residuos sólidos']]},
+  {id:'f13', n:'13', cat:'servicios', tipo:'punto', coords:[19.7396,-99.0210],
+   nombre:'Residuos sanitarios (aguas azules)', estado:'op',
+   desc:'Manejo de residuos sanitarios provenientes de aeronaves.', datos:[['Uso','Aguas azules']]},
+  {id:'f40a', n:'40a', cat:'servicios', tipo:'punto', coords:[19.7408,-99.0224],
+   nombre:'Planta de almacenamiento de agua potable', estado:'op',
+   desc:'Reserva y distribución de agua potable.', datos:[['Función','Agua potable']]},
+  {id:'f41', n:'41', cat:'servicios', tipo:'punto', coords:[19.7388,-99.0222],
+   nombre:'Planta de tratamiento de aguas residuales (PTAR)', estado:'op',
+   desc:'Tratamiento de aguas residuales para reúso.', datos:[['Función','Tratamiento']]},
+
+  /* ── Comercial / Ciudad aeroportuaria ── */
+  {id:'f11', n:'11', cat:'comercial', tipo:'zona',
+   coords:[[19.7516,-99.0156],[19.7516,-99.0134],[19.7496,-99.0134],[19.7496,-99.0156]],
+   nombre:'Ciudad aeroportuaria', estado:'plan',
+   desc:'Zona de desarrollo de usos mixtos (comercial, servicios y hotelería) asociada al aeropuerto.',
+   datos:[['Tipo','Usos mixtos'],['Fase','Plan maestro 2022–2052']]},
+  {id:'f25b', n:'25', cat:'comercial', tipo:'punto', coords:[19.7468,-99.0192],
+   nombre:'Centro comercial / instalaciones de apoyo', estado:'op',
+   desc:'Locales comerciales y servicios de apoyo a pasajeros.', datos:[['Uso','Comercio / servicios']]},
+  {id:'f23a', n:'23a', cat:'comercial', tipo:'punto', coords:[19.7512,-99.0150],
+   nombre:'Centro de convenciones', estado:'plan',
+   desc:'Espacio para eventos y convenciones (plan maestro).', datos:[['Fase','Plan maestro']]},
+
+  /* ── Zona militar ── */
+  {id:'fmil', n:'★', cat:'militar', tipo:'zona',
+   coords:[[19.7402,-99.0090],[19.7412,-99.0028],[19.7330,-98.9988],[19.7278,-99.0020],[19.7290,-99.0094],[19.7352,-99.0112]],
+   nombre:'Zona militar · Base Aérea Militar N.º 1 «Santa Lucía»', estado:'op',
+   desc:'Base Aérea Militar N.º 1 (Fuerza Aérea Mexicana / SEDENA), colindante con el aeropuerto civil. Acceso restringido. Comprende instalaciones de la FAM y SEDENA conforme al programa arquitectónico del plano maestro.',
+   datos:[['Operador','FAM / SEDENA'],['Acceso','Restringido'],['Nota','Detalle interno no representado']]},
+
+  /* ── Accesos y vialidad ── */
+  {id:'fA', n:'A', cat:'accesos', tipo:'punto', coords:[19.7300,-99.0205],
+   nombre:'Acceso principal AIFA', estado:'op',
+   desc:'Ingreso principal desde la interconexión vial al Circuito Exterior Mexiquense.', datos:[['Tipo','Acceso principal']]},
+  {id:'fB', n:'B', cat:'accesos', tipo:'punto', coords:[19.7472,-99.0258],
+   nombre:'Acceso «B» (entronque Caraza)', estado:'op',
+   desc:'Acceso secundario por el entronque Caraza.', datos:[['Tipo','Acceso secundario']]},
+  {id:'fC', n:'C', cat:'accesos', tipo:'punto', coords:[19.7340,-98.9992],
+   nombre:'Acceso «C» (entronque militar)', estado:'op',
+   desc:'Acceso de uso militar.', datos:[['Tipo','Acceso militar']]},
+  {id:'fD', n:'D', cat:'accesos', tipo:'punto', coords:[19.7282,-99.0050],
+   nombre:'Acceso «D» (U.H.M. y B.P.M.)', estado:'op',
+   desc:'Acceso a Unidad Habitacional Militar y Base de Policía Militar.', datos:[['Tipo','Acceso']]},
+  {id:'fglorieta', n:'44', cat:'accesos', tipo:'punto', coords:[19.7295,-99.0216],
+   nombre:'Glorieta principal de acceso', estado:'op',
+   desc:'Glorieta de ingreso con esculturas de mamuts (alusión a los hallazgos paleontológicos de la zona).', datos:[['Hito','Esculturas de mamut']]},
+  {id:'ftren', n:'—', cat:'accesos', tipo:'punto', coords:[19.7290,-99.0232],
+   nombre:'Estación de tren suburbano / Mexibús AIFA', estado:'plan',
+   desc:'Conexión ferroviaria (Ramal Lechería–AIFA) y líneas 2 y 4 de Mexibús.', datos:[['Modos','Tren · Mexibús']]},
+];
+
+/* ════════════════════════════════════════════════════════════════════
+   MAPA
+   ════════════════════════════════════════════════════════════════════ */
+const map = L.map('map',{zoomControl:false,attributionControl:true,maxZoom:CONFIG.zoomMax})
+  .fitBounds(CONFIG.limites);
+L.control.zoom({position:'bottomright'}).addTo(map);
+L.control.scale({position:'bottomright',imperial:false}).addTo(map);
+
+const bases = {
+  satelite: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    {maxZoom:CONFIG.zoomMax, attribution:'Imágenes © Esri, Maxar, Earthstar Geographics'}),
+  calles: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    {maxZoom:19, attribution:'© OpenStreetMap'}),
+};
+const etiquetas = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/light_only_labels/{z}/{x}/{y}{r}.png',
+  {maxZoom:CONFIG.zoomMax, attribution:'Etiquetas © CARTO', pane:'shadowPane'});
+
+let baseActual = bases.satelite.addTo(map);
+
+/* overlay del plano maestro */
+let planoLayer = null;
+function setBase(key){
+  if(baseActual) map.removeLayer(baseActual);
+  baseActual = bases[key === 'hibrido' ? 'satelite' : key].addTo(map);
+  if(key === 'hibrido'){ etiquetas.addTo(map); } else { map.removeLayer(etiquetas); }
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   RENDER DE INSTALACIONES
+   ════════════════════════════════════════════════════════════════════ */
+const groups = {};                       // capa por categoría
+Object.keys(CATS).forEach(c => groups[c] = L.layerGroup());
+const activeCats = new Set(Object.keys(CATS));
+const layerById = {};                    // id -> {layer, fac}
+let selectedId = null;
+let editMode = false;
+
+function pinIcon(fac, selected){
+  const color = facColor(fac);
+  return L.divIcon({
+    className:'', iconSize:[26,26], iconAnchor:[13,26], popupAnchor:[0,-26],
+    html:`<div class="mk ${selected?'sel':''}"><div class="mk__pin" style="background:${color}"><span class="mk__num">${fac.n}</span></div></div>`
+  });
+}
+
+function buildLayers(){
+  Object.values(groups).forEach(g => g.clearLayers());
+  for(const id in layerById) delete layerById[id];
+
+  FACILITIES.forEach(fac=>{
+    let layer;
+    const col = facColor(fac);
+    if(fac.tipo === 'zona'){
+      layer = L.polygon(fac.coords, {
+        color:col, weight:2, opacity:.9, fillColor:col, fillOpacity:.18
+      });
+      layer.bindTooltip(fac.nombre,{className:'zone-label',permanent:true,direction:'center'});
+      // sincroniza el contorno cuando se edita con la herramienta "Formas" (Geoman)
+      const sync = ()=> syncZoneCoords(fac, layer);
+      layer.on('pm:edit', sync);
+      layer.on('pm:markerdragend', sync);
+      layer.on('pm:dragend', sync);
+      layer.on('pm:vertexremoved', sync);
+      layer.on('pm:vertexadded', sync);
+    } else {
+      layer = L.marker(fac.coords, {icon:pinIcon(fac,false), draggable:true, riseOnHover:true});
+      layer.bindTooltip(fac.nombre,{className:'mk-label',direction:'top',offset:[0,-24]});
+      layer.on('dragend', e=>{
+        const ll = e.target.getLatLng();
+        fac.coords = [ +ll.lat.toFixed(6), +ll.lng.toFixed(6) ];
+        if(selectedId === fac.id) openDetail(fac);
+        toast('Posición actualizada — recuerda Exportar');
+      });
+    }
+    layer.on('click', ()=>{ if(mode==='borrar') deleteFacility(fac.id); else selectFacility(fac.id); });
+    layerById[fac.id] = {layer, fac};
+    if(fac.visible !== false) groups[fac.cat].addLayer(layer);
+  });
+  refreshGroups();
+  applyDragState();
+}
+
+function syncZoneCoords(fac, layer){
+  let lls = layer.getLatLngs(); if(Array.isArray(lls[0])) lls = lls[0];
+  fac.coords = lls.map(ll=>[ +ll.lat.toFixed(6), +ll.lng.toFixed(6) ]);
+  if(selectedId === fac.id) openDetail(fac);
+  toast('Contorno actualizado — recuerda Exportar');
+}
+
+function refreshGroups(){
+  Object.keys(groups).forEach(c=>{
+    if(activeCats.has(c)) groups[c].addTo(map);
+    else map.removeLayer(groups[c]);
+  });
+  applyDragState();
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   SELECCIÓN + PANEL DE DETALLE
+   ════════════════════════════════════════════════════════════════════ */
+function selectFacility(id){
+  // des-resaltar anterior
+  if(selectedId && layerById[selectedId]){
+    const prev = layerById[selectedId];
+    if(prev.fac.tipo === 'zona') prev.layer.setStyle({weight:2,fillOpacity:.18});
+    else prev.layer.setIcon(pinIcon(prev.fac,false));
+  }
+  selectedId = id;
+  const {layer, fac} = layerById[id];
+  if(fac.tipo === 'zona'){ layer.setStyle({weight:3.5,fillOpacity:.32}); }
+  else { layer.setIcon(pinIcon(fac,true)); }
+  openDetail(fac);
+  renderList();
+  // centrar suavemente
+  if(fac.tipo === 'zona') map.flyToBounds(layer.getBounds(),{padding:[80,80],maxZoom:17,duration:.6});
+  else map.flyTo(fac.coords, Math.max(map.getZoom(),16), {duration:.6});
+}
+
+function openDetail(fac){
+  const c = CATS[fac.cat];
+  const col = facColor(fac);
+  document.getElementById('d-bar').style.background = col;
+  document.getElementById('d-num').textContent = (fac.n && fac.n!=='—' && fac.n!=='★' && fac.n!=='+') ? 'N.º '+fac.n : (fac.cat==='militar'?'ZONA':(fac.tipo==='zona'?'ZONA':'INSTALACIÓN'));
+  document.getElementById('d-name').textContent = fac.nombre;
+  document.getElementById('d-desc').textContent = fac.desc || '';
+
+  const ek = estadoKey(fac); const es = ESTADOS[ek] || ESTADOS.operativo;
+  let chips = `<span class="dchip"><span class="d" style="background:${col}"></span>${c.label}</span>`;
+  chips += `<span class="dchip estado ${es.cls}">${es.label}</span>`;
+  if(fac.nivel && fac.nivel!=='publico') chips += `<span class="dchip">${NIVELES[fac.nivel]||fac.nivel}</span>`;
+  if(fac.lado) chips += `<span class="dchip">${LADOS[fac.lado]||fac.lado}</span>`;
+  document.getElementById('d-chips').innerHTML = chips;
+
+  const kv = document.getElementById('d-kv');
+  kv.innerHTML = (fac.datos||[]).map(([k,v])=>`<div class="kv__row"><dt>${k}</dt><dd>${v}</dd></div>`).join('') || '';
+  kv.style.display = (fac.datos&&fac.datos.length)?'grid':'none';
+
+  // coordenadas (centro de la zona o el punto)
+  const ll = fac.tipo==='zona' ? layerById[fac.id].layer.getBounds().getCenter() : L.latLng(fac.coords);
+  document.getElementById('d-coord').textContent = `${ll.lat.toFixed(5)}, ${ll.lng.toFixed(5)}`;
+
+  document.getElementById('d-del').style.display  = editMode ? 'inline-flex' : 'none';
+  document.getElementById('d-edit').style.display = editMode ? 'inline-flex' : 'none';
+  document.getElementById('detail').classList.add('open');
+}
+function closeDetail(){
+  document.getElementById('detail').classList.remove('open');
+  if(selectedId && layerById[selectedId]){
+    const prev = layerById[selectedId];
+    if(prev.fac.tipo==='zona') prev.layer.setStyle({weight:2,fillOpacity:.18});
+    else prev.layer.setIcon(pinIcon(prev.fac,false));
+  }
+  selectedId = null; renderList();
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   PANEL: CATEGORÍAS + LISTA
+   ════════════════════════════════════════════════════════════════════ */
+function renderCats(){
+  const cont = document.getElementById('cats');
+  cont.innerHTML = '';
+  Object.entries(CATS).forEach(([id,c])=>{
+    const count = FACILITIES.filter(f=>f.cat===id).length;
+    const b = document.createElement('button');
+    b.className = 'cat' + (activeCats.has(id)?'':' off');
+    b.innerHTML = `<span class="chip" style="background:${c.color}"></span>
+      <span class="name">${c.label}</span>
+      <span class="count">${count}</span>
+      <svg class="eye" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9">${
+        activeCats.has(id)
+        ?'<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/>'
+        :'<path d="m3 3 18 18M10.6 10.6a3 3 0 0 0 4.2 4.2M9.4 5.2A9.7 9.7 0 0 1 12 5c6.5 0 10 7 10 7a16 16 0 0 1-2.2 3M6.6 6.6A16 16 0 0 0 2 12s3.5 7 10 7a9.6 9.6 0 0 0 3-.5"/>'}</svg>`;
+    b.onclick = ()=>{
+      if(activeCats.has(id)) activeCats.delete(id); else activeCats.add(id);
+      refreshGroups(); renderCats(); renderList();
+    };
+    cont.appendChild(b);
+  });
+}
+
+function renderList(){
+  const q = (document.getElementById('search').value||'').trim().toLowerCase();
+  const list = document.getElementById('list');
+  const items = FACILITIES.filter(f=>{
+    if(!activeCats.has(f.cat)) return false;
+    if(!q) return true;
+    return (f.nombre.toLowerCase().includes(q) || String(f.n).toLowerCase()===q || String(f.n).toLowerCase().includes(q) || CATS[f.cat].label.toLowerCase().includes(q));
+  });
+  document.getElementById('count-pill').textContent = items.length + ' / ' + FACILITIES.length;
+  if(!items.length){ list.innerHTML = '<div class="list-empty">Sin resultados</div>'; return; }
+  list.innerHTML = '';
+  items.forEach(f=>{
+    const c = CATS[f.cat];
+    const el = document.createElement('button');
+    el.className = 'item' + (selectedId===f.id?' active':'') + (f.visible===false?' hidden-f':'');
+    el.innerHTML = `<span class="item__badge" style="background:${facColor(f)}">${f.n}</span>
+      <span class="item__t"><b>${f.nombre}</b><span>${c.label}${f.visible===false?' · oculto':''}</span></span>`;
+    el.onclick = ()=> selectFacility(f.id);
+    list.appendChild(el);
+  });
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   MODO EDICIÓN  ·  herramientas + editor de atributos
+   ════════════════════════════════════════════════════════════════════ */
+let mode = 'sel';                          // sel · mover · formas · punto · zona · borrar
+let editingId = null;
+const hasPM = !!(map && map.pm);           // ¿se cargó Leaflet-Geoman?
+
+function setEdit(on){
+  editMode = on;
+  $('btn-edit').classList.toggle('is-on', on);
+  $('editbar').classList.toggle('show', on);
+  setMode('sel');
+  if(!on){ closeEditor(); map.getContainer().style.cursor=''; }
+  if(selectedId && layerById[selectedId]) openDetail(layerById[selectedId].fac);
+}
+
+/* Activa una herramienta de edición */
+function setMode(m){
+  mode = m;
+  if(hasPM) map.pm.disableDraw();
+  document.querySelectorAll('.ebtn.mode').forEach(b=>b.classList.remove('on'));
+  const bid = {sel:'m-sel', mover:'m-move', formas:'m-shape', punto:'m-point', zona:'m-zone', borrar:'m-del'}[m];
+  if(bid && $(bid)) $(bid).classList.add('on');
+  map.getContainer().style.cursor = m==='punto' ? 'crosshair' : (m==='borrar' ? 'pointer' : '');
+  applyDragState();
+  if(m==='zona' && hasPM) map.pm.enableDraw('Polygon', {snappable:true, finishOn:'dblclick'});
+  if(editMode){
+    const hint = {
+      sel:'Toca una instalación para ver o editar sus datos',
+      mover:'Arrastra los marcadores (puntos) a su posición',
+      formas:'Arrastra los vértices de las zonas; arrastra el interior para moverlas',
+      punto:'Haz clic en el mapa para crear un punto',
+      zona:'Dibuja la zona haciendo clic; doble clic para cerrarla',
+      borrar:'Toca una instalación para eliminarla'
+    }[m];
+    if(hint) toast(hint);
+  }
+}
+
+/* puntos arrastrables solo en "mover"; zonas editables solo en "formas" */
+function applyDragState(){
+  FACILITIES.forEach(f=>{
+    const o = layerById[f.id]; if(!o) return; const L = o.layer;
+    if(f.tipo==='punto'){
+      if(L.dragging){ (mode==='mover' && map.hasLayer(L)) ? L.dragging.enable() : L.dragging.disable(); }
+    } else if(f.tipo==='zona' && L.pm){
+      if(mode==='formas' && map.hasLayer(L)) L.pm.enable({allowSelfIntersection:false});
+      else { try{ L.pm.disable(); }catch(e){} }
+    }
+  });
+}
+
+/* ───── Editor de atributos (modal) ───── */
+function openEditor(fac){
+  editingId = fac.id;
+  $('ed-tag').textContent  = (fac.n && fac.n!=='+' && fac.n!=='★' && fac.n!=='—') ? ('N.º '+fac.n) : (fac.tipo==='zona'?'ZONA':'PUNTO');
+  $('ed-title').textContent= fac.__isNew ? 'Nueva instalación' : 'Editar instalación';
+  $('ed-n').value     = (fac.n && fac.n!=='+' && fac.n!=='★') ? fac.n : '';
+  $('ed-cat').value   = fac.cat;
+  $('ed-name').value  = fac.nombre || '';
+  $('ed-short').value = fac.nombre_corto || '';
+  $('ed-estado').value= estadoKey(fac);
+  $('ed-nivel').value = fac.nivel || 'publico';
+  $('ed-lado').value  = fac.lado || '';
+  $('ed-desc').value  = fac.desc || '';
+  $('ed-color').value = fac.color || '';
+  $('ed-visible').checked = fac.visible !== false;
+  renderDatosRows(fac.datos || []);
+  if(fac.tipo==='zona'){
+    $('ed-geoinfo').innerHTML = 'Geometría: <b>zona</b> de <b>'+(fac.coords?fac.coords.length:0)+'</b> vértices. '+
+      'Para editar el contorno, cierra esta ventana y usa la herramienta <b>Formas</b> sobre el mapa.';
+  } else {
+    const la = fac.coords ? fac.coords[0] : '', ln = fac.coords ? fac.coords[1] : '';
+    $('ed-geoinfo').innerHTML = 'Geometría: <b>punto</b>. Ajusta las coordenadas aquí o arrástralo con la herramienta <b>Mover</b>.'+
+      '<div class="grid2" style="margin-top:9px">'+
+      '<label class="fld"><span>Latitud</span><input id="ed-lat" value="'+escapeAttr(la)+'"></label>'+
+      '<label class="fld"><span>Longitud</span><input id="ed-lng" value="'+escapeAttr(ln)+'"></label></div>';
+  }
+  $('editor').classList.add('open');
+}
+function closeEditor(){
+  const o = editingId ? layerById[editingId] : null;
+  const fac = (o && o.fac) || (editingId ? FACILITIES.find(x=>x.id===editingId) : null);
+  const discardId = (fac && fac.__isNew) ? editingId : null;   // nueva y sin guardar
+  $('editor').classList.remove('open'); editingId = null;
+  if(discardId){
+    if(selectedId===discardId) closeDetail();
+    FACILITIES = FACILITIES.filter(x=>x.id!==discardId);
+    buildLayers(); renderCats(); renderList();
+    toast('Descartado');
+  }
+}
+
+function renderDatosRows(arr){
+  const c = $('ed-datos'); c.innerHTML='';
+  (arr||[]).forEach(pair=> addDatoRow(pair[0], pair[1]));
+}
+function addDatoRow(k, v){
+  const row = document.createElement('div'); row.className='datorow';
+  row.innerHTML = '<input class="dk" placeholder="Campo" value="'+escapeAttr(k||'')+'">'+
+                  '<input class="dv" placeholder="Valor" value="'+escapeAttr(v||'')+'">'+
+                  '<button type="button" class="delrow" title="Quitar">✕</button>';
+  row.querySelector('.delrow').onclick = ()=> row.remove();
+  $('ed-datos').appendChild(row);
+}
+
+function saveEditor(){
+  const fac = (layerById[editingId] && layerById[editingId].fac) || FACILITIES.find(f=>f.id===editingId);
+  if(!fac){ closeEditor(); return; }
+  const nombre = $('ed-name').value.trim();
+  if(!nombre){ toast('El nombre es obligatorio'); $('ed-name').focus(); return; }
+  fac.n            = $('ed-n').value.trim() || (fac.tipo==='zona' ? '★' : '+');
+  fac.cat          = $('ed-cat').value;
+  fac.nombre       = nombre;
+  fac.nombre_corto = $('ed-short').value.trim();
+  fac.estado       = $('ed-estado').value;
+  fac.nivel        = $('ed-nivel').value;
+  fac.lado         = $('ed-lado').value;
+  fac.desc         = $('ed-desc').value.trim();
+  fac.color        = $('ed-color').value.trim();
+  fac.visible      = $('ed-visible').checked;
+  const datos = [];
+  $('ed-datos').querySelectorAll('.datorow').forEach(r=>{
+    const k=r.querySelector('.dk').value.trim(), v=r.querySelector('.dv').value.trim();
+    if(k || v) datos.push([k, v]);
+  });
+  fac.datos = datos;
+  if(fac.tipo !== 'zona'){
+    const laEl=$('ed-lat'), lnEl=$('ed-lng');
+    const la = laEl?parseFloat(laEl.value):NaN, ln = lnEl?parseFloat(lnEl.value):NaN;
+    if(!isNaN(la) && !isNaN(ln)) fac.coords = [ +la.toFixed(6), +ln.toFixed(6) ];
+  }
+  delete fac.__isNew;
+  activeCats.add(fac.cat);
+  closeEditor();
+  buildLayers(); renderCats(); renderList(); selectFacility(fac.id);
+  toast('Cambios guardados — recuerda Exportar');
+}
+
+function deleteFacility(id){
+  const f = FACILITIES.find(x=>x.id===id); if(!f) return;
+  if(!confirm('¿Eliminar «'+f.nombre+'» del plano?')) return;
+  if(editingId===id){ editingId=null; $('editor').classList.remove('open'); }
+  if(selectedId===id) closeDetail();
+  FACILITIES = FACILITIES.filter(x=>x.id!==id);
+  buildLayers(); renderCats(); renderList();
+  toast('Instalación eliminada');
+}
+
+/* poblar los <select> del editor una sola vez */
+(function fillEditorSelects(){
+  const fill=(id, pairs, blank)=>{ const s=$(id); if(!s) return; if(blank) s.add(new Option('—','')); pairs.forEach(p=> s.add(new Option(p[1], p[0]))); };
+  fill('ed-cat',    Object.entries(CATS).map(([k,c])=>[k,c.label]));
+  fill('ed-estado', Object.entries(ESTADOS).map(([k,e])=>[k,e.label]));
+  fill('ed-nivel',  Object.entries(NIVELES));
+  fill('ed-lado',   [['aire','Lado aire'],['tierra','Lado tierra'],['mixto','Mixto']], true);
+})();
+
+/* ───── Exportar / Importar ───── */
+function descargar(nombre, texto, mime){
+  const blob = new Blob([texto], {type:mime}); const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = nombre;
+  document.body.appendChild(a); a.click(); a.remove();
+}
+$('eb-export').onclick = ()=>{
+  const data = FACILITIES.map(f=>({
+    id:f.id, n:f.n, cat:f.cat, tipo:f.tipo, coords:f.coords, nombre:f.nombre,
+    nombre_corto:f.nombre_corto||'', estado:estadoKey(f), nivel:f.nivel||'publico', lado:f.lado||'',
+    desc:f.desc||'', datos:f.datos||[], color:f.color||'', visible:f.visible!==false
+  }));
+  descargar('instalaciones_aifa.json', JSON.stringify(data,null,2), 'application/json');
+  toast('JSON exportado ('+data.length+' instalaciones)');
+};
+function toGeoJSON(){
+  return { type:'FeatureCollection', features: FACILITIES.map(f=>{
+    let geometry;
+    if(f.tipo==='zona'){
+      const ring = (f.coords||[]).map(c=>[ +c[1], +c[0] ]);
+      if(ring.length>1){ const a=ring[0], b=ring[ring.length-1]; if(a[0]!==b[0] || a[1]!==b[1]) ring.push([a[0],a[1]]); }
+      geometry = { type:'Polygon', coordinates:[ring] };
+    } else {
+      geometry = { type:'Point', coordinates:[ +f.coords[1], +f.coords[0] ] };
+    }
+    return { type:'Feature', geometry, properties:{
+      clave:f.id,
+      etiqueta:(f.n && f.n!=='+' && f.n!=='★') ? f.n : null,
+      nombre:f.nombre, nombre_corto:f.nombre_corto||null,
+      categoria:f.cat, tipo:f.tipo, estado:estadoKey(f),
+      nivel_acceso:f.nivel||'publico', lado:f.lado||null,
+      descripcion:f.desc||null, datos_clave:f.datos||[],
+      color:f.color||null, visible:f.visible!==false
+    }};
+  })};
+}
+$('eb-geojson').onclick = ()=>{
+  const gj = toGeoJSON();
+  descargar('instalaciones_aifa.geojson', JSON.stringify(gj,null,2), 'application/geo+json');
+  toast('GeoJSON exportado ('+gj.features.length+' features)');
+};
+function fromGeoJSON(gj){
+  return (gj.features||[]).map((ft,i)=>{
+    const p = ft.properties || {}; const g = ft.geometry || {};
+    let tipo='punto', coords=[CONFIG.centro[0], CONFIG.centro[1]];
+    if(g.type==='Polygon'){
+      tipo='zona'; coords=(g.coordinates && g.coordinates[0] ? g.coordinates[0] : []).map(c=>[ +c[1], +c[0] ]);
+      if(coords.length>1){ const a=coords[0], b=coords[coords.length-1]; if(a[0]===b[0] && a[1]===b[1]) coords.pop(); }
+    } else if(g.type==='Point'){
+      tipo='punto'; coords=[ +g.coordinates[1], +g.coordinates[0] ];
+    }
+    return {
+      id: p.id || p.clave || ('imp-'+i),
+      n:  p.etiqueta || (tipo==='zona' ? '★' : '+'),
+      cat:(p.categoria && CATS[p.categoria]) ? p.categoria : 'servicios',
+      tipo, coords,
+      nombre: p.nombre || '(sin nombre)',
+      estado: p.estado || 'operativo',
+      nivel:  p.nivel_acceso || p.nivel || 'publico',
+      lado:   p.lado || '',
+      desc:   p.descripcion || p.desc || '',
+      datos:  Array.isArray(p.datos_clave) ? p.datos_clave : (Array.isArray(p.datos) ? p.datos : []),
+      color:  p.color || '', visible: p.visible !== false
+    };
+  });
+}
+$('eb-import').onchange = (e)=>{
+  const file = e.target.files[0]; if(!file) return;
+  const r = new FileReader();
+  r.onload = ()=>{
+    try{
+      const parsed = JSON.parse(r.result);
+      let data;
+      if(parsed && parsed.type==='FeatureCollection') data = fromGeoJSON(parsed);
+      else if(Array.isArray(parsed)) data = parsed;
+      else throw 0;
+      if(!data.length) throw 0;
+      FACILITIES = data;
+      Object.keys(CATS).forEach(c=>activeCats.add(c));
+      closeDetail(); buildLayers(); renderCats(); renderList();
+      toast('Importado ('+data.length+' instalaciones)');
+    }catch(err){ toast('Archivo no válido (usa JSON o GeoJSON)'); }
+  };
+  r.readAsText(file); e.target.value='';
+};
+
+/* ───── Cableado de botones (barra + detalle + editor) ───── */
+[['m-sel','sel'],['m-move','mover'],['m-shape','formas'],['m-point','punto'],['m-zone','zona'],['m-del','borrar']]
+  .forEach(([id,m])=>{ const b=$(id); if(b) b.onclick = ()=> setMode(m); });
+
+$('eb-edit').onclick = ()=>{
+  if(selectedId && layerById[selectedId]) openEditor(layerById[selectedId].fac);
+  else toast('Primero selecciona una instalación');
+};
+$('d-edit').onclick   = ()=>{ if(selectedId && layerById[selectedId]) openEditor(layerById[selectedId].fac); };
+$('d-del').onclick    = ()=>{ if(selectedId) deleteFacility(selectedId); };
+$('ed-close').onclick = closeEditor;
+$('ed-cancel').onclick= closeEditor;
+$('ed-save').onclick  = saveEditor;
+$('ed-del').onclick   = ()=>{ if(editingId) deleteFacility(editingId); };
+$('ed-adddato').onclick = ()=> addDatoRow('','');
+
+/* Geoman desactivado (uso offline sin el archivo): inhabilita Formas y +Zona */
+if(!hasPM){
+  ['m-shape','m-zone'].forEach(id=>{ const b=$(id); if(b){ b.disabled=true; b.style.opacity='.4'; b.title='Requiere Leaflet-Geoman'; } });
+}
+
+/* Al terminar de dibujar una zona con Geoman -> la convertimos en instalación */
+if(hasPM){
+  map.on('pm:create', e=>{
+    const layer = e.layer;
+    let lls = layer.getLatLngs ? layer.getLatLngs() : null;
+    if(Array.isArray(lls) && Array.isArray(lls[0])) lls = lls[0];
+    map.removeLayer(layer);
+    if(!lls || lls.length < 3){ setMode('sel'); return; }
+    const coords = lls.map(ll=>[ +ll.lat.toFixed(6), +ll.lng.toFixed(6) ]);
+    const fac = { id:'zona-'+Date.now(), n:'★', cat:'servicios', tipo:'zona', coords,
+      nombre:'Nueva zona', estado:'operativo', nivel:'publico', lado:'', desc:'', datos:[], visible:true, __isNew:true };
+    FACILITIES.push(fac); activeCats.add(fac.cat);
+    buildLayers(); renderCats(); renderList(); selectFacility(fac.id);
+    setMode('sel');
+    openEditor(fac);
+  });
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   EVENTOS DE MAPA
+   ════════════════════════════════════════════════════════════════════ */
+map.on('mousemove', e=>{
+  document.getElementById('coordread').innerHTML =
+    `lat <b>${e.latlng.lat.toFixed(5)}</b> · lng <b>${e.latlng.lng.toFixed(5)}</b>`;
+});
+map.on('click', e=>{
+  if(mode==='punto'){
+    const fac = { id:'punto-'+Date.now(), n:'+', cat:'servicios', tipo:'punto',
+      coords:[ +e.latlng.lat.toFixed(6), +e.latlng.lng.toFixed(6) ],
+      nombre:'Nuevo punto', estado:'operativo', nivel:'publico', lado:'', desc:'', datos:[], visible:true, __isNew:true };
+    FACILITIES.push(fac); activeCats.add(fac.cat);
+    buildLayers(); renderCats(); renderList(); selectFacility(fac.id);
+    setMode('sel');
+    openEditor(fac);
+    return;
+  }
+});
+
+/* ════════════════════════════════════════════════════════════════════
+   CONTROLES DEL PANEL / TOPBAR
+   ════════════════════════════════════════════════════════════════════ */
+document.getElementById('baseseg').addEventListener('click', e=>{
+  const b = e.target.closest('button[data-base]'); if(!b) return;
+  document.querySelectorAll('#baseseg button').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active'); setBase(b.dataset.base);
+});
+
+const tgPlano = document.getElementById('tg-plano');
+tgPlano.onchange = ()=>{
+  const opRow = document.getElementById('plano-op');
+  if(tgPlano.checked){
+    planoLayer = L.imageOverlay(CONFIG.plano.url, CONFIG.plano.limites, {opacity:CONFIG.plano.opacidad});
+    planoLayer.on('error', ()=>{
+      toast('No se encontró «'+CONFIG.plano.url+'». Coloque la imagen junto al archivo.');
+      tgPlano.checked=false; opRow.style.display='none';
+      if(planoLayer){ map.removeLayer(planoLayer); planoLayer=null; }
+    });
+    planoLayer.addTo(map);
+    opRow.style.display='flex';
+  }else{
+    if(planoLayer){ map.removeLayer(planoLayer); planoLayer=null; }
+    opRow.style.display='none';
+  }
+};
+document.getElementById('plano-opacity').oninput = (e)=>{
+  document.getElementById('plano-opval').textContent = e.target.value+'%';
+  if(planoLayer) planoLayer.setOpacity(e.target.value/100);
+};
+
+document.getElementById('show-all').onclick = ()=>{ Object.keys(CATS).forEach(c=>activeCats.add(c)); refreshGroups(); renderCats(); renderList(); };
+document.getElementById('hide-all').onclick = ()=>{ activeCats.clear(); refreshGroups(); renderCats(); renderList(); };
+
+document.getElementById('search').addEventListener('input', renderList);
+document.getElementById('btn-edit').onclick = ()=> setEdit(!editMode);
+document.getElementById('d-close').onclick = closeDetail;
+document.getElementById('d-center').onclick = ()=>{ if(selectedId) selectFacility(selectedId); };
+document.getElementById('d-copy').onclick = ()=>{
+  const t = document.getElementById('d-coord').textContent;
+  if(navigator.clipboard) navigator.clipboard.writeText(t).catch(()=>{});
+  toast('Coordenadas copiadas');
+};
+
+/* colapsar sidebar */
+const reopen = document.getElementById('reopen');
+function toggleSidebar(force){
+  const sb = document.getElementById('sidebar');
+  const collapsed = force!==undefined ? force : !sb.classList.contains('collapsed');
+  sb.classList.toggle('collapsed',collapsed);
+  reopen.classList.toggle('show',collapsed);
+}
+reopen.onclick = ()=> toggleSidebar(false);
+
+/* pantalla completa */
+document.getElementById('btn-fs').onclick = ()=>{
+  if(!document.fullscreenElement) document.documentElement.requestFullscreen?.();
+  else document.exitFullscreen?.();
+};
+
+/* atajos */
+document.addEventListener('keydown', e=>{
+  if(e.key==='Escape'){
+    if(document.getElementById('editor').classList.contains('open')) closeEditor();
+    else closeDetail();
+  }
+});
+
+/* toast */
+let toastT;
+function toast(msg){
+  const t=document.getElementById('toast');
+  document.getElementById('toast-txt').textContent = msg;
+  t.classList.add('show'); clearTimeout(toastT);
+  toastT=setTimeout(()=>t.classList.remove('show'),2600);
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   INIT
+   ════════════════════════════════════════════════════════════════════ */
+buildLayers();
+renderCats();
+renderList();
+setTimeout(()=>document.getElementById('loader').classList.add('hide'), 650);
+map.whenReady(()=>document.getElementById('loader').classList.add('hide'));
+</script>
+</body>
+</html>
