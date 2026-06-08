@@ -83,6 +83,8 @@
       'PUJ': { city: 'Punta Cana', country: 'República Dominicana' },
       'SDQ': { city: 'Santo Domingo', country: 'República Dominicana' },
       'BOG': { city: 'Bogotá', country: 'Colombia' },
+      'CTG': { city: 'Cartagena', country: 'Colombia' },
+      'MDE': { city: 'Medellín', country: 'Colombia' },
       'CCS': { city: 'Caracas', country: 'Venezuela' },
       'PTY': { city: 'Ciudad de Panamá', country: 'Panamá' },
       'IAH': { city: 'Houston', country: 'Estados Unidos' },
@@ -90,6 +92,9 @@
       'JFK': { city: 'Nueva York', country: 'Estados Unidos' },
       'ORD': { city: 'Chicago', country: 'Estados Unidos' },
       'DFW': { city: 'Dallas', country: 'Estados Unidos' },
+      'LAX': { city: 'Los Ángeles', country: 'Estados Unidos' },
+      'SFO': { city: 'San Francisco', country: 'Estados Unidos' },
+      'MEX': { city: 'Ciudad de México', country: 'México' },
       'MAD': { city: 'Madrid', country: 'España' },
       'CDG': { city: 'París', country: 'Francia' },
       'AMS': { city: 'Ámsterdam', country: 'Países Bajos' },
@@ -1339,7 +1344,9 @@
   }
 
   function normalizeDestinations(list){
-    const CARGO_SLUGS = [ 'aerotransporte-de-carga-union', 'cargolux', 'estafeta', 'masair', 'mas', 'iberia', 'air-canada', 'air-france', 'cathay-pacific', 'lufthansa', 'awesome-cargo', 'cargojet', 'cargojet-airways', 'lan-cargo', 'lan-cargo-sa', 'national-airlines', 'national-airlines-cargo', 'sky-lease', 'saudi-arabian', 'saudi-arabian-airlines-cargo', 'latam-cargo', 'lynden-air-cargo', 'dhl', 'sf-airlines', 'suparna', 'china-cargo', 'china-southern-cargo', 'abx-air', 'fedex', 'ups', 'kalitta-air', 'aero-union', 'aerotransporte-de-carga-union-sa-de-cv', 'emirates-skycargo', 'emirates-airlines', 'emirates', 'la-nueva-aerolinea', 'qatar-airways', 'qatar-airways-cargo', 'qatar-cargo', 'ameriflight', 'uniworld-air-cargo', 'air-china', 'amerijet-international', 'dhl-guatemala', 'ethiopian-airlines', 'turkish-airlines', 'united-parcel-service', 'china-southerrn', 'china-southern', 'china-airlines', 'suparna-airlines', 'saudi-arabian-airlines', 'abx-air', 'tap-portugal', 'tap-air-portugal' ];
+    const CARGO_SLUGS = [ 'aerotransporte-de-carga-union', 'cargolux', 'estafeta', 'masair', 'mas', 'iberia', 'air-canada', 'air-france', 'cathay-pacific', 'lufthansa', 'awesome-cargo', 'cargojet', 'cargojet-airways', 'lan-cargo', 'lan-cargo-sa', 'national-airlines', 'national-airlines-cargo', 'sky-lease', 'saudi-arabian', 'saudi-arabian-airlines-cargo', 'latam-cargo', 'lynden-air-cargo', 'dhl', 'sf-airlines', 'suparna', 'china-cargo', 'china-southern-cargo', 'abx-air', 'fedex', 'ups', 'kalitta-air', 'aero-union', 'aerotransporte-de-carga-union-sa-de-cv', 'emirates-skycargo', 'emirates-airlines', 'emirates', 'la-nueva-aerolinea', 'qatar-airways', 'qatar-airways-cargo', 'qatar-cargo', 'ameriflight', 'uniworld-air-cargo', 'air-china', 'amerijet-international', 'dhl-guatemala', 'ethiopian-airlines', 'turkish-airlines', 'united-parcel-service', 'china-southerrn', 'china-southern', 'china-airlines', 'suparna-airlines', 'saudi-arabian-airlines', 'abx-air', 'tap-portugal', 'tap-air-portugal',
+      // adicionales
+      'atlas-air', 'silk-way-west-airlines', 'silk-way', 'tsm-airline', 'tsm', 'unk', 'unknown', 'sin-aerolinea', 'galistair-trading-limited', 'omni-air', 'omni-air-international', 'ifl-group', 'conviasa' ];
 
     return list.map(dest => {
       const airlines = (dest.airlines || [])
