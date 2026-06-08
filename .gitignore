@@ -35,5 +35,9 @@ Thumbs.db
 *.tmp
 ~$*
 
+# Large binaries — exceed GitHub 100 MB limit
+NG-Client/NG-Client.exe
+*.exe
+
 # TypeScript
 *.tsbuildinfo
