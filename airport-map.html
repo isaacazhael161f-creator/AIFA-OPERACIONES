@@ -1,0 +1,615 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no">
+  <title>Guía a tu Puerta · AIFA</title>
+  <style>
+    :root {
+      --bg:       #04040c;
+      --surface:  #07091a;
+      --surface2: #0a0d22;
+      --border:   #182038;
+      --amber:    #f0b830;
+      --blue:     #3a78d8;
+      --green:    #28b870;
+      --text:     #d8e8f8;
+      --muted:    #486880;
+      --radius:   8px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; overflow: hidden; background: var(--bg); }
+    body { font-family: 'Segoe UI', system-ui, Arial, sans-serif;
+           color: var(--text); display: flex; flex-direction: column; }
+
+    /* HEADER */
+    #hdr {
+      display: flex; align-items: center; gap: .6rem;
+      padding: .45rem .9rem;
+      background: var(--surface); border-bottom: 2px solid var(--border);
+      flex-shrink: 0; min-height: 52px;
+    }
+    #hdr img { height: 32px; object-fit: contain; flex-shrink: 0; }
+    #hdr-title { flex: 1; min-width: 0; }
+    #hdr-title h1 {
+      font-size: .7rem; font-weight: 800; letter-spacing: .1em;
+      text-transform: uppercase; line-height: 1.2;
+    }
+    #hdr-title p { font-size: .6rem; color: var(--muted); letter-spacing: .05em; margin-top: 1px; }
+    #gate-badge {
+      background: var(--amber); color: #000;
+      font-size: .9rem; font-weight: 900;
+      padding: .3rem .65rem; border-radius: 7px;
+      letter-spacing: .06em; text-align: center;
+      flex-shrink: 0; min-width: 68px;
+    }
+    #gate-badge small {
+      display: block; font-size: .5rem; font-weight: 800;
+      letter-spacing: .14em; text-transform: uppercase; margin-bottom: 1px;
+    }
+    #gate-badge .vuelo-line {
+      font-size: .58rem; font-weight: 700; opacity: .75; display: block;
+    }
+
+    /* LAYOUT */
+    #main { display: flex; flex: 1; overflow: hidden; }
+
+    /* MAP */
+    #map-wrap {
+      flex: 1; position: relative; overflow: hidden;
+      background: var(--bg);
+    }
+    #asvg { width: 100%; height: 100%; display: block; cursor: crosshair; }
+
+    /* Map tap hint */
+    #tap-hint {
+      position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%);
+      background: rgba(4,8,20,.88); border: 1px solid var(--border);
+      color: var(--muted); font-size: .65rem; padding: .3rem .75rem;
+      border-radius: 20px; pointer-events: none; white-space: nowrap;
+      opacity: 1; transition: opacity .6s;
+    }
+    #tap-hint.fade { opacity: 0; }
+
+    /* GPS status pill */
+    #gps-status {
+      position: absolute; top: 8px; right: 8px;
+      background: rgba(4,8,20,.88); border: 1px solid var(--border);
+      color: var(--muted); font-size: .62rem; padding: .25rem .6rem;
+      border-radius: 20px; cursor: pointer; user-select: none;
+      transition: border-color .2s, color .2s;
+    }
+    #gps-status:hover { border-color: var(--blue); color: var(--text); }
+    #gps-status.active { border-color: var(--green); color: var(--green); }
+    #gps-status.error  { border-color: #a04020; color: #e06030; }
+
+    /* Clickable POI pin hover glow */
+    #asvg [cursor="pointer"] rect { transition: filter .15s; }
+    #asvg [cursor="pointer"]:hover rect { filter: brightness(1.4) drop-shadow(0 0 4px currentColor); }
+
+    /* You-are-here dot animation */
+    @keyframes user-pulse {
+      0%   { transform: scale(1);   opacity: .75; }
+      100% { transform: scale(3);   opacity: 0;   }
+    }
+    .user-ring {
+      animation: user-pulse 2s ease-out infinite;
+      transform-box: fill-box;
+      transform-origin: center;
+    }
+
+    /* PANEL */
+    #panel {
+      width: 280px; flex-shrink: 0;
+      background: var(--surface); border-left: 1px solid var(--border);
+      display: flex; flex-direction: column; overflow: hidden;
+    }
+
+    /* Next-step banner */
+    #next-banner {
+      padding: .6rem .9rem; background: #0a1020;
+      border-bottom: 2px solid var(--amber); flex-shrink: 0;
+    }
+    #next-label {
+      font-size: .52rem; color: var(--muted);
+      letter-spacing: .14em; text-transform: uppercase; margin-bottom: .2rem;
+    }
+    #next-text {
+      font-size: .95rem; font-weight: 800; color: var(--amber); line-height: 1.25;
+    }
+    #next-sub { font-size: .65rem; color: #6a9aaa; margin-top: .15rem; }
+
+    /* Walk time */
+    #walk-row {
+      display: flex; align-items: center; gap: .7rem;
+      padding: .55rem .9rem; border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    #walk-icon { font-size: 1.6rem; line-height: 1; }
+    #walk-mins { font-size: 1.9rem; font-weight: 900; color: var(--amber); line-height: 1; }
+    #walk-unit { font-size: .58rem; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+    #walk-dist { font-size: .7rem; color: var(--muted); margin-top: .1rem; }
+
+    /* From selector */
+    #from-wrap {
+      padding: .4rem .9rem; border-bottom: 1px solid var(--border); flex-shrink: 0;
+    }
+    .panel-label {
+      font-size: .52rem; color: var(--muted);
+      letter-spacing: .12em; text-transform: uppercase; margin-bottom: .3rem;
+    }
+    #from-sel {
+      width: 100%; background: var(--bg); border: 1px solid var(--border);
+      color: var(--text); padding: .3rem .45rem; border-radius: 4px; font-size: .75rem;
+    }
+
+    /* Directions list */
+    #dir-wrap { flex: 1; overflow-y: auto; padding: .5rem .9rem; }
+    #dir-wrap .panel-label { margin-bottom: .4rem; }
+    #dir-list { display: flex; flex-direction: column; }
+    .dir-step {
+      display: flex; align-items: flex-start; gap: .5rem;
+      padding: .5rem 0; border-bottom: 1px solid var(--border);
+    }
+    .dir-step:last-child { border-bottom: none; }
+    .dir-n {
+      width: 22px; height: 22px; border-radius: 50%; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: .65rem; font-weight: 800;
+      background: var(--surface2); color: var(--muted); border: 1px solid var(--border);
+    }
+    .dir-step.current .dir-n { background: var(--amber); color: #000; border-color: var(--amber); }
+    .dir-step.done .dir-n    { background: var(--green); color: #fff; border-color: var(--green); }
+    .dir-body { flex: 1; font-size: .76rem; line-height: 1.45; }
+    .dir-sub  { font-size: .65rem; color: var(--muted); margin-top: .15rem; }
+    .dir-step.current .dir-body { color: var(--text); }
+    .dir-step:not(.current):not(.done) .dir-body { color: #7090a8; }
+
+    /* QR wrap (desktop only) */
+    #qr-wrap {
+      padding: .65rem .9rem; border-top: 1px solid var(--border);
+      display: flex; flex-direction: column; align-items: center; gap: .35rem; flex-shrink: 0;
+    }
+    #qr-wrap p { font-size: .6rem; color: var(--muted); letter-spacing: .05em; }
+    #qr-box { background: #fff; padding: 6px; border-radius: 6px; }
+
+    /* MOBILE */
+    @media (max-width: 680px) {
+      html, body { overflow: hidden; }
+      #main { flex-direction: column; }
+      #panel {
+        width: 100%; max-height: 48vh; flex-shrink: 0;
+        border-left: none; border-top: 2px solid var(--border); overflow: hidden;
+      }
+      #next-banner { padding: .4rem .75rem; }
+      #next-text   { font-size: .82rem; }
+      #walk-row    { padding: .35rem .75rem; }
+      #walk-icon   { font-size: 1.3rem; }
+      #walk-mins   { font-size: 1.5rem; }
+      #from-wrap   { padding: .3rem .75rem; }
+      #from-sel    { font-size: .7rem; }
+      #dir-wrap    { padding: .35rem .75rem; }
+      .dir-body    { font-size: .72rem; }
+      .dir-sub     { font-size: .62rem; }
+      #qr-wrap     { display: none; }
+    }
+
+    /* ANIMATIONS */
+    @keyframes pulse { 0% { r:10; opacity:.7; } 100% { r:26; opacity:0; } }
+    .pulse-r { animation: pulse 1.6s ease-out infinite; }
+  </style>
+</head>
+<body>
+
+<header id="hdr">
+  <img src="images/aifa-logo.png" alt="AIFA" onerror="this.src='images/aifa-logo.jpg'">
+  <div id="hdr-title">
+    <h1>Aeropuerto Internacional Felipe Angeles</h1>
+    <p id="hdr-sub">Mapa de navegacion al embarque</p>
+  </div>
+  <div id="gate-badge">
+    <small>PUERTA</small>
+    <span id="badge-gate">-</span>
+  </div>
+</header>
+
+<div id="main">
+  <div id="map-wrap">
+    <svg id="asvg" viewBox="0 0 1520 460" preserveAspectRatio="xMidYMid meet"
+         xmlns="http://www.w3.org/2000/svg"></svg>
+    <div id="tap-hint">Toca el pasillo para indicar tu posicion</div>
+    <div id="gps-status" onclick="triggerGPS()">GPS Detectar posicion</div>
+  </div>
+
+  <div id="panel">
+    <div id="next-banner" style="display:none">
+      <div id="next-label">Siguiente paso</div>
+      <div id="next-text"></div>
+      <div id="next-sub"></div>
+    </div>
+    <div id="walk-row">
+      <div id="walk-icon">🚶</div>
+      <div>
+        <div id="walk-mins">-</div>
+        <div id="walk-unit">minutos</div>
+        <div id="walk-dist"></div>
+      </div>
+    </div>
+    <div id="from-wrap">
+      <div class="panel-label">Desde donde sales</div>
+      <select id="from-sel" onchange="applyRoute()">
+        <option value="security">Salida de Seguridad (acceso principal)</option>
+        <option value="security-b">Seguridad Internacional / Zona B</option>
+        <option value="cafeteria_a">Cafe / Zona A  (Pastes Kikos)</option>
+        <option value="tiendas">Tiendas / Zona B</option>
+        <option value="duty_free">Duty Free</option>
+        <option value="cafeteria_b">Cafe / Zona C</option>
+        <option value="sala_vip">Sala VIP</option>
+        <option value="corridor-mid">Centro del pasillo</option>
+      </select>
+    </div>
+    <div id="dir-wrap">
+      <div class="panel-label">Indicaciones paso a paso</div>
+      <div id="dir-list"></div>
+      <div id="state-msg" style="display:none;padding:.75rem 0;font-size:.78rem;color:var(--muted);line-height:1.6"></div>
+    </div>
+    <div id="qr-wrap">
+      <p>Escanea para abrir en tu telefono</p>
+      <div id="qr-box"></div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" crossorigin="anonymous"></script>
+<script>
+(function(){
+'use strict';
+const CY=210,CH=46,CX0=88,CX1=1490;
+const PX2M=1080/(CX1-CX0),WSPEED=75;
+// Named positions (x = SVG corridor coordinate)
+const ENTRIES={
+  'security'    :{x:100 ,label:'Salida de Seguridad'},
+  'security-b'  :{x:290 ,label:'Seguridad Internacional'},
+  'cafeteria_a' :{x:296 ,label:'Cafe / Zona A'},
+  'tiendas'     :{x:400 ,label:'Tiendas / Zona B'},
+  'corridor-mid':{x:700 ,label:'Centro del pasillo'},
+  'duty_free'   :{x:750 ,label:'Duty Free'},
+  'cafeteria_b' :{x:910 ,label:'Cafe / Zona C'},
+  'sala_vip'    :{x:1160,label:'Sala VIP'},
+};
+// URL alias map: common names / QR sticker IDs → ENTRIES key
+const LOC_MAP={
+  'pastes_kikos':'cafeteria_a','kikos':'cafeteria_a','cafe':'cafeteria_a','cafeteria':'cafeteria_a',
+  'tienda':'tiendas','shop':'tiendas','shops':'tiendas','comercial':'tiendas',
+  'fids':'security','fids_main':'security','fids_hall':'security','fids_gate':'security',
+  'dutyfree':'duty_free','dfs':'duty_free',
+  'vip':'sala_vip','cafe_b':'cafeteria_b',
+  'mid':'corridor-mid',
+};
+const GDIM={jetbridge:{boxw:22,boxh:18,stub:65,sw:3,fs:7.5},apron:{boxw:44,boxh:26,stub:55,sw:2.5,fs:9},remote:{boxw:36,boxh:22,stub:50,sw:2,fs:8.5}};
+const GCOL={jetbridge:{fill:'#04081a',stroke:'#1a4090',text:'#4878e8',hl:'#78aaff'},apron:{fill:'#120d04',stroke:'#583a10',text:'#d09030',hl:'#ffc84a'},remote:{fill:'#04100a',stroke:'#186828',text:'#32b860',hl:'#50ff90'}};
+
+function buildGates(){
+  const d={};
+  // MARS remote stands 101-105 (south side, closest to terminal)
+  for(let n=101;n<=105;n++) d[String(n)]={x:170+(n-101)*63,type:'apron',gy:CY+CH/2};
+  // Jetbridge (Manga) gates 106-116, A/B sub-positions
+  for(let n=106;n<=116;n++){const bx=512+(n-106)*67;d[n+'A']={x:bx,type:'jetbridge',gy:CY+CH/2};d[n+'B']={x:bx+27,type:'jetbridge',gy:CY+CH/2};}
+  // MARS remote stand 506 A/B (south side, after gate 116)
+  d['506A']={x:1285,type:'apron',gy:CY+CH/2};
+  d['506B']={x:1332,type:'apron',gy:CY+CH/2};
+  return d;
+}
+const GATES=buildGates();
+
+function resolveGate(s){
+  if(!s)return null;
+  const u=s.toUpperCase().trim();
+  if(GATES[u]&&!GATES[u].alias)return{key:u,g:GATES[u]};
+  if(GATES[u+'A'])return{key:u+'A',g:GATES[u+'A']};
+  const alt=u.slice(0,-1);
+  if(GATES[alt]&&!GATES[alt].alias)return{key:alt,g:GATES[alt]};
+  return null;
+}
+
+const P=new URLSearchParams(location.search);
+const TGT=(P.get('gate')||P.get('puerta')||'').toUpperCase();
+const VUE=P.get('vuelo')||P.get('flight')||'';
+const FRM=P.get('from')||'security';
+
+const NS='http://www.w3.org/2000/svg';
+const svg=document.getElementById('asvg');
+function svgEl(tag,attr,txt){
+  const e=document.createElementNS(NS,tag);
+  for(const[k,v]of Object.entries(attr))e.setAttribute(k,String(v));
+  if(txt!==undefined)e.textContent=txt;
+  return e;
+}
+
+function buildLandmarks(){
+  // POI reference points along the terminal corridor
+  const POI=[
+    [150,  'BA\u00d1OS',         '#3a72c8'],
+    [296,  'CAFETER\u00cdA',     '#c87820'],
+    [400,  'TIENDAS',            '#9030a8'],
+    [600,  'BA\u00d1OS',         '#3a72c8'],
+    [750,  'DUTY FREE',          '#1a9858'],
+    [910,  'CAFETER\u00cdA',     '#c87820'],
+    [1050, 'BA\u00d1OS',         '#3a72c8'],
+    [1160, 'SALA VIP',           '#c84020'],
+  ];
+  // IDs for clickable zones — null = bathroom/no action; string = ENTRIES key
+  const POI_IDS=[null,'cafeteria_a','tiendas',null,'duty_free','cafeteria_b',null,'sala_vip'];
+  const ly=95;
+  POI.forEach(([x,lbl,col],i)=>{
+    const id=POI_IDS[i];
+    const tw=(lbl.length+(id?2:0))*5.0+14;
+    svg.appendChild(svgEl('line',{x1:x,y1:ly+12,x2:x,y2:CY-CH/2-1,stroke:col,'stroke-width':0.8,'stroke-dasharray':'3 2.5',opacity:'0.45'}));
+    svg.appendChild(svgEl('circle',{cx:x,cy:CY-CH/2,r:3.5,fill:col,opacity:'0.8'}));
+    const grp=svgEl('g',id?{cursor:'pointer','aria-label':'Estoy aqui'}:{});
+    grp.appendChild(svgEl('rect',{x:x-tw/2,y:ly-11,width:tw,height:20,fill:'#060c1c',stroke:col,'stroke-width':id?2:1.3,rx:10}));
+    grp.appendChild(svgEl('text',{x,y:ly+4,fill:col,'font-size':7.5,'font-weight':700,'font-family':'Segoe UI,Arial','text-anchor':'middle'},lbl+(id?' +':'')));
+    if(id){
+      grp.addEventListener('click',()=>selectLocation(id));
+      grp.addEventListener('touchend',e=>{e.preventDefault();selectLocation(id);});
+    }
+    svg.appendChild(grp);
+  });
+}
+
+function buildMap(){
+  svg.appendChild(svgEl('rect',{x:0,y:0,width:1520,height:460,fill:'#04040c'}));
+  svg.appendChild(svgEl('rect',{x:CX0,y:CY+CH/2,width:CX1-CX0,height:220,fill:'#060610'}));
+  svg.appendChild(svgEl('text',{x:CX0+700,y:CY+CH/2+50,fill:'#0c1428','font-size':12,'font-family':'Segoe UI,Arial','text-anchor':'middle','letter-spacing':6},'PLATAFORMA  /  APRON'));
+  svg.appendChild(svgEl('rect',{x:0,y:50,width:92,height:360,fill:'#07091c',stroke:'#182038','stroke-width':1.5,rx:5}));
+  svg.appendChild(svgEl('text',{x:46,y:220,fill:'#1a2858','font-size':9,'font-family':'Segoe UI,Arial','text-anchor':'middle',transform:'rotate(-90,46,220)','letter-spacing':2},'TERMINAL  CHECK-IN'));
+  svg.appendChild(svgEl('rect',{x:76,y:CY-CH/2-52,width:30,height:52,fill:'#08102a',stroke:'#182038','stroke-width':1.5}));
+  svg.appendChild(svgEl('text',{x:91,y:CY-CH/2-58,fill:'#28a068','font-size':8,'font-family':'Segoe UI,Arial','text-anchor':'middle'},'SEGURIDAD'));
+  [465,483].forEach(x=>svg.appendChild(svgEl('line',{x1:x,y1:CY-CH/2-2,x2:x,y2:CY+CH/2+2,stroke:'#182038','stroke-width':1})));
+  [1250,1268].forEach(x=>svg.appendChild(svgEl('line',{x1:x,y1:CY-CH/2-2,x2:x,y2:CY+CH/2+2,stroke:'#182038','stroke-width':1})));
+  const zy=CY-CH/2-12;
+  [[296,'101\u2013105  MARS'],[858,'106\u2013116  MANGAS (A/B)'],[1308,'506  MARS (A/B)']].forEach(([x,t])=>svg.appendChild(svgEl('text',{x,y:zy,fill:'#1c3460','font-size':8.5,'font-family':'Segoe UI,Arial','text-anchor':'middle','letter-spacing':1.2},t)));
+  buildLandmarks();
+  svg.appendChild(svgEl('rect',{x:CX0,y:CY-CH/2,width:CX1-CX0,height:CH,fill:'#0b1a30',stroke:'#203460','stroke-width':2,rx:4}));
+  for(let ax=200;ax<CX1-80;ax+=120)svg.appendChild(svgEl('text',{x:ax,y:CY+6,fill:'#18284a','font-size':14,'text-anchor':'middle'},'→'));
+  for(const[k,g]of Object.entries(GATES)){if(g.alias)continue;drawGate(k,g);}
+  svg.appendChild(svgEl('g',{id:'pg'}));
+}
+
+function drawGate(key,g){
+  const gx=g.x,gy0=g.gy;
+  const d=GDIM[g.type]||GDIM.jetbridge;
+  const c=GCOL[g.type]||GCOL.jetbridge;
+  const north=g.side==='north';
+  const gy1=north?gy0-d.stub:gy0+d.stub;
+  svg.appendChild(svgEl('line',{x1:gx,y1:gy0,x2:gx,y2:gy1,stroke:c.stroke,'stroke-width':d.sw}));
+  const boxY=north?gy1-d.boxh:gy1;
+  svg.appendChild(svgEl('rect',{id:'gb-'+key,x:gx-d.boxw/2,y:boxY,width:d.boxw,height:d.boxh,fill:c.fill,stroke:c.stroke,'stroke-width':1,rx:3,cursor:'pointer'}));
+  const lbl=svgEl('text',{id:'gl-'+key,x:gx,y:boxY+d.boxh/2+d.fs*0.38,fill:c.text,'font-size':d.fs,'font-weight':700,'font-family':'Segoe UI,Arial','text-anchor':'middle',cursor:'pointer'},key);
+  svg.appendChild(lbl);
+  [document.getElementById('gb-'+key),lbl].forEach(el=>{if(el)el.addEventListener('click',()=>navigateTo(key));});
+}
+
+function containerSize(){const w=document.getElementById('map-wrap');return{cW:w.clientWidth||360,cH:w.clientHeight||300};}
+function adjustView(ex,gx,destY){const{cW,cH}=containerSize();const asp=cW/Math.max(cH,1);const pad=Math.max(55,cW*0.07);const vbW=Math.max(Math.abs(gx-ex)+pad*2,300);const vbH=Math.round(vbW/asp);const cx=(Math.min(ex,gx)+Math.max(ex,gx))/2;const cy=destY<CY?(CY+destY)/2:CY+30;svg.setAttribute('viewBox',(cx-vbW/2)+' '+(cy-vbH/2)+' '+vbW+' '+vbH);}
+function initViewBox(){const{cW,cH}=containerSize();const asp=cW/Math.max(cH,1);const vbW=1520;const vbH=Math.round(vbW/asp);svg.setAttribute('viewBox','0 '+(CY-vbH/2)+' '+vbW+' '+vbH);}
+
+let _rafs=[];
+function stopAnims(){_rafs.forEach(cancelAnimationFrame);_rafs=[];}
+function resetGateColors(){for(const[k,g]of Object.entries(GATES)){if(g.alias)continue;const c=GCOL[g.type]||GCOL.jetbridge;const box=document.getElementById('gb-'+k);const lbl=document.getElementById('gl-'+k);if(box){box.setAttribute('fill',c.fill);box.setAttribute('stroke',c.stroke);}if(lbl){lbl.setAttribute('fill',c.text);lbl.setAttribute('font-size',(GDIM[g.type]||GDIM.jetbridge).fs);lbl.setAttribute('font-weight',700);}}}
+
+function applyRoute(){
+  const fromKey=document.getElementById('from-sel').value;
+  const entry=ENTRIES[fromKey]||ENTRIES.security;
+  stopAnims();resetGateColors();
+  const pg=document.getElementById('pg');
+  while(pg.firstChild)pg.removeChild(pg.firstChild);
+  if(!TGT){initViewBox();document.getElementById('state-msg').textContent='Toca una puerta en el mapa o escanea el QR del tablero FIDS.';document.getElementById('state-msg').style.display='';document.getElementById('dir-list').innerHTML='';document.getElementById('next-banner').style.display='none';return;}
+  const res=resolveGate(TGT);
+  if(!res){initViewBox();document.getElementById('state-msg').textContent='Puerta especial - consulta con el personal del aeropuerto.';document.getElementById('state-msg').style.display='';document.getElementById('walk-mins').textContent='?';return;}
+  document.getElementById('state-msg').style.display='none';
+  const{key:gKey,g:gData}=res;
+  const gx=gData.x,ex=entry.x;
+  const d=GDIM[gData.type]||GDIM.jetbridge;
+  const north=gData.side==='north';
+  const destY=north?(gData.gy-d.stub-d.boxh/2):(gData.gy+d.stub+d.boxh/2);
+  const tBox=document.getElementById('gb-'+gKey);const tLbl=document.getElementById('gl-'+gKey);
+  if(tBox){tBox.setAttribute('fill','#a07008');tBox.setAttribute('stroke','#f0b830');}
+  if(tLbl){tLbl.setAttribute('fill','#000');tLbl.setAttribute('font-size',9);tLbl.setAttribute('font-weight',900);}
+  const cy=CY;
+  const pathD='M '+ex+' '+cy+' L '+gx+' '+cy+' L '+gx+' '+destY;
+  pg.appendChild(svgEl('path',{d:pathD,stroke:'#f0b83020','stroke-width':14,fill:'none','stroke-linecap':'round'}));
+  const line=svgEl('path',{id:'nav-line',d:pathD,stroke:'#f0b830','stroke-width':3,fill:'none','stroke-linecap':'round','stroke-dasharray':'10 6','stroke-dashoffset':0});
+  pg.appendChild(line);
+  let doff=0;
+  const animDash=()=>{doff=(doff-1.4)%16;line.setAttribute('stroke-dashoffset',doff);_rafs.push(requestAnimationFrame(animDash));};
+  animDash();
+  const pRing=svgEl('circle',{cx:ex,cy:cy,r:10,fill:'none',stroke:'#28b870','stroke-width':2,opacity:.8,class:'pulse-r'});
+  pg.appendChild(pRing);
+  pg.appendChild(svgEl('circle',{cx:ex,cy:cy,r:8,fill:'#0d6040',stroke:'#28b870','stroke-width':2.5}));
+  pg.appendChild(svgEl('text',{x:ex,y:cy+4,fill:'#60ffb0','font-size':8,'text-anchor':'middle','pointer-events':'none','font-weight':900},'◉'));
+  const pCircle=svgEl('circle',{cx:ex,cy:cy,r:7,fill:'#2858c8',stroke:'#0a1840','stroke-width':2});
+  const pIcon=svgEl('text',{x:ex,y:cy+4,fill:'#fff','font-size':8,'text-anchor':'middle','pointer-events':'none'},'🚶');
+  pg.appendChild(pCircle);pg.appendChild(pIcon);
+  const corrLen=Math.abs(gx-ex),stubLen=Math.abs(destY-cy),total=corrLen+stubLen;
+  let t0=null;
+  const animWalk=ts=>{
+    if(!t0)t0=ts;
+    const prog=Math.min(((ts-t0)%3600)/3000,1);
+    const cFrac=corrLen/total;
+    let px,py;
+    if(prog<=cFrac){px=ex+(gx-ex)*(prog/cFrac);py=cy;}else{px=gx;py=cy+(destY-cy)*((prog-cFrac)/(1-cFrac));}
+    pCircle.setAttribute('cx',px);pCircle.setAttribute('cy',py);pIcon.setAttribute('x',px);pIcon.setAttribute('y',py+4);
+    _rafs.push(requestAnimationFrame(animWalk));
+  };
+  _rafs.push(requestAnimationFrame(animWalk));
+  [0,800].forEach(delay=>{const r=svgEl('circle',{cx:gx,cy:destY,r:12,fill:'none',stroke:'#f0b830','stroke-width':1.8,opacity:0,class:'pulse-r'});r.style.animationDelay=delay+'ms';pg.appendChild(r);});
+  pg.appendChild(svgEl('circle',{cx:gx,cy:destY,r:5,fill:'#f0b830'}));
+  const distM=Math.round(total*PX2M);
+  const mins=Math.max(1,Math.round(distM/WSPEED));
+  document.getElementById('walk-mins').textContent=mins;
+  document.getElementById('walk-dist').textContent='~'+distM+' m';
+  const badge=document.getElementById('gate-badge');
+  badge.innerHTML=VUE?'<small>PUERTA</small>'+gKey+'<span class="vuelo-line">'+VUE+'</span>':'<small>PUERTA</small>'+gKey;
+  buildDirections(entry,gKey,gData,distM,mins);
+  adjustView(ex,gx,destY);
+}
+
+function buildDirections(entry,gKey,g,distM,mins){
+  const dir=g.x>entry.x?'derecha':'izquierda';
+  const arw=g.x>entry.x?'→':'←';
+  const zone={jetbridge:'Zona Mangas (Pasarelas)',apron:'Zona Plataforma Remota',remote:'Zona Plataforma Este'};
+  const board={jetbridge:'Abordas por pasarela telesc\u00f3pica',apron:'Autobus a la aeronave en plataforma',remote:'Acceso especial \u2013 Plataforma Este'};
+  const steps=[
+    {icon:'🔓',txt:'Sal por <strong>'+entry.label+'</strong>',sub:null,state:'current'},
+    {icon:arw,txt:'Gira a la <strong>'+dir+'</strong> y avanza',sub:zone[g.type]||'',state:null},
+    {icon:'🚶',txt:'Camina <strong>~'+distM+' m</strong>',sub:'Aprox. '+mins+' minuto'+(mins>1?'s':''),state:null},
+    {icon:'🎯',txt:'Llega a <strong>Puerta '+gKey+'</strong>',sub:'Busca el letrero amarillo',state:'current'},
+    {icon:'✈️',txt:board[g.type]||'Aborda tu vuelo',sub:null,state:null},
+  ];
+  document.getElementById('dir-list').innerHTML=steps.map((s,i)=>'<div class="dir-step'+(s.state?' '+s.state:'')+'"><div class="dir-n">'+(i+1)+'</div><div class="dir-body">'+s.icon+' '+s.txt+(s.sub?'<div class="dir-sub">'+s.sub+'</div>':'')+'</div></div>').join('');
+  document.getElementById('next-banner').style.display='';
+  document.getElementById('next-text').textContent='Gira a la '+dir+' '+arw;
+  document.getElementById('next-sub').textContent=zone[g.type]+' · ~'+distM+' m · '+mins+' min';
+}
+
+// Coordenadas reales AIFA (Wikipedia: 19°45'24"N 099°00'55"W; concourse 1080m)
+const AIFA_LAT=19.7567, AIFA_LNG=-99.0153;
+// Extremo oeste = salida de seguridad; extremo este = puerta 506B
+const LNG_W=-99.0207, LNG_E=-99.0099;
+// 1 metro en SVG units (para el radio de precisión)
+const M_PER_LNG_DEG=95000; // metros por grado de longitud a esta latitud
+
+let _watchId=null;
+
+function triggerGPS(){
+  const st=document.getElementById('gps-status');
+  if(!navigator.geolocation){
+    st.textContent='GPS no disponible';st.className='error';showTapHint();return;
+  }
+  // Detener seguimiento previo
+  if(_watchId!==null){navigator.geolocation.clearWatch(_watchId);_watchId=null;}
+  st.textContent='\u{1F4CD} Solicitando ubicaci\u00f3n…';st.className='';
+
+  const onPos=pos=>{
+    const{latitude:lat,longitude:lng,accuracy:acc}=pos.coords;
+    const dist=Math.hypot((lat-AIFA_LAT)*111000,(lng-AIFA_LNG)*M_PER_LNG_DEG);
+    if(dist>5000){st.textContent='Fuera del aeropuerto';st.className='error';showTapHint();return;}
+    const frac=Math.max(0,Math.min(1,(lng-LNG_W)/(LNG_E-LNG_W)));
+    setUserPos(CX0+frac*(CX1-CX0),acc);
+    const q=acc<20?'\u2705':acc<50?'\u26a0\ufe0f':'\u{1F4CD}';
+    st.textContent=q+' Tu posici\u00f3n \u00b1'+Math.round(acc)+'m';st.className='active';
+    hideTapHint();
+  };
+  const onErrHigh=()=>{
+    // Fallback con baja precisión
+    navigator.geolocation.getCurrentPosition(onPos,
+      ()=>{st.textContent='Toca el pasillo del mapa';st.className='error';showTapHint();},
+      {enableHighAccuracy:false,timeout:15000,maximumAge:60000});
+  };
+  // watchPosition = actualización continua mientras el pasajero camina
+  _watchId=navigator.geolocation.watchPosition(onPos,onErrHigh,
+    {enableHighAccuracy:true,timeout:20000,maximumAge:4000});
+}
+
+function setUserPos(svgX,acc){
+  const x=Math.max(CX0+5,Math.min(CX1-5,svgX));
+  ENTRIES['tap']={x,label:'Tu posici\u00f3n'};
+  const sel=document.getElementById('from-sel');
+  let opt=document.getElementById('opt-tap');
+  if(!opt){opt=document.createElement('option');opt.id='opt-tap';opt.value='tap';sel.insertBefore(opt,sel.firstChild);}
+  opt.textContent='Tu posici\u00f3n actual';
+  sel.value='tap';
+  // ─ Marcador visual “estás aquí” en el SVG ─
+  let g=document.getElementById('user-pos-g');
+  if(!g){g=svgEl('g',{id:'user-pos-g'});svg.appendChild(g);}
+  while(g.firstChild)g.removeChild(g.firstChild);
+  // Círculo de precisión GPS
+  if(acc&&acc<500){
+    const svgPerM=(CX1-CX0)/((LNG_E-LNG_W)*M_PER_LNG_DEG);
+    const r=Math.min(Math.max(acc*svgPerM,8),280);
+    g.appendChild(svgEl('circle',{cx:x,cy:CY,r,fill:'#1a6aff','fill-opacity':'.09',stroke:'#3a8aff','stroke-width':1.5,'stroke-dasharray':'6 4'}));
+  }
+  // Anillo pulsante
+  g.appendChild(svgEl('circle',{cx:x,cy:CY,r:11,fill:'none',stroke:'#00e070','stroke-width':2,class:'user-ring'}));
+  // Punto exterior blanco
+  g.appendChild(svgEl('circle',{cx:x,cy:CY,r:8,fill:'#ffffff',stroke:'#00e070','stroke-width':2.5}));
+  // Punto verde central
+  g.appendChild(svgEl('circle',{cx:x,cy:CY,r:3.5,fill:'#00e070'}));
+  // Etiqueta
+  g.appendChild(svgEl('text',{x,y:CY-16,fill:'#00e070','font-size':8,'font-weight':700,'font-family':'Segoe UI,Arial','text-anchor':'middle','paint-order':'stroke',stroke:'#000820','stroke-width':3},'\u2022 T\u00da EST\u00c1S AQU\u00cd'));
+  applyRoute();
+}
+
+// selectLocation: called when passenger taps a POI label or opens URL with ?from=LOCATION
+function selectLocation(id){
+  const key=LOC_MAP[id]||id;
+  const entry=ENTRIES[key];
+  if(!entry)return;
+  const sel=document.getElementById('from-sel');
+  if(!sel.querySelector('[value="'+key+'"]')){
+    const opt=document.createElement('option');
+    opt.value=key;opt.textContent=entry.label;sel.insertBefore(opt,sel.firstChild);
+  }
+  sel.value=key;
+  // Draw the 'you are here' marker at this exact location (no accuracy circle — position is known)
+  let g=document.getElementById('user-pos-g');
+  if(!g){g=svgEl('g',{id:'user-pos-g'});svg.appendChild(g);}
+  while(g.firstChild)g.removeChild(g.firstChild);
+  const x=entry.x;
+  g.appendChild(svgEl('circle',{cx:x,cy:CY,r:11,fill:'none',stroke:'#00e070','stroke-width':2,class:'user-ring'}));
+  g.appendChild(svgEl('circle',{cx:x,cy:CY,r:8,fill:'#ffffff',stroke:'#00e070','stroke-width':2.5}));
+  g.appendChild(svgEl('circle',{cx:x,cy:CY,r:3.5,fill:'#00e070'}));
+  g.appendChild(svgEl('text',{x,y:CY-16,fill:'#00e070','font-size':8,'font-weight':700,'font-family':'Segoe UI,Arial','text-anchor':'middle','paint-order':'stroke',stroke:'#000820','stroke-width':3},'ESTAS AQUI'));
+  const st=document.getElementById('gps-status');
+  st.textContent='[ '+entry.label+' ]';st.className='active';
+  hideTapHint();
+  applyRoute();
+}
+function showTapHint(){document.getElementById('tap-hint').classList.remove('fade');}
+function hideTapHint(){document.getElementById('tap-hint').classList.add('fade');}
+
+let _dragMoved=false;
+svg.addEventListener('pointerdown',()=>{_dragMoved=false;});
+svg.addEventListener('pointermove',()=>{_dragMoved=true;});
+svg.addEventListener('pointerup',e=>{
+  if(_dragMoved)return;
+  const rect=svg.getBoundingClientRect();
+  const vb=svg.getAttribute('viewBox').split(' ').map(Number);
+  const px=vb[0]+(e.clientX-rect.left)/rect.width*vb[2];
+  const py=vb[1]+(e.clientY-rect.top)/rect.height*vb[3];
+  if(py>CY-CH/2-45&&py<CY+CH/2+45&&px>CX0&&px<CX1){
+    setUserPos(px);
+    document.getElementById('gps-status').textContent='Posicion marcada en mapa';
+    document.getElementById('gps-status').className='active';
+    hideTapHint();
+  }
+});
+
+function buildQR(){const box=document.getElementById('qr-box');box.innerHTML='';if(!window.QRCode)return;try{new QRCode(box,{text:location.href,width:110,height:110,colorDark:'#000',colorLight:'#fff',correctLevel:QRCode.CorrectLevel.M});}catch(_){}}
+function navigateTo(key){const url=new URL(location.href);url.searchParams.set('gate',key);location.href=url.toString();}
+
+buildMap();
+// Resolve 'from=' URL param through alias map
+const _frmKey=LOC_MAP[FRM]||FRM;
+if(P.has('from')&&_frmKey&&ENTRIES[_frmKey]){
+  // URL has an explicit 'from=' → set starting position immediately (0-error anchor)
+  selectLocation(_frmKey);
+}else{
+  applyRoute();
+}
+setTimeout(buildQR,300);
+// Start GPS for real-time position refinement whenever a gate is targeted
+const _qp=new URLSearchParams(location.search);
+if(_qp.has('gate')||_qp.has('from')){
+  setTimeout(triggerGPS,800);
+}else{
+  showTapHint();
+  setTimeout(hideTapHint,6000);
+}
+window.applyRoute=applyRoute;
+window.triggerGPS=triggerGPS;
+})();
+</script>
+</body>
+</html>

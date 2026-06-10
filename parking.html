@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#0A1628">
+  <meta name="description" content="Guarda tu lugar de estacionamiento en el AIFA y navega de regreso a tu vehículo.">
+  <title>AIFA – Mi Estacionamiento</title>
+  <link rel="icon" href="images/aifa-logo.png">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --gold:#F5A623;--gold-d:#D4891A;--dark:#0A1628;--card:#122040;
+      --text:#F0F4F8;--muted:#8DA0B8;--ok:#28C76F;--err:#EA5455;
+    }
+    body{background:var(--dark);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;min-height:100vh;overflow-x:hidden}
+
+    /* Header */
+    .app-header{background:linear-gradient(135deg,#0A1628,#122040);border-bottom:2px solid var(--gold);padding:12px 18px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100}
+    .app-header img{height:32px;object-fit:contain}
+    .app-header .brand-title{font-size:0.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+    .app-header .brand-sub{font-size:0.9rem;font-weight:700;color:var(--gold)}
+
+    /* Screens */
+    .screen{padding:18px 16px 32px;max-width:440px;margin:0 auto}
+
+    /* Spot Card */
+    .spot-card{background:var(--card);border-radius:20px;padding:26px 22px;border:1.5px solid rgba(245,166,35,.3);text-align:center;position:relative;overflow:hidden;transition:border-color .3s,background .3s}
+    .spot-card::before{content:'';position:absolute;top:-60%;left:-60%;width:220%;height:220%;background:radial-gradient(circle,rgba(245,166,35,.07),transparent 55%);pointer-events:none}
+    .spot-section{font-size:5.5rem;font-weight:900;line-height:1;letter-spacing:-3px}
+    .spot-number{font-size:2.6rem;font-weight:700}
+    .spot-level{font-size:1rem;color:var(--gold);font-weight:600;margin-top:4px}
+    .color-pill{display:inline-block;padding:4px 14px;border-radius:20px;font-size:.75rem;font-weight:700;text-transform:uppercase;margin-bottom:8px}
+    .divider{height:1px;background:rgba(255,255,255,.07);margin:16px 0}
+
+    /* Buttons */
+    .btn-gold{background:linear-gradient(135deg,var(--gold),var(--gold-d));color:#0A1628;border:none;border-radius:50px;padding:15px 32px;font-size:1rem;font-weight:700;width:100%;margin-top:18px;box-shadow:0 6px 18px rgba(245,166,35,.4);transition:transform .15s,box-shadow .15s;cursor:pointer}
+    .btn-gold:hover,.btn-gold:active{transform:scale(.97);box-shadow:0 3px 10px rgba(245,166,35,.3);color:#0A1628}
+    .btn-outline-gold{background:transparent;color:var(--gold);border:1.5px solid var(--gold);border-radius:50px;padding:12px 28px;font-size:.9rem;font-weight:600;width:100%;margin-top:10px;transition:background .15s;cursor:pointer}
+    .btn-outline-gold:hover{background:rgba(245,166,35,.1);color:var(--gold)}
+
+    /* Info rows */
+    .info-row{display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.05);border-radius:12px;padding:11px 14px;margin-top:9px}
+    .info-row i{width:26px;color:var(--gold);font-size:.95rem;flex-shrink:0}
+    .info-row .lbl{font-size:.75rem;color:var(--muted)}
+    .info-row .val{font-size:.9rem;font-weight:600}
+
+    /* Nav buttons */
+    .nav-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+    .nav-btn{background:var(--card);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:14px 10px;text-align:center;text-decoration:none;color:var(--text);transition:border-color .15s,background .15s;display:block}
+    .nav-btn:hover{border-color:var(--gold);background:rgba(245,166,35,.08);color:var(--text)}
+    .nav-btn i{display:block;font-size:1.6rem;margin-bottom:5px}
+    .nav-btn span{font-size:.78rem;font-weight:600}
+
+    /* Success animation */
+    .success-icon{width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,var(--ok),#1aab5b);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:1.8rem;animation:popIn .4s cubic-bezier(.175,.885,.32,1.275)}
+    @keyframes popIn{0%{transform:scale(0);opacity:0}100%{transform:scale(1);opacity:1}}
+
+    /* Empty state */
+    .empty-state{text-align:center;padding:40px 16px}
+    .empty-icon{font-size:3.5rem;color:var(--muted);margin-bottom:16px;opacity:.45}
+
+    /* How-it-works */
+    .how-box{background:var(--card);border-radius:16px;padding:18px;margin-top:20px;border:1px solid rgba(245,166,35,.2)}
+    .how-step{font-size:.86rem;color:var(--muted);line-height:1.8}
+    .how-step i{color:var(--ok);width:20px}
+
+    /* Tip box */
+    .tip-box{background:rgba(245,166,35,.07);border:1px dashed rgba(245,166,35,.4);border-radius:14px;padding:14px 16px;margin-top:16px;font-size:.82rem;color:var(--muted);line-height:1.5}
+
+    /* Color guide */
+    .color-guide{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}
+    .cg-pill{display:inline-flex;align-items:center;gap:5px;border-radius:20px;padding:4px 11px;font-size:.78rem;font-weight:600}
+
+    /* History */
+    .hist-item{background:var(--card);border-radius:13px;padding:12px 14px;margin-top:8px;border:1px solid rgba(255,255,255,.06);display:flex;align-items:center;gap:12px}
+    .hist-icon{width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.15rem;font-weight:900;flex-shrink:0}
+
+    /* Section label */
+    .sec-label{font-size:.72rem;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)}
+
+    /* Footer */
+    footer{text-align:center;padding:18px;color:var(--muted);font-size:.72rem;border-top:1px solid rgba(255,255,255,.05);margin-top:8px}
+  </style>
+</head>
+<body>
+
+<!-- ── Header ── -->
+<header class="app-header">
+  <img src="images/aifa-logo.png" onerror="this.style.display='none'" alt="AIFA">
+  <div style="flex:1">
+    <div class="brand-title">Aeropuerto Internacional</div>
+    <div class="brand-sub">Felipe &#xC1;ngeles</div>
+  </div>
+  <div style="color:var(--gold);font-size:1.4rem"><i class="fas fa-car"></i></div>
+</header>
+
+<!-- ══════════════════════════════════════════
+     PANTALLA 1 — GUARDAR (desde QR)
+═══════════════════════════════════════════ -->
+<div id="sc-save" class="screen d-none">
+  <div style="text-align:center;margin:20px 0 16px">
+    <div style="font-size:.8rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">
+      <i class="fas fa-qrcode me-1"></i> Lugar detectado
+    </div>
+    <h2 style="font-size:1.45rem;font-weight:700;margin-top:6px">&#xBF;Guardar este lugar?</h2>
+  </div>
+
+  <div class="spot-card" id="sv-card">
+    <span class="color-pill" id="sv-color-pill">Amarillo</span>
+    <div class="sec-label">Secci&#xF3;n</div>
+    <div class="spot-section" id="sv-sec">B</div>
+    <div style="font-size:.95rem;color:var(--muted);margin-top:-6px">Columna</div>
+    <div class="spot-number" id="sv-num">23</div>
+    <div class="spot-level"><i class="fas fa-layer-group me-1"></i><span id="sv-nivel">N1</span></div>
+  </div>
+
+  <div class="info-row">
+    <i class="fas fa-clock"></i>
+    <div><div class="lbl">Hora de llegada</div><div class="val" id="sv-time">--:--</div></div>
+  </div>
+  <div class="info-row">
+    <i class="fas fa-location-dot"></i>
+    <div><div class="lbl">Coordenadas GPS</div><div class="val" id="sv-gps">Sin coordenadas</div></div>
+  </div>
+
+  <button class="btn-gold" onclick="saveSpot()">
+    <i class="fas fa-bookmark me-2"></i>Guardar mi lugar
+  </button>
+  <button class="btn-outline-gold" onclick="showFindScreen()">
+    <i class="fas fa-search me-2"></i>Ver lugar guardado
+  </button>
+</div>
+
+<!-- ══════════════════════════════════════════
+     PANTALLA 2 — CONFIRMACI&#xD3;N GUARDADO
+═══════════════════════════════════════════ -->
+<div id="sc-saved" class="screen d-none">
+  <div style="text-align:center;padding:20px 0">
+    <div class="success-icon"><i class="fas fa-check" style="color:#fff"></i></div>
+    <h2 style="font-size:1.5rem;font-weight:700;margin-bottom:6px">&#xA1;Lugar guardado!</h2>
+    <p style="color:var(--muted);font-size:.88rem">Tu lugar est&#xE1; guardado en este dispositivo</p>
+  </div>
+
+  <div class="spot-card" id="sv2-card"><!-- rellena JS --></div>
+
+  <div class="tip-box">
+    <i class="fas fa-info-circle" style="color:var(--gold)"></i>
+    Para encontrar tu auto al regresar, abre esta p&#xE1;gina nuevamente o escanea el mismo QR de la columna &#8212; te dar&#xE1; navegaci&#xF3;n directa.
+  </div>
+
+  <button class="btn-gold" onclick="showFindScreen()" style="margin-top:22px">
+    <i class="fas fa-map-marked-alt me-2"></i>Navegar a mi auto
+  </button>
+</div>
+
+<!-- ══════════════════════════════════════════
+     PANTALLA 3 — ENCONTRAR MI AUTO
+═══════════════════════════════════════════ -->
+<div id="sc-find" class="screen d-none">
+  <div style="text-align:center;margin:16px 0 14px">
+    <h2 style="font-size:1.35rem;font-weight:700">
+      <i class="fas fa-car me-2" style="color:var(--gold)"></i>Mi Auto
+    </h2>
+  </div>
+
+  <div class="spot-card" id="fd-card"><!-- rellena JS --></div>
+
+  <div class="info-row" style="margin-top:14px">
+    <i class="fas fa-stopwatch"></i>
+    <div><div class="lbl">Tiempo estacionado</div><div class="val" id="fd-elapsed">Calculando...</div></div>
+  </div>
+  <div class="info-row">
+    <i class="fas fa-clock"></i>
+    <div><div class="lbl">Lleg&#xFC;e a las</div><div class="val" id="fd-at">--:--</div></div>
+  </div>
+
+  <!-- Navegar -->
+  <div style="margin-top:18px">
+    <div style="font-size:.78rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:9px">
+      <i class="fas fa-compass me-1"></i> Navegar al estacionamiento
+    </div>
+    <div class="nav-grid" id="nav-grid"><!-- rellena JS --></div>
+    <div id="nav-note" class="d-none" style="font-size:.77rem;color:var(--muted);text-align:center;margin-top:6px;grid-column:span 2">
+      <i class="fas fa-info-circle me-1"></i>Sin GPS exacto &#8212; te llevar&#xE1; al estacionamiento general del AIFA
+    </div>
+  </div>
+
+  <!-- Gu&#xED;a de colores -->
+  <div style="background:var(--card);border-radius:14px;padding:14px;margin-top:16px;border:1px solid rgba(255,255,255,.07)">
+    <div style="font-size:.75rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">
+      <i class="fas fa-map me-1"></i> Gu&#xED;a de colores por secci&#xF3;n
+    </div>
+    <div class="color-guide" id="color-guide"><!-- rellena JS --></div>
+  </div>
+
+  <div class="divider"></div>
+
+  <button class="btn-outline-gold" onclick="clearSpot()">
+    <i class="fas fa-trash-alt me-2"></i>Borrar lugar guardado
+  </button>
+
+  <!-- Historial -->
+  <div id="hist-wrap" class="d-none" style="margin-top:20px">
+    <div style="font-size:.78rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">
+      <i class="fas fa-history me-1"></i> Historial reciente
+    </div>
+    <div id="hist-list"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     PANTALLA 4 — SIN DATOS
+═══════════════════════════════════════════ -->
+<div id="sc-empty" class="screen d-none">
+  <div class="empty-state">
+    <div class="empty-icon"><i class="fas fa-parking"></i></div>
+    <h3 style="font-size:1.25rem;font-weight:700;margin-bottom:8px">Sin lugar guardado</h3>
+    <p style="color:var(--muted);font-size:.88rem;line-height:1.55">
+      Escanea el c&#xF3;digo QR de la columna m&#xE1;s cercana a donde estacionaste tu veh&#xED;culo.
+    </p>
+    <div class="how-box">
+      <div style="font-weight:700;color:var(--gold);margin-bottom:10px">
+        <i class="fas fa-lightbulb me-2"></i>&#xBF;C&#xF3;mo funciona?
+      </div>
+      <div class="how-step">
+        <p><i class="fas fa-circle-check me-2"></i>Estaciona tu veh&#xED;culo</p>
+        <p><i class="fas fa-circle-check me-2"></i>Busca la columna amarilla m&#xE1;s cercana</p>
+        <p><i class="fas fa-circle-check me-2"></i>Escanea el c&#xF3;digo QR en la columna</p>
+        <p><i class="fas fa-circle-check me-2"></i>Presiona &#x201C;Guardar mi lugar&#x201D;</p>
+        <p><i class="fas fa-circle-check me-2"></i>&#xA1;Al regresar esta p&#xE1;gina te gu&#xED;a!</p>
+      </div>
+    </div>
+    <a href="https://www.google.com/maps/dir/?api=1&destination=19.7540,-99.0762&travelmode=driving"
+       target="_blank" rel="noopener"
+       class="btn-outline-gold" style="display:block;text-decoration:none;text-align:center;padding:13px;margin-top:20px">
+      <i class="fas fa-map-marked-alt me-2"></i>Ver AIFA en Google Maps
+    </a>
+  </div>
+</div>
+
+<footer>
+  <i class="fas fa-shield-halved me-1"></i> Datos guardados localmente en tu dispositivo &nbsp;|&nbsp; AIFA &copy; 2026
+</footer>
+
+<script>
+'use strict';
+
+var STORE_KEY = 'aifa_parking_v1';
+var HIST_KEY  = 'aifa_parking_hist_v1';
+
+var COLORS = {
+  amarillo: { label:'Amarillo', bg:'#F5C518', tx:'#0A1628' },
+  azul:     { label:'Azul',     bg:'#1E6FD9', tx:'#ffffff' },
+  verde:    { label:'Verde',    bg:'#28C76F', tx:'#0A1628' },
+  rojo:     { label:'Rojo',     bg:'#EA5455', tx:'#ffffff' },
+  naranja:  { label:'Naranja',  bg:'#FF9F43', tx:'#0A1628' },
+  morado:   { label:'Morado',   bg:'#7C3AED', tx:'#ffffff' },
+  gris:     { label:'Gris',     bg:'#8DA0B8', tx:'#0A1628' }
+};
+
+/* Mapa de colores por secci&#xF3;n (actualizable desde el admin) */
+var COLOR_MAP = [
+  { s:'A', c:'azul'    },
+  { s:'B', c:'amarillo'},
+  { s:'C', c:'verde'   },
+  { s:'D', c:'rojo'    },
+  { s:'E', c:'naranja' },
+  { s:'F', c:'morado'  }
+];
+
+function gc(name){ return COLORS[name] || COLORS.amarillo; }
+
+function fmtT(ts){
+  return new Date(ts).toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});
+}
+function fmtD(ts){
+  return new Date(ts).toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'});
+}
+function elapsed(ts){
+  var d=Date.now()-ts, h=Math.floor(d/3600000), m=Math.floor((d%3600000)/60000);
+  if(h===0) return m+' min';
+  if(m===0) return h+' h';
+  return h+' h '+m+' min';
+}
+
+function getP(){
+  var p=new URLSearchParams(window.location.search);
+  var col=(p.get('col')||p.get('seccion')||'').toUpperCase();
+  var num=p.get('num')||p.get('numero')||'';
+  if(!col&&!num) return null;
+  return {
+    col:col, num:num,
+    nivel:(p.get('nivel')||'N1').toUpperCase(),
+    color:(p.get('color')||'amarillo').toLowerCase(),
+    lat:parseFloat(p.get('lat'))||null,
+    lng:parseFloat(p.get('lng'))||null
+  };
+}
+
+function cardHTML(spot){
+  var c=gc(spot.color);
+  return '<span class="color-pill" style="background:'+c.bg+';color:'+c.tx+'">'+c.label+'</span>'+
+    '<div class="sec-label">Secci&#xF3;n</div>'+
+    '<div class="spot-section" style="color:'+c.bg+'">'+spot.col+'</div>'+
+    '<div style="font-size:.95rem;color:var(--muted);margin-top:-6px">Columna</div>'+
+    '<div class="spot-number">'+spot.num+'</div>'+
+    '<div class="spot-level"><i class="fas fa-layer-group me-1"></i>'+spot.nivel+'</div>';
+}
+
+function applyCardStyle(el, color){
+  var c=gc(color);
+  el.style.borderColor=c.bg+'66';
+  el.style.background='linear-gradient(135deg,#122040,'+c.bg+'11)';
+}
+
+function show(id){
+  ['sc-save','sc-saved','sc-find','sc-empty'].forEach(function(s){
+    document.getElementById(s).classList.add('d-none');
+  });
+  document.getElementById(id).classList.remove('d-none');
+  window.scrollTo(0,0);
+}
+
+function buildNav(lat, lng){
+  var has=lat&&lng;
+  var gm = has
+    ? 'https://www.google.com/maps/dir/?api=1&destination='+lat+','+lng+'&travelmode=walking'
+    : 'https://www.google.com/maps/dir/?api=1&destination=19.7540,-99.0762&travelmode=driving';
+  var wz = has
+    ? 'https://waze.com/ul?ll='+lat+','+lng+'&navigate=yes'
+    : 'https://waze.com/ul?q=Aeropuerto+Felipe+Angeles+AIFA';
+  var am = has
+    ? 'maps://maps.apple.com/?daddr='+lat+','+lng+'&dirflg=w'
+    : 'maps://maps.apple.com/?q=Aeropuerto+Internacional+Felipe+Angeles';
+
+  document.getElementById('nav-grid').innerHTML=
+    '<a href="'+gm+'" target="_blank" rel="noopener" class="nav-btn">'+
+      '<i class="fab fa-google" style="color:#4285F4"></i><span>Google Maps</span></a>'+
+    '<a href="'+wz+'" target="_blank" rel="noopener" class="nav-btn">'+
+      '<i class="fas fa-route" style="color:#33CCFF"></i><span>Waze</span></a>'+
+    '<a href="'+am+'" class="nav-btn">'+
+      '<i class="fab fa-apple" style="color:#fff"></i><span>Apple Maps</span></a>'+
+    '<a href="https://maps.app.goo.gl/EstacionamientoAIFA" target="_blank" rel="noopener" class="nav-btn">'+
+      '<i class="fas fa-map-pin" style="color:var(--gold)"></i><span>Ver mapa</span></a>';
+
+  if(!has) document.getElementById('nav-note').classList.remove('d-none');
+}
+
+function buildColorGuide(){
+  var cg=document.getElementById('color-guide');
+  cg.innerHTML='';
+  COLOR_MAP.forEach(function(it){
+    var c=gc(it.c);
+    var d=document.createElement('div');
+    d.className='cg-pill';
+    d.style.cssText='background:'+c.bg+'20;border:1px solid '+c.bg+'55;color:'+c.bg;
+    d.innerHTML='<span style="width:9px;height:9px;border-radius:50%;background:'+c.bg+';display:inline-block"></span> Sec. '+it.s;
+    cg.appendChild(d);
+  });
+}
+
+function saveSpot(){
+  var p=getP(); if(!p) return;
+  var spot=Object.assign({savedAt:Date.now()},p);
+  localStorage.setItem(STORE_KEY,JSON.stringify(spot));
+
+  // historial (m&#xE1;x 5)
+  var hist=[];
+  try{hist=JSON.parse(localStorage.getItem(HIST_KEY))||[];}catch(e){}
+  hist.unshift(spot);
+  hist=hist.slice(0,5);
+  localStorage.setItem(HIST_KEY,JSON.stringify(hist));
+
+  // confirmar
+  var card=document.getElementById('sv2-card');
+  card.innerHTML=cardHTML(spot);
+  applyCardStyle(card,spot.color);
+  show('sc-saved');
+  if(navigator.vibrate) navigator.vibrate([60,30,60]);
+}
+
+function showFindScreen(){
+  var spot;
+  try{spot=JSON.parse(localStorage.getItem(STORE_KEY));}catch(e){}
+  if(!spot){ show('sc-empty'); return; }
+
+  var card=document.getElementById('fd-card');
+  card.innerHTML=cardHTML(spot);
+  applyCardStyle(card,spot.color);
+
+  document.getElementById('fd-at').textContent=fmtT(spot.savedAt)+' · '+fmtD(spot.savedAt);
+  document.getElementById('fd-elapsed').textContent=elapsed(spot.savedAt);
+  setInterval(function(){
+    var el=document.getElementById('fd-elapsed');
+    if(el&&spot) el.textContent=elapsed(spot.savedAt);
+  },60000);
+
+  buildNav(spot.lat,spot.lng);
+  buildColorGuide();
+
+  // historial
+  var hist=[];
+  try{hist=JSON.parse(localStorage.getItem(HIST_KEY))||[];}catch(e){}
+  if(hist.length>1){
+    var hw=document.getElementById('hist-wrap');
+    hw.classList.remove('d-none');
+    var hl=document.getElementById('hist-list');
+    hl.innerHTML='';
+    hist.slice(1).forEach(function(h){
+      var c2=gc(h.color);
+      hl.innerHTML+='<div class="hist-item">'+
+        '<div class="hist-icon" style="background:'+c2.bg+'22;color:'+c2.bg+';border:1px solid '+c2.bg+'44">'+h.col+'</div>'+
+        '<div style="flex:1">'+
+          '<div style="font-size:.9rem;font-weight:600">Secci&#xF3;n '+h.col+', Columna '+h.num+'</div>'+
+          '<div style="font-size:.78rem;color:var(--muted)">'+h.nivel+' &middot; '+fmtD(h.savedAt)+' '+fmtT(h.savedAt)+'</div>'+
+        '</div></div>';
+    });
+  }
+
+  show('sc-find');
+}
+
+function clearSpot(){
+  if(!confirm('&#xBF;Borrar lugar guardado?')) return;
+  localStorage.removeItem(STORE_KEY);
+  show('sc-empty');
+}
+
+/* ─── Init ─── */
+(function init(){
+  var p=getP();
+  if(p){
+    // Modo QR: mostrar pantalla de guardar
+    var c=gc(p.color);
+    document.getElementById('sv-sec').textContent=p.col;
+    document.getElementById('sv-sec').style.color=c.bg;
+    document.getElementById('sv-num').textContent=p.num;
+    document.getElementById('sv-nivel').textContent=p.nivel;
+
+    var pill=document.getElementById('sv-color-pill');
+    pill.textContent=c.label;
+    pill.style.background=c.bg;
+    pill.style.color=c.tx;
+
+    document.getElementById('sv-time').textContent=fmtT(Date.now());
+    if(p.lat&&p.lng)
+      document.getElementById('sv-gps').textContent=p.lat.toFixed(5)+', '+p.lng.toFixed(5);
+
+    var sc=document.getElementById('sv-card');
+    applyCardStyle(sc,p.color);
+    show('sc-save');
+  } else {
+    showFindScreen();
+  }
+})();
+</script>
+</body>
+</html>
