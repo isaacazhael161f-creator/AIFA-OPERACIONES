@@ -438,17 +438,7 @@ button{font-family:inherit;cursor:pointer}
       <div class="sec__title"><span class="dot"></span>Capa base</div>
       <div class="seg" id="baseseg">
         <button data-base="satelite" class="active">Satélite</button>
-        <button data-base="hibrido">Híbrido</button>
         <button data-base="calles">Calles</button>
-      </div>
-      <label class="toggle">
-        <span>Plano maestro (overlay)</span>
-        <span class="switch"><input type="checkbox" id="tg-plano"><span class="track"></span></span>
-      </label>
-      <div class="slider-row" id="plano-op" style="display:none">
-        <span style="font-size:11px;color:var(--txt-faint)">Opacidad</span>
-        <input type="range" id="plano-opacity" min="10" max="100" value="55">
-        <span class="v" id="plano-opval">55%</span>
       </div>
     </div>
 
@@ -894,13 +884,20 @@ async function loadFromSupabase(){
 
 async function sbUpsertFac(fac, silent){
   if(!$db) return;
-  let geometry;
-  if(fac.tipo === 'zona'){
-    const ring = (fac.coords||[]).map(c=>[+c[1],+c[0]]);
-    if(ring.length>1){ const a=ring[0],b=ring[ring.length-1]; if(a[0]!==b[0]||a[1]!==b[1]) ring.push([a[0],a[1]]); }
-    geometry = {type:'Polygon', coordinates:[ring]};
-  } else {
-    geometry = {type:'Point', coordinates:[+fac.coords[1],+fac.coords[0]]};
+  // Zona sin geometría válida: no guardar geometría corrupt
+  const hasGeom = fac.tipo==='punto'
+    ? (fac.coords && fac.coords.length===2 && (fac.coords[0]||fac.coords[1]))
+    : (fac.coords && fac.coords.length >= 3);
+  let geometry = null;
+  if(hasGeom){
+    if(fac.tipo === 'zona'){
+      const ring = fac.coords.map(c=>[+c[1],+c[0]]);
+      const a=ring[0],b=ring[ring.length-1];
+      if(a[0]!==b[0]||a[1]!==b[1]) ring.push([a[0],a[1]]);
+      geometry = {type:'Polygon', coordinates:[ring]};
+    } else {
+      geometry = {type:'Point', coordinates:[+fac.coords[1],+fac.coords[0]]};
+    }
   }
   const {error} = await $db.rpc('upsert_instalacion',{
     p_clave:        fac.id,
@@ -993,10 +990,15 @@ function buildLayers(){
     let layer;
     const col = facColor(fac);
     if(fac.tipo === 'zona'){
+      if(!fac.coords || fac.coords.length < 3){
+        // Zona sin geometría válida (< 3 vértices) — se omite del mapa sin crash
+        console.warn('[Plano] Zona sin geometría omitida:', fac.id);
+        return;
+      }
       layer = L.polygon(fac.coords, {
         color:col, weight:2, opacity:.9, fillColor:col, fillOpacity:.18
       });
-      layer.bindTooltip(fac.nombre,{className:'zone-label',permanent:true,direction:'center'});
+      layer.bindTooltip(fac.nombre,{className:'zone-label',permanent:false,direction:'center'});
       // sincroniza el contorno cuando se edita con la herramienta "Formas" (Geoman)
       const sync = ()=> syncZoneCoords(fac, layer);
       layer.on('pm:edit', sync);
@@ -1344,12 +1346,16 @@ $('eb-geojson').onclick = ()=>{
 function fromGeoJSON(gj){
   return (gj.features||[]).map((ft,i)=>{
     const p = ft.properties || {}; const g = ft.geometry || {};
-    let tipo='punto', coords=[CONFIG.centro[0], CONFIG.centro[1]];
+    // Derivar tipo: primero desde la geometría real, si no desde la propiedad p.tipo
+    let tipo = (g.type==='Polygon') ? 'zona' : (g.type==='Point') ? 'punto' : (p.tipo||'punto');
+    let coords = [CONFIG.centro[0], CONFIG.centro[1]];
     if(g.type==='Polygon'){
-      tipo='zona'; coords=(g.coordinates && g.coordinates[0] ? g.coordinates[0] : []).map(c=>[ +c[1], +c[0] ]);
+      coords=(g.coordinates && g.coordinates[0] ? g.coordinates[0] : []).map(c=>[ +c[1], +c[0] ]);
       if(coords.length>1){ const a=coords[0], b=coords[coords.length-1]; if(a[0]===b[0] && a[1]===b[1]) coords.pop(); }
     } else if(g.type==='Point'){
-      tipo='punto'; coords=[ +g.coordinates[1], +g.coordinates[0] ];
+      coords=[ +g.coordinates[1], +g.coordinates[0] ];
+    } else if(tipo==='zona'){
+      coords=[];  // zona sin geometría en DB — se omitirá en buildLayers
     }
     return {
       id: p.id || p.clave || ('imp-'+i),
@@ -1466,28 +1472,6 @@ document.getElementById('baseseg').addEventListener('click', e=>{
   document.querySelectorAll('#baseseg button').forEach(x=>x.classList.remove('active'));
   b.classList.add('active'); setBase(b.dataset.base);
 });
-
-const tgPlano = document.getElementById('tg-plano');
-tgPlano.onchange = ()=>{
-  const opRow = document.getElementById('plano-op');
-  if(tgPlano.checked){
-    planoLayer = L.imageOverlay(CONFIG.plano.url, CONFIG.plano.limites, {opacity:CONFIG.plano.opacidad});
-    planoLayer.on('error', ()=>{
-      toast('No se encontró «'+CONFIG.plano.url+'». Coloque la imagen junto al archivo.');
-      tgPlano.checked=false; opRow.style.display='none';
-      if(planoLayer){ map.removeLayer(planoLayer); planoLayer=null; }
-    });
-    planoLayer.addTo(map);
-    opRow.style.display='flex';
-  }else{
-    if(planoLayer){ map.removeLayer(planoLayer); planoLayer=null; }
-    opRow.style.display='none';
-  }
-};
-document.getElementById('plano-opacity').oninput = (e)=>{
-  document.getElementById('plano-opval').textContent = e.target.value+'%';
-  if(planoLayer) planoLayer.setOpacity(e.target.value/100);
-};
 
 document.getElementById('show-all').onclick = ()=>{ Object.keys(CATS).forEach(c=>activeCats.add(c)); refreshGroups(); renderCats(); renderList(); };
 document.getElementById('hide-all').onclick = ()=>{ activeCats.clear(); refreshGroups(); renderCats(); renderList(); };
