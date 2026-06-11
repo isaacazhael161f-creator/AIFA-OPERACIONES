@@ -998,7 +998,7 @@ function buildLayers(){
       layer = L.polygon(fac.coords, {
         color:col, weight:2, opacity:.9, fillColor:col, fillOpacity:.18
       });
-      layer.bindTooltip(fac.nombre,{className:'zone-label',permanent:false,direction:'center'});
+      //layer.bindTooltip(fac.nombre,{className:'zone-label',permanent:false,direction:'center'});
       // sincroniza el contorno cuando se edita con la herramienta "Formas" (Geoman)
       const sync = ()=> syncZoneCoords(fac, layer);
       layer.on('pm:edit', sync);
