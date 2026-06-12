@@ -104,7 +104,8 @@ class DataManagement {
                 { name: 'general_ops', label: 'General - Operaciones', type: 'number' },
                 { name: 'general_pax', label: 'General - Pasajeros', type: 'number' },
                 { name: 'carga_ops', label: 'Carga - Operaciones', type: 'number' },
-                { name: 'carga_tons', label: 'Carga - Toneladas', type: 'number', step: '0.01' }
+                { name: 'carga_tons', label: 'Carga - Toneladas', type: 'number', step: '0.01' },
+                { name: 'is_official', label: 'Cifras Oficiales (desmarcar si son preliminares)', type: 'checkbox' }
             ],
             // Annual aggregated operations (calculated from monthly)
             annual_operations: [

@@ -6,6 +6,7 @@
     let chart = null;
     let dataLoaded = false;
     let cache = [];
+    let monthStatusCache = {}; // { 'year_month': 'oficial'|'preliminar' }
     let activeYears = new Set();
     let currentMetric = 'operaciones';
     let currentGranularity = 'mensual';
@@ -99,13 +100,18 @@
             return g.months.every(function(m){ return activeMonths.has(m); });
         });
         if (!groups.length) return;
+        var _chartTodayYear  = new Date().getFullYear();
+        var _chartTodayMonth = new Date().getMonth() + 1;
         const datasets = sorted.map(function(yr, idx){
             const col = yearColors[yr] || yearColors['default'];
             const last = idx === sorted.length - 1;
             let bg = col + '20';
             if (last) { const g = ctx.createLinearGradient(0,0,0,400); g.addColorStop(0,col+'60'); g.addColorStop(1,col+'05'); bg=g; }
             return {
-                label:'Año '+yr, data: groups.map(function(g){ return sumGroup(yr, g.months); }),
+                label:'Año '+yr, data: groups.map(function(g){
+                    if (yr === _chartTodayYear && g.months.some(function(m){ return m >= _chartTodayMonth; })) return null;
+                    return sumGroup(yr, g.months);
+                }),
                 borderColor:col, backgroundColor:bg, borderWidth:last?3:2,
                 pointRadius:last?4:0, pointBackgroundColor:'#fff', pointBorderColor:col,
                 pointBorderWidth:2, pointHoverRadius:6, pointHoverBackgroundColor:col,
@@ -163,16 +169,21 @@
         const grand = new Array(yrs.length).fill(0);
         const prevTot = new Array(yrs.length).fill(0);
         const curTot = new Array(yrs.length).fill(0);
+        var _tblTodayYear  = new Date().getFullYear();
+        var _tblTodayMonth = new Date().getMonth() + 1;
         groups.forEach(function(grp){
             const tr = document.createElement('tr');
             let html = '<td><strong>'+grp.label+'</strong></td>';
+            let rowTotal = 0;
+            var grpIsOpen = grp.months.some(function(m){ return m >= _tblTodayMonth; });
             yrs.forEach(function(yr, idx){
                 const val = sumGroup(yr, grp.months);
                 if (val === null) { html += '<td class="text-muted">–</td>'; return; }
                 grand[idx] += val;
+                rowTotal += val;
                 const done = isGroupComplete(yr, grp.months);
                 let pct = '';
-                if (idx > 0 && done) {
+                if (idx > 0 && done && !(yr === _tblTodayYear && grpIsOpen)) {
                     const pv = sumGroup(yrs[idx-1], grp.months);
                     if (pv !== null) { prevTot[idx] += pv; curTot[idx] += val; pct = pctBadge(val, pv, yrs[idx-1], true); }
                 } else if (idx === 0 && done) { curTot[idx] += val; }
@@ -182,7 +193,7 @@
         });
         const tfRow = document.createElement('tr');
         tfRow.className = 'table-light fw-bold';
-        let tot = '<td>TOTAL</td>';
+        let tot = '<td>TOTAL POR AÑO</td>';
         grand.forEach(function(t, idx){
             let pct = '';
             if (idx > 0 && prevTot[idx] > 0) {
@@ -194,7 +205,45 @@
             }
             tot += '<td>'+new Intl.NumberFormat('es-MX').format(t)+pct+'</td>';
         });
+        const grandSum = grand.reduce(function(s,t){ return s+t; }, 0);
         tfRow.innerHTML = tot; tbody.appendChild(tfRow);
+
+        // ACUMULADO row — single spanning cell
+        var acumRow = document.createElement('tr');
+        acumRow.className = 'table-secondary fw-bold';
+        var acumSuffix = currentMetric === 'operaciones' ? 'Operaciones' : 'Pasajeros';
+        acumRow.innerHTML = '<td class="fw-bold" style="background:#e2e8f0;">ACUMULADO HISTÓRICO</td><td colspan="'+yrs.length+'" class="text-center" style="background:#e2e8f0;font-size:1.05em;letter-spacing:0.3px;">'+new Intl.NumberFormat('es-MX').format(grandSum)+' <span class="fw-normal text-muted" style="font-size:0.8em;">'+acumSuffix+'</span></td>';
+        tbody.appendChild(acumRow);
+    }
+
+    function renderNotes() {
+        var MONTH_NAMES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+        var today = new Date();
+        var curYear = today.getFullYear();
+        var officialMonths = [], prelimMonths = [];
+        for (var m = 1; m <= 12; m++) {
+            var st = monthStatusCache[curYear + '_' + m];
+            if (st === 'oficial')    officialMonths.push(m);
+            if (st === 'preliminar') prelimMonths.push(m);
+        }
+        var tableEl = document.getElementById('gen-yoy-table');
+        if (!tableEl) return;
+        var wrapper = tableEl.closest('.table-responsive') || tableEl.parentNode;
+        var bar = document.getElementById('gen-yoy-notes-bar');
+        if (!bar) { bar = document.createElement('div'); bar.id = 'gen-yoy-notes-bar'; wrapper.insertAdjacentElement('beforebegin', bar); }
+        if (!officialMonths.length && !prelimMonths.length) { bar.innerHTML = ''; return; }
+        var pills = '';
+        if (officialMonths.length) {
+            var first = MONTH_NAMES[officialMonths[0] - 1];
+            var last  = MONTH_NAMES[officialMonths[officialMonths.length - 1] - 1];
+            var range = officialMonths.length === 1 ? first : first + ' a ' + last;
+            pills += '<span style="display:inline-flex;align-items:center;gap:6px;background:#dcfce7;color:#15803d;border:1px solid #86efac;border-radius:20px;padding:5px 14px;font-size:0.8rem;font-weight:600;"><svg style="width:14px;height:14px;flex-shrink:0;" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>Cifras oficiales &mdash; ' + range + ' ' + curYear + '</span>';
+        }
+        if (prelimMonths.length) {
+            var pNames = prelimMonths.map(function(m){ return MONTH_NAMES[m - 1]; }).join(', ');
+            pills += '<span style="display:inline-flex;align-items:center;gap:6px;background:#fef9c3;color:#a16207;border:1px solid #fde047;border-radius:20px;padding:5px 14px;font-size:0.8rem;font-weight:600;"><svg style="width:14px;height:14px;flex-shrink:0;" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/></svg>Cifras preliminares &mdash; ' + pNames + ' ' + curYear + ' <span style="font-weight:400;opacity:0.75;margin-left:2px;">\u00b7 suma acumulada de registros diarios</span></span>';
+        }
+        bar.innerHTML = '<div style="display:flex;flex-wrap:wrap;gap:8px;padding:12px 4px 8px;">' + pills + '</div>';
     }
 
     document.addEventListener('DOMContentLoaded', function () {
@@ -204,25 +253,68 @@
                 const client = window.supabaseClient;
                 if (!client) return;
                 if (!dataLoaded) {
-                    client.from('monthly_operations')
-                        .select('year, month, general_ops, general_pax')
-                        .order('year',{ascending:true}).order('month',{ascending:true})
-                        .then(function(res){
-                            if (res.error) { console.error('YoY General:', res.error); return; }
-                            cache = res.data || [];
-                            dataLoaded = true;
-                            const years = Array.from(new Set(cache.map(function(d){ return d.year; }))).sort();
-                            activeYears = new Set(years);
-                            buildYearsFilter(years);
-                            updateTitle();
-                            renderChart();
-                            renderTable();
-                            wireGranularity();
-                            wireMetric();
+                    var today = new Date();
+                    var curYear = today.getFullYear();
+                    Promise.all([
+                        client.from('monthly_operations')
+                            .select('year, month, general_ops, general_pax, is_official')
+                            .order('year',{ascending:true}).order('month',{ascending:true}),
+                        client.from('daily_operations')
+                            .select('date, general_ops, general_pax')
+                            .gte('date', curYear + '-01-01')
+                            .lte('date', curYear + '-12-31')
+                    ]).then(function(results) {
+                        var monthRes = results[0], dailyRes = results[1];
+                        if (monthRes.error) { console.error('YoY General:', monthRes.error); return; }
+                        var monthData = monthRes.data || [];
+                        var dailyData = dailyRes.data || [];
+
+                        // Aggregate daily data by year+month
+                        var dailyByMonth = {};
+                        dailyData.forEach(function(row) {
+                            var d = new Date(row.date + 'T00:00:00');
+                            var m = d.getMonth() + 1;
+                            var yr = d.getFullYear();
+                            var key = yr + '_' + m;
+                            if (!dailyByMonth[key]) dailyByMonth[key] = { year: yr, month: m, general_ops: 0, general_pax: 0, is_official: false };
+                            dailyByMonth[key].general_ops += Number(row.general_ops) || 0;
+                            dailyByMonth[key].general_pax += Number(row.general_pax) || 0;
                         });
+
+                        // Build merged cache
+                        monthStatusCache = {};
+                        var merged = monthData.slice();
+                        monthData.forEach(function(row) {
+                            monthStatusCache[row.year + '_' + row.month] = (row.is_official !== false) ? 'oficial' : 'preliminar';
+                        });
+                        Object.values(dailyByMonth).forEach(function(agg) {
+                            var key = agg.year + '_' + agg.month;
+                            var idx = merged.findIndex(function(r){ return r.year === agg.year && r.month === agg.month; });
+                            if (idx === -1) {
+                                merged.push(agg);
+                                monthStatusCache[key] = 'preliminar';
+                            } else if (merged[idx].is_official === false) {
+                                merged[idx] = Object.assign({}, merged[idx], agg, { is_official: false });
+                                monthStatusCache[key] = 'preliminar';
+                            }
+                        });
+
+                        cache = merged;
+                        dataLoaded = true;
+                        var years = Array.from(new Set(cache.map(function(d){ return d.year; }))).sort();
+                        activeYears = new Set(years);
+                        buildYearsFilter(years);
+                        updateTitle();
+                        renderChart();
+                        renderTable();
+                        renderNotes();
+                        wireGranularity();
+                        wireMetric();
+                    });
                 } else {
                     renderChart();
                     renderTable();
+                    renderNotes();
                 }
             });
         });
@@ -280,6 +372,7 @@
     window.genYoyReload = function() {
         dataLoaded = false;
         cache = [];
+        monthStatusCache = {};
         var btn = document.querySelector('button[data-bs-target="#yoy-sub-general"][aria-selected="true"], button[data-bs-target="#yoy-sub-general"].active');
         if (btn) btn.dispatchEvent(new Event('shown.bs.tab'));
     };

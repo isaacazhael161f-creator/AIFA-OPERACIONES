@@ -6,6 +6,7 @@
     let yoyChart = null;
     let dataLoaded = false;
     let opsDataCache = [];
+    let monthStatusCache = {}; // { 'year_month': 'oficial'|'preliminar' }
     let activeYears = new Set();
     let currentMetric = 'operaciones'; // 'operaciones' | 'pasajeros'
     let currentGranularity = 'mensual'; // 'mensual' | 'bimestral' | 'trimestral' | 'semestral'
@@ -142,26 +143,71 @@
 
     async function loadYoYData(client) {
         try {
-            // Query operations per month
+            const today = new Date();
+            const curYear = today.getFullYear();
+
+            // Fetch monthly_operations with is_official flag
             const { data, error } = await client
                 .from('monthly_operations')
-                .select('year, month, comercial_ops, comercial_pax, general_ops, general_pax, carga_ops')
+                .select('year, month, comercial_ops, comercial_pax, general_ops, general_pax, carga_ops, is_official')
                 .order('year', { ascending: true })
                 .order('month', { ascending: true });
 
             if (error) throw error;
-            if (!data || data.length === 0) return;
+            if (!data) return;
 
-            opsDataCache = data;
+            // Fetch daily_operations for current year to build preliminary monthly sums
+            const { data: dailyData } = await client
+                .from('daily_operations')
+                .select('date, comercial_ops, comercial_pax, general_ops, general_pax, carga_ops')
+                .gte('date', `${curYear}-01-01`)
+                .lte('date', `${curYear}-12-31`);
 
-            // Extract unique years
-            const years = [...new Set(data.map(d => d.year))].sort();
+            // Aggregate daily data by year+month
+            const dailyByMonth = {};
+            (dailyData || []).forEach(row => {
+                const d = new Date(row.date + 'T00:00:00');
+                const m = d.getMonth() + 1;
+                const yr = d.getFullYear();
+                const key = `${yr}_${m}`;
+                if (!dailyByMonth[key]) dailyByMonth[key] = { year: yr, month: m, comercial_ops: 0, comercial_pax: 0, general_ops: 0, general_pax: 0, carga_ops: 0, is_official: false };
+                dailyByMonth[key].comercial_ops += Number(row.comercial_ops) || 0;
+                dailyByMonth[key].comercial_pax += Number(row.comercial_pax) || 0;
+                dailyByMonth[key].general_ops   += Number(row.general_ops)   || 0;
+                dailyByMonth[key].general_pax   += Number(row.general_pax)   || 0;
+                dailyByMonth[key].carga_ops     += Number(row.carga_ops)     || 0;
+            });
+
+            // Build merged cache and track official/preliminary status per month
+            monthStatusCache = {};
+            const merged = [...data];
+            data.forEach(row => {
+                monthStatusCache[`${row.year}_${row.month}`] = (row.is_official !== false) ? 'oficial' : 'preliminar';
+            });
+
+            // Inject daily-aggregated months that have no official monthly record
+            Object.values(dailyByMonth).forEach(agg => {
+                const key = `${agg.year}_${agg.month}`;
+                const idx = merged.findIndex(r => r.year === agg.year && r.month === agg.month);
+                if (idx === -1) {
+                    merged.push(agg);
+                    monthStatusCache[key] = 'preliminar';
+                } else if (merged[idx].is_official === false) {
+                    merged[idx] = { ...merged[idx], ...agg, is_official: false };
+                    monthStatusCache[key] = 'preliminar';
+                }
+            });
+
+            opsDataCache = merged;
+
+            const years = [...new Set(merged.map(d => d.year))].sort();
             activeYears = new Set(years);
 
             buildYearsFilter(years);
             updateChartTitle();
             renderYoYChart();
             renderYoYTable();
+            renderYoYNotes();
             dataLoaded = true;
 
         } catch(error) {
@@ -250,8 +296,15 @@
         if (!groups.length) return;
         const datasets = [];
 
+        const _chartTodayYear  = new Date().getFullYear();
+        const _chartTodayMonth = new Date().getMonth() + 1; // 1-based
+
         sortedYears.forEach((year, idx) => {
-            const dataArr = groups.map(g => sumGroup(year, g.months));
+            const dataArr = groups.map(g => {
+                // Do not plot the current or future months of the current year (month not yet closed)
+                if (year === _chartTodayYear && g.months.some(m => m >= _chartTodayMonth)) return null;
+                return sumGroup(year, g.months);
+            });
             const yColor = yearColors[year] || yearColors['default'];
             const isLast = idx === sortedYears.length - 1;
 
@@ -428,11 +481,14 @@
         const comparablePrevTotals = new Array(yearsList.length).fill(0);
         // For TOTAL %: only sum periods that are complete in the current year
         const completeCurrentTotals = new Array(yearsList.length).fill(0);
+        const _tblTodayYear  = new Date().getFullYear();
+        const _tblTodayMonth = new Date().getMonth() + 1;
 
         // Period rows
         groups.forEach(group => {
             const tr = document.createElement('tr');
             let cellsHTML = `<td><strong>${group.label}</strong></td>`;
+            let rowTotal = 0;
 
             yearsList.forEach((yr, idx) => {
                 const val = sumGroup(yr, group.months);
@@ -443,12 +499,15 @@
                 }
 
                 grandTotals[idx] += val;
+                rowTotal += val;
 
                 // Only show % and include in proportional total if the period is fully closed
                 const complete = isGroupComplete(yr, group.months);
 
                 let percentHtml = '';
-                if (idx > 0 && complete) {
+                // Suppress variation badge for open (current) month
+                const groupIsOpen = group.months.some(m => m >= _tblTodayMonth);
+                if (idx > 0 && complete && !(yr === _tblTodayYear && groupIsOpen)) {
                     const prevYr = yearsList[idx - 1];
                     const prevVal = sumGroup(prevYr, group.months);
                     if (prevVal !== null) {
@@ -467,10 +526,10 @@
             tbody.appendChild(tr);
         });
 
-        // TOTAL row
+        // TOTAL POR AÑO row
         const tfRow = document.createElement('tr');
         tfRow.className = 'table-light fw-bold';
-        let totalsHTML = `<td>TOTAL</td>`;
+        let totalsHTML = `<td>TOTAL POR AÑO</td>`;
         grandTotals.forEach((t, idx) => {
             let percentHtml = '';
             if (idx > 0) {
@@ -486,8 +545,46 @@
             }
             totalsHTML += `<td>${new Intl.NumberFormat('es-MX').format(t)}${percentHtml}</td>`;
         });
+        const grandSum = grandTotals.reduce((s, t) => s + t, 0);
         tfRow.innerHTML = totalsHTML;
         tbody.appendChild(tfRow);
+
+        // ACUMULADO row — single spanning cell
+        const acumRow = document.createElement('tr');
+        acumRow.className = 'table-secondary fw-bold';
+        const acumSuffix = currentMetric === 'operaciones' ? 'Operaciones' : 'Pasajeros';
+        acumRow.innerHTML = `<td class="fw-bold" style="background:#e2e8f0;">ACUMULADO HISTÓRICO</td><td colspan="${yearsList.length}" class="text-center" style="background:#e2e8f0;font-size:1.05em;letter-spacing:0.3px;">${new Intl.NumberFormat('es-MX').format(grandSum)} <span class="fw-normal text-muted" style="font-size:0.8em;">${acumSuffix}</span></td>`;
+        tbody.appendChild(acumRow);
+    }
+
+    function renderYoYNotes() {
+        const MONTH_NAMES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+        const today = new Date();
+        const curYear = today.getFullYear();
+        const officialMonths = [], prelimMonths = [];
+        for (let m = 1; m <= 12; m++) {
+            const st = monthStatusCache[`${curYear}_${m}`];
+            if (st === 'oficial')    officialMonths.push(m);
+            if (st === 'preliminar') prelimMonths.push(m);
+        }
+        const tableEl = document.getElementById('yoy-data-table');
+        if (!tableEl) return;
+        const wrapper = tableEl.closest('.table-responsive') || tableEl.parentNode;
+        let bar = document.getElementById('yoy-com-notes-bar');
+        if (!bar) { bar = document.createElement('div'); bar.id = 'yoy-com-notes-bar'; wrapper.insertAdjacentElement('beforebegin', bar); }
+        if (!officialMonths.length && !prelimMonths.length) { bar.innerHTML = ''; return; }
+        let pills = '';
+        if (officialMonths.length) {
+            const first = MONTH_NAMES[officialMonths[0] - 1];
+            const last  = MONTH_NAMES[officialMonths[officialMonths.length - 1] - 1];
+            const range = officialMonths.length === 1 ? first : `${first} a ${last}`;
+            pills += `<span style="display:inline-flex;align-items:center;gap:6px;background:#dcfce7;color:#15803d;border:1px solid #86efac;border-radius:20px;padding:5px 14px;font-size:0.8rem;font-weight:600;"><svg style="width:14px;height:14px;flex-shrink:0;" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>Cifras oficiales &mdash; ${range} ${curYear}</span>`;
+        }
+        if (prelimMonths.length) {
+            const pNames = prelimMonths.map(m => MONTH_NAMES[m - 1]).join(', ');
+            pills += `<span style="display:inline-flex;align-items:center;gap:6px;background:#fef9c3;color:#a16207;border:1px solid #fde047;border-radius:20px;padding:5px 14px;font-size:0.8rem;font-weight:600;"><svg style="width:14px;height:14px;flex-shrink:0;" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/></svg>Cifras preliminares &mdash; ${pNames} ${curYear} <span style="font-weight:400;opacity:0.75;margin-left:2px;">· suma acumulada de registros diarios</span></span>`;
+        }
+        bar.innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:8px;padding:12px 4px 8px;">${pills}</div>`;
     }
 
     function exportYOYtoCSV() {
@@ -528,6 +625,7 @@
     window.comHistReload = function() {
         dataLoaded = false;
         opsDataCache = [];
+        monthStatusCache = {};
         const client = window.supabaseClient;
         if (client) loadYoYData(client);
     };

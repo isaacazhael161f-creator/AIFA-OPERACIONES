@@ -2,6 +2,7 @@
 let aeroDetailChart = null;
 let aeroSelectedRow = null;
 let aeroGroupFilter = 'all'; // 'all' | 'pax' | 'cargo'
+let aeroCurrentFiltered = []; // last rendered filtered list
 
 const AERO_MONTH_ORDER = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
 const AERO_MONTH_LABELS = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
@@ -409,6 +410,7 @@ function applyAeroFilters() {
         filtered = processedData.filter(d => !d.servicio.toUpperCase().includes('PASAJERO'));
     }
 
+    aeroCurrentFiltered = filtered;
     renderAirlinesTable(filtered);
 }
 
@@ -890,4 +892,63 @@ function renderAeroCompare() {
     const panel = document.getElementById('aero-compare-panel');
     panel.classList.remove('d-none');
     panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function exportAerolineasExcel() {
+    const data = aeroCurrentFiltered;
+    if (!data || data.length === 0) {
+        alert('No hay datos para exportar. Asegúrate de que el directorio esté cargado.');
+        return;
+    }
+    if (typeof XLSX === 'undefined') {
+        alert('La librería Excel aún no ha cargado. Espera un momento e intenta de nuevo.');
+        return;
+    }
+
+    // Determine current period label from the ops title element
+    const opsTitle = document.getElementById('aero-ops-title');
+    const periodoLabel = opsTitle ? opsTitle.textContent.replace(/[()]/g, '').trim() : 'Histórico';
+
+    // Collect all month keys present in the dataset
+    const allMonthKeys = new Set();
+    data.forEach(item => Object.keys(item.monthlyOps).forEach(k => allMonthKeys.add(k)));
+    const sortedMonthKeys = [...allMonthKeys].sort((a, b) => {
+        const [ma, ya] = a.split('-');
+        const [mb, yb] = b.split('-');
+        const yComp = parseInt(ya) - parseInt(yb);
+        if (yComp !== 0) return yComp;
+        return AERO_MONTH_ORDER.indexOf(ma) - AERO_MONTH_ORDER.indexOf(mb);
+    });
+
+    // Build header row
+    const headers = ['Rango', 'Aerolínea', 'Tipo de Servicio', `Operaciones (${periodoLabel})`];
+    sortedMonthKeys.forEach(k => {
+        const [mon, yr] = k.split('-');
+        const monLabel = AERO_MONTH_LABELS[AERO_MONTH_ORDER.indexOf(mon)] || mon;
+        headers.push(`${monLabel}-${yr}`);
+    });
+
+    // Build data rows
+    const rows = [headers];
+    data.forEach((item, idx) => {
+        const row = [idx + 1, item.nombre, item.servicio, item.currentOps];
+        sortedMonthKeys.forEach(k => row.push(item.monthlyOps[k] || 0));
+        rows.push(row);
+    });
+
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+
+    // Column widths
+    ws['!cols'] = [
+        { wch: 8 },   // Rango
+        { wch: 32 },  // Aerolínea
+        { wch: 22 },  // Servicio
+        { wch: 22 },  // Operaciones
+        ...sortedMonthKeys.map(() => ({ wch: 10 }))
+    ];
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Aerolíneas');
+    const fileName = `aerolineas_${periodoLabel.replace(/\s+/g,'_')}_${new Date().toISOString().slice(0,10)}.xlsx`;
+    XLSX.writeFile(wb, fileName);
 }
