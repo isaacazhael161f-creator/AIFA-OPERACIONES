@@ -306,14 +306,14 @@ document.addEventListener('DOMContentLoaded', () => {
         dateInput.value = isNew ? new Date().toISOString().split('T')[0] : data.fecha;
         dateInput.readOnly = false; // Always allow editing date
 
-        document.getElementById('edit-comercial-llegada').value = isNew ? 0 : data.comercial_llegada;
-        document.getElementById('edit-comercial-salida').value = isNew ? 0 : data.comercial_salida;
+        document.getElementById('edit-comercial-llegada').value = isNew ? '' : data.comercial_llegada;
+        document.getElementById('edit-comercial-salida').value = isNew ? '' : data.comercial_salida;
         
-        document.getElementById('edit-carga-llegada').value = isNew ? 0 : data.carga_llegada;
-        document.getElementById('edit-carga-salida').value = isNew ? 0 : data.carga_salida;
+        document.getElementById('edit-carga-llegada').value = isNew ? '' : data.carga_llegada;
+        document.getElementById('edit-carga-salida').value = isNew ? '' : data.carga_salida;
         
-        document.getElementById('edit-general-llegada').value = isNew ? 0 : data.general_llegada;
-        document.getElementById('edit-general-salida').value = isNew ? 0 : data.general_salida;
+        document.getElementById('edit-general-llegada').value = isNew ? '' : data.general_llegada;
+        document.getElementById('edit-general-salida').value = isNew ? '' : data.general_salida;
         
         const pdfInfo = document.getElementById('current-pdf-info');
         const fileInput = document.getElementById('edit-parte-ops-pdf');

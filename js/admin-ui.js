@@ -122,16 +122,13 @@ class AdminUI {
                 }
             });
             
-            // Auto switch if current tab is hidden
-            const active = document.querySelector('.nav-link.active');
-            let isCurrentHidden = false;
-            // Check if active tab is one of the hidden ones
-            if (active) {
-                if (active.offsetParent === null) isCurrentHidden = true; // Simple visibility check
-            }
-
-            if (isCurrentHidden || !active) {
-                 // Try to activate first visible
+            // Auto switch ONLY if the currently active data-management tab is one being hidden
+            const activeTabId = allTabs.find(id => {
+                const el = document.getElementById(id);
+                return el && el.classList.contains('active');
+            });
+            if (activeTabId && !visibleTabs.includes(activeTabId)) {
+                 // The active tab was just hidden due to role restrictions — switch to first allowed
                  const firstId = visibleTabs[0];
                  const firstEl = document.getElementById(firstId);
                  if (firstEl) {
@@ -466,6 +463,14 @@ class AdminUI {
                     else if (record.type === 'excel') input.accept = '.xls,.xlsx,.csv';
                     else if (record.type === 'word') input.accept = '.doc,.docx';
                 }
+            } else if (field.type === 'checkbox') {
+                input = document.createElement('input');
+                input.type = 'checkbox';
+                input.className = 'form-check-input';
+                input.style.width = '1.25rem';
+                input.style.height = '1.25rem';
+                // Default true for new records
+                input.checked = record ? (record[field.name] !== false && record[field.name] !== null) : true;
             } else if (field.type === 'icon') {
                 input = document.createElement('input');
                 input.type = 'hidden';
@@ -476,7 +481,7 @@ class AdminUI {
                 input.placeholder = field.placeholder || '';
             }
 
-            if (record && field.type !== 'select' && field.type !== 'file') {
+            if (record && field.type !== 'select' && field.type !== 'file' && field.type !== 'checkbox') {
                 const rawVal = record[field.name] == null ? '' : record[field.name];
                 if (field.type === 'number' && rawVal !== '') {
                     try {
@@ -1109,6 +1114,9 @@ class AdminUI {
                     if (fileInput && fileInput.files && fileInput.files.length > 0) {
                         updates[`__file_${field.name}`] = Array.from(fileInput.files);
                     }
+                } else if (field.type === 'checkbox') {
+                    const chk = document.getElementById('input-' + field.name);
+                    updates[field.name] = chk ? chk.checked : true;
                 } else if (field.type === 'number') {
                     const clean = AdminUI.unformatNumberString(val || '');
                     if (clean === '' || clean === null) val = null;

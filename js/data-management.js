@@ -1,4 +1,4 @@
-class DataManagement {
+﻿class DataManagement {
     constructor() {
         this.client = window.supabaseClient; // Initialize Supabase Client
         this.airlineConfig = {
@@ -57,7 +57,7 @@ class DataManagement {
 
         this.schemas = {
             operations_summary: [
-                { name: 'year', label: 'A�o', type: 'number' },
+                { name: 'year', label: 'Año', type: 'number' },
                 {
                     name: 'month', label: 'Mes', type: 'select', options: [
                         { value: 'Enero', label: 'Enero' }, { value: 'Febrero', label: 'Febrero' }, { value: 'Marzo', label: 'Marzo' },
@@ -83,14 +83,12 @@ class DataManagement {
                 { name: 'general_ops', label: 'General - Operaciones', type: 'number' },
                 { name: 'general_pax', label: 'General - Pasajeros', type: 'number' },
                 { name: 'carga_ops', label: 'Carga - Operaciones', type: 'number' },
-                { name: 'carga_tons', label: 'Carga - Toneladas', type: 'number', step: '0.01' },
-                { name: 'carga_cutoff_date', label: 'Carga - Fecha Corte', type: 'date' },
-                { name: 'carga_cutoff_note', label: 'Carga - Nota Corte', type: 'text' }
+                { name: 'carga_tons', label: 'Carga - Toneladas', type: 'number', step: '0.01' }
             ],
 
             // Monthly operations (per month per year)
             monthly_operations: [
-                { name: 'year', label: 'A�o', type: 'number' },
+                { name: 'year', label: 'Año', type: 'number' },
                 {
                     name: 'month', label: 'Mes', type: 'select', options: [
                         { value: '01', label: 'Enero' }, { value: '02', label: 'Febrero' }, { value: '03', label: 'Marzo' },
@@ -109,7 +107,7 @@ class DataManagement {
             ],
             // Annual aggregated operations (calculated from monthly)
             annual_operations: [
-                { name: 'year', label: 'A�o', type: 'number' },
+                { name: 'year', label: 'Año', type: 'number' },
                 { name: 'comercial_ops_total', label: 'Comercial - Operaciones (Total)', type: 'number' },
                 { name: 'comercial_pax_total', label: 'Comercial - Pasajeros (Total)', type: 'number' },
                 { name: 'general_ops_total', label: 'General - Operaciones (Total)', type: 'number' },
@@ -118,7 +116,7 @@ class DataManagement {
                 { name: 'carga_tons_total', label: 'Carga - Toneladas (Total)', type: 'number', step: '0.01' }
             ],
             punctuality_stats: [
-                { name: 'year', label: 'A�o', type: 'number' },
+                { name: 'year', label: 'Año', type: 'number' },
                 {
                     name: 'month', label: 'Mes', type: 'select', options: [
                         { value: '1', label: 'Enero' }, { value: '2', label: 'Febrero' }, { value: '3', label: 'Marzo' },
@@ -168,7 +166,7 @@ class DataManagement {
                 { name: 'impact_zone_remains', label: 'Zona de Hallazgo de Restos', type: 'text', placeholder: 'Ej. Pista 04C cerca de calle Bravo' },
                 { name: 'remains_count', label: 'Cantidad de Restos', type: 'number' },
                 {
-                    name: 'size', label: 'Tama�o de la Fauna', type: 'select', options: [
+                    name: 'size', label: 'TamAño de la Fauna', type: 'select', options: [
                         { value: 'Peque�o', label: 'Peque�o' },
                         { value: 'Mediano', label: 'Mediano' },
                         { value: 'Grande', label: 'Grande' }
@@ -219,7 +217,7 @@ class DataManagement {
                 }
             ],
             medical_attentions: [
-                { name: 'year', label: 'A�o', type: 'number' },
+                { name: 'year', label: 'Año', type: 'number' },
                 {
                     name: 'month', label: 'Mes', type: 'select', options: [
                         { value: 'Enero', label: 'Enero' }, { value: 'Febrero', label: 'Febrero' }, { value: 'Marzo', label: 'Marzo' },
@@ -235,7 +233,7 @@ class DataManagement {
                 { name: 'total', label: 'Total', type: 'number', readonly: true, help: 'Calculado autom�ticamente: Personal + Otros + Pasajeros + Visitantes' } 
             ],
             medical_types: [
-                { name: 'year', label: 'A�o', type: 'number' },
+                { name: 'year', label: 'Año', type: 'number' },
                 {
                     name: 'month', label: 'Mes', type: 'select', options: [
                         { value: 'Enero', label: 'Enero' }, { value: 'Febrero', label: 'Febrero' }, { value: 'Marzo', label: 'Marzo' },
@@ -255,7 +253,7 @@ class DataManagement {
                 { name: 'documentos', label: 'Documentos', type: 'file', multiple: true }
             ],
             delays: [
-                { name: 'year', label: 'A�o', type: 'number' },
+                { name: 'year', label: 'Año', type: 'number' },
                 {
                     name: 'month', label: 'Mes', type: 'select', options: [
                         { value: 'Enero', label: 'Enero' }, { value: 'Febrero', label: 'Febrero' }, { value: 'Marzo', label: 'Marzo' },
@@ -324,7 +322,7 @@ class DataManagement {
                 { name: 'weekly_total', label: 'Total Semanal', type: 'number', readonly: true }
             ],
             punctuality_stats: [
-                { name: 'year', label: 'A�o', type: 'number' },
+                { name: 'year', label: 'Año', type: 'number' },
                 {
                     name: 'month', label: 'Mes', type: 'select', options: [
                         { value: '1', label: 'Enero' }, { value: '2', label: 'Febrero' }, { value: '3', label: 'Marzo' },
@@ -2481,11 +2479,11 @@ const loadingMsg = document.createElement('div'); loadingMsg.id = 'deleting-sing
         };
 
         // Ask for the year (default current)
-        const yearVal = prompt('�A qu� a�o corresponde el CSV? (ejemplo: 2026)', new Date().getFullYear());
+        const yearVal = prompt('�A qu� Año corresponde el CSV? (ejemplo: 2026)', new Date().getFullYear());
         if (!yearVal) return;
         const year = parseInt(yearVal, 10);
         if (isNaN(year) || year < 2020 || year > 2100) {
-            alert('A�o inv�lido.');
+            alert('Año inv�lido.');
             return;
         }
 
