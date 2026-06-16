@@ -27,7 +27,7 @@
         href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Roboto+Mono:wght@400;700&family=Roboto+Condensed:wght@400;500;700&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
-    <link rel="stylesheet" href="style.css?v=20260616l">
+    <link rel="stylesheet" href="style.css?v=20260616m">
     <link rel="stylesheet" href="visual-cards.css?v=1"> <!-- Visual Cards Styles -->
     <link rel="stylesheet" href="admin.css?v=20260203">
     <link rel="icon" type="image/png" sizes="192x192" href="images/icons/aifa-app-icon-192.png?v=20251126">
@@ -27576,7 +27576,9 @@ FF
     <script src="js/yoy-general.js"></script>
     <script src="js/yoy-cargo.js"></script>
     <script src="js/parte-ops-flights.js?v=2.2"></script>
-    <script>
+    <!-- Conciliación Board View — extraído a js/conciliacion-board.js (v=20260616m) -->
+    <script src="js/conciliacion-board.js?v=20260616m" defer></script>
+    <script type="text/plain" data-extracted="conciliacion-board">
     // ---- Conciliación Board View ----
     async function toggleConciliacionBoard() {
         const board   = document.getElementById('conciliacion-board-view');
@@ -28074,7 +28076,7 @@ FF
     })();
     </script>
     <script src="js/frecuencias_upload_test.js"></script>
-    <script src="script.js?v=20260616l"></script>
+    <script src="script.js?v=20260616m"></script>
     <script src="js/manifiestos_pax.js?v=9999999999993"></script>
     <script src="js/puntualidad.js"></script>
     <script>
@@ -29257,8 +29259,9 @@ FF
     });
 </script>
 
-<!-- ====== Conciliación Admin Module ====== -->
-<script>
+<!-- ====== Conciliación Admin Module — extraído a js/ops-flights-admin.js (v=20260616m) ====== -->
+<script src="js/ops-flights-admin.js?v=20260616m" defer></script>
+<script type="text/plain" data-extracted="ops-flights-admin">
 window.opsFlightsAdmin = (function () {
     'use strict';
 
@@ -31050,129 +31053,7 @@ window.AeropuertosModule = (function () {
     </div>
 </div>
 
-<script>
-(function() {
-    var _mapaActiveSectionKey = null;
-    var _mapaActiveSectionEl  = null;
-    var _mapaLastToggleTs     = 0;
-    // Recuerda si NOSOTROS agregamos la clase navdeck-active al abrir, para
-    // poder retirarla al cerrar (sin afectar el caso en que el usuario ya
-    // estaba viendo un modulo de deck).
-    var _mapaAddedNavdeckActive = false;
-
-    function _mapaLog(msg, extra) {
-        try { console.log('[MapaInteractivo]', msg, extra || ''); } catch (e) {}
-    }
-    function _mapaErr(msg, err) {
-        try { console.error('[MapaInteractivo]', msg, err); } catch (e) {}
-    }
-
-    window.toggleMapaInteractivo = function() {
-        // Double-fire guard: ignore second invocation within 250ms (e.g. onclick + listener both firing)
-        var now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
-        if (now - _mapaLastToggleTs < 250) {
-            _mapaLog('toggle ignored (double-fire guard)', now - _mapaLastToggleTs);
-            return;
-        }
-        _mapaLastToggleTs = now;
-
-        try {
-            var section = document.getElementById('mapa-interactivo-section');
-            var iframe  = document.getElementById('mapa-interactivo-iframe');
-            var btn     = document.getElementById('btn-mapa-interactivo');
-            if (!section || !iframe) {
-                _mapaErr('section or iframe missing', { section: !!section, iframe: !!iframe });
-                return;
-            }
-            var isOpen  = section.classList.contains('active');
-            _mapaLog(isOpen ? 'closing' : 'opening');
-
-            if (isOpen) {
-                section.classList.remove('active');
-                iframe.src = '';
-                if (btn) btn.classList.remove('active');
-                // Si nosotros activamos navdeck-active al abrir, regresar al deck.
-                if (_mapaAddedNavdeckActive) {
-                    document.body.classList.remove('navdeck-active');
-                    _mapaAddedNavdeckActive = false;
-                }
-                if (_mapaActiveSectionEl && document.body.contains(_mapaActiveSectionEl)) {
-                    _mapaActiveSectionEl.classList.add('active');
-                } else if (typeof showSection === 'function' && _mapaActiveSectionKey) {
-                    try { showSection(_mapaActiveSectionKey); } catch (e) { _mapaErr('showSection failed', e); }
-                }
-                _mapaActiveSectionKey = null;
-                _mapaActiveSectionEl  = null;
-            } else {
-                var agBar = document.getElementById('ag-today-bar');
-                var topPx = agBar ? (agBar.getBoundingClientRect().bottom) : 160;
-                section.style.top = topPx + 'px';
-
-                _mapaActiveSectionEl  = document.querySelector('.content-section.active');
-                _mapaActiveSectionKey = typeof getActiveSectionKey === 'function' ? getActiveSectionKey() : null;
-                document.querySelectorAll('.content-section').forEach(function(s) { s.classList.remove('active'); });
-                section.classList.add('active');
-                iframe.src = 'aifa_plano_interactivo.html';
-                if (btn) btn.classList.add('active');
-
-                // En modo deck (navdeck-mode sin navdeck-active) hay reglas globales
-                // que ocultan .main-content y .content-section. Activamos navdeck-active
-                // para que el contenedor padre se renderice y el mapa sea visible.
-                if (document.body.classList.contains('navdeck-mode') &&
-                    !document.body.classList.contains('navdeck-active')) {
-                    document.body.classList.add('navdeck-active');
-                    _mapaAddedNavdeckActive = true;
-                    _mapaLog('navdeck-active enabled for map view');
-                }
-            }
-        } catch (e) {
-            _mapaErr('toggle threw', e);
-        }
-    };
-
-    // Backup binding: if the inline onclick attribute fails to fire for any reason
-    // (third-party listener stopImmediatePropagation, attribute stripped by sanitizer, etc.)
-    // a direct addEventListener on the button still triggers the toggle.
-    function _mapaBindBtn() {
-        var btn = document.getElementById('btn-mapa-interactivo');
-        if (!btn || btn.dataset.mapaBound === '1') return;
-        btn.dataset.mapaBound = '1';
-        btn.addEventListener('click', function(ev) {
-            // The inline onclick already calls toggleMapaInteractivo; the double-fire guard
-            // above prevents a second toggle within 250 ms.
-            window.toggleMapaInteractivo();
-        });
-        _mapaLog('button bound');
-    }
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', _mapaBindBtn);
-    } else {
-        _mapaBindBtn();
-    }
-
-    // When any sidebar link navigates away, unload the iframe and reset button state
-    document.addEventListener('click', function(e) {
-        var menuItem = e.target.closest('.menu-item[data-section]');
-        if (!menuItem) return;
-        var iframe = document.getElementById('mapa-interactivo-iframe');
-        var btn    = document.getElementById('btn-mapa-interactivo');
-        var section = document.getElementById('mapa-interactivo-section');
-        if (section) section.classList.remove('active');
-        if (iframe) iframe.src = '';
-        if (btn) btn.classList.remove('active');
-        // Si dejamos navdeck-active solo por el mapa, retiralo al navegar a un modulo real:
-        // el handler del menu se encargara de fijarlo otra vez si corresponde.
-        if (_mapaAddedNavdeckActive) {
-            _mapaAddedNavdeckActive = false;
-            // No removemos navdeck-active aqui porque el menu-item probablemente
-            // necesita que permanezca; si el usuario sale del deck via menu, el
-            // estado correcto es navdeck-active=true.
-        }
-        _mapaActiveSectionKey = null;
-        _mapaActiveSectionEl  = null;
-    });
-})();
-</script>
+<script src="js/mapa-interactivo.js?v=20260616m" defer></script>
 
 </body>
 </html>
