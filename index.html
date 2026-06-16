@@ -27,7 +27,7 @@
         href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Roboto+Mono:wght@400;700&family=Roboto+Condensed:wght@400;500;700&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
-    <link rel="stylesheet" href="style.css?v=20260616m">
+    <link rel="stylesheet" href="style.css?v=20260616n">
     <link rel="stylesheet" href="visual-cards.css?v=1"> <!-- Visual Cards Styles -->
     <link rel="stylesheet" href="admin.css?v=20260203">
     <link rel="icon" type="image/png" sizes="192x192" href="images/icons/aifa-app-icon-192.png?v=20251126">
@@ -47,6 +47,15 @@
     <link rel="prefetch" as="image" href="images/Carga%20a%C3%A9rea.jpg">
     <link rel="prefetch" as="image" href="images/Aviones%20FBO.png">
     <link rel="prefetch" as="image" href="images/Pasajero%20FBO.jpg">
+
+    <!-- Preload de los 5 scripts mas pesados (descarga en paralelo desde el primer byte del HTML).
+         No altera el orden de ejecución: los <script> tags más abajo siguen mandando.
+         Los hrefs DEBEN coincidir EXACTAMENTE con el src del script para que el navegador reuse el preload. -->
+    <link rel="preload" as="script" href="script.js?v=20260616n" fetchpriority="high">
+    <link rel="preload" as="script" href="js/manifiestos.js">
+    <link rel="preload" as="script" href="js/data-management.js">
+    <link rel="preload" as="script" href="js/analisis-operaciones.js?v=2">
+    <link rel="preload" as="script" href="js/manifiestos-analisis.js">
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
@@ -27706,7 +27715,7 @@ FF
     })();
     </script>
     <script src="js/frecuencias_upload_test.js" defer></script>
-    <script src="script.js?v=20260616m" defer></script>
+    <script src="script.js?v=20260616n" defer></script>
     <script src="js/manifiestos_pax.js?v=9999999999993" defer></script>
     <script src="js/puntualidad.js" defer></script>
     <script>
