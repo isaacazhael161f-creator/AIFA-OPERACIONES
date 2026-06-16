@@ -2184,9 +2184,10 @@ body.dark-mode .itinerary-airline-chip {
 
 .itinerary-airline-table .table {
    margin-bottom: 0;
-   background: #fff;
+   background: var(--card-bg, #fff);
    border-radius: 14px;
    overflow: hidden;
+   color: var(--text-color);
 }
 
 .itinerary-airline-table .table tbody tr {
@@ -2262,11 +2263,32 @@ body.dark-mode .itinerary-pill {
 }
 
 body.dark-mode .itinerary-airline-table .table {
-   background: rgba(15, 23, 42, 0.65);
+   background: rgba(15, 23, 42, 0.85);
+   color: #e2e8f0;
+}
+
+body.dark-mode .itinerary-airline-table .table td,
+body.dark-mode .itinerary-airline-table .table th {
+   background-color: transparent !important;
+   color: #e2e8f0;
+   border-color: rgba(255, 255, 255, .06);
+}
+
+body.dark-mode .itinerary-airline-table .table tbody tr {
+   background-color: transparent;
+}
+
+body.dark-mode .itinerary-airline-table .table tbody tr:nth-child(even) {
+   background-color: rgba(255, 255, 255, .03) !important;
 }
 
 body.dark-mode .itinerary-airline-table .table tbody tr.animated-row:hover {
-   background: var(--airline-row-hover-dark, rgba(148, 186, 255, 0.12));
+   background: var(--airline-row-hover-dark, rgba(148, 186, 255, .10)) !important;
+   transform: none;
+}
+
+body.dark-mode .itinerary-airline-table .airline-name {
+   color: #e2e8f0;
 }
 
 .itinerary-table-block {
@@ -5849,12 +5871,13 @@ body.dark-mode .global-loader {
    width: 72px;
    height: 72px;
    border-radius: 50%;
-   background: transparent;
+   background: rgba(255, 255, 255, .92);
    display: flex;
    align-items: center;
    justify-content: center;
    overflow: hidden;
-   padding: 3px;
+   padding: 6px;
+   box-shadow: 0 2px 8px rgba(0, 0, 0, .25);
 }
 
 .summary-airline-logo .airline-logo {
@@ -6175,7 +6198,8 @@ body.dark-mode #summary-table-container .summary-airline-card:hover {
 }
 
 body.dark-mode #summary-table-container .summary-airline-logo {
-   background: transparent;
+   background: rgba(255, 255, 255, .92);
+   box-shadow: 0 2px 8px rgba(0, 0, 0, .4);
 }
 
 body.dark-mode #summary-table-container .summary-airline-pill {
@@ -7715,6 +7739,44 @@ body.dark-mode .nav-tabs .nav-link {
 body.dark-mode .nav-tabs .nav-link.active {
    color: #fff;
    border-bottom-color: #4dabf7;
+}
+
+/* Pestañas tipo "pill" (Gestión de Datos, subpestañas, etc.) en modo oscuro.
+   Se normaliza el contraste: las inactivas legibles, la activa con acento sólido. */
+body.dark-mode .nav-pills .nav-link {
+   color: #dbe5ee;
+   background-color: rgba(20, 32, 50, 0.55);
+   border-color: rgba(148, 186, 255, 0.16) !important;
+}
+
+body.dark-mode .nav-pills .nav-link:hover:not(.active),
+body.dark-mode .nav-pills .nav-link:focus-visible:not(.active) {
+   color: #ffffff;
+   background-color: rgba(37, 99, 235, 0.20);
+   border-color: rgba(96, 165, 250, 0.4) !important;
+}
+
+body.dark-mode .nav-pills .nav-link.active {
+   color: #ffffff;
+   background-color: #2563eb;
+   border-color: #2563eb !important;
+   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
+}
+
+/* Biblioteca usa IDs (mayor especificidad): se sobreescribe para modo oscuro. */
+body.dark-mode #biblioteca-tabs .nav-link {
+   color: #dbe5ee;
+}
+
+body.dark-mode #biblioteca-tabs .nav-link.active {
+   background-color: rgba(96, 165, 250, 0.18);
+   color: #ffffff;
+   border-color: rgba(96, 165, 250, 0.4);
+}
+
+body.dark-mode #biblioteca-tabs .nav-link:hover:not(.active) {
+   background-color: rgba(37, 99, 235, 0.16);
+   color: #ffffff;
 }
 
 body.dark-mode .btn-outline-secondary {
@@ -10618,14 +10680,14 @@ body.dark-mode #puntualidad-table-container .table tbody tr:nth-child(odd) {
 }
 
 body.dark-mode .top-hours-widget {
-   background: rgba(13, 17, 23, 0.85);
-   border-color: rgba(255, 255, 255, 0.06);
-   box-shadow: 0 14px 30px rgba(0, 0, 0, 0.6);
+   background: linear-gradient(180deg, rgba(7, 15, 30, 0.94) 0%, rgba(9, 18, 34, 0.96) 100%);
+   border-color: rgba(148, 186, 255, 0.18);
+   box-shadow: 0 16px 34px rgba(0, 0, 0, 0.58);
 }
 
 body.dark-mode .top-hours-card {
-   background: rgba(13, 17, 23, 0.9);
-   border-color: rgba(255, 255, 255, 0.08);
+   background: rgba(10, 21, 40, 0.9);
+   border-color: rgba(255, 255, 255, 0.1);
 }
 
 body.dark-mode .top-hours-card.arrivals-theme {
@@ -10640,12 +10702,160 @@ body.dark-mode .top-hours-card.cargo-accent {
    background: linear-gradient(135deg, rgba(25, 118, 210, 0.35), rgba(0, 77, 102, 0.6));
 }
 
+body.dark-mode .top-hours-header {
+   border-bottom-color: rgba(255, 255, 255, 0.12);
+}
+
+body.dark-mode .top-hours-eyebrow {
+   color: rgba(179, 208, 255, 0.78);
+}
+
+body.dark-mode .top-hours-heading {
+   color: #f3f7ff;
+}
+
+body.dark-mode .top-hours-subtitle,
+body.dark-mode .top-hours-label,
+body.dark-mode .top-hours-footnote {
+   color: rgba(220, 231, 248, 0.88) !important;
+}
+
+body.dark-mode .top-hours-select {
+   background-color: rgba(28, 41, 66, 0.85);
+   border-color: rgba(148, 186, 255, 0.26);
+   color: #eaf2ff;
+}
+
 body.dark-mode .top-hour-trigger {
-   background: rgba(255, 255, 255, 0.08);
+   background: rgba(255, 255, 255, 0.12);
+   color: #f2f7ff;
+}
+
+body.dark-mode .top-hour-trigger .text-muted {
+   color: rgba(214, 228, 248, 0.86) !important;
+}
+
+body.dark-mode .top-hours-chip {
+   color: #eef4ff;
+   border: 1px solid rgba(255, 255, 255, 0.16);
 }
 
 body.dark-mode .top-hours-list li::before {
-   color: rgba(255, 255, 255, 0.55);
+   color: rgba(212, 227, 248, 0.76);
+}
+
+/* Frecuencias: ajustes de contraste en panel de estadisticas */
+body.dark-mode #frecuencias-semana-section .frecuencias-meta.card,
+body.dark-mode #frecuencias-semana-section .frecuencias-auto-content .card {
+   background: rgba(17, 27, 44, 0.94);
+   border: 1px solid rgba(148, 186, 255, 0.16);
+}
+
+body.dark-mode #frecuencias-semana-section .frecuencias-meta .text-muted,
+body.dark-mode #frecuencias-semana-section .card-header small.text-muted,
+body.dark-mode #frecuencias-semana-section .card-body small.text-muted,
+body.dark-mode #frecuencias-semana-section .text-muted {
+   color: rgba(196, 214, 238, 0.85) !important;
+}
+
+body.dark-mode #frecuencias-semana-section [data-last-updated],
+body.dark-mode #frecuencias-semana-section .fw-semibold {
+   color: #eaf2ff;
+}
+
+body.dark-mode #frecuencias-estadisticas-pane {
+   color: #e8f1ff;
+}
+
+body.dark-mode #frecuencias-estadisticas-pane .modern-card {
+   background: linear-gradient(155deg, rgba(21, 37, 61, 0.94), rgba(16, 29, 49, 0.96)) !important;
+   border: 1px solid rgba(148, 186, 255, 0.2) !important;
+   box-shadow: 0 14px 30px rgba(0, 0, 0, 0.4) !important;
+}
+
+body.dark-mode #frecuencias-estadisticas-pane .modern-card .text-dark,
+body.dark-mode #frecuencias-estadisticas-pane .modern-card .fs-2,
+body.dark-mode #frecuencias-estadisticas-pane .modern-card .fw-bolder {
+   color: #eef5ff !important;
+}
+
+body.dark-mode #frecuencias-estadisticas-pane .modern-card .text-muted,
+body.dark-mode #frecuencias-estadisticas-pane .modern-card small {
+   color: rgba(194, 211, 233, 0.88) !important;
+}
+
+body.dark-mode #frecuencias-estadisticas-pane .card-header.bg-white,
+body.dark-mode #frecuencias-estadisticas-pane .card-header.bg-light {
+   background: rgba(18, 31, 52, 0.96) !important;
+   border-bottom: 1px solid rgba(148, 186, 255, 0.2) !important;
+}
+
+body.dark-mode #frecuencias-estadisticas-pane #freq-estados-cobertura {
+   color: #eaf2ff;
+}
+
+body.dark-mode #frecuencias-estadisticas-pane #freq-estados-cobertura .text-dark {
+   color: #eef5ff !important;
+}
+
+body.dark-mode #frecuencias-estadisticas-pane #freq-estados-cobertura .card .fw-bold,
+body.dark-mode #frecuencias-estadisticas-pane #freq-estados-cobertura .card .fw-semibold {
+   color: #edf5ff !important;
+}
+
+/* Incondicional: este bloque solo aparece en la vista ejecutiva (fondo oscuro).
+   Forzamos color claro aunque el render incluya .text-dark o esté en caché.
+   NOTA: el render real usa el contenedor #frec-estados-cobertura (frecuencias_auto.js);
+   #freq-estados-cobertura es de la versión alterna (frecuencias-estadisticas.js). */
+#freq-estados-cobertura .freq-state-name,
+#freq-estados-cobertura .card .fw-bold.text-dark,
+#freq-estados-cobertura .card .fw-bold,
+#frec-estados-cobertura .card .fw-bold.text-dark,
+#frec-estados-cobertura .card .fw-bold {
+   color: #edf5ff !important;
+   text-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
+}
+
+#freq-estados-cobertura .freq-state-count,
+#freq-estados-cobertura .card .text-muted,
+#frec-estados-cobertura .card .text-muted {
+   color: rgba(214, 228, 247, 0.9) !important;
+}
+
+/* Tarjetas de cobertura por estado (vista ejecutiva, siempre oscura) */
+#frec-estados-cobertura .card {
+   background: rgba(14, 27, 46, 0.94) !important;
+   border: 1px solid rgba(148, 186, 255, 0.14) !important;
+   border-left: 4px solid #2563eb !important;
+}
+
+body.dark-mode #frecuencias-estadisticas-pane #freq-estados-cobertura .text-muted {
+   color: rgba(197, 214, 236, 0.86) !important;
+}
+
+body.dark-mode #frecuencias-estadisticas-pane .badge.bg-light,
+body.dark-mode #frecuencias-estadisticas-pane .badge.text-bg-light {
+   background: rgba(214, 231, 255, 0.92) !important;
+   color: #184389 !important;
+}
+
+body.dark-mode #frecuencias-estadisticas-pane #table-dest-analysis,
+body.dark-mode #frecuencias-estadisticas-pane #table-dest-analysis td,
+body.dark-mode #frecuencias-estadisticas-pane #table-dest-analysis th {
+   color: #e7f0ff;
+}
+
+body.dark-mode #frecuencias-estadisticas-pane #thead-dest-analysis.table-light,
+body.dark-mode #frecuencias-estadisticas-pane #thead-dest-analysis {
+   background: rgba(26, 45, 73, 0.95) !important;
+}
+
+body.dark-mode #frecuencias-estadisticas-pane #table-dest-analysis tbody tr {
+   border-color: rgba(255, 255, 255, 0.07);
+}
+
+body.dark-mode #frecuencias-estadisticas-pane #table-dest-analysis tbody tr:nth-child(even) {
+   background: rgba(255, 255, 255, 0.02);
 }
 
 .install-welcome-card {
@@ -10857,6 +11067,121 @@ body.dark-mode .ops-pdf-placeholder {
    display: flex;
    flex-direction: column;
    gap: 1.5rem;
+}
+
+/* Tabs de Frecuencias: reactivas al tema (legibles en claro y oscuro) */
+#frecuencias-semana-section #frecuenciasTab {
+   border-bottom: 1px solid rgba(13, 71, 161, 0.18);
+   gap: 2px;
+}
+
+#frecuencias-semana-section #frecuenciasTab .nav-link {
+   color: #334a63;
+   border: 1px solid transparent;
+   border-top-left-radius: 10px;
+   border-top-right-radius: 10px;
+   padding: .62rem 1.05rem;
+   font-weight: 500;
+}
+
+#frecuencias-semana-section #frecuenciasTab .nav-link:hover {
+   color: #0d3a72;
+   background: rgba(13, 110, 253, 0.07);
+   border-color: rgba(13, 110, 253, 0.18);
+}
+
+#frecuencias-semana-section #frecuenciasTab .nav-link.active {
+   color: #0a2f5e;
+   background: linear-gradient(180deg, rgba(13, 110, 253, 0.10), rgba(13, 110, 253, 0.05));
+   border-color: rgba(13, 110, 253, 0.28);
+   border-bottom-color: transparent;
+   box-shadow: inset 0 -2px 0 #1e88e5;
+   font-weight: 600;
+}
+
+/* Tabs de Frecuencias en modo oscuro */
+body.dark-mode #frecuencias-semana-section #frecuenciasTab {
+   border-bottom: 1px solid rgba(148, 186, 255, 0.26);
+}
+
+body.dark-mode #frecuencias-semana-section #frecuenciasTab .nav-link {
+   color: rgba(199, 213, 232, 0.92);
+}
+
+body.dark-mode #frecuencias-semana-section #frecuenciasTab .nav-link:hover {
+   color: #eef5ff;
+   background: rgba(148, 186, 255, 0.09);
+   border-color: rgba(148, 186, 255, 0.22);
+}
+
+body.dark-mode #frecuencias-semana-section #frecuenciasTab .nav-link.active {
+   color: #f6fbff;
+   background: linear-gradient(180deg, rgba(33, 79, 165, 0.42), rgba(19, 49, 97, 0.5));
+   border-color: rgba(148, 186, 255, 0.38);
+   border-bottom-color: transparent;
+   box-shadow: inset 0 -2px 0 rgba(77, 171, 247, 0.9);
+}
+
+/* Frecuencias: controles y badges siempre legibles en dark */
+body.dark-mode #frecuencias-semana-section .bg-secondary-subtle {
+   background: rgba(148, 186, 255, 0.16) !important;
+}
+
+body.dark-mode #frecuencias-semana-section .text-secondary {
+   color: #cfe0f8 !important;
+}
+
+body.dark-mode #frecuencias-semana-section .card-header {
+   background: rgba(18, 31, 52, 0.96);
+   border-bottom: 1px solid rgba(148, 186, 255, 0.2);
+}
+
+body.dark-mode #frecuencias-semana-section .form-select,
+body.dark-mode #frecuencias-semana-section .form-control,
+body.dark-mode #frecuencias-semana-section input[type="search"],
+body.dark-mode #frecuencias-semana-section input[type="text"],
+body.dark-mode #frecuencias-semana-section input[type="month"],
+body.dark-mode #frecuencias-semana-section input[type="date"] {
+   background: rgba(13, 23, 40, 0.82);
+   border-color: rgba(148, 186, 255, 0.26);
+   color: #eaf2ff;
+}
+
+body.dark-mode #frecuencias-semana-section .form-select:focus,
+body.dark-mode #frecuencias-semana-section .form-control:focus,
+body.dark-mode #frecuencias-semana-section input:focus {
+   background: rgba(13, 23, 40, 0.92);
+   border-color: #4dabf7;
+   box-shadow: 0 0 0 .2rem rgba(77, 171, 247, 0.18);
+}
+
+body.dark-mode #frecuencias-semana-section .table {
+   color: #eaf2ff;
+}
+
+body.dark-mode #frecuencias-semana-section .table thead th,
+body.dark-mode #frecuencias-semana-section .table-light th,
+body.dark-mode #frecuencias-semana-section .table-light td {
+   background: rgba(26, 45, 73, 0.95) !important;
+   color: #eaf2ff !important;
+   border-color: rgba(148, 186, 255, 0.22) !important;
+}
+
+body.dark-mode #frecuencias-semana-section .table tbody td,
+body.dark-mode #frecuencias-semana-section .table tbody th {
+   background: rgba(12, 24, 42, 0.88);
+   border-color: rgba(255, 255, 255, 0.07);
+}
+
+body.dark-mode #frecuencias-semana-section .table-hover tbody tr:hover td,
+body.dark-mode #frecuencias-semana-section .table-hover tbody tr:hover th {
+   background: rgba(77, 171, 247, 0.12) !important;
+}
+
+body.dark-mode #frecuencias-semana-section .btn-light {
+   background: rgba(220, 234, 253, 0.9);
+   color: #173a72;
+   border-color: rgba(148, 186, 255, 0.44);
 }
 
 .frecuencias-loading-state {
@@ -12201,14 +12526,6 @@ body.dark-mode .fb-img-name { color: #94a3b8; }
    .fb-fab { padding: .75rem; }
    .fb-fab-icon { margin: 0; }
 }
-   Actually, for row 1, we want borders around everything including shared cells.
-   Row 1 has shared cells as first children. So they get borders. 
-   BUT we also have .group-hover .shared-info-cell putting an outline. 
-   The outline is usually better for the shared block.
-   Let's disable the left-border on the row hover if it's a shared cell & relying on group outline?
-   No, let's keep it simple. The user just wants to avoid the "line crossing". 
-   By moving from TR outline to TD borders, the line won't cross the empty space of rowspan.
-*/
 .freq-total-cell {
    background-color: rgba(0, 0, 0, 0.2) !important;
    font-weight: 800 !important;
@@ -12822,10 +13139,29 @@ body.dark-mode #fauna-rescate-table .table-container-tech.h-scroll-area thead th
     letter-spacing: 0.02em;
 }
 
+body.dark-mode .search-input-modern {
+   background-color: rgba(15, 23, 42, .75);
+   border-color: rgba(255, 255, 255, .12);
+   color: #e2e8f0;
+}
+
+body.dark-mode .search-input-modern:focus {
+   background-color: rgba(15, 23, 42, .95);
+   border-color: #3b82f6;
+}
+
+body.dark-mode .search-input-modern::placeholder {
+   color: rgba(255, 255, 255, .3);
+}
+
 .search-inputs-row th {
     vertical-align: middle;
-    background-color: #f1f5f9; /* Mild contrast for the search row */
+   background-color: #f1f5f9;
     padding: 0.25rem !important;
+}
+
+body.dark-mode .search-inputs-row th {
+   background-color: rgba(15, 23, 42, .7) !important;
 }
 
 /* Adjust cell padding in the search row to be tight */
@@ -12838,6 +13174,10 @@ body.dark-mode #fauna-rescate-table .table-container-tech.h-scroll-area thead th
     vertical-align: middle;
     background-color: #eef2f9 !important;
     padding: 0.25rem 0.35rem !important;
+}
+
+body.dark-mode .funnel-selects-row th {
+   background-color: rgba(15, 23, 42, .7) !important;
 }
 
 .daily-it-select {
@@ -12853,6 +13193,12 @@ body.dark-mode #fauna-rescate-table .table-container-tech.h-scroll-area thead th
     transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
     box-shadow: inset 0 1px 2px rgba(0,0,0,0.03);
     cursor: pointer;
+}
+
+body.dark-mode .daily-it-select {
+   background-color: rgba(15, 23, 42, .75);
+   border-color: rgba(255, 255, 255, .12);
+   color: #e2e8f0;
 }
 
 .daily-it-select:focus {
@@ -12882,8 +13228,13 @@ body.dark-mode #fauna-rescate-table .table-container-tech.h-scroll-area thead th
 
 /* Zebra Striping & Centering */
 .itinerary-airline-table table tbody tr:nth-child(even) {
-    background-color: rgba(241, 245, 249, 0.5); /* Subtle stripe */
+   background-color: rgba(241, 245, 249, 0.5);
 }
+
+body.dark-mode .itinerary-airline-table table tbody tr:nth-child(even) {
+   background-color: rgba(255, 255, 255, .03) !important;
+}
+
 /* Ensure hover effect stays on top */
 .itinerary-airline-table table tbody tr:hover {
     background-color: var(--airline-row-hover, rgba(0,0,0,0.05)) !important;
@@ -13659,30 +14010,30 @@ body.dark-mode #yoy-chart-title {
 }
 
 body.dark-mode #yoy-data-table thead th {
-    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-    color: #e2e8f0;
-    border-color: #475569;
+    background: linear-gradient(135deg, #f0f4f8 0%, #e8ecf1 100%);
+    color: #1e293b;
+    border-color: #cbd5e1;
 }
 
 body.dark-mode #yoy-data-table tbody td {
-    background-color: #0f172a;
-    color: #e2e8f0;
-    border-color: #475569;
+    background-color: #ffffff;
+    color: #334155;
+    border-color: #cbd5e1;
 }
 
 body.dark-mode #yoy-data-table tbody tr:nth-child(odd) td {
-    background-color: #1e293b;
-    color: #e2e8f0;
+    background-color: #f1f5f9;
+    color: #334155;
 }
 
 body.dark-mode #yoy-data-table tbody tr:hover td {
-    background-color: #334155 !important;
+    background-color: #e2e8f0 !important;
 }
 
 body.dark-mode #yoy-data-table tbody tr:last-child td {
-    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-    border-color: #475569;
-    color: #f8fafc;
+    background: linear-gradient(135deg, #f0f4f8 0%, #e8ecf1 100%);
+    border-color: #cbd5e1;
+    color: #1e293b;
 }
 
 body.dark-mode #yoy-insights {
@@ -13729,16 +14080,16 @@ body.dark-mode #yoy-insights-list li {
    ══════════════════════════════════════════════════════════════════ */
 /* === AGENDA TODAY BAR — professional redesign === */
 .ag-today-bar {
-    background: linear-gradient(to right, #ffffff 60%, #f5f3ff 100%);
-    border-top: 2.5px solid #4f46e5;
-    border-bottom: 1px solid #e0e7ff;
+    background: linear-gradient(to right, rgba(17, 24, 39, .97) 60%, rgba(30, 27, 75, .97) 100%);
+    border-top: 2px solid rgba(99, 102, 241, .45);
+    border-bottom: 1px solid rgba(255, 255, 255, .06);
     padding: 0 20px;
     min-height: 38px;
     display: flex;
     align-items: center;
     position: relative;
     z-index: 100;
-    box-shadow: 0 2px 10px rgba(79,70,229,.08);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, .35);
 }
 .ag-tb-inner {
     display: inline-flex;
@@ -13779,7 +14130,7 @@ body.dark-mode #yoy-insights-list li {
     transition: background .15s;
 }
 .ag-tb-day-clickable:hover {
-    background: rgba(79,70,229,.08);
+    background: rgba(99, 102, 241, .18);
 }
 .ag-tb-hint {
     display: inline-flex;
@@ -13823,6 +14174,18 @@ body.dark-mode #yoy-insights-list li {
 body.sidebar-collapsed #mapa-interactivo-section.active {
     left: 0;
 }
+/* En modo deck (navdeck) no hay barra lateral izquierda: el mapa debe cubrir
+   todo el ancho y quedar por encima del deck y del banner semanal.
+   El display:block !important es indispensable: hay una regla previa
+   `body.navdeck-mode:not(.navdeck-active) .content-section { display:none !important }`
+   que oculta cualquier .content-section mientras se ve el deck; sin este override
+   el mapa se "abre" en el DOM (.active) pero permanece invisible. */
+body.navdeck-mode #mapa-interactivo-section.active {
+    display: block !important;
+    left: 0 !important;
+    right: 0 !important;
+    z-index: 1200;
+}
 @media (max-width: 991.98px) {
     #mapa-interactivo-section.active {
         left: 0;
@@ -13855,7 +14218,7 @@ body.sidebar-collapsed #mapa-interactivo-section.active {
 .ag-tb-date {
     font-size: .68rem;
     font-weight: 500;
-    color: #475569;
+    color: rgba(255, 255, 255, .65);
     white-space: nowrap;
     flex-shrink: 0;
 }
@@ -13864,7 +14227,7 @@ body.sidebar-collapsed #mapa-interactivo-section.active {
     display: inline-block;
     width: 1px;
     height: 22px;
-    background: linear-gradient(to bottom, transparent, #a5b4fc, transparent);
+    background: linear-gradient(to bottom, transparent, rgba(255, 255, 255, .25), transparent);
     flex-shrink: 0;
     margin: 0 6px;
     align-self: center;
@@ -14597,6 +14960,7 @@ body.sidebar-collapsed #mapa-interactivo-section.active {
 .si-group--gpyc      { --grp-c: #818cf8; --grp-cb: rgba(129,140,248,.18); }
 
 .si-group--sub { --sub-c: #60a5fa; --sub-cb: rgba(96,165,250,.12); }
+.si-group--sub.si-sub--ope { --sub-c: #14b8a6; --sub-cb: rgba(20,184,166,.14); }
 .si-group--sub.si-sub--sso { --sub-c: #3b82f6; --sub-cb: rgba(59,130,246,.14); }
 .si-group--sub.si-sub--ssa { --sub-c: #a855f7; --sub-cb: rgba(168,85,247,.14); }
 .si-group--sub.si-sub--ssc { --sub-c: #06b6d4; --sub-cb: rgba(6,182,212,.14); }
@@ -14968,3 +15332,833 @@ body.sidebar-collapsed #mapa-interactivo-section.active {
    ANIMACIÓN
    ══════════════════════════════════════════════════════ */
 .si-nav .collapsing { transition: height .2s ease !important; }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   NAV DECK — Navegación en tarjetas (reemplaza la barra lateral)
+   Modo activado con <body class="navdeck-mode">. Toda la estructura del
+   sidebar se conserva (IDs, data-section, permisos); aquí solo se re-estiliza
+   para mostrar Subdirecciones + Gerencias siempre visibles, de un vistazo.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ---- Layout: el aside pasa de columna fija a banda superior ---- */
+body.navdeck-mode .app-body {
+    display: flex;
+    flex-direction: column;
+}
+body.navdeck-mode .sidebar.nav-deck {
+    position: static !important;
+    transform: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    max-height: none !important;
+    flex-direction: column !important;
+    overflow: visible !important;
+    z-index: 20;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, .16);
+    border-bottom: none;
+}
+body.navdeck-mode .main-content {
+    margin-left: 0 !important;
+    width: 100% !important;
+}
+
+/* El brand grande del sidebar no es necesario (los logos están en el header) */
+body.navdeck-mode .sidebar.nav-deck > .si-brand { display: none !important; }
+
+/* ---- Forzar ABIERTAS solo Subdirecciones y Áreas (gerencias se despliegan) ---- */
+body.navdeck-mode .si-group--sub > .collapse,
+body.navdeck-mode .si-group--archivo > .collapse,
+body.navdeck-mode .si-group--auditoria > .collapse,
+body.navdeck-mode .si-group--gpyc > .collapse {
+    display: block !important;
+    height: auto !important;
+    overflow: visible !important;
+    visibility: visible !important;
+    transition: none !important;
+}
+
+/* Encabezados de Subdirección/Área = títulos (no colapsan, sin chevron) */
+body.navdeck-mode .sidebar.nav-deck .si-grp-btn--sub > .si-chev,
+body.navdeck-mode .sidebar.nav-deck .si-grp-btn--area > .si-chev { display: none !important; }
+body.navdeck-mode .sidebar.nav-deck .si-grp-btn--sub,
+body.navdeck-mode .sidebar.nav-deck .si-grp-btn--area { pointer-events: none; cursor: default; }
+
+/* Las Gerencias SÍ se pueden desplegar (clic muestra/oculta sus módulos) */
+body.navdeck-mode .sidebar.nav-deck .si-grp-btn--ger { pointer-events: auto !important; cursor: pointer !important; }
+body.navdeck-mode .sidebar.nav-deck .si-grp-btn--ger > .si-chev { display: inline-flex !important; }
+
+/* ---- La nav se vuelve una rejilla horizontal de tarjetas ---- */
+body.navdeck-mode .si-nav {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    align-items: stretch;
+    align-content: flex-start;
+    gap: 12px;
+    padding: 12px 16px !important;
+    overflow: visible !important;
+    flex: 0 0 auto !important;
+}
+
+/* Separador y etiqueta "Subdirecciones": ocupan toda la fila */
+body.navdeck-mode .si-nav .si-sep {
+    flex-basis: 100%;
+    height: 0;
+    margin: 2px 0;
+    border-top: 1px solid rgba(255, 255, 255, .08);
+}
+body.navdeck-mode .si-nav .si-section-lbl {
+    flex-basis: 100%;
+    padding: .15rem .25rem 0 !important;
+    pointer-events: none;
+}
+
+/* ---- Inicio: pastilla destacada ---- */
+body.navdeck-mode .si-nav > a.si-link {
+    flex: 0 0 auto;
+    margin: 0 !important;
+    padding: .55rem 1rem !important;
+    border-radius: 12px;
+    background: rgba(96, 165, 250, .16);
+    border: 1px solid rgba(96, 165, 250, .35);
+    color: #fff;
+    align-self: center;
+}
+body.navdeck-mode .si-nav > a.si-link:hover { background: rgba(96, 165, 250, .28); }
+body.navdeck-mode .si-nav > a.si-link.active {
+    background: rgba(96, 165, 250, .34);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, .25);
+}
+
+/* ---- Accesos directos: pastillas con icono de color ---- */
+body.navdeck-mode .si-nav > a.si-link.si-quick {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    flex: 0 0 auto;
+    margin: 0 !important;
+    padding: .5rem 1rem .5rem .5rem !important;
+    border-radius: 14px;
+    background: var(--qcb, rgba(96, 165, 250, .14)) !important;
+    border: 1px solid var(--qc, rgba(96, 165, 250, .4));
+    color: #fff;
+    font-size: .86rem;
+    font-weight: 600;
+    align-self: center;
+    transition: transform .12s ease, box-shadow .15s, background .15s;
+}
+body.navdeck-mode .si-nav > a.si-link.si-quick:hover {
+    background: var(--qc, #60a5fa) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 7px 18px rgba(0, 0, 0, .32);
+}
+body.navdeck-mode .si-nav > a.si-link.si-quick .si-ico {
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--qc, #60a5fa);
+    color: #fff;
+    font-size: .92rem;
+    margin: 0;
+    flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, .28);
+}
+body.navdeck-mode .si-nav > a.si-link.si-quick--hist { --qc: #3b82f6; --qcb: rgba(59, 130, 246, .16); }
+body.navdeck-mode .si-nav > a.si-link.si-quick--itin { --qc: #0ea5e9; --qcb: rgba(14, 165, 233, .16); }
+body.navdeck-mode .si-nav > a.si-link.si-quick--frec { --qc: #a855f7; --qcb: rgba(168, 85, 247, .16); }
+body.navdeck-mode .si-nav > a.si-link.si-quick--punc { --qc: #22c55e; --qcb: rgba(34, 197, 94, .16); }
+body.navdeck-mode .si-nav > a.si-link.si-quick--demo { --qc: #ef4444; --qcb: rgba(239, 68, 68, .16); }
+
+/* ---- Tarjetas de Áreas (Archivo, Auditoría, GPyC) ---- */
+body.navdeck-mode .si-group--archivo,
+body.navdeck-mode .si-group--auditoria,
+body.navdeck-mode .si-group--gpyc {
+    flex: 1 1 200px;
+    max-width: 260px;
+    background: rgba(255, 255, 255, .035);
+    border: 1px solid rgba(255, 255, 255, .08);
+    border-top: 3px solid var(--grp-c, #64748b);
+    border-radius: 12px;
+    padding: 8px 9px 9px;
+    margin: 0 !important;
+}
+
+/* ---- Tarjetas de Subdirecciones (columna alta, header con icono grande) ---- */
+body.navdeck-mode .si-group--sub {
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: none;
+    background:
+        linear-gradient(180deg, var(--sub-cb, rgba(96, 165, 250, .12)) 0%, rgba(11, 19, 36, .82) 62%);
+    border: 1px solid var(--sub-c, rgba(255, 255, 255, .18));
+    border-radius: 16px;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, .25);
+}
+body.navdeck-mode .si-group--sub.si-group--pend { opacity: .9; }
+
+/* Encabezados de tarjeta de ÁREA (Archivo, Auditoría, GPyC) */
+body.navdeck-mode .sidebar.nav-deck .si-grp-btn--area {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 0 6px !important;
+    padding: .25rem .3rem .4rem !important;
+    background: transparent !important;
+    border-left: none !important;
+    border-bottom: 1px solid rgba(255, 255, 255, .08);
+    border-radius: 0 !important;
+    color: #fff !important;
+    opacity: 1 !important;
+}
+
+/* ---- Header de SUBDIRECCIÓN: banda con degradado e icono grande ---- */
+body.navdeck-mode .sidebar.nav-deck .si-grp-btn--sub {
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center;
+    gap: 7px;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 0 10px !important;
+    padding: 20px 14px 16px !important;
+    background: linear-gradient(155deg, var(--sub-c), rgba(8, 14, 28, .65)) !important;
+    border: none !important;
+    border-radius: 0 !important;
+    color: #fff !important;
+    text-align: center;
+}
+body.navdeck-mode .sidebar.nav-deck .si-grp-btn--sub .si-bdg { display: none !important; }
+body.navdeck-mode .sidebar.nav-deck .si-grp-btn--sub .si-grp-lbl {
+    flex: none;
+    white-space: normal;
+    font-size: 1.02rem;
+    font-weight: 800;
+    line-height: 1.15;
+    color: #fff;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, .35);
+}
+body.navdeck-mode .sidebar.nav-deck .si-grp-btn--sub .si-grp-lbl::before {
+    content: "SUBDIRECCIÓN:";
+    display: block;
+    font-size: .58rem;
+    font-weight: 700;
+    letter-spacing: .14em;
+    opacity: .9;
+    margin-bottom: 3px;
+}
+/* La tarjeta "Operación" no es subdirección: solo muestra su nombre */
+body.navdeck-mode .sidebar.nav-deck .si-sub--ope .si-grp-lbl::before { content: none; }
+
+/* Icono grande de subdirección (en la banda del header) */
+.si-sub-ico { display: none; }
+body.navdeck-mode .sidebar.nav-deck .si-sub-ico {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 58px;
+    height: 58px;
+    border-radius: 16px;
+    font-size: 1.85rem;
+    flex-shrink: 0;
+    margin: 0 0 2px;
+    background: rgba(255, 255, 255, .16);
+    color: #fff;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .35), 0 4px 12px rgba(0, 0, 0, .25);
+}
+body.navdeck-mode .sidebar.nav-deck .si-grp-btn--area .si-ico-box {
+    width: 30px;
+    height: 30px;
+    font-size: .85rem;
+}
+
+/* Cuerpo de subdirección: columna de gerencias */
+body.navdeck-mode .sidebar.nav-deck .si-body,
+body.navdeck-mode .sidebar.nav-deck .si-body--sub {
+    border-left: none !important;
+    margin-left: 0 !important;
+    padding: 0 11px 12px !important;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+/* ---- Gerencias: mosaico con icono "padre"; módulos ocultos hasta desplegar ---- */
+body.navdeck-mode .si-group--ger {
+    background: var(--sub-cb, rgba(255, 255, 255, .08));
+    border: 1px solid var(--sub-c, rgba(255, 255, 255, .14));
+    border-radius: 11px;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: hidden;
+    transition: border-color .15s, background .15s;
+}
+body.navdeck-mode .si-group--ger:hover {
+    background: var(--sub-c, rgba(255, 255, 255, .3));
+    border-color: var(--sub-c, rgba(255, 255, 255, .5));
+    box-shadow: 0 4px 14px rgba(0, 0, 0, .28);
+}
+body.navdeck-mode .si-group--ger:hover .si-grp-btn--ger .si-grp-lbl { color: #fff; }
+body.navdeck-mode .sidebar.nav-deck .si-grp-btn--ger {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: .6rem .7rem !important;
+    background: transparent !important;
+    border-left: none !important;
+    border-radius: 0 !important;
+    color: #fff !important;
+}
+body.navdeck-mode .sidebar.nav-deck .si-grp-btn--ger .si-grp-lbl {
+    flex: 1;
+    white-space: normal;
+    line-height: 1.15;
+    font-size: .84rem;
+    font-weight: 600;
+}
+/* Icono grande de cada gerencia */
+.si-ger-ico { display: none; }
+body.navdeck-mode .sidebar.nav-deck .si-ger-ico {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    font-size: 1rem;
+    flex-shrink: 0;
+    background: var(--sub-c, #60a5fa);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, .3);
+}
+/* Mantener el badge de texto (GOPA…) pequeño bajo el icono no; ocultarlo para limpieza */
+body.navdeck-mode .sidebar.nav-deck .si-grp-btn--ger .si-bdg--ger { display: none !important; }
+/* Chevron de despliegue a la derecha */
+body.navdeck-mode .sidebar.nav-deck .si-grp-btn--ger .si-chev {
+    font-size: .62rem;
+    color: rgba(255, 255, 255, .45);
+    margin-left: auto;
+}
+body.navdeck-mode .sidebar.nav-deck .si-grp-btn--ger:not(.collapsed) .si-chev { transform: rotate(180deg); }
+
+body.navdeck-mode .sidebar.nav-deck .si-body--ger {
+    border-left: none !important;
+    margin-left: 0 !important;
+    padding: 0 9px 9px !important;
+    opacity: 1 !important;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+/* ---- Chips de módulos (links reales de navegación) ---- */
+body.navdeck-mode .sidebar.nav-deck .si-link--l1,
+body.navdeck-mode .sidebar.nav-deck .si-link--l2 {
+    margin: 0 !important;
+    padding: .34rem .6rem !important;
+    background: rgba(255, 255, 255, .06);
+    border: 1px solid rgba(255, 255, 255, .1);
+    border-radius: 8px;
+    font-size: .76rem;
+    line-height: 1.1;
+    color: rgba(255, 255, 255, .82);
+    pointer-events: auto;
+}
+body.navdeck-mode .sidebar.nav-deck .si-link--l1:hover,
+body.navdeck-mode .sidebar.nav-deck .si-link--l2:hover {
+    background: var(--sub-cb, rgba(255, 255, 255, .14));
+    border-color: var(--sub-c, rgba(255, 255, 255, .4));
+    color: #fff;
+    transform: none !important;
+}
+body.navdeck-mode .sidebar.nav-deck .si-link--l1.active,
+body.navdeck-mode .sidebar.nav-deck .si-link--l2.active {
+    background: var(--sub-c, #3b82f6);
+    border-color: transparent;
+    color: #fff;
+    font-weight: 600;
+}
+body.navdeck-mode .sidebar.nav-deck .si-link--l1 .si-ico,
+body.navdeck-mode .sidebar.nav-deck .si-link--l2 .si-ico { margin-right: 6px; }
+
+/* Texto "Próximamente" compacto dentro de las tarjetas */
+body.navdeck-mode .sidebar.nav-deck .si-coming {
+    padding: .25rem .35rem !important;
+    font-size: .68rem;
+}
+
+/* ---- Pie del deck: usuario + admin + cerrar sesión ---- */
+body.navdeck-mode .sidebar.nav-deck .si-user-card {
+    margin: 0;
+    padding: 8px 16px;
+    border-top: none !important;
+}
+body.navdeck-mode .sidebar.nav-deck .si-link--logout {
+    margin: 6px 16px 10px !important;
+    width: auto;
+    align-self: flex-start;
+    display: inline-flex;
+    border-top: none !important;
+}
+
+/* ══════════════════════════════════════════════════════
+   NAV DECK — Vista de sección: ocultar deck + botón "Menú"
+   ══════════════════════════════════════════════════════ */
+.navdeck-back-btn { display: none; }
+
+/* El botón hamburguesa del header no se usa en escritorio con el deck */
+@media (min-width: 992px) {
+    body.navdeck-mode .sidebar-toggler-btn { display: none !important; }
+}
+
+@media (min-width: 992px) {
+    /* Pantalla principal (deck visible): mostrar SOLO el menú, nada abajo.
+       Las .content-section pueden quedar fuera de .main-content (el navegador
+       las reubica como hijos del body), por eso se ocultan directamente. */
+    body.navdeck-mode:not(.navdeck-active) .main-content,
+    body.navdeck-mode:not(.navdeck-active) .content-section { display: none !important; }
+
+    /* Al entrar a un módulo, el deck se oculta y el contenido ocupa todo */
+    body.navdeck-mode.navdeck-active .sidebar.nav-deck { display: none !important; }
+
+    body.navdeck-mode.navdeck-active .navdeck-back-btn {
+        position: fixed;
+        left: 18px;
+        bottom: 18px;
+        z-index: 1060;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: .6rem 1.15rem;
+        border: none;
+        border-radius: 30px;
+        background: linear-gradient(135deg, #2563eb, #1e3a8a);
+        color: #fff;
+        font-size: .82rem;
+        font-weight: 700;
+        letter-spacing: .02em;
+        cursor: pointer;
+        box-shadow: 0 8px 22px rgba(0, 0, 0, .35);
+        transition: transform .15s ease, box-shadow .15s ease, background .2s;
+    }
+    body.navdeck-mode.navdeck-active .navdeck-back-btn:hover {
+        background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+        transform: translateY(-2px);
+        box-shadow: 0 12px 28px rgba(0, 0, 0, .45);
+    }
+    body.navdeck-mode.navdeck-active .navdeck-back-btn i { font-size: .9rem; }
+}
+
+/* ══════════════════════════════════════════════════════
+   NAV DECK — Móvil: hoja desplegable con hamburguesa
+   ══════════════════════════════════════════════════════ */
+@media (max-width: 991.98px) {
+    body.navdeck-mode .sidebar.nav-deck {
+        position: fixed !important;
+        top: 0;
+        left: 0;
+        right: 0;
+        width: 100% !important;
+        max-height: 90vh;
+        overflow-y: auto !important;
+        transform: translateY(-100%) !important;
+        transition: transform .3s ease;
+        box-shadow: 0 12px 32px rgba(0, 0, 0, .45);
+        z-index: 1050;
+    }
+    body.navdeck-mode .sidebar.nav-deck.visible { transform: translateY(0) !important; }
+    body.navdeck-mode .sidebar.nav-deck > .si-brand { display: flex !important; }
+    body.navdeck-mode .si-group--archivo,
+    body.navdeck-mode .si-group--auditoria,
+    body.navdeck-mode .si-group--gpyc,
+    body.navdeck-mode .si-group--sub { max-width: 100%; }
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   NAVDECK — Encabezado dinámico: comparativo semanal + tarjetas clicables
+   ══════════════════════════════════════════════════════════════════════════ */
+#navdeck-weekly-banner { display: none; }
+body.navdeck-mode #navdeck-weekly-banner {
+    display: block;
+    flex-basis: 100%;
+    width: 100%;
+    margin: 0 0 4px;
+    padding: 0;
+}
+
+/* Hero del banner */
+.ndw-hero {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 36px 32px;
+    min-height: 190px;
+    border-radius: 18px;
+    overflow: hidden;
+    border: 1px solid rgba(148, 186, 255, .18);
+    box-shadow: 0 8px 22px rgba(0, 0, 0, .3);
+    margin-bottom: 14px;
+}
+.ndw-hero-media {
+    position: absolute;
+    inset: 0;
+    background-image: var(--ndw-hero-img);
+    background-size: cover;
+    background-position: center 35%;
+    transform: scale(1.08);
+    z-index: 0;
+    animation: ndwHeroKenBurns 26s ease-in-out infinite alternate;
+    will-change: transform;
+}
+@keyframes ndwHeroKenBurns {
+    0%   { transform: scale(1.08) translate3d(0, 0, 0); }
+    100% { transform: scale(1.18) translate3d(-1.5%, -2%, 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .ndw-hero-media { animation: none; }
+}
+.ndw-hero-media::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(100deg, rgba(8, 14, 28, .94) 0%, rgba(11, 19, 36, .82) 42%, rgba(13, 26, 48, .55) 100%);
+}
+.ndw-hero-icon,
+.ndw-hero-text,
+.ndw-hero-badge { position: relative; z-index: 1; }
+.ndw-hero-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 66px;
+    height: 66px;
+    border-radius: 18px;
+    font-size: 1.8rem;
+    color: #fff;
+    background: rgba(96, 165, 250, .26);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .3), 0 4px 12px rgba(0, 0, 0, .3);
+    flex-shrink: 0;
+}
+.ndw-hero-text { display: flex; flex-direction: column; line-height: 1.2; min-width: 0; }
+.ndw-hero-kicker {
+    font-size: .6rem;
+    font-weight: 700;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: rgba(190, 214, 255, .85);
+}
+.ndw-hero-title {
+    font-size: 1.7rem;
+    font-weight: 800;
+    color: #fff;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, .4);
+}
+.ndw-hero-badge {
+    margin-left: auto;
+    font-size: .68rem;
+    font-weight: 700;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: #dbeafe;
+    background: rgba(59, 130, 246, .26);
+    border: 1px solid rgba(96, 165, 250, .4);
+    padding: 6px 12px;
+    border-radius: 999px;
+    white-space: nowrap;
+}
+
+/* Rejilla de tarjetas */
+.ndw-cards {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 10px;
+}
+@media (max-width: 1200px) { .ndw-cards { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 680px)  { .ndw-cards { grid-template-columns: repeat(2, 1fr); } }
+
+.ndw-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: flex-start;
+    min-height: 168px;
+    padding: 14px 15px 15px;
+    border-radius: 15px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, .12);
+    border-bottom: 3px solid var(--ndw-accent, #3b82f6);
+    background-size: cover;
+    background-position: center;
+    cursor: pointer;
+    text-align: left;
+    color: #fff;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, .28);
+    transition: transform .15s ease, box-shadow .18s ease, border-color .18s ease;
+    isolation: isolate;
+}
+.ndw-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 26px rgba(0, 0, 0, .42);
+}
+.ndw-card:focus-visible { outline: 2px solid var(--ndw-accent, #60a5fa); outline-offset: 2px; }
+.ndw-card-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: linear-gradient(180deg, rgba(8, 13, 26, .12) 0%, rgba(8, 13, 26, .28) 48%, rgba(8, 13, 26, .74) 80%, rgba(6, 11, 22, .94) 100%);
+}
+.ndw-card-icon {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 30px;
+    height: 30px;
+    border-radius: 9px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: .85rem;
+    color: #fff;
+    background: var(--ndw-accent, #3b82f6);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, .35);
+}
+.ndw-card-body { display: flex; flex-direction: column; line-height: 1.1; z-index: 1; }
+.ndw-card-tag {
+    font-size: .62rem;
+    font-weight: 700;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: rgba(226, 236, 255, .9);
+}
+.ndw-card-value {
+    font-size: 1.5rem;
+    font-weight: 900;
+    margin: 2px 0 1px;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, .5);
+}
+.ndw-card-sub {
+    font-size: .64rem;
+    font-weight: 600;
+    color: rgba(214, 228, 247, .85);
+    text-transform: uppercase;
+    letter-spacing: .04em;
+}
+.ndw-card-cta {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 5px 0;
+    font-size: .64rem;
+    font-weight: 700;
+    text-align: center;
+    color: #fff;
+    background: var(--ndw-accent, #3b82f6);
+    transform: translateY(100%);
+    transition: transform .18s ease;
+    z-index: 2;
+}
+.ndw-card:hover .ndw-card-cta,
+.ndw-card:focus-visible .ndw-card-cta { transform: translateY(0); }
+
+/* ── Modal de detalle ── */
+.ndw-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(4, 8, 18, .68);
+    backdrop-filter: blur(4px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .22s ease;
+}
+.ndw-modal.is-open { opacity: 1; pointer-events: auto; }
+.ndw-modal-card {
+    width: min(560px, 100%);
+    max-height: 88vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    border-radius: 18px;
+    background: #0e1b2e;
+    border: 1px solid rgba(148, 186, 255, .16);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, .55);
+    transform: translateY(14px) scale(.98);
+    transition: transform .24s cubic-bezier(.2, .8, .25, 1);
+}
+.ndw-modal.is-open .ndw-modal-card { transform: translateY(0) scale(1); }
+
+.ndw-modal-head {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    padding: 18px 18px 16px;
+    background-size: cover;
+    background-position: center;
+    overflow: hidden;
+}
+.ndw-modal-head-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(110deg, rgba(8, 14, 28, .93) 0%, rgba(11, 19, 36, .78) 55%, rgba(13, 26, 48, .55) 100%);
+}
+.ndw-modal-head > * { position: relative; z-index: 1; }
+.ndw-modal-head-icon {
+    width: 46px;
+    height: 46px;
+    border-radius: 13px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    color: #fff;
+    background: var(--ndw-accent, #3b82f6);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, .35);
+    flex-shrink: 0;
+}
+.ndw-modal-head-text { display: flex; flex-direction: column; line-height: 1.2; min-width: 0; }
+.ndw-modal-tag {
+    font-size: .68rem;
+    font-weight: 700;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: rgba(214, 228, 247, .9);
+}
+.ndw-modal-range { font-size: 1.05rem; font-weight: 800; color: #fff; }
+.ndw-modal-close {
+    margin-left: auto;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255, 255, 255, .14);
+    color: #fff;
+    cursor: pointer;
+    transition: background .15s;
+    flex-shrink: 0;
+}
+.ndw-modal-close:hover { background: rgba(255, 255, 255, .28); }
+
+.ndw-modal-kpis {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: rgba(148, 186, 255, .12);
+    border-bottom: 1px solid rgba(148, 186, 255, .12);
+}
+.ndw-kpi {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 13px 6px;
+    background: #0e1b2e;
+}
+.ndw-kpi-val { font-size: 1.18rem; font-weight: 900; color: #edf5ff; }
+.ndw-kpi-lbl {
+    font-size: .6rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: rgba(190, 210, 240, .8);
+    margin-top: 2px;
+}
+
+.ndw-modal-body { padding: 14px 18px; overflow-y: auto; }
+.ndw-detail-title {
+    font-size: .72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: rgba(190, 210, 240, .85);
+    margin-bottom: 10px;
+}
+.ndw-detail-row { margin-bottom: 11px; }
+.ndw-detail-row-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 4px;
+}
+.ndw-detail-day { font-size: .82rem; font-weight: 600; color: #e6eefb; }
+.ndw-peak-tag {
+    font-size: .56rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: #0b1324;
+    background: #fbbf24;
+    padding: 1px 6px;
+    border-radius: 999px;
+    margin-left: 4px;
+    vertical-align: middle;
+}
+.ndw-detail-val { font-size: .92rem; font-weight: 800; color: #fff; }
+.ndw-detail-pct {
+    font-size: .66rem;
+    font-weight: 600;
+    color: rgba(190, 210, 240, .7);
+    margin-left: 6px;
+}
+.ndw-detail-bar {
+    height: 7px;
+    border-radius: 5px;
+    background: rgba(148, 186, 255, .12);
+    overflow: hidden;
+}
+.ndw-detail-bar > span {
+    display: block;
+    height: 100%;
+    border-radius: 5px;
+    background: linear-gradient(90deg, var(--ndw-accent, #3b82f6), rgba(255, 255, 255, .65));
+    transition: width .5s ease;
+}
+.ndw-modal-card--comercial { --ndw-accent: #3b82f6; }
+.ndw-modal-card--carga { --ndw-accent: #f59e0b; }
+.ndw-modal-card--general { --ndw-accent: #22c55e; }
+.ndw-detail-row.is-peak .ndw-detail-day { color: #fde68a; }
+
+.ndw-modal-foot {
+    padding: 11px 18px;
+    font-size: .68rem;
+    color: rgba(190, 210, 240, .7);
+    border-top: 1px solid rgba(148, 186, 255, .1);
+}
+body.ndw-modal-open { overflow: hidden; }
+
+/* ── Botón para alternar tema claro/oscuro ── */
+.theme-toggle-btn {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+}
+.theme-toggle-btn i { font-size: .95rem; }
+body.dark-mode .theme-toggle-btn {
+    color: #ffd166;
+    border-color: rgba(255, 209, 102, .45);
+}
+body.dark-mode .theme-toggle-btn:hover {
+    background: rgba(255, 209, 102, .16);
+    color: #ffe08a;
+}
+

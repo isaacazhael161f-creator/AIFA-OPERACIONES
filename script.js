@@ -3656,12 +3656,38 @@ async function handleLogin(e) {
         showMainApp();
 
     } catch (err) {
-        const msg = (err && err.message) ? err.message : 'Error de autenticación';
-        if (errorDiv) errorDiv.textContent = msg;
+        if (errorDiv) errorDiv.textContent = friendlyLoginError(err);
         if (loginButton) loginButton.classList.remove('loading');
     } finally {
         hideGlobalLoader();
     }
+}
+
+// Convierte cualquier error de autenticación en un mensaje claro en español.
+// Evita mostrar objetos serializados como "{}" o "[object Object]".
+function friendlyLoginError(err) {
+    let raw = '';
+    if (typeof err === 'string') raw = err;
+    else if (err && typeof err.message === 'string') raw = err.message;
+    else if (err && typeof err.error_description === 'string') raw = err.error_description;
+    raw = (raw || '').trim();
+
+    // Mensajes vacíos o serializaciones inútiles → genérico
+    if (!raw || raw === '{}' || raw === '[object Object]' || raw === 'null' || raw === 'undefined') {
+        return 'No se pudo conectar con el servidor. Revisa tu conexión e inténtalo de nuevo.';
+    }
+
+    const lower = raw.toLowerCase();
+    if (lower.includes('invalid login credentials')) return 'Usuario o contraseña incorrectos.';
+    if (lower.includes('email not confirmed')) return 'Tu cuenta aún no ha sido confirmada. Contacta al administrador.';
+    if (lower.includes('failed to fetch') || lower.includes('networkerror') || lower.includes('load failed')) {
+        return 'No se pudo conectar con el servidor. Revisa tu conexión e inténtalo de nuevo.';
+    }
+    if (lower.includes('timeout')) return 'El servidor tardó demasiado en responder. Inténtalo de nuevo.';
+    if (lower.includes('too many requests') || lower.includes('rate limit')) {
+        return 'Demasiados intentos. Espera unos minutos antes de volver a intentar.';
+    }
+    return raw;
 }
 
 function resetLoginFormState() {
@@ -3688,15 +3714,41 @@ function updateClock() {
     }
 }
 function initializeTheme() {
-    // Forzar tema claro permanentemente
-    document.body.classList.remove('dark-mode');
-    try { localStorage.setItem('theme', 'light'); } catch (_) { }
+    // Preferencia explícita del usuario (si ya tocó el botón de tema).
+    let savedPref = null;
+    try { savedPref = localStorage.getItem('themePref'); } catch (_) { }
+
+    const isDeck = document.body.classList.contains('navdeck-mode');
+    // En modo deck el oscuro es el tema por defecto; en otras vistas, el claro.
+    const useDark = savedPref ? (savedPref === 'dark') : isDeck;
+
+    document.body.classList.toggle('dark-mode', useDark);
+    try { localStorage.setItem('theme', useDark ? 'dark' : 'light'); } catch (_) { }
+    updateThemeIcon(useDark);
 }
 function toggleTheme() {
-    // No-op: tema fijo claro
+    const willBeDark = !document.body.classList.contains('dark-mode');
+    document.body.classList.toggle('dark-mode', willBeDark);
+    try {
+        localStorage.setItem('themePref', willBeDark ? 'dark' : 'light');
+        localStorage.setItem('theme', willBeDark ? 'dark' : 'light');
+    } catch (_) { }
+    updateThemeIcon(willBeDark);
+    // Redibujar gráficas visibles para que tomen los colores del nuevo tema.
+    try { if (typeof renderOperacionesTotales === 'function') renderOperacionesTotales(); } catch (_) { }
+    try { if (typeof rerenderAviationAnalyticsModules === 'function') rerenderAviationAnalyticsModules(true); } catch (_) { }
 }
 function updateThemeIcon(isDarkMode) {
-    // No-op: sin botón de tema
+    const btn = document.getElementById('theme-toggler');
+    if (!btn) return;
+    const icon = btn.querySelector('i');
+    if (icon) {
+        icon.classList.toggle('fa-sun', isDarkMode);
+        icon.classList.toggle('fa-moon', !isDarkMode);
+    }
+    const label = isDarkMode ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro';
+    btn.setAttribute('aria-label', label);
+    btn.setAttribute('title', label);
 }
 function initializeSidebarState() {
     const isMobile = window.innerWidth <= 991.98;
@@ -8774,6 +8826,11 @@ function renderOperacionesTotales() {
                 ctx.beginPath(); ctx.moveTo(0, 5); ctx.lineTo(-2.8, 10.2); ctx.stroke();
             } else {
                 const emoji = type === 'suitcase' ? '🧳' : type === 'box' ? '📦' : '✈';
+                if (emoji === '✈') {
+                    // El glifo de avión respeta fillStyle: usar tono claro en modo oscuro
+                    const isDark = document.body.classList.contains('dark-mode');
+                    ctx.fillStyle = isDark ? '#cfe3ff' : '#1f2937';
+                }
                 ctx.fillText(emoji, 0, 0);
             }
         }
@@ -9875,6 +9932,7 @@ function renderOperacionesTotales() {
 
         // Actualizar resumen en función del modo/filtros
         try { updateOpsSummary(); } catch (_) { }
+        try { renderNavdeckWeeklyBanner(); } catch (_) { }
         scheduleOpsViewportUpdate();
     } catch (e) { console.warn('renderOperacionesTotales error:', e); }
 
@@ -10164,6 +10222,191 @@ function updateOpsSummary() {
 
 // Exponer función globalmente para reinicialización
 window.updateOpsSummary = updateOpsSummary;
+
+/* ════════════════════════════════════════════════════════════════════════
+   NAVDECK — Encabezado dinámico: comparativo semanal con tarjetas clicables
+   Se inyecta en #navdeck-weekly-banner (dentro del si-nav) y solo se muestra
+   en modo ejecutivo (body.navdeck-mode). Al hacer clic en una tarjeta se abre
+   un detalle con el desglose diario que proyecta esa métrica.
+   ════════════════════════════════════════════════════════════════════════ */
+
+const NDW_CARD_DEFS = [
+    { cat: 'comercial', metric: 'operaciones', label: 'Comercial', sub: 'Operaciones semana', icon: 'fas fa-plane-departure', img: 'images/Aviones%20pax.jpeg', accent: '#3b82f6' },
+    { cat: 'comercial', metric: 'pasajeros', label: 'Comercial', sub: 'Pasajeros semana', icon: 'fas fa-user-friends', img: 'images/Pax.jpeg', accent: '#3b82f6' },
+    { cat: 'carga', metric: 'operaciones', label: 'Carga', sub: 'Operaciones semana', icon: 'fas fa-box-open', img: 'images/Aeronaves%20carga.jpg', accent: '#f59e0b' },
+    { cat: 'carga', metric: 'toneladas', label: 'Carga', sub: 'Toneladas semana', icon: 'fas fa-weight-hanging', img: 'images/Carga%20a%C3%A9rea.jpg', accent: '#f59e0b' },
+    { cat: 'general', metric: 'operaciones', label: 'General', sub: 'Operaciones semana', icon: 'fas fa-paper-plane', img: 'images/Aviones%20FBO.png', accent: '#22c55e' },
+    { cat: 'general', metric: 'pasajeros', label: 'General', sub: 'Pasajeros semana', icon: 'fas fa-user-check', img: 'images/Pasajero%20FBO.jpg', accent: '#22c55e' }
+];
+
+function ndwFormatValue(value, metric) {
+    if (metric === 'toneladas') {
+        return Number(value || 0).toLocaleString('es-MX', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+    }
+    return Number(value || 0).toLocaleString('es-MX');
+}
+
+function renderNavdeckWeeklyBanner() {
+    const container = document.getElementById('navdeck-weekly-banner');
+    if (!container) return;
+    if (!document.body.classList.contains('navdeck-mode')) {
+        container.innerHTML = '';
+        return;
+    }
+    try {
+        const weekly = (typeof getActiveWeeklyDataset === 'function') ? getActiveWeeklyDataset() : null;
+        const days = Array.isArray(weekly?.dias) ? weekly.dias : [];
+        if (!days.length) { container.innerHTML = ''; return; }
+
+        const range = weekly?.rango || {};
+        const rangeLabel = (typeof formatWeekLabel === 'function')
+            ? formatWeekLabel(weekly)
+            : (range.descripcion || 'Semana reciente');
+
+        const sumCat = (cat, metric) => days.reduce((acc, d) => acc + getWeeklyValue(d, cat, metric), 0);
+
+        const cardsHtml = NDW_CARD_DEFS.map((def, idx) => {
+            const total = sumCat(def.cat, def.metric);
+            return `
+            <button type="button" class="ndw-card ndw-card--${def.cat}" data-ndw-idx="${idx}"
+                    style="--ndw-accent:${def.accent};background-image:url('${def.img}');"
+                    aria-label="Ver detalle de ${def.label} ${def.sub}">
+                <span class="ndw-card-overlay" aria-hidden="true"></span>
+                <span class="ndw-card-icon"><i class="${def.icon}" aria-hidden="true"></i></span>
+                <span class="ndw-card-body">
+                    <span class="ndw-card-tag">${escapeHTML(def.label)}</span>
+                    <span class="ndw-card-value">${ndwFormatValue(total, def.metric)}</span>
+                    <span class="ndw-card-sub">${escapeHTML(def.sub)}</span>
+                </span>
+                <span class="ndw-card-cta" aria-hidden="true"><i class="fas fa-chart-column"></i> Ver detalle</span>
+            </button>`;
+        }).join('');
+
+        container.innerHTML = `
+            <div class="ndw-hero" style="--ndw-hero-img:url('images/torre.jpg')">
+                <div class="ndw-hero-media" aria-hidden="true"></div>
+                <span class="ndw-hero-icon" aria-hidden="true"><i class="fas fa-calendar-week"></i></span>
+                <div class="ndw-hero-text">
+                    <span class="ndw-hero-kicker">Periodo activo</span>
+                    <span class="ndw-hero-title">${escapeHTML(rangeLabel)}</span>
+                </div>
+                <span class="ndw-hero-badge"><i class="fas fa-layer-group me-1"></i>Vista semanal</span>
+            </div>
+            <div class="ndw-cards">${cardsHtml}</div>
+        `;
+
+        if (!container._ndwWired) {
+            container._ndwWired = true;
+            container.addEventListener('click', (ev) => {
+                const card = ev.target.closest('.ndw-card');
+                if (!card) return;
+                const idx = Number(card.getAttribute('data-ndw-idx'));
+                if (Number.isFinite(idx)) openNavdeckWeeklyDetail(idx);
+            });
+        }
+    } catch (e) { /* ignore */ }
+}
+
+function openNavdeckWeeklyDetail(idx) {
+    const def = NDW_CARD_DEFS[idx];
+    if (!def) return;
+    const weekly = (typeof getActiveWeeklyDataset === 'function') ? getActiveWeeklyDataset() : null;
+    const days = Array.isArray(weekly?.dias) ? weekly.dias : [];
+    if (!days.length) return;
+
+    const rangeLabel = (typeof formatWeekLabel === 'function') ? formatWeekLabel(weekly) : 'Semana reciente';
+    const rows = days.map(d => ({
+        label: d.labelFull || d.label || d.fecha || '',
+        value: getWeeklyValue(d, def.cat, def.metric)
+    }));
+    const total = rows.reduce((a, r) => a + r.value, 0);
+    const maxVal = rows.reduce((m, r) => Math.max(m, r.value), 0);
+    const activeDays = rows.filter(r => r.value > 0).length || rows.length;
+    const avg = total / activeDays;
+    const peak = rows.reduce((best, r) => (r.value > (best?.value ?? -1) ? r : best), null);
+
+    const rowsHtml = rows.map(r => {
+        const pct = total > 0 ? (r.value / total) * 100 : 0;
+        const barPct = maxVal > 0 ? (r.value / maxVal) * 100 : 0;
+        const isPeak = peak && r.value === peak.value && r.value > 0;
+        return `
+        <div class="ndw-detail-row${isPeak ? ' is-peak' : ''}">
+            <div class="ndw-detail-row-top">
+                <span class="ndw-detail-day">${escapeHTML(r.label)}${isPeak ? ' <span class="ndw-peak-tag">pico</span>' : ''}</span>
+                <span class="ndw-detail-val">${ndwFormatValue(r.value, def.metric)}<span class="ndw-detail-pct">${pct.toFixed(1)}%</span></span>
+            </div>
+            <div class="ndw-detail-bar"><span style="width:${barPct.toFixed(1)}%"></span></div>
+        </div>`;
+    }).join('');
+
+    let overlay = document.getElementById('ndw-modal');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'ndw-modal';
+        overlay.className = 'ndw-modal';
+        document.body.appendChild(overlay);
+        overlay.addEventListener('click', (ev) => {
+            if (ev.target === overlay || ev.target.closest('[data-ndw-close]')) closeNavdeckWeeklyDetail();
+        });
+    }
+
+    overlay.innerHTML = `
+        <div class="ndw-modal-card ndw-modal-card--${def.cat}" role="dialog" aria-modal="true" aria-label="Detalle ${def.label} ${def.sub}">
+            <div class="ndw-modal-head" style="--ndw-accent:${def.accent};background-image:url('${def.img}');">
+                <span class="ndw-modal-head-overlay" aria-hidden="true"></span>
+                <span class="ndw-modal-head-icon"><i class="${def.icon}"></i></span>
+                <div class="ndw-modal-head-text">
+                    <span class="ndw-modal-tag">${escapeHTML(def.label)} · ${escapeHTML(def.sub.replace(' semana', ''))}</span>
+                    <span class="ndw-modal-range">${escapeHTML(rangeLabel)}</span>
+                </div>
+                <button type="button" class="ndw-modal-close" data-ndw-close aria-label="Cerrar"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="ndw-modal-kpis">
+                <div class="ndw-kpi"><span class="ndw-kpi-val">${ndwFormatValue(total, def.metric)}</span><span class="ndw-kpi-lbl">Total semana</span></div>
+                <div class="ndw-kpi"><span class="ndw-kpi-val">${ndwFormatValue(avg, def.metric)}</span><span class="ndw-kpi-lbl">Promedio diario</span></div>
+                <div class="ndw-kpi"><span class="ndw-kpi-val">${ndwFormatValue(peak?.value || 0, def.metric)}</span><span class="ndw-kpi-lbl">Día pico</span></div>
+            </div>
+            <div class="ndw-modal-body">
+                <div class="ndw-detail-title"><i class="fas fa-calendar-day me-1"></i>Desglose por día</div>
+                ${rowsHtml}
+            </div>
+            <div class="ndw-modal-foot">
+                <i class="fas fa-circle-info me-1"></i>${escapeHTML(def.label)} — suma de ${escapeHTML(def.sub.replace(' semana', '').toLowerCase())} del periodo activo.
+            </div>
+        </div>`;
+
+    requestAnimationFrame(() => overlay.classList.add('is-open'));
+    document.body.classList.add('ndw-modal-open');
+    overlay._ndwEsc = (e) => { if (e.key === 'Escape') closeNavdeckWeeklyDetail(); };
+    document.addEventListener('keydown', overlay._ndwEsc);
+}
+
+function closeNavdeckWeeklyDetail() {
+    const overlay = document.getElementById('ndw-modal');
+    if (!overlay) return;
+    overlay.classList.remove('is-open');
+    document.body.classList.remove('ndw-modal-open');
+    if (overlay._ndwEsc) { document.removeEventListener('keydown', overlay._ndwEsc); overlay._ndwEsc = null; }
+    setTimeout(() => { if (overlay && !overlay.classList.contains('is-open')) overlay.innerHTML = ''; }, 240);
+}
+
+window.renderNavdeckWeeklyBanner = renderNavdeckWeeklyBanner;
+
+// Render inicial + reintentos hasta que los datos semanales estén disponibles
+(function initNavdeckWeeklyBanner() {
+    let tries = 0;
+    const tick = () => {
+        tries++;
+        try { renderNavdeckWeeklyBanner(); } catch (_) { }
+        const filled = document.getElementById('navdeck-weekly-banner')?.children.length;
+        if (!filled && tries < 30) setTimeout(tick, 600);
+    };
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => setTimeout(tick, 400));
+    } else {
+        setTimeout(tick, 400);
+    }
+})();
 
 // Función para verificar que las gráficas se crearon correctamente
 function verifyChartsCreated(sectionId) {

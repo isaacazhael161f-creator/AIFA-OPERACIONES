@@ -835,6 +835,10 @@ const FreqStats = (() => {
         const container = document.getElementById('freq-estados-cobertura');
         if (!container) return;
 
+        // In this app, navdeck mode is effectively dark even if dark-mode class
+        // toggles slightly later during boot.
+        const isDark = document.body.classList.contains('dark-mode') || document.body.classList.contains('navdeck-mode');
+
         // Build state → routes map using current week's national rows
         const stateMap = {}; // state → { routes: Set<"IATA – City">, freqs: number }
         nacRows.forEach(r => {
@@ -858,16 +862,16 @@ const FreqStats = (() => {
         const coveredHtml = coveredStates.map(state => {
             const d = stateMap[state];
             const routesList = [...d.routes].sort().map(r =>
-                `<span class="badge me-1 mb-1" style="background:#dbeafe;color:#1d4ed8;font-weight:600;font-size:.7rem;">${r}</span>`
+                `<span class="badge me-1 mb-1" style="background:${isDark ? 'rgba(222,237,255,.92)' : '#dbeafe'};color:${isDark ? '#184389' : '#1d4ed8'};font-weight:600;font-size:.7rem;">${r}</span>`
             ).join('');
             return `<div class="col-md-6 col-lg-4">
-<div class="card border-0 shadow-sm h-100" style="border-left:4px solid #2563eb!important;">
+<div class="card border-0 shadow-sm h-100" style="border-left:4px solid #2563eb!important;background:${isDark ? 'rgba(14,27,46,.94)' : '#ffffff'};${isDark ? 'border:1px solid rgba(148,186,255,.14)!important;' : ''}">
     <div class="card-body py-2 px-3">
         <div class="d-flex justify-content-between align-items-start mb-1">
-            <span class="fw-bold text-dark" style="font-size:.88rem;">${state}</span>
+            <span class="fw-bold freq-state-name ${isDark ? '' : 'text-dark'}" style="font-size:.88rem;color:${isDark ? '#edf5ff' : 'inherit'};">${state}</span>
             <span class="badge rounded-pill bg-primary ms-2">${d.routes.size} ruta${d.routes.size !== 1 ? 's' : ''}</span>
         </div>
-        <div class="mb-1 text-muted" style="font-size:.72rem;">${d.freqs.toLocaleString('en-US')} frecuencias</div>
+        <div class="mb-1 text-muted freq-state-count" style="font-size:.72rem;color:${isDark ? 'rgba(205,221,242,.88)' : 'inherit'} !important;">${d.freqs.toLocaleString('en-US')} frecuencias</div>
         <div class="d-flex flex-wrap">${routesList}</div>
     </div>
 </div></div>`;
@@ -875,7 +879,7 @@ const FreqStats = (() => {
 
         // Uncovered states pills
         const uncoveredHtml = uncoveredStates.map(s =>
-            `<span class="badge me-1 mb-1" style="background:#f1f5f9;color:#64748b;border:1px solid #e2e8f0;font-size:.76rem;">${s}</span>`
+            `<span class="badge me-1 mb-1" style="background:${isDark ? 'rgba(31,45,68,.92)' : '#f1f5f9'};color:${isDark ? '#d7e5fb' : '#64748b'};border:1px solid ${isDark ? 'rgba(148,186,255,.25)' : '#e2e8f0'};font-size:.76rem;">${s}</span>`
         ).join('');
 
         container.innerHTML = `
@@ -904,13 +908,13 @@ const FreqStats = (() => {
 <div class="row g-2 mb-3">${coveredHtml}</div>
 
 ${uncoveredStates.length > 0 ? `
-<div class="p-3 rounded-3" style="background:#f8fafc;border:1px solid #e2e8f0;">
-    <div class="fw-semibold text-muted mb-2" style="font-size:.78rem;text-transform:uppercase;letter-spacing:.5px;">
+<div class="p-3 rounded-3" style="background:${isDark ? 'rgba(14,26,43,.92)' : '#f8fafc'};border:1px solid ${isDark ? 'rgba(148,186,255,.2)' : '#e2e8f0'};">
+    <div class="fw-semibold text-muted mb-2" style="font-size:.78rem;text-transform:uppercase;letter-spacing:.5px;color:${isDark ? 'rgba(210,225,245,.9)' : 'inherit'} !important;">
         <i class="fas fa-map-marker-alt me-1 text-danger opacity-50"></i>
         Estados sin vuelos desde AIFA esta semana (${uncoveredStates.length})
     </div>
     <div class="d-flex flex-wrap">${uncoveredHtml}</div>
-</div>` : `<div class="alert alert-success"><i class="fas fa-check-circle me-2"></i>¡Cobertura total! Vuelos a los 32 estados de la República.</div>`}`;
+</div>` : `<div class="alert ${isDark ? 'alert-primary' : 'alert-success'}"><i class="fas fa-check-circle me-2"></i>¡Cobertura total! Vuelos a los 32 estados de la República.</div>`}`;
     }
 
     // ─── Destination Analysis ────────────────────────────────────────────────

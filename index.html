@@ -4,6 +4,11 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Evita que el navegador (incl. Live Server, que no manda Cache-Control) cachee el HTML.
+         Sin esto, el codigo inline (p.ej. el boton de Mapa Interactivo) puede quedar obsoleto. -->
+    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
     <title>Operaciones AIFA</title>
     <meta name="theme-color" content="#0a1f44" />
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
@@ -22,7 +27,7 @@
         href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Roboto+Mono:wght@400;700&family=Roboto+Condensed:wght@400;500;700&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
-    <link rel="stylesheet" href="style.css?v=20260604">
+    <link rel="stylesheet" href="style.css?v=20260616l">
     <link rel="stylesheet" href="visual-cards.css?v=1"> <!-- Visual Cards Styles -->
     <link rel="stylesheet" href="admin.css?v=20260203">
     <link rel="icon" type="image/png" sizes="192x192" href="images/icons/aifa-app-icon-192.png?v=20251126">
@@ -934,7 +939,7 @@ FF
     </style>
 </head>
 
-<body>
+<body class="navdeck-mode">
 
     <div id="login-screen" class="login-screen">
         <img id="login-bg-img" class="login-bg-img" src="images/Slot.jpeg" alt="" aria-hidden="true" draggable="false"
@@ -1023,8 +1028,15 @@ FF
                             <span class="d-none d-md-inline">Actualizar</span>
                         </button>
 
-                        <img src="images/gobierno-mexico.png" alt="Logo del Gobierno de México" class="gob-logo" loading="eager" decoding="async" />
-                        <!-- Tema fijo claro: se elimina el botón de cambio de tema -->
+                        <img src="images/gobierno-mexico.png" alt="Logo del Gobierno de México" class="gob-logo d-none" loading="eager" decoding="async" />
+                        <!-- Botón para alternar entre tema claro y oscuro -->
+                        <button id="theme-toggler"
+                            class="btn btn-outline-secondary btn-sm header-action-btn theme-toggle-btn"
+                            type="button"
+                            aria-label="Cambiar entre tema claro y oscuro"
+                            title="Cambiar tema">
+                            <i class="fas fa-moon" aria-hidden="true"></i>
+                        </button>
                         <a href="#" class="btn btn-outline-danger d-lg-none logout-button-mobile" data-action="logout"
                             title="Cerrar Sesión" aria-label="Cerrar Sesión">
                             <i class="fas fa-sign-out-alt"></i>
@@ -1076,7 +1088,7 @@ FF
         </div>
 
         <div class="app-body">
-            <aside class="sidebar d-flex flex-column" id="sidebar">
+            <aside class="sidebar nav-deck d-flex flex-column" id="sidebar">
                 <!-- Brand header -->
                 <div class="si-brand">
                     <img src="images/logo_aifa.jpg" class="si-brand-logo" alt="AIFA">
@@ -1088,73 +1100,109 @@ FF
 
                 <nav class="nav flex-column si-nav" id="sidebar-nav">
 
-                    <!-- Inicio -->
-                    <a class="menu-item si-link" href="#" data-section="operaciones-totales">
-                        <i class="fas fa-home si-ico"></i>
-                        <span class="si-txt">Inicio</span>
+                    <!-- Encabezado dinámico: comparativo semanal (solo visible en navdeck-mode) -->
+                    <div class="ndw-banner" id="navdeck-weekly-banner" aria-live="polite"></div>
+
+                    <!-- Accesos directos -->
+                    <a class="menu-item si-link si-quick si-quick--hist" href="#" data-section="operaciones-totales">
+                        <i class="fas fa-chart-line si-ico"></i>
+                        <span class="si-txt">Comparativa Histórica</span>
                     </a>
-
-                    <!-- ARCHIVO -->
-                    <div class="si-group si-group--archivo">
-                        <button class="si-grp-btn si-grp-btn--area collapsed"
-                                data-bs-toggle="collapse" data-bs-target="#sg-archivo" aria-expanded="false">
-                            <span class="si-ico-box"><i class="fas fa-archive"></i></span>
-                            <span class="si-grp-lbl">Archivo</span>
-                            <i class="fas fa-chevron-down si-chev"></i>
-                        </button>
-                        <div class="collapse" id="sg-archivo">
-                            <div class="si-body"><span class="si-coming">Próximamente</span></div>
-                        </div>
-                    </div>
-
-                    <!-- COORD. AUDITORÍA -->
-                    <div class="si-group si-group--auditoria">
-                        <button class="si-grp-btn si-grp-btn--area collapsed"
-                                data-bs-toggle="collapse" data-bs-target="#sg-auditoria" aria-expanded="false">
-                            <span class="si-ico-box"><i class="fas fa-clipboard-check"></i></span>
-                            <span class="si-grp-lbl">Coord. Auditoría</span>
-                            <i class="fas fa-chevron-down si-chev"></i>
-                        </button>
-                        <div class="collapse" id="sg-auditoria">
-                            <div class="si-body">
-                                <a class="menu-item si-link si-link--l1" href="#" data-section="colaboradores">
-                                    <i class="fas fa-id-badge si-ico"></i>
-                                    <span class="si-txt">Colaboradores</span>
-                                </a>
-                                <a class="menu-item si-link si-link--l1" href="#" data-section="coord-auditoria" id="menu-coord-auditoria">
-                                    <i class="fas fa-car si-ico"></i>
-                                    <span class="si-txt">Vehículos</span>
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- GPyC -->
-                    <div class="si-group si-group--gpyc">
-                        <button class="si-grp-btn si-grp-btn--area collapsed"
-                                data-bs-toggle="collapse" data-bs-target="#sg-gpyc" aria-expanded="false">
-                            <span class="si-ico-box"><i class="fas fa-project-diagram"></i></span>
-                            <span class="si-grp-lbl">GPyC</span>
-                            <i class="fas fa-chevron-down si-chev"></i>
-                        </button>
-                        <div class="collapse" id="sg-gpyc">
-                            <div class="si-body">
-                                <a class="menu-item si-link si-link--l1" href="#" data-section="agenda">
-                                    <i class="fas fa-calendar-check si-ico"></i>
-                                    <span class="si-txt">Agenda de Comités</span>
-                                </a>
-                                <span class="si-coming">Más módulos próximamente</span>
-                            </div>
-                        </div>
-                    </div>
+                    <a class="menu-item si-link si-quick si-quick--itin" href="#" data-section="inicio">
+                        <i class="fas fa-calendar-day si-ico"></i>
+                        <span class="si-txt">Itinerario Diario</span>
+                    </a>
+                    <a class="menu-item si-link si-quick si-quick--frec" href="#" data-section="frecuencias-semana">
+                        <i class="fas fa-route si-ico"></i>
+                        <span class="si-txt">Destinos y Frecuencias</span>
+                    </a>
+                    <a class="menu-item si-link si-quick si-quick--punc" href="#" data-section="puntualidad-agosto">
+                        <i class="fas fa-stopwatch si-ico"></i>
+                        <span class="si-txt">Puntualidad</span>
+                    </a>
+                    <a class="menu-item si-link si-quick si-quick--demo" href="#" data-section="demoras">
+                        <i class="fas fa-hourglass-half si-ico"></i>
+                        <span class="si-txt">Demoras</span>
+                    </a>
 
                     <div class="si-sep"></div>
                     <div class="si-section-lbl">Subdirecciones</div>
+
+                    <!-- OPERACIÓN (primera tarjeta; agrupa Coord. Auditoría, GPyC y Archivo) -->
+                    <div class="si-group si-group--sub si-sub--ope">
+                        <button class="si-grp-btn si-grp-btn--sub collapsed"
+                                data-bs-toggle="collapse" data-bs-target="#sg-operacion" aria-expanded="false">
+                            <i class="fas fa-sitemap si-sub-ico"></i>
+                            <span class="si-bdg">OP</span>
+                            <span class="si-grp-lbl">Operación</span>
+                            <i class="fas fa-chevron-down si-chev"></i>
+                        </button>
+                        <div class="collapse" id="sg-operacion">
+                            <div class="si-body si-body--sub">
+
+                                <!-- Coord. Auditoría -->
+                                <div class="si-group si-group--ger">
+                                    <button class="si-grp-btn si-grp-btn--ger collapsed"
+                                            data-bs-toggle="collapse" data-bs-target="#sg-auditoria" aria-expanded="false">
+                                        <i class="fas fa-clipboard-check si-ger-ico"></i>
+                                        <span class="si-bdg si-bdg--ger">CA</span>
+                                        <span class="si-grp-lbl">Coord. Auditoría</span>
+                                        <i class="fas fa-chevron-down si-chev"></i>
+                                    </button>
+                                    <div class="collapse" id="sg-auditoria">
+                                        <div class="si-body si-body--ger">
+                                            <a class="menu-item si-link si-link--l2" href="#" data-section="colaboradores">
+                                                <i class="fas fa-id-badge si-ico"></i><span class="si-txt">Colaboradores</span>
+                                            </a>
+                                            <a class="menu-item si-link si-link--l2" href="#" data-section="coord-auditoria" id="menu-coord-auditoria">
+                                                <i class="fas fa-car si-ico"></i><span class="si-txt">Vehículos</span>
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- GPyC -->
+                                <div class="si-group si-group--ger">
+                                    <button class="si-grp-btn si-grp-btn--ger collapsed"
+                                            data-bs-toggle="collapse" data-bs-target="#sg-gpyc" aria-expanded="false">
+                                        <i class="fas fa-project-diagram si-ger-ico"></i>
+                                        <span class="si-bdg si-bdg--ger">GPyC</span>
+                                        <span class="si-grp-lbl">GPyC</span>
+                                        <i class="fas fa-chevron-down si-chev"></i>
+                                    </button>
+                                    <div class="collapse" id="sg-gpyc">
+                                        <div class="si-body si-body--ger">
+                                            <a class="menu-item si-link si-link--l2" href="#" data-section="agenda">
+                                                <i class="fas fa-calendar-check si-ico"></i><span class="si-txt">Agenda de Comités</span>
+                                            </a>
+                                            <span class="si-coming">Más módulos próximamente</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Archivo (sin módulos aún, va al final) -->
+                                <div class="si-group si-group--ger si-group--pend">
+                                    <button class="si-grp-btn si-grp-btn--ger collapsed"
+                                            data-bs-toggle="collapse" data-bs-target="#sg-archivo" aria-expanded="false">
+                                        <i class="fas fa-archive si-ger-ico"></i>
+                                        <span class="si-bdg si-bdg--ger">AR</span>
+                                        <span class="si-grp-lbl">Archivo</span>
+                                        <i class="fas fa-chevron-down si-chev"></i>
+                                    </button>
+                                    <div class="collapse" id="sg-archivo">
+                                        <div class="si-body si-body--ger"><span class="si-coming">Próximamente</span></div>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                    </div>
 
                     <!-- SSO -->
                     <div class="si-group si-group--sub si-sub--sso">
                         <button class="si-grp-btn si-grp-btn--sub collapsed"
                                 data-bs-toggle="collapse" data-bs-target="#sg-sso" aria-expanded="false">
+                            <i class="fas fa-plane-departure si-sub-ico"></i>
                             <span class="si-bdg">SSO</span>
                             <span class="si-grp-lbl">Sgd. Operacional</span>
                             <i class="fas fa-chevron-down si-chev"></i>
@@ -1166,6 +1214,7 @@ FF
                                 <div class="si-group si-group--ger">
                                     <button class="si-grp-btn si-grp-btn--ger collapsed"
                                             data-bs-toggle="collapse" data-bs-target="#sg-gopa" aria-expanded="false">
+                                        <i class="fas fa-plane si-ger-ico"></i>
                                         <span class="si-bdg si-bdg--ger">GOPA</span>
                                         <span class="si-grp-lbl">Ops. Parte Aeronáutica</span>
                                         <i class="fas fa-chevron-down si-chev"></i>
@@ -1195,6 +1244,7 @@ FF
                                 <div class="si-group si-group--ger">
                                     <button class="si-grp-btn si-grp-btn--ger collapsed"
                                             data-bs-toggle="collapse" data-bs-target="#sg-goet" aria-expanded="false">
+                                        <i class="fas fa-building si-ger-ico"></i>
                                         <span class="si-bdg si-bdg--ger">GOET</span>
                                         <span class="si-grp-lbl">Ops. Ed. Terminal</span>
                                         <i class="fas fa-chevron-down si-chev"></i>
@@ -1212,6 +1262,7 @@ FF
                                 <div class="si-group si-group--ger">
                                     <button class="si-grp-btn si-grp-btn--ger collapsed"
                                             data-bs-toggle="collapse" data-bs-target="#sg-gso-ger" aria-expanded="false">
+                                        <i class="fas fa-shield-alt si-ger-ico"></i>
                                         <span class="si-bdg si-bdg--ger">GSO</span>
                                         <span class="si-grp-lbl">Sgd. Operacional</span>
                                         <i class="fas fa-chevron-down si-chev"></i>
@@ -1229,6 +1280,7 @@ FF
                                 <div class="si-group si-group--ger">
                                     <button class="si-grp-btn si-grp-btn--ger collapsed"
                                             data-bs-toggle="collapse" data-bs-target="#sg-gsm" aria-expanded="false">
+                                        <i class="fas fa-briefcase-medical si-ger-ico"></i>
                                         <span class="si-bdg si-bdg--ger">GSM</span>
                                         <span class="si-grp-lbl">Servicios Médicos</span>
                                         <i class="fas fa-chevron-down si-chev"></i>
@@ -1250,6 +1302,7 @@ FF
                     <div class="si-group si-group--sub si-group--pend si-sub--ssa">
                         <button class="si-grp-btn si-grp-btn--sub collapsed"
                                 data-bs-toggle="collapse" data-bs-target="#sg-ssa" aria-expanded="false">
+                            <i class="fas fa-user-shield si-sub-ico"></i>
                             <span class="si-bdg">SSA</span>
                             <span class="si-grp-lbl">Sgd. de la Aviación</span>
                             <i class="fas fa-chevron-down si-chev"></i>
@@ -1259,6 +1312,7 @@ FF
                                 <div class="si-group si-group--ger si-group--pend">
                                     <button class="si-grp-btn si-grp-btn--ger collapsed"
                                             data-bs-toggle="collapse" data-bs-target="#sg-gseg" aria-expanded="false">
+                                        <i class="fas fa-user-shield si-ger-ico"></i>
                                         <span class="si-bdg si-bdg--ger">GSEG</span>
                                         <span class="si-grp-lbl">Ger. de Seguridad</span>
                                         <i class="fas fa-chevron-down si-chev"></i>
@@ -1270,6 +1324,7 @@ FF
                                 <div class="si-group si-group--ger si-group--pend">
                                     <button class="si-grp-btn si-grp-btn--ger collapsed"
                                             data-bs-toggle="collapse" data-bs-target="#sg-gia" aria-expanded="false">
+                                        <i class="fas fa-id-card si-ger-ico"></i>
                                         <span class="si-bdg si-bdg--ger">GIA</span>
                                         <span class="si-grp-lbl">Ident. Aeroportuaria</span>
                                         <i class="fas fa-chevron-down si-chev"></i>
@@ -1281,6 +1336,7 @@ FF
                                 <div class="si-group si-group--ger si-group--pend">
                                     <button class="si-grp-btn si-grp-btn--ger collapsed"
                                             data-bs-toggle="collapse" data-bs-target="#sg-gps" aria-expanded="false">
+                                        <i class="fas fa-clipboard-list si-ger-ico"></i>
                                         <span class="si-bdg si-bdg--ger">GPS</span>
                                         <span class="si-grp-lbl">Programas de Sgd.</span>
                                         <i class="fas fa-chevron-down si-chev"></i>
@@ -1297,6 +1353,7 @@ FF
                     <div class="si-group si-group--sub si-group--pend si-sub--ssc">
                         <button class="si-grp-btn si-grp-btn--sub collapsed"
                                 data-bs-toggle="collapse" data-bs-target="#sg-ssc" aria-expanded="false">
+                            <i class="fas fa-truck-loading si-sub-ico"></i>
                             <span class="si-bdg">SSC</span>
                             <span class="si-grp-lbl">Servicios Conexos</span>
                             <i class="fas fa-chevron-down si-chev"></i>
@@ -1306,6 +1363,7 @@ FF
                                 <div class="si-group si-group--ger si-group--pend">
                                     <button class="si-grp-btn si-grp-btn--ger collapsed"
                                             data-bs-toggle="collapse" data-bs-target="#sg-gag" aria-expanded="false">
+                                        <i class="fas fa-paper-plane si-ger-ico"></i>
                                         <span class="si-bdg si-bdg--ger">GAG</span>
                                         <span class="si-grp-lbl">Aviación General</span>
                                         <i class="fas fa-chevron-down si-chev"></i>
@@ -1317,6 +1375,7 @@ FF
                                 <div class="si-group si-group--ger si-group--pend">
                                     <button class="si-grp-btn si-grp-btn--ger collapsed"
                                             data-bs-toggle="collapse" data-bs-target="#sg-gcarga" aria-expanded="false">
+                                        <i class="fas fa-box si-ger-ico"></i>
                                         <span class="si-bdg si-bdg--ger">GC</span>
                                         <span class="si-grp-lbl">Carga</span>
                                         <i class="fas fa-chevron-down si-chev"></i>
@@ -1328,6 +1387,7 @@ FF
                                 <div class="si-group si-group--ger si-group--pend">
                                     <button class="si-grp-btn si-grp-btn--ger collapsed"
                                             data-bs-toggle="collapse" data-bs-target="#sg-gcomb" aria-expanded="false">
+                                        <i class="fas fa-gas-pump si-ger-ico"></i>
                                         <span class="si-bdg si-bdg--ger">GCOMB</span>
                                         <span class="si-grp-lbl">Combustibles</span>
                                         <i class="fas fa-chevron-down si-chev"></i>
@@ -1344,6 +1404,7 @@ FF
                     <div class="si-group si-group--sub si-group--pend si-sub--si">
                         <button class="si-grp-btn si-grp-btn--sub collapsed"
                                 data-bs-toggle="collapse" data-bs-target="#sg-si" aria-expanded="false">
+                            <i class="fas fa-hard-hat si-sub-ico"></i>
                             <span class="si-bdg">SI</span>
                             <span class="si-grp-lbl">Ingeniería</span>
                             <i class="fas fa-chevron-down si-chev"></i>
@@ -1353,6 +1414,7 @@ FF
                                 <div class="si-group si-group--ger si-group--pend">
                                     <button class="si-grp-btn si-grp-btn--ger collapsed"
                                             data-bs-toggle="collapse" data-bs-target="#sg-gielec" aria-expanded="false">
+                                        <i class="fas fa-microchip si-ger-ico"></i>
                                         <span class="si-bdg si-bdg--ger">GIE</span>
                                         <span class="si-grp-lbl">Ing. Electromecánica</span>
                                         <i class="fas fa-chevron-down si-chev"></i>
@@ -1364,6 +1426,7 @@ FF
                                 <div class="si-group si-group--ger si-group--pend">
                                     <button class="si-grp-btn si-grp-btn--ger collapsed"
                                             data-bs-toggle="collapse" data-bs-target="#sg-giciv" aria-expanded="false">
+                                        <i class="fas fa-hard-hat si-ger-ico"></i>
                                         <span class="si-bdg si-bdg--ger">GIC</span>
                                         <span class="si-grp-lbl">Ing. Civil</span>
                                         <i class="fas fa-chevron-down si-chev"></i>
@@ -1380,6 +1443,7 @@ FF
                     <div class="si-group si-group--sub si-group--pend si-sub--sge">
                         <button class="si-grp-btn si-grp-btn--sub collapsed"
                                 data-bs-toggle="collapse" data-bs-target="#sg-sge" aria-expanded="false">
+                            <i class="fas fa-bolt si-sub-ico"></i>
                             <span class="si-bdg">SGE</span>
                             <span class="si-grp-lbl">Gestión Energética</span>
                             <i class="fas fa-chevron-down si-chev"></i>
@@ -1389,6 +1453,7 @@ FF
                                 <div class="si-group si-group--ger si-group--pend">
                                     <button class="si-grp-btn si-grp-btn--ger collapsed"
                                             data-bs-toggle="collapse" data-bs-target="#sg-ggen" aria-expanded="false">
+                                        <i class="fas fa-solar-panel si-ger-ico"></i>
                                         <span class="si-bdg si-bdg--ger">GGEN</span>
                                         <span class="si-grp-lbl">Generación</span>
                                         <i class="fas fa-chevron-down si-chev"></i>
@@ -1400,6 +1465,7 @@ FF
                                 <div class="si-group si-group--ger si-group--pend">
                                     <button class="si-grp-btn si-grp-btn--ger collapsed"
                                             data-bs-toggle="collapse" data-bs-target="#sg-gtrans" aria-expanded="false">
+                                        <i class="fas fa-bolt si-ger-ico"></i>
                                         <span class="si-bdg si-bdg--ger">GTRANS</span>
                                         <span class="si-grp-lbl">Transformación</span>
                                         <i class="fas fa-chevron-down si-chev"></i>
@@ -27467,7 +27533,7 @@ FF
 
     <!-- Modular JS (non-invasive): delegates to existing functions in script.js -->
     <script src="js/core.js"></script>
-    <script src="js/navigation.js"></script>
+    <script src="js/navigation.js?v=20260614c"></script>
     <script src="js/inicio.js"></script>
     <script src="js/itinerario.js?v=3"></script>
     <script src="js/demoras.js"></script>
@@ -28008,7 +28074,7 @@ FF
     })();
     </script>
     <script src="js/frecuencias_upload_test.js"></script>
-    <script src="script.js?v=9999999999999"></script>
+    <script src="script.js?v=20260616l"></script>
     <script src="js/manifiestos_pax.js?v=9999999999993"></script>
     <script src="js/puntualidad.js"></script>
     <script>
@@ -29646,7 +29712,7 @@ window.opsFlightsAdmin = (function () {
     };
 })();
 </script>
-<script src="js/frecuencias-estadisticas.js"></script>
+<script src="js/frecuencias-estadisticas.js?v=20260615c"></script>
 
 <script>
 /* ============================================================
@@ -30988,41 +31054,101 @@ window.AeropuertosModule = (function () {
 (function() {
     var _mapaActiveSectionKey = null;
     var _mapaActiveSectionEl  = null;
+    var _mapaLastToggleTs     = 0;
+    // Recuerda si NOSOTROS agregamos la clase navdeck-active al abrir, para
+    // poder retirarla al cerrar (sin afectar el caso en que el usuario ya
+    // estaba viendo un modulo de deck).
+    var _mapaAddedNavdeckActive = false;
+
+    function _mapaLog(msg, extra) {
+        try { console.log('[MapaInteractivo]', msg, extra || ''); } catch (e) {}
+    }
+    function _mapaErr(msg, err) {
+        try { console.error('[MapaInteractivo]', msg, err); } catch (e) {}
+    }
 
     window.toggleMapaInteractivo = function() {
-        var section = document.getElementById('mapa-interactivo-section');
-        var iframe  = document.getElementById('mapa-interactivo-iframe');
-        var btn     = document.getElementById('btn-mapa-interactivo');
-        var isOpen  = section.classList.contains('active');
+        // Double-fire guard: ignore second invocation within 250ms (e.g. onclick + listener both firing)
+        var now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+        if (now - _mapaLastToggleTs < 250) {
+            _mapaLog('toggle ignored (double-fire guard)', now - _mapaLastToggleTs);
+            return;
+        }
+        _mapaLastToggleTs = now;
 
-        if (isOpen) {
-            // Close: restore previous section
-            section.classList.remove('active');
-            iframe.src = '';
-            if (btn) btn.classList.remove('active');
-            if (_mapaActiveSectionEl) {
-                _mapaActiveSectionEl.classList.add('active');
-            } else if (typeof showSection === 'function' && _mapaActiveSectionKey) {
-                showSection(_mapaActiveSectionKey);
+        try {
+            var section = document.getElementById('mapa-interactivo-section');
+            var iframe  = document.getElementById('mapa-interactivo-iframe');
+            var btn     = document.getElementById('btn-mapa-interactivo');
+            if (!section || !iframe) {
+                _mapaErr('section or iframe missing', { section: !!section, iframe: !!iframe });
+                return;
             }
-            _mapaActiveSectionKey = null;
-            _mapaActiveSectionEl  = null;
-        } else {
-            // Measure top offset (header + agenda bar bottom)
-            var agBar = document.getElementById('ag-today-bar');
-            var topPx = agBar ? (agBar.getBoundingClientRect().bottom) : 160;
-            section.style.top = topPx + 'px';
+            var isOpen  = section.classList.contains('active');
+            _mapaLog(isOpen ? 'closing' : 'opening');
 
-            // Save currently active section
-            _mapaActiveSectionEl  = document.querySelector('.content-section.active');
-            _mapaActiveSectionKey = typeof getActiveSectionKey === 'function' ? getActiveSectionKey() : null;
-            // Hide all sections, show mapa
-            document.querySelectorAll('.content-section').forEach(function(s) { s.classList.remove('active'); });
-            section.classList.add('active');
-            iframe.src = 'aifa_plano_interactivo.html';
-            if (btn) btn.classList.add('active');
+            if (isOpen) {
+                section.classList.remove('active');
+                iframe.src = '';
+                if (btn) btn.classList.remove('active');
+                // Si nosotros activamos navdeck-active al abrir, regresar al deck.
+                if (_mapaAddedNavdeckActive) {
+                    document.body.classList.remove('navdeck-active');
+                    _mapaAddedNavdeckActive = false;
+                }
+                if (_mapaActiveSectionEl && document.body.contains(_mapaActiveSectionEl)) {
+                    _mapaActiveSectionEl.classList.add('active');
+                } else if (typeof showSection === 'function' && _mapaActiveSectionKey) {
+                    try { showSection(_mapaActiveSectionKey); } catch (e) { _mapaErr('showSection failed', e); }
+                }
+                _mapaActiveSectionKey = null;
+                _mapaActiveSectionEl  = null;
+            } else {
+                var agBar = document.getElementById('ag-today-bar');
+                var topPx = agBar ? (agBar.getBoundingClientRect().bottom) : 160;
+                section.style.top = topPx + 'px';
+
+                _mapaActiveSectionEl  = document.querySelector('.content-section.active');
+                _mapaActiveSectionKey = typeof getActiveSectionKey === 'function' ? getActiveSectionKey() : null;
+                document.querySelectorAll('.content-section').forEach(function(s) { s.classList.remove('active'); });
+                section.classList.add('active');
+                iframe.src = 'aifa_plano_interactivo.html';
+                if (btn) btn.classList.add('active');
+
+                // En modo deck (navdeck-mode sin navdeck-active) hay reglas globales
+                // que ocultan .main-content y .content-section. Activamos navdeck-active
+                // para que el contenedor padre se renderice y el mapa sea visible.
+                if (document.body.classList.contains('navdeck-mode') &&
+                    !document.body.classList.contains('navdeck-active')) {
+                    document.body.classList.add('navdeck-active');
+                    _mapaAddedNavdeckActive = true;
+                    _mapaLog('navdeck-active enabled for map view');
+                }
+            }
+        } catch (e) {
+            _mapaErr('toggle threw', e);
         }
     };
+
+    // Backup binding: if the inline onclick attribute fails to fire for any reason
+    // (third-party listener stopImmediatePropagation, attribute stripped by sanitizer, etc.)
+    // a direct addEventListener on the button still triggers the toggle.
+    function _mapaBindBtn() {
+        var btn = document.getElementById('btn-mapa-interactivo');
+        if (!btn || btn.dataset.mapaBound === '1') return;
+        btn.dataset.mapaBound = '1';
+        btn.addEventListener('click', function(ev) {
+            // The inline onclick already calls toggleMapaInteractivo; the double-fire guard
+            // above prevents a second toggle within 250 ms.
+            window.toggleMapaInteractivo();
+        });
+        _mapaLog('button bound');
+    }
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', _mapaBindBtn);
+    } else {
+        _mapaBindBtn();
+    }
 
     // When any sidebar link navigates away, unload the iframe and reset button state
     document.addEventListener('click', function(e) {
@@ -31030,8 +31156,18 @@ window.AeropuertosModule = (function () {
         if (!menuItem) return;
         var iframe = document.getElementById('mapa-interactivo-iframe');
         var btn    = document.getElementById('btn-mapa-interactivo');
+        var section = document.getElementById('mapa-interactivo-section');
+        if (section) section.classList.remove('active');
         if (iframe) iframe.src = '';
         if (btn) btn.classList.remove('active');
+        // Si dejamos navdeck-active solo por el mapa, retiralo al navegar a un modulo real:
+        // el handler del menu se encargara de fijarlo otra vez si corresponde.
+        if (_mapaAddedNavdeckActive) {
+            _mapaAddedNavdeckActive = false;
+            // No removemos navdeck-active aqui porque el menu-item probablemente
+            // necesita que permanezca; si el usuario sale del deck via menu, el
+            // estado correcto es navdeck-active=true.
+        }
         _mapaActiveSectionKey = null;
         _mapaActiveSectionEl  = null;
     });
