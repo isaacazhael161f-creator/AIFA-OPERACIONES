@@ -15711,6 +15711,161 @@ body.navdeck-mode .sidebar.nav-deck .si-link--logout {
     border-top: none !important;
 }
 
+/* ══════════════════════════════════════════════════════════════════════════
+   NAV DECK — LIGHT THEME OVERRIDES (modo claro / contraste claro)
+   Re-mapea todos los #fff y rgba(255,255,255,*) que asumen fondo oscuro a
+   tonos legibles sobre fondo claro. Solo aplica cuando el body NO tiene la
+   clase .dark-mode. Las dark-mode rules existentes no cambian.
+   Nota: la base .si-link usa !important, así que los overrides también.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Base: cualquier .si-link en cualquier sidebar dentro de modo claro */
+body:not(.dark-mode) .si-link {
+    color: var(--text-color) !important;
+}
+body:not(.dark-mode) .si-link:hover {
+    background: rgba(13, 110, 253, .08) !important;
+    color: var(--text-color) !important;
+}
+body:not(.dark-mode) .si-link.active {
+    background: rgba(13, 110, 253, .15) !important;
+    color: var(--text-color) !important;
+}
+body:not(.dark-mode) .si-link:hover .si-ico,
+body:not(.dark-mode) .si-link.active .si-ico {
+    color: var(--primary-color, #0d6efd);
+}
+body:not(.dark-mode) .si-section-lbl {
+    color: rgba(20, 33, 61, .55);
+}
+
+body.navdeck-mode:not(.dark-mode) .si-nav .si-sep {
+    border-top-color: rgba(20, 33, 61, .12);
+}
+body.navdeck-mode:not(.dark-mode) .si-nav .si-section-lbl {
+    color: rgba(20, 33, 61, .55);
+}
+
+/* Pastilla de Inicio (en navdeck) */
+body.navdeck-mode:not(.dark-mode) .si-nav > a.si-link {
+    background: rgba(13, 110, 253, .08) !important;
+    border-color: rgba(13, 110, 253, .35);
+    color: var(--text-color) !important;
+}
+body.navdeck-mode:not(.dark-mode) .si-nav > a.si-link:hover {
+    background: rgba(13, 110, 253, .15) !important;
+}
+body.navdeck-mode:not(.dark-mode) .si-nav > a.si-link.active {
+    background: rgba(13, 110, 253, .24) !important;
+    box-shadow: 0 4px 14px rgba(13, 110, 253, .18);
+}
+
+/* Accesos directos (pastillas con icono): icono mantiene color saturado,
+   pero el texto y el chip-fondo se ajustan a fondo claro */
+body.navdeck-mode:not(.dark-mode) .si-nav > a.si-link.si-quick {
+    color: var(--text-color) !important;
+}
+body.navdeck-mode:not(.dark-mode) .si-nav > a.si-link.si-quick:hover {
+    color: #fff !important; /* al hover el bg se vuelve color saturado, texto blanco OK */
+}
+
+/* Tarjetas de Áreas (Archivo, Auditoría, GPyC) */
+body.navdeck-mode:not(.dark-mode) .si-group--archivo,
+body.navdeck-mode:not(.dark-mode) .si-group--auditoria,
+body.navdeck-mode:not(.dark-mode) .si-group--gpyc {
+    background: rgba(255, 255, 255, .92);
+    border-color: rgba(20, 33, 61, .1);
+}
+
+/* Tarjetas de Subdirecciones — el degradado pasa de tinte de marca a blanco */
+body.navdeck-mode:not(.dark-mode) .si-group--sub {
+    background: linear-gradient(180deg, var(--sub-cb, rgba(96, 165, 250, .14)) 0%, rgba(255, 255, 255, .98) 62%);
+    border-color: rgba(20, 33, 61, .1);
+    box-shadow: 0 6px 18px rgba(15, 23, 42, .08);
+}
+
+/* Header colorido de cada Subdirección — en modo claro usamos un degradado
+   sutil del color de marca a una variante más oscura, para mantener buen
+   contraste del texto blanco. */
+body.navdeck-mode:not(.dark-mode) .sidebar.nav-deck .si-grp-btn--sub {
+    background: linear-gradient(155deg, var(--sub-c), color-mix(in srgb, var(--sub-c) 75%, #000 25%)) !important;
+}
+
+/* Encabezados de áreas (Archivo, Auditoría, GPyC): texto oscuro */
+body.navdeck-mode:not(.dark-mode) .sidebar.nav-deck .si-grp-btn--area {
+    color: var(--text-color) !important;
+    border-bottom-color: rgba(20, 33, 61, .08);
+}
+
+/* Tarjetas de Gerencias dentro de cada Subdirección */
+body.navdeck-mode:not(.dark-mode) .si-group--ger {
+    background: var(--sub-cb, rgba(20, 33, 61, .04));
+    border-color: rgba(20, 33, 61, .1);
+}
+body.navdeck-mode:not(.dark-mode) .si-group--ger:hover {
+    background: color-mix(in srgb, var(--sub-c, #60a5fa) 22%, #fff);
+    border-color: var(--sub-c, rgba(20, 33, 61, .25));
+    box-shadow: 0 6px 18px rgba(15, 23, 42, .12);
+}
+body.navdeck-mode:not(.dark-mode) .si-group--ger:hover .si-grp-btn--ger .si-grp-lbl {
+    color: var(--text-color) !important;
+}
+body.navdeck-mode:not(.dark-mode) .sidebar.nav-deck .si-grp-btn--ger {
+    color: var(--text-color) !important;
+}
+body.navdeck-mode:not(.dark-mode) .sidebar.nav-deck .si-grp-btn--ger .si-chev {
+    color: rgba(20, 33, 61, .45);
+}
+
+/* Chips de módulos (los "links" pequeños al expandir una gerencia) */
+body.navdeck-mode:not(.dark-mode) .sidebar.nav-deck .si-link--l1,
+body.navdeck-mode:not(.dark-mode) .sidebar.nav-deck .si-link--l2 {
+    background: rgba(20, 33, 61, .04) !important;
+    border-color: rgba(20, 33, 61, .12);
+    color: var(--text-color) !important;
+}
+body.navdeck-mode:not(.dark-mode) .sidebar.nav-deck .si-link--l1:hover,
+body.navdeck-mode:not(.dark-mode) .sidebar.nav-deck .si-link--l2:hover {
+    background: var(--sub-cb, rgba(13, 110, 253, .1)) !important;
+    border-color: var(--sub-c, rgba(13, 110, 253, .35));
+    color: var(--text-color) !important;
+}
+body.navdeck-mode:not(.dark-mode) .sidebar.nav-deck .si-link--l1.active,
+body.navdeck-mode:not(.dark-mode) .sidebar.nav-deck .si-link--l2.active {
+    background: var(--sub-c, #3b82f6) !important;
+    border-color: transparent;
+    color: #fff !important;
+}
+
+/* Tarjeta de usuario en el deck */
+body.navdeck-mode:not(.dark-mode) .sidebar.nav-deck .si-user-card {
+    color: var(--text-color);
+}
+
+/* Banner semanal del navdeck (#navdeck-weekly-banner): los fondos del hero ya
+   son degradados saturados intencionales. Sin overrides en modo claro. */
+
+/* ══════════════════════════════════════════════════════════════════════════
+   SIDEBAR CLÁSICO — light theme overrides (cuando NO se usa navdeck-mode)
+   El sidebar tradicional vertical también queda oscuro por --sidebar-bg.
+   Lo flippeamos a un degradado claro en modo claro.
+   ══════════════════════════════════════════════════════════════════════════ */
+body:not(.dark-mode):not(.navdeck-mode) {
+    --sidebar-bg: linear-gradient(180deg, #ffffff 0%, #eef2f7 100%);
+}
+body:not(.dark-mode):not(.navdeck-mode) .sidebar .si-grp-btn {
+    color: var(--text-color) !important;
+}
+body:not(.dark-mode):not(.navdeck-mode) .sidebar .si-grp-btn:hover,
+body:not(.dark-mode):not(.navdeck-mode) .sidebar .si-grp-btn:not(.collapsed) {
+    color: var(--text-color) !important;
+    background: rgba(13, 110, 253, .06) !important;
+}
+body:not(.dark-mode):not(.navdeck-mode) .sidebar .si-brand-name,
+body:not(.dark-mode):not(.navdeck-mode) .sidebar .si-brand-sub {
+    color: var(--text-color);
+}
+
 /* ══════════════════════════════════════════════════════
    NAV DECK — Vista de sección: ocultar deck + botón "Menú"
    ══════════════════════════════════════════════════════ */
