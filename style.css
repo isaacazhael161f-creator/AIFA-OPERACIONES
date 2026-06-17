@@ -15870,6 +15870,56 @@ body:not(.dark-mode):not(.navdeck-mode) .sidebar .si-brand-sub {
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
+   USER CARD + DROPDOWN ADMIN — theme-aware base (sin tema)
+   Fondo y borde se controlan vía variables --user-dd-bg / --user-dd-border
+   redefinidas por dark-mode más abajo.
+   ══════════════════════════════════════════════════════════════════════════ */
+:root {
+    --user-dd-bg: rgba(15, 23, 42, .04);
+    --user-dd-border: rgba(20, 33, 61, .1);
+}
+body.dark-mode {
+    --user-dd-bg: rgba(0, 0, 0, .22);
+    --user-dd-border: rgba(255, 255, 255, .07);
+}
+#si-user-dropdown {
+    background: var(--user-dd-bg);
+    border-top: 1px solid var(--user-dd-border);
+}
+
+/* User card en LIGHT: texto oscuro, borde fino */
+body:not(.dark-mode) .si-user-card {
+    border-top-color: rgba(20, 33, 61, .08);
+}
+body:not(.dark-mode) .si-user-name {
+    color: var(--text-color);
+}
+body:not(.dark-mode) .si-user-email {
+    color: rgba(20, 33, 61, .55);
+}
+body:not(.dark-mode) #si-user-chevron {
+    color: rgba(20, 33, 61, .55);
+    opacity: 1 !important;
+}
+
+/* Cerrar sesión en LIGHT: ya tiene color rojo, sólo subimos opacidad */
+body:not(.dark-mode) .si-link--logout {
+    color: #dc2626 !important;
+}
+body:not(.dark-mode) .si-link--logout:hover {
+    background: rgba(220, 38, 38, .08) !important;
+    color: #b91c1c !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   LABEL "SUBDIRECCIONES" y separadores en LIGHT
+   ══════════════════════════════════════════════════════════════════════════ */
+body:not(.dark-mode) .si-section-lbl {
+    color: rgba(20, 33, 61, .45) !important;
+    font-weight: 800;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
    AGENDA BAR + HERO + BANNER CARDS — light overrides
    ══════════════════════════════════════════════════════════════════════════ */
 
