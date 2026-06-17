@@ -17891,3 +17891,388 @@ body.dark-mode #cargo-yoy-table tr.table-secondary:hover > * {
     background-color: rgba(96, 165, 250, 0.22) !important;
     color: #ffffff !important;
 }
+
+/* ==========================================================================
+   POLISH PRO — INICIO LIGHT THEME (v=20260617L)
+   Mejora la presentación de:
+   - Hero "PERIODO ACTIVO" (torre): overlay translúcido y elegante
+   - Tarjetas de subdirección: glassmorphism con acento de color superior
+   - Headers de subdirección: gradiente refinado, no saturado plástico
+   - Tarjetas de gerencias internas: chips finos con sombra sutil
+   ========================================================================== */
+
+/* === HERO PERIODO ACTIVO ================================================
+   El overlay anterior usaba blancos puros (88-72-35). Ahora usamos un blanco
+   apenas teñido de azul navy con caída más suave para que la torre y el
+   amanecer se vean con sus colores reales. */
+body:not(.dark-mode) .ndw-hero {
+    border-color: rgba(20, 33, 61, .08);
+    box-shadow:
+        0 1px 0 rgba(255, 255, 255, .9) inset,
+        0 8px 28px -8px rgba(15, 23, 42, .18),
+        0 2px 6px rgba(15, 23, 42, .06);
+}
+body:not(.dark-mode) .ndw-hero-media::after {
+    background: linear-gradient(95deg,
+        rgba(248, 250, 255, .82) 0%,
+        rgba(248, 250, 255, .58) 22%,
+        rgba(248, 250, 255, .22) 46%,
+        rgba(248, 250, 255, 0)   70%);
+}
+/* Vignette suave para integrar la imagen sin "halo" blanco visible en bordes */
+body:not(.dark-mode) .ndw-hero-media {
+    filter: saturate(1.05) contrast(1.02);
+}
+
+/* Icono del hero (calendario) — chip glass */
+body:not(.dark-mode) .ndw-hero-icon {
+    background: linear-gradient(135deg, rgba(13, 110, 253, .14), rgba(99, 102, 241, .10));
+    color: #1d4ed8;
+    box-shadow:
+        inset 0 0 0 1px rgba(13, 110, 253, .22),
+        0 6px 14px -4px rgba(13, 110, 253, .25);
+}
+
+/* Kicker (PERIODO ACTIVO) tipográficamente más profesional */
+body:not(.dark-mode) .ndw-hero-kicker {
+    color: rgba(15, 23, 42, .7);
+    font-weight: 700;
+    letter-spacing: .14em;
+}
+
+/* Badge "VISTA SEMANAL" más limpio */
+body:not(.dark-mode) .ndw-hero-badge {
+    color: #1d4ed8;
+    background: rgba(13, 110, 253, .10);
+    border: 1px solid rgba(13, 110, 253, .35);
+    box-shadow: 0 4px 10px -4px rgba(13, 110, 253, .25);
+    backdrop-filter: blur(4px);
+}
+
+/* === TARJETAS DE SUBDIRECCIÓN (Operación, Sgd. Operacional, etc.) ========
+   Glassmorphism con acento color de marca arriba (border-top-color),
+   fondo casi blanco translúcido y elevación más fina. */
+body.navdeck-mode:not(.dark-mode) .si-group--sub {
+    background:
+        linear-gradient(180deg,
+            color-mix(in srgb, var(--sub-c, #60a5fa) 6%, #ffffff) 0%,
+            #ffffff 38%,
+            #ffffff 100%);
+    border: 1px solid rgba(20, 33, 61, .07);
+    border-top: 3px solid var(--sub-c, #60a5fa);
+    border-radius: 18px;
+    box-shadow:
+        0 1px 0 rgba(255, 255, 255, .9) inset,
+        0 1px 2px rgba(15, 23, 42, .04),
+        0 6px 16px -8px color-mix(in srgb, var(--sub-c, #60a5fa) 35%, transparent),
+        0 12px 24px -16px rgba(15, 23, 42, .12);
+    transition: transform .25s cubic-bezier(.2, .8, .2, 1),
+                box-shadow .25s cubic-bezier(.2, .8, .2, 1);
+}
+body.navdeck-mode:not(.dark-mode) .si-group--sub:hover {
+    transform: translateY(-3px);
+    box-shadow:
+        0 1px 0 rgba(255, 255, 255, .9) inset,
+        0 4px 8px rgba(15, 23, 42, .06),
+        0 14px 28px -10px color-mix(in srgb, var(--sub-c, #60a5fa) 45%, transparent),
+        0 20px 38px -18px rgba(15, 23, 42, .18);
+}
+
+/* === HEADER de subdirección — gradiente refinado, no saturado plástico ===
+   Reemplazamos el degradado tri-stop saturado por un degradado sutil
+   color-de-marca → tono más claro con highlight superior. */
+body.navdeck-mode:not(.dark-mode) .sidebar.nav-deck .si-grp-btn--sub {
+    background:
+        radial-gradient(120% 90% at 50% 0%,
+            color-mix(in srgb, var(--sub-c) 92%, #fff 8%) 0%,
+            color-mix(in srgb, var(--sub-c) 78%, #000 22%) 100%) !important;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, .28),
+        inset 0 -2px 12px rgba(0, 0, 0, .12),
+        0 6px 14px -6px color-mix(in srgb, var(--sub-c) 55%, transparent);
+    border-radius: 15px 15px 0 0 !important;
+    margin-bottom: 12px !important;
+    padding: 22px 16px 18px !important;
+}
+body.navdeck-mode:not(.dark-mode) .sidebar.nav-deck .si-grp-btn--sub .si-grp-lbl {
+    text-shadow: 0 1px 2px rgba(0, 0, 0, .25);
+    letter-spacing: .015em;
+}
+body.navdeck-mode:not(.dark-mode) .sidebar.nav-deck .si-grp-btn--sub .si-grp-lbl::before {
+    opacity: .82;
+    letter-spacing: .16em;
+    font-weight: 800;
+}
+
+/* Icono grande de subdirección — más glassy */
+body.navdeck-mode:not(.dark-mode) .sidebar.nav-deck .si-sub-ico {
+    background: linear-gradient(155deg,
+        rgba(255, 255, 255, .26) 0%,
+        rgba(255, 255, 255, .12) 100%);
+    box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, .42),
+        inset 0 1px 0 rgba(255, 255, 255, .55),
+        0 6px 14px rgba(0, 0, 0, .18);
+    backdrop-filter: blur(4px);
+}
+
+/* === HEADER de áreas (Operación: Coord. Auditoría / GPyC / Archivo) =====
+   Coordina con el estilo del cuerpo y separa visualmente sus 3 sub-tarjetas. */
+body.navdeck-mode:not(.dark-mode) .si-group--archivo,
+body.navdeck-mode:not(.dark-mode) .si-group--auditoria,
+body.navdeck-mode:not(.dark-mode) .si-group--gpyc {
+    background: rgba(255, 255, 255, .96);
+    border: 1px solid rgba(20, 33, 61, .07);
+    border-top: 2px solid var(--grp-c, #64748b);
+    border-radius: 12px;
+    box-shadow:
+        0 1px 0 rgba(255, 255, 255, .9) inset,
+        0 2px 4px rgba(15, 23, 42, .04),
+        0 6px 14px -8px rgba(15, 23, 42, .12);
+    transition: transform .2s ease, box-shadow .2s ease;
+}
+body.navdeck-mode:not(.dark-mode) .si-group--archivo:hover,
+body.navdeck-mode:not(.dark-mode) .si-group--auditoria:hover,
+body.navdeck-mode:not(.dark-mode) .si-group--gpyc:hover {
+    transform: translateY(-2px);
+    box-shadow:
+        0 1px 0 rgba(255, 255, 255, .9) inset,
+        0 8px 18px -8px color-mix(in srgb, var(--grp-c, #64748b) 35%, transparent),
+        0 14px 24px -16px rgba(15, 23, 42, .15);
+}
+
+/* === GERENCIAS internas (chips dentro de subdirección) ===================
+   Más finas, con border discreto y subtle-hover de marca. */
+body.navdeck-mode:not(.dark-mode) .si-group--ger {
+    background: rgba(248, 250, 252, .9);
+    border: 1px solid rgba(20, 33, 61, .08);
+    border-radius: 10px;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, .03);
+    transition: background .18s ease, border-color .18s ease, box-shadow .18s ease, transform .18s ease;
+}
+body.navdeck-mode:not(.dark-mode) .si-group--ger:hover {
+    background: color-mix(in srgb, var(--sub-c, #60a5fa) 10%, #ffffff);
+    border-color: color-mix(in srgb, var(--sub-c, #60a5fa) 38%, transparent);
+    box-shadow: 0 4px 10px -2px color-mix(in srgb, var(--sub-c, #60a5fa) 25%, transparent);
+    transform: translateY(-1px);
+}
+
+/* Botón header de cada gerencia: más sobrio */
+body.navdeck-mode:not(.dark-mode) .sidebar.nav-deck .si-grp-btn--ger {
+    color: rgba(15, 23, 42, .85) !important;
+    font-weight: 600;
+}
+body.navdeck-mode:not(.dark-mode) .sidebar.nav-deck .si-grp-btn--ger:hover .si-grp-lbl {
+    color: color-mix(in srgb, var(--sub-c, #1d4ed8) 75%, #000 25%) !important;
+}
+
+/* Botón header de área (Coord. Auditoría, etc.): texto más fuerte */
+body.navdeck-mode:not(.dark-mode) .sidebar.nav-deck .si-grp-btn--area {
+    font-weight: 700;
+    color: rgba(15, 23, 42, .9) !important;
+}
+
+/* === CHIPS de módulos (links nivel 2) — más limpios ====================== */
+body.navdeck-mode:not(.dark-mode) .sidebar.nav-deck .si-link--l1,
+body.navdeck-mode:not(.dark-mode) .sidebar.nav-deck .si-link--l2 {
+    background: rgba(255, 255, 255, .85) !important;
+    border: 1px solid rgba(20, 33, 61, .08);
+    color: rgba(15, 23, 42, .82) !important;
+    font-weight: 500;
+    transition: background .15s ease, border-color .15s ease,
+                color .15s ease, transform .15s ease, box-shadow .15s ease;
+}
+body.navdeck-mode:not(.dark-mode) .sidebar.nav-deck .si-link--l1:hover,
+body.navdeck-mode:not(.dark-mode) .sidebar.nav-deck .si-link--l2:hover {
+    background: color-mix(in srgb, var(--sub-c, #60a5fa) 12%, #ffffff) !important;
+    border-color: color-mix(in srgb, var(--sub-c, #60a5fa) 45%, transparent);
+    color: color-mix(in srgb, var(--sub-c, #1d4ed8) 78%, #000 22%) !important;
+    transform: translateX(2px);
+    box-shadow: 0 2px 6px -1px color-mix(in srgb, var(--sub-c, #60a5fa) 22%, transparent);
+}
+body.navdeck-mode:not(.dark-mode) .sidebar.nav-deck .si-link--l1.active,
+body.navdeck-mode:not(.dark-mode) .sidebar.nav-deck .si-link--l2.active {
+    background: linear-gradient(135deg,
+        var(--sub-c, #3b82f6) 0%,
+        color-mix(in srgb, var(--sub-c, #3b82f6) 80%, #000 20%) 100%) !important;
+    border-color: transparent;
+    color: #fff !important;
+    font-weight: 700;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, .25),
+        0 4px 10px -2px color-mix(in srgb, var(--sub-c, #3b82f6) 45%, transparent);
+}
+
+/* === SECTION LABEL "SUBDIRECCIONES" más refinado ========================= */
+body:not(.dark-mode) .si-section-lbl {
+    color: rgba(15, 23, 42, .42) !important;
+    font-weight: 800;
+    letter-spacing: .18em;
+    font-size: .58rem;
+    padding: 1rem 1.1rem .35rem;
+}
+
+/* === BANNER NDW (KPI Tiles "Comercial 196 / Pasajeros 23,222 / etc") ====
+   Quitar el degradado blanco del fondo de las imágenes para que las fotos
+   se vean nítidas. */
+body:not(.dark-mode) .ndw-card-overlay {
+    background: linear-gradient(180deg,
+        rgba(15, 23, 42, 0) 0%,
+        rgba(15, 23, 42, .08) 38%,
+        rgba(15, 23, 42, .55) 78%,
+        rgba(15, 23, 42, .82) 100%);
+}
+body:not(.dark-mode) .ndw-card-tag,
+body:not(.dark-mode) .ndw-card-value,
+body:not(.dark-mode) .ndw-card-sub {
+    color: #fff !important;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, .55);
+}
+body:not(.dark-mode) .ndw-card-tag {
+    color: #fff !important;
+    opacity: .92;
+}
+body:not(.dark-mode) .ndw-card-icon {
+    box-shadow:
+        0 4px 12px rgba(15, 23, 42, .35),
+        inset 0 0 0 1.5px rgba(255, 255, 255, .85);
+}
+
+/* ==========================================================================
+   POLISH PRO — INICIO LIGHT THEME (v=20260617M)
+   - Quitar el "look bloqueado" en .si-group--pend (todas con color)
+   - Rediseño de "Próximamente" como badge limpio
+   - Mejorar contraste de la barra de agenda en modo claro
+   ========================================================================== */
+
+/* === DESBLOQUEAR .si-group--pend ========================================
+   Aplica a cards de subdireccion + gerencias internas. Se mantiene la
+   semantica del data attribute, pero visualmente se ven 100% activas. */
+.si-group--pend > .si-grp-btn { opacity: 1 !important; }
+.si-group--pend > .si-grp-btn:hover { opacity: 1 !important; }
+body.navdeck-mode .si-group--sub.si-group--pend { opacity: 1 !important; }
+
+/* === BADGE "PRÓXIMAMENTE" ===============================================
+   Antes era texto italic gris al 28% — invisible. Ahora es un pill
+   con borde y color que se reconoce como estado de feature pendiente. */
+.si-coming {
+    display: inline-flex !important;
+    align-items: center;
+    gap: .4rem;
+    margin: .35rem auto;
+    padding: .35rem .75rem !important;
+    font-size: .68rem !important;
+    font-style: normal !important;
+    font-weight: 700 !important;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    border-radius: 999px;
+    background: rgba(99, 102, 241, .14);
+    color: #c7d2fe !important;
+    border: 1px dashed rgba(165, 180, 252, .55);
+    box-shadow: 0 2px 6px rgba(15, 23, 42, .25);
+}
+.si-coming::before {
+    content: "\f0eb"; /* fa-lightbulb */
+    font-family: "Font Awesome 6 Free", "Font Awesome 5 Free";
+    font-weight: 900;
+    font-size: .72rem;
+    color: #fde68a;
+}
+/* En light theme: tonos legibles sobre fondo blanco */
+body:not(.dark-mode) .si-coming {
+    background: rgba(99, 102, 241, .12);
+    color: #4338ca !important;
+    border-color: rgba(99, 102, 241, .45);
+    box-shadow: 0 2px 6px rgba(99, 102, 241, .12);
+}
+body:not(.dark-mode) .si-coming::before {
+    color: #f59e0b;
+}
+/* Centrar dentro del cuerpo de la gerencia */
+.si-body--ger {
+    text-align: center;
+    padding: .5rem .35rem .65rem !important;
+}
+
+/* === AGENDA BAR — LIGHT MODE: contraste profesional ====================== */
+body:not(.dark-mode) .ag-today-bar {
+    background: linear-gradient(to right,
+        rgba(255, 255, 255, .98) 0%,
+        rgba(243, 245, 252, .98) 100%);
+    border-top: 2px solid rgba(99, 102, 241, .55);
+    border-bottom: 1px solid rgba(20, 33, 61, .08);
+    box-shadow: 0 2px 12px rgba(15, 23, 42, .08);
+    color: #0f172a;
+    min-height: 44px;
+}
+/* override ag-today-bar * blanket: dejar que reglas especificas ganen */
+body:not(.dark-mode) .ag-today-bar * { color: inherit; }
+
+/* Pills HOY / MAÑANA mas presentes */
+body:not(.dark-mode) .ag-tb-today-lbl {
+    background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+    color: #fff !important;
+    box-shadow: 0 2px 6px rgba(79, 70, 229, .35);
+}
+body:not(.dark-mode) .ag-tb-tom-lbl {
+    background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
+    color: #fff !important;
+    box-shadow: 0 2px 6px rgba(124, 58, 237, .35);
+}
+
+/* Fechas — texto oscuro legible */
+body:not(.dark-mode) .ag-tb-date {
+    color: #1e293b !important;
+    font-weight: 600;
+}
+
+/* "Sin sesiones" empty-state visible */
+body:not(.dark-mode) .ag-tb-empty {
+    color: #64748b !important;
+    font-style: italic;
+    font-weight: 500;
+}
+
+/* Loading spinner */
+body:not(.dark-mode) .ag-tb-loading {
+    color: #64748b !important;
+}
+
+/* Hint "Ver agenda" */
+body:not(.dark-mode) .ag-tb-hint {
+    color: #4f46e5 !important;
+    opacity: 1;
+    font-weight: 700;
+}
+
+/* Hover state mas visible */
+body:not(.dark-mode) .ag-tb-day-clickable:hover {
+    background: rgba(99, 102, 241, .14);
+}
+
+/* Icono del calendario — ya es solid #4f46e5, OK */
+body:not(.dark-mode) .ag-tb-icon {
+    background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+    box-shadow: 0 2px 6px rgba(79, 70, 229, .35);
+}
+
+/* Separador mas visible en light */
+body:not(.dark-mode) .ag-tb-sep {
+    background: linear-gradient(to bottom, transparent, rgba(20, 33, 61, .25), transparent);
+}
+
+/* Tooltip de chips: fondo claro en light */
+body:not(.dark-mode) .ag-tb-chip-tooltip {
+    background: #ffffff;
+    color: #0f172a;
+    border: 1px solid rgba(20, 33, 61, .1);
+    box-shadow: 0 8px 24px rgba(15, 23, 42, .15);
+}
+body:not(.dark-mode) .ag-tb-chip-tooltip::after {
+    border-top-color: #ffffff;
+}
+body:not(.dark-mode) .ag-tip-title { color: #0f172a; border-bottom-color: rgba(20, 33, 61, .12); }
+body:not(.dark-mode) .ag-tip-area, body:not(.dark-mode) .ag-tip-row { color: #475569; }
+body:not(.dark-mode) .ag-tip-area i, body:not(.dark-mode) .ag-tip-row i { color: #94a3b8; }
+body:not(.dark-mode) .ag-tip-hint { color: #4f46e5; border-top-color: rgba(20, 33, 61, .1); }

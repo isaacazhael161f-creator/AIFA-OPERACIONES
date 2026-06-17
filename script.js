@@ -3718,9 +3718,9 @@ function initializeTheme() {
     let savedPref = null;
     try { savedPref = localStorage.getItem('themePref'); } catch (_) { }
 
-    // Modo oscuro como predeterminado para TODA la app.
-    // Solo se usa el tema claro si el usuario lo eligió explícitamente.
-    const useDark = savedPref ? (savedPref === 'dark') : true;
+    // Modo claro como predeterminado para TODA la app.
+    // Solo se usa el tema oscuro si el usuario lo eligió explícitamente.
+    const useDark = savedPref === 'dark';
 
     document.body.classList.toggle('dark-mode', useDark);
     try { localStorage.setItem('theme', useDark ? 'dark' : 'light'); } catch (_) { }

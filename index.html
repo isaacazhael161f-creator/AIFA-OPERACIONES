@@ -10,15 +10,15 @@
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
     <title>Operaciones AIFA</title>
-    <meta name="theme-color" content="#0b1220" />
+    <meta name="theme-color" content="#f5f7fb" />
     <script>
-        // Aplica tema oscuro por defecto antes de que el CSS pinte (evita parpadeo claro).
-        // Si el usuario tiene preferencia explícita "light" guardada, se respeta.
+        // Aplica tema claro por defecto antes de que el CSS pinte (evita parpadeo oscuro).
+        // Si el usuario tiene preferencia explícita "dark" guardada, se respeta.
         (function () {
             try {
                 var pref = null;
                 try { pref = localStorage.getItem('themePref'); } catch (_) { }
-                var useDark = (pref === 'dark') || (pref !== 'light');
+                var useDark = (pref === 'dark');
                 document.documentElement.classList.toggle('theme-dark-preinit', useDark);
                 var apply = function () {
                     if (!document.body) return;
@@ -50,7 +50,7 @@
         href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Roboto+Mono:wght@400;700&family=Roboto+Condensed:wght@400;500;700&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
-    <link rel="stylesheet" href="style.css?v=20260617k">
+    <link rel="stylesheet" href="style.css?v=20260617N">
     <link rel="stylesheet" href="visual-cards.css?v=1"> <!-- Visual Cards Styles -->
     <link rel="stylesheet" href="admin.css?v=20260203">
     <link rel="icon" type="image/png" sizes="192x192" href="images/icons/aifa-app-icon-192.png?v=20251126">
@@ -971,7 +971,7 @@ FF
     </style>
 </head>
 
-<body class="navdeck-mode dark-mode">
+<body class="navdeck-mode">
 
     <div id="login-screen" class="login-screen">
         <img id="login-bg-img" class="login-bg-img" src="images/Slot.jpeg" alt="" aria-hidden="true" draggable="false"
@@ -29616,6 +29616,14 @@ window.AeropuertosModule = (function () {
                 showSection('agenda', link);
             } else if (link) {
                 link.click();
+            }
+            /* En modo deck (navdeck-mode sin navdeck-active) las .content-section
+               estan ocultas via display:none. Activamos la vista de seccion
+               para que el calendario sea visible. */
+            if (document.body.classList.contains('navdeck-mode') &&
+                !document.body.classList.contains('navdeck-active')) {
+                document.body.classList.add('navdeck-active');
+                try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (_) { window.scrollTo(0, 0); }
             }
             /* Abrir pestaña Calendario General */
             setTimeout(function() {
