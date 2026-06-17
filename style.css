@@ -15783,18 +15783,34 @@ body.navdeck-mode:not(.dark-mode) .si-group--gpyc {
     border-color: rgba(20, 33, 61, .1);
 }
 
-/* Tarjetas de Subdirecciones — el degradado pasa de tinte de marca a blanco */
+/* Tarjetas de Subdirecciones — el degradado conserva un tinte cálido del color
+   de marca para que la tarjeta tenga personalidad, sin perder legibilidad. */
 body.navdeck-mode:not(.dark-mode) .si-group--sub {
-    background: linear-gradient(180deg, var(--sub-cb, rgba(96, 165, 250, .14)) 0%, rgba(255, 255, 255, .98) 62%);
-    border-color: rgba(20, 33, 61, .1);
-    box-shadow: 0 6px 18px rgba(15, 23, 42, .08);
+    background: linear-gradient(180deg,
+        color-mix(in srgb, var(--sub-c, #60a5fa) 16%, #fff) 0%,
+        color-mix(in srgb, var(--sub-c, #60a5fa) 6%, #fff) 55%,
+        #ffffff 100%);
+    border-color: color-mix(in srgb, var(--sub-c, #60a5fa) 35%, rgba(20, 33, 61, .08));
+    box-shadow: 0 6px 18px rgba(15, 23, 42, .08),
+                0 0 0 1px color-mix(in srgb, var(--sub-c, #60a5fa) 10%, transparent) inset;
+}
+body.navdeck-mode:not(.dark-mode) .si-group--sub:hover {
+    box-shadow: 0 12px 26px rgba(15, 23, 42, .14),
+                0 0 0 1px color-mix(in srgb, var(--sub-c, #60a5fa) 22%, transparent) inset;
 }
 
-/* Header colorido de cada Subdirección — en modo claro usamos un degradado
-   sutil del color de marca a una variante más oscura, para mantener buen
-   contraste del texto blanco. */
+/* Header colorido de cada Subdirección — degradado vibrante (highlight
+   superior + tono saturado abajo) que destaca el color de marca. */
 body.navdeck-mode:not(.dark-mode) .sidebar.nav-deck .si-grp-btn--sub {
-    background: linear-gradient(155deg, var(--sub-c), color-mix(in srgb, var(--sub-c) 75%, #000 25%)) !important;
+    background:
+        linear-gradient(160deg,
+            color-mix(in srgb, var(--sub-c) 78%, #fff 22%) 0%,
+            var(--sub-c) 45%,
+            color-mix(in srgb, var(--sub-c) 80%, #000 20%) 100%) !important;
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, .35),
+        inset 0 -1px 0 rgba(0, 0, 0, .08),
+        0 4px 10px color-mix(in srgb, var(--sub-c) 30%, transparent);
 }
 
 /* Encabezados de áreas (Archivo, Auditoría, GPyC): texto oscuro */
@@ -15944,8 +15960,15 @@ body:not(.dark-mode) .ndw-hero {
     border-color: rgba(20, 33, 61, .12);
     box-shadow: 0 8px 22px rgba(15, 23, 42, .1);
 }
+/* Overlay tipo viñeta: blanco solo a la izquierda donde va el texto, dejando
+   que la imagen (torre + amanecer) se vea con sus colores reales en el resto. */
 body:not(.dark-mode) .ndw-hero-media::after {
-    background: linear-gradient(100deg, rgba(255, 255, 255, .92) 0%, rgba(255, 255, 255, .82) 42%, rgba(255, 255, 255, .55) 100%);
+    background: linear-gradient(95deg,
+        rgba(255, 255, 255, .88) 0%,
+        rgba(255, 255, 255, .72) 18%,
+        rgba(255, 255, 255, .35) 38%,
+        rgba(255, 255, 255, .08) 60%,
+        rgba(255, 255, 255, 0) 78%);
 }
 body:not(.dark-mode) .ndw-hero-icon {
     background: rgba(13, 110, 253, .12);
