@@ -15719,6 +15719,12 @@ body.navdeck-mode .sidebar.nav-deck .si-link--logout {
    Nota: la base .si-link usa !important, así que los overrides también.
    ══════════════════════════════════════════════════════════════════════════ */
 
+/* En modo claro, --sidebar-bg pasa a un gradiente claro (aplica tanto al
+   sidebar clásico como al navdeck que ocupa toda la home). */
+body:not(.dark-mode) {
+    --sidebar-bg: linear-gradient(180deg, #f4f7fb 0%, #e8edf4 100%);
+}
+
 /* Base: cualquier .si-link en cualquier sidebar dentro de modo claro */
 body:not(.dark-mode) .si-link {
     color: var(--text-color) !important;
@@ -15847,12 +15853,9 @@ body.navdeck-mode:not(.dark-mode) .sidebar.nav-deck .si-user-card {
 
 /* ══════════════════════════════════════════════════════════════════════════
    SIDEBAR CLÁSICO — light theme overrides (cuando NO se usa navdeck-mode)
-   El sidebar tradicional vertical también queda oscuro por --sidebar-bg.
-   Lo flippeamos a un degradado claro en modo claro.
+   --sidebar-bg ya fue volteado arriba para todo body:not(.dark-mode).
+   Aquí solo ajustamos colores de texto/links del sidebar tradicional.
    ══════════════════════════════════════════════════════════════════════════ */
-body:not(.dark-mode):not(.navdeck-mode) {
-    --sidebar-bg: linear-gradient(180deg, #ffffff 0%, #eef2f7 100%);
-}
 body:not(.dark-mode):not(.navdeck-mode) .sidebar .si-grp-btn {
     color: var(--text-color) !important;
 }
@@ -15864,6 +15867,76 @@ body:not(.dark-mode):not(.navdeck-mode) .sidebar .si-grp-btn:not(.collapsed) {
 body:not(.dark-mode):not(.navdeck-mode) .sidebar .si-brand-name,
 body:not(.dark-mode):not(.navdeck-mode) .sidebar .si-brand-sub {
     color: var(--text-color);
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   AGENDA BAR + HERO + BANNER CARDS — light overrides
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Barra HOY/MAÑANA (encabezado superior dinámico) */
+body:not(.dark-mode) .ag-today-bar {
+    background: linear-gradient(to right, #ffffff 60%, #f1f4fb 100%);
+    border-top: 2px solid rgba(99, 102, 241, .35);
+    border-bottom: 1px solid rgba(20, 33, 61, .08);
+    box-shadow: 0 2px 12px rgba(15, 23, 42, .06);
+    color: var(--text-color);
+}
+body:not(.dark-mode) .ag-today-bar * { color: var(--text-color); }
+body:not(.dark-mode) .ag-today-bar a,
+body:not(.dark-mode) .ag-today-bar .ag-tb-link {
+    color: var(--primary-color, #0d6efd) !important;
+}
+
+/* Hero PERIODO ACTIVO (banner semanal grande con imagen de fondo).
+   La imagen se conserva, pero el overlay oscuro se aclara para que el banner
+   se integre al tema claro. El texto pasa de blanco a oscuro. */
+body:not(.dark-mode) .ndw-hero {
+    border-color: rgba(20, 33, 61, .12);
+    box-shadow: 0 8px 22px rgba(15, 23, 42, .1);
+}
+body:not(.dark-mode) .ndw-hero-media::after {
+    background: linear-gradient(100deg, rgba(255, 255, 255, .92) 0%, rgba(255, 255, 255, .82) 42%, rgba(255, 255, 255, .55) 100%);
+}
+body:not(.dark-mode) .ndw-hero-icon {
+    background: rgba(13, 110, 253, .12);
+    color: var(--primary-color, #0d6efd);
+    box-shadow: inset 0 0 0 1px rgba(13, 110, 253, .25), 0 4px 12px rgba(15, 23, 42, .1);
+}
+body:not(.dark-mode) .ndw-hero-kicker {
+    color: rgba(20, 33, 61, .65);
+}
+body:not(.dark-mode) .ndw-hero-title {
+    color: var(--text-color);
+    text-shadow: none;
+}
+body:not(.dark-mode) .ndw-hero-badge {
+    color: var(--primary-color, #0d6efd);
+    background: rgba(13, 110, 253, .1);
+    border-color: rgba(13, 110, 253, .35);
+}
+
+/* Tarjetas de los 6 segmentos (Comercial/Carga/General con imagen).
+   El overlay inferior se vuelve más claro y los textos se oscurecen. */
+body:not(.dark-mode) .ndw-card {
+    border-color: rgba(20, 33, 61, .12);
+    color: var(--text-color);
+    box-shadow: 0 6px 16px rgba(15, 23, 42, .12);
+}
+body:not(.dark-mode) .ndw-card:hover {
+    box-shadow: 0 12px 26px rgba(15, 23, 42, .18);
+}
+body:not(.dark-mode) .ndw-card-overlay {
+    background: linear-gradient(180deg, rgba(255, 255, 255, .05) 0%, rgba(255, 255, 255, .25) 48%, rgba(255, 255, 255, .82) 80%, rgba(255, 255, 255, .96) 100%);
+}
+body:not(.dark-mode) .ndw-card-tag {
+    color: rgba(20, 33, 61, .7);
+}
+body:not(.dark-mode) .ndw-card-value {
+    color: var(--text-color);
+    text-shadow: none;
+}
+body:not(.dark-mode) .ndw-card-sub {
+    color: rgba(20, 33, 61, .65);
 }
 
 /* ══════════════════════════════════════════════════════
