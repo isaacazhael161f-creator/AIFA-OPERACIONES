@@ -119,7 +119,7 @@
                 animation:{duration:750,easing:'easeInOutQuart'},
                 interaction:{mode:'index',intersect:false},
                 plugins:{
-                    legend:{ position:'top', align:'end', labels:{ usePointStyle:true, boxWidth:12, padding:15, font:{family:"'Inter','Segoe UI',sans-serif",size:13,weight:'600'}, color:'#334155' } },
+                    legend:{ position:'top', align:'end', labels:{ usePointStyle:true, boxWidth:12, padding:15, font:{family:"'Inter','Segoe UI',sans-serif",size:13,weight:'600'}, color: (document.body.classList.contains('dark-mode') ? '#e8eaed' : '#334155') } },
                     tooltip:{
                         itemSort:function(a,b){ return b.datasetIndex-a.datasetIndex; },
                         backgroundColor:'rgba(30,41,59,0.95)', titleColor:'#f1f5f9', bodyColor:'#e2e8f0',
@@ -143,7 +143,7 @@
                 },
                 scales:{
                     x:{ grid:{display:false,drawBorder:false}, ticks:{color:'#94a3b8',font:{family:"'Inter','Segoe UI',sans-serif",size:12}} },
-                    y:{ beginAtZero:true, border:{display:false}, grid:{color:'#f1f5f9',borderDash:[5,5],drawBorder:false},
+                    y:{ beginAtZero:true, border:{display:false}, grid:{display:false,drawBorder:false},
                         ticks:{color:'#94a3b8',padding:10,font:{family:"'Inter','Segoe UI',sans-serif",size:11},
                         callback:function(v){ return v>=1e6?(v/1e6).toFixed(1)+'M':v>=1000?(v/1000).toFixed(0)+'k':v; }} }
                 }

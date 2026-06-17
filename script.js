@@ -3718,9 +3718,9 @@ function initializeTheme() {
     let savedPref = null;
     try { savedPref = localStorage.getItem('themePref'); } catch (_) { }
 
-    const isDeck = document.body.classList.contains('navdeck-mode');
-    // En modo deck el oscuro es el tema por defecto; en otras vistas, el claro.
-    const useDark = savedPref ? (savedPref === 'dark') : isDeck;
+    // Modo oscuro como predeterminado para TODA la app.
+    // Solo se usa el tema claro si el usuario lo eligió explícitamente.
+    const useDark = savedPref ? (savedPref === 'dark') : true;
 
     document.body.classList.toggle('dark-mode', useDark);
     try { localStorage.setItem('theme', useDark ? 'dark' : 'light'); } catch (_) { }

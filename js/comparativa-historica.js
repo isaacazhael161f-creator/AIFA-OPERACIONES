@@ -367,7 +367,7 @@
                                 size: 13,
                                 weight: '600'
                             },
-                            color: '#334155'
+                            color: (document.body.classList.contains('dark-mode') ? '#e8eaed' : '#334155')
                         }
                     },
                     tooltip: {
@@ -426,8 +426,7 @@
                         beginAtZero: true,
                         border: { display: false },
                         grid: {
-                            color: '#f1f5f9',
-                            borderDash: [5, 5],
+                            display: false,
                             drawBorder: false,
                         },
                         ticks: {

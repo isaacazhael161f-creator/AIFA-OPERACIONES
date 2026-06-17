@@ -3637,18 +3637,18 @@ body.dark-mode .table-stylish-footer {
    overflow-y: auto;
 }
 
-/* Improve contrast for PDF/iframe containers in dark mode so text inside PDFs is easier to read against a white backdrop */
+/* Mantener iframe del PDF blanco en dark-mode para legibilidad pero
+   el wrapper transparente (envuelve también nav-tabs y otros controles). */
 body.dark-mode .pdf-container,
 body.dark-mode .pdf-preview-container {
-   background: #fff;
-   border: 1px solid var(--border-color);
-   border-radius: .375rem;
-   padding: 6px;
+   background: transparent;
 }
 
 body.dark-mode .pdf-container iframe,
 body.dark-mode .pdf-preview-container iframe {
    background: #fff;
+   border: 1px solid var(--border-color);
+   border-radius: .375rem;
 }
 
 /* Chart containers - consistent height and spacing to avoid overlapping visuals */
@@ -14010,30 +14010,30 @@ body.dark-mode #yoy-chart-title {
 }
 
 body.dark-mode #yoy-data-table thead th {
-    background: linear-gradient(135deg, #f0f4f8 0%, #e8ecf1 100%);
-    color: #1e293b;
-    border-color: #cbd5e1;
+    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+    color: #e8eaed;
+    border-color: rgba(96, 165, 250, 0.28);
 }
 
 body.dark-mode #yoy-data-table tbody td {
-    background-color: #ffffff;
-    color: #334155;
-    border-color: #cbd5e1;
+    background-color: rgba(255, 255, 255, 0.02);
+    color: #e8eaed;
+    border-color: rgba(96, 165, 250, 0.18);
 }
 
 body.dark-mode #yoy-data-table tbody tr:nth-child(odd) td {
-    background-color: #f1f5f9;
-    color: #334155;
+    background-color: rgba(255, 255, 255, 0.05);
+    color: #e8eaed;
 }
 
 body.dark-mode #yoy-data-table tbody tr:hover td {
-    background-color: #e2e8f0 !important;
+    background-color: rgba(96, 165, 250, 0.16) !important;
 }
 
 body.dark-mode #yoy-data-table tbody tr:last-child td {
-    background: linear-gradient(135deg, #f0f4f8 0%, #e8ecf1 100%);
-    border-color: #cbd5e1;
-    color: #1e293b;
+    background: linear-gradient(135deg, rgba(30, 58, 138, 0.30) 0%, rgba(15, 23, 42, 0.30) 100%);
+    border-color: rgba(96, 165, 250, 0.32);
+    color: #f8fafc;
 }
 
 body.dark-mode #yoy-insights {
@@ -16479,3 +16479,1415 @@ body.dark-mode .theme-toggle-btn:hover {
     color: #ffe08a;
 }
 
+
+/* ==========================================================================
+   DARK MODE SAFETY NET (v=20260617a)
+   Garantiza visibilidad y legibilidad de elementos con backgrounds y colores
+   hardcoded (cards, tablas, filtros, modales, dropdowns, etc.) cuando el tema
+   oscuro es el predeterminado de la app. Las reglas usan `body.dark-mode` y
+   `!important` cuando sustituyen estilos inline o reglas con `!important`.
+   ========================================================================== */
+
+/* -- Bootstrap utility overrides ------------------------------------------ */
+body.dark-mode .bg-white,
+body.dark-mode .bg-light {
+    background-color: var(--card-bg) !important;
+    color: var(--text-color) !important;
+}
+body.dark-mode .text-dark,
+body.dark-mode .text-black {
+    color: var(--text-color) !important;
+}
+body.dark-mode .text-muted,
+body.dark-mode .text-secondary {
+    color: var(--text-muted-color) !important;
+}
+body.dark-mode .border,
+body.dark-mode .border-top,
+body.dark-mode .border-bottom,
+body.dark-mode .border-start,
+body.dark-mode .border-end {
+    border-color: var(--border-color) !important;
+}
+
+/* -- Bootstrap surfaces: modal, dropdown, popover, tooltip, list-group ---- */
+body.dark-mode .modal-content,
+body.dark-mode .modal-header,
+body.dark-mode .modal-footer,
+body.dark-mode .modal-body {
+    background-color: var(--card-bg);
+    color: var(--text-color);
+    border-color: var(--border-color);
+}
+body.dark-mode .modal-header,
+body.dark-mode .modal-footer {
+    border-color: var(--border-color);
+}
+body.dark-mode .modal-title { color: var(--text-color); }
+body.dark-mode .modal-content .btn-close { filter: invert(1) grayscale(100%) brightness(2); }
+body.dark-mode .dropdown-menu {
+    background-color: #1f2a3a;
+    border-color: var(--border-color);
+    color: var(--text-color);
+    box-shadow: 0 6px 24px rgba(0,0,0,.45);
+}
+body.dark-mode .dropdown-item { color: var(--text-color); }
+body.dark-mode .dropdown-item:hover,
+body.dark-mode .dropdown-item:focus {
+    background-color: rgba(77, 171, 247, .12);
+    color: #f8fafc;
+}
+body.dark-mode .dropdown-item.active,
+body.dark-mode .dropdown-item:active {
+    background-color: var(--primary-color);
+    color: #fff;
+}
+body.dark-mode .dropdown-divider { border-color: var(--border-color); }
+body.dark-mode .dropdown-header { color: var(--text-muted-color); }
+body.dark-mode .popover,
+body.dark-mode .popover-body {
+    background-color: var(--card-bg);
+    color: var(--text-color);
+    border-color: var(--border-color);
+}
+body.dark-mode .popover-header {
+    background-color: rgba(255,255,255,.04);
+    color: var(--text-color);
+    border-bottom-color: var(--border-color);
+}
+body.dark-mode .tooltip-inner {
+    background-color: #2d3748;
+    color: #f7fafc;
+}
+body.dark-mode .bs-tooltip-top .tooltip-arrow::before,
+body.dark-mode .bs-tooltip-auto[data-popper-placement^="top"] .tooltip-arrow::before { border-top-color: #2d3748; }
+body.dark-mode .bs-tooltip-bottom .tooltip-arrow::before,
+body.dark-mode .bs-tooltip-auto[data-popper-placement^="bottom"] .tooltip-arrow::before { border-bottom-color: #2d3748; }
+body.dark-mode .bs-tooltip-start .tooltip-arrow::before,
+body.dark-mode .bs-tooltip-auto[data-popper-placement^="left"] .tooltip-arrow::before { border-left-color: #2d3748; }
+body.dark-mode .bs-tooltip-end .tooltip-arrow::before,
+body.dark-mode .bs-tooltip-auto[data-popper-placement^="right"] .tooltip-arrow::before { border-right-color: #2d3748; }
+body.dark-mode .list-group-item {
+    background-color: var(--card-bg);
+    color: var(--text-color);
+    border-color: var(--border-color);
+}
+body.dark-mode .list-group-item-action:hover,
+body.dark-mode .list-group-item-action:focus {
+    background-color: rgba(77,171,247,.10);
+    color: #f8fafc;
+}
+body.dark-mode .offcanvas,
+body.dark-mode .offcanvas-header,
+body.dark-mode .offcanvas-body {
+    background-color: var(--card-bg);
+    color: var(--text-color);
+}
+
+/* -- Forms (selects, inputs) defaults global ------------------------------- */
+body.dark-mode .form-control,
+body.dark-mode .form-select,
+body.dark-mode textarea.form-control,
+body.dark-mode input.form-control {
+    background-color: rgba(15,23,42,.55);
+    color: var(--text-color);
+    border-color: var(--border-color);
+}
+body.dark-mode .form-control::placeholder,
+body.dark-mode .form-select::placeholder {
+    color: rgba(232,234,237,.5);
+}
+body.dark-mode .form-control:disabled,
+body.dark-mode .form-control[readonly],
+body.dark-mode .form-select:disabled {
+    background-color: rgba(255,255,255,.04);
+    color: rgba(232,234,237,.75);
+}
+body.dark-mode .input-group-text {
+    background-color: rgba(255,255,255,.05);
+    color: var(--text-color);
+    border-color: var(--border-color);
+}
+body.dark-mode .form-label,
+body.dark-mode .form-text,
+body.dark-mode label { color: var(--text-color); }
+body.dark-mode .form-text { color: var(--text-muted-color); }
+
+/* -- Generic Bootstrap tables --------------------------------------------- */
+body.dark-mode .table {
+    --bs-table-bg: transparent;
+    --bs-table-color: var(--text-color);
+    --bs-table-border-color: var(--border-color);
+    --bs-table-striped-bg: rgba(255,255,255,.03);
+    --bs-table-striped-color: var(--text-color);
+    --bs-table-hover-bg: rgba(77,171,247,.10);
+    --bs-table-hover-color: #f8fafc;
+    color: var(--text-color);
+    border-color: var(--border-color);
+}
+body.dark-mode .table > :not(caption) > * > * {
+    background-color: transparent;
+    color: var(--text-color);
+    border-bottom-color: var(--border-color);
+}
+body.dark-mode .table thead:not(.table-dark) th {
+    background-color: rgba(255,255,255,.04);
+    color: var(--text-color);
+    border-bottom-color: var(--border-color);
+}
+body.dark-mode .table tfoot th,
+body.dark-mode .table tfoot td {
+    background-color: rgba(255,255,255,.04);
+    color: var(--text-color);
+}
+
+/* -- Cards/contenedores genéricos con bg hardcoded ----------------------- */
+body.dark-mode .intel-metric-card,
+body.dark-mode .intel-flight-card,
+body.dark-mode .csv-date-filter-card,
+body.dark-mode .board-date-panel {
+    background-color: var(--card-bg) !important;
+    color: var(--text-color);
+    border-color: var(--border-color) !important;
+    box-shadow: 0 6px 18px rgba(0,0,0,.32);
+}
+body.dark-mode .intel-metric-value { color: var(--text-color); }
+body.dark-mode .intel-metric-label,
+body.dark-mode .intel-metric-detail { color: var(--text-muted-color); }
+
+/* -- Filtros tipo Excel y barras de filtros ------------------------------ */
+body.dark-mode .excel-filter-menu,
+body.dark-mode .excel-filter-list {
+    background-color: #1f2a3a !important;
+    color: var(--text-color);
+    border-color: var(--border-color) !important;
+    box-shadow: 0 6px 18px rgba(0,0,0,.45);
+}
+body.dark-mode .excel-filter-item { color: var(--text-color); }
+body.dark-mode .excel-filter-item:hover { background-color: rgba(77,171,247,.14) !important; }
+
+/* -- Tablas con striping inline (Parte de Operaciones CSV, Conciliación) -- */
+body.dark-mode #table-ops-flights-csv tbody tr:nth-child(4n+1) > td { background-color: rgba(255,255,255,.02) !important; color: var(--text-color); }
+body.dark-mode #table-ops-flights-csv tbody tr:nth-child(4n+2) > td { background-color: rgba(77,171,247,.06) !important; color: var(--text-color); }
+body.dark-mode #table-ops-flights-csv tbody tr:nth-child(4n+3) > td { background-color: rgba(46,204,113,.06) !important; color: var(--text-color); }
+body.dark-mode #table-ops-flights-csv tbody tr:nth-child(4n+4) > td { background-color: rgba(243,156,18,.06) !important; color: var(--text-color); }
+body.dark-mode #table-ops-flights-csv tbody tr:hover > td { background-color: rgba(77,171,247,.18) !important; }
+body.dark-mode #table-ops-flights-csv tbody tr.csv-row-selected > td { background-color: rgba(77,171,247,.30) !important; box-shadow: inset 0 1px 0 rgba(147,197,253,.6), inset 0 -1px 0 rgba(147,197,253,.6); }
+body.dark-mode #table-ops-flights-csv tbody tr.row-validated > td { background-color: rgba(40,167,69,.16) !important; }
+body.dark-mode #table-ops-flights-csv tbody tr.row-validated.csv-row-selected > td { background-color: rgba(40,167,69,.32) !important; }
+
+body.dark-mode #table-conci-manifiestos thead th {
+    background-color: #0f172a !important;
+    color: #e2e8f0 !important;
+}
+body.dark-mode #table-conci-manifiestos tbody tr.conci-row-tone-0 > td { background: rgba(255,255,255,.02) !important; color: var(--text-color); }
+body.dark-mode #table-conci-manifiestos tbody tr.conci-row-tone-1 > td { background: rgba(255,255,255,.05) !important; color: var(--text-color); }
+body.dark-mode #table-conci-manifiestos tbody tr:hover > td { background: rgba(77,171,247,.16) !important; }
+body.dark-mode #table-conci-manifiestos tbody tr.conci-row-selected > td { background: rgba(243,156,18,.22) !important; box-shadow: inset 0 1px 0 rgba(255,229,138,.55), inset 0 -1px 0 rgba(255,229,138,.55); }
+
+/* -- Daily flights tables (Arrivals / Departures) ------------------------ */
+body.dark-mode #table-daily-flights-arrivals thead tr:first-child th,
+body.dark-mode #table-daily-flights-departures thead tr:first-child th {
+    background: rgba(255,255,255,.05) !important;
+    color: var(--text-color) !important;
+    border-bottom-color: var(--border-color) !important;
+}
+body.dark-mode #table-daily-flights-arrivals .filter-row td,
+body.dark-mode #table-daily-flights-departures .filter-row td {
+    background: rgba(255,255,255,.03) !important;
+}
+body.dark-mode #table-daily-flights-arrivals .filter-row .flights-col-filter,
+body.dark-mode #table-daily-flights-departures .filter-row .flights-col-filter,
+body.dark-mode .board-col-filter {
+    background: rgba(15,23,42,.55) !important;
+    color: var(--text-color) !important;
+    border-color: var(--border-color) !important;
+}
+body.dark-mode .board-col-filter.active-filter,
+body.dark-mode #table-daily-flights-arrivals .filter-row .flights-col-filter.active-filter,
+body.dark-mode #table-daily-flights-departures .filter-row .flights-col-filter.active-filter {
+    background: rgba(243,156,18,.20) !important;
+    border-color: rgba(243,156,18,.7) !important;
+}
+body.dark-mode #table-board-arrivals thead tr:first-child th,
+body.dark-mode #table-board-departures thead tr:first-child th {
+    background: rgba(255,255,255,.05) !important;
+    color: var(--text-color) !important;
+}
+
+/* -- Mode/toggle buttons & date-filter toggle ---------------------------- */
+body.dark-mode .board-mode-btn {
+    background: rgba(255,255,255,.06) !important;
+    border-color: var(--border-color) !important;
+    color: var(--text-color) !important;
+}
+body.dark-mode .board-mode-btn.active {
+    background: var(--primary-color) !important;
+    border-color: var(--primary-color) !important;
+    color: #fff !important;
+}
+body.dark-mode .btn-date-filter-toggle.active-date-filter {
+    background: rgba(255,193,7,.18) !important;
+    border-color: rgba(255,193,7,.6) !important;
+    color: #ffe08a !important;
+}
+
+/* -- Flights global search ------------------------------------------------ */
+body.dark-mode .flights-global-search .input-group-text {
+    background: rgba(15,23,42,.55);
+    color: var(--text-color);
+    border-color: var(--border-color);
+}
+body.dark-mode .flights-global-search .form-control {
+    background: rgba(15,23,42,.55);
+    color: var(--text-color);
+    border-color: var(--border-color);
+}
+
+/* -- Filter-row genéricos ------------------------------------------------- */
+body.dark-mode .filter-row { background-color: rgba(255,255,255,.03) !important; }
+body.dark-mode .filter-row td { border-bottom-color: var(--border-color) !important; }
+body.dark-mode .filter-row input {
+    background: rgba(15,23,42,.55) !important;
+    color: var(--text-color) !important;
+    border-color: var(--border-color) !important;
+}
+body.dark-mode .filter-row input::placeholder { color: rgba(232,234,237,.45) !important; }
+
+/* -- Airline filter toolbar (puntualidad / paneles) ---------------------- */
+body.dark-mode .airline-filter-toolbar {
+    background: rgba(255,255,255,.04) !important;
+    border-color: var(--border-color) !important;
+}
+body.dark-mode .airline-filter-btn {
+    background: rgba(15,23,42,.55) !important;
+    border-color: rgba(255,255,255,.06) !important;
+    color: var(--text-color) !important;
+}
+body.dark-mode .airline-filter-btn:hover {
+    background: rgba(255,255,255,.08) !important;
+    border-color: rgba(255,255,255,.18) !important;
+}
+body.dark-mode .airline-filter-btn.active {
+    background: rgba(77,171,247,.18) !important;
+    border-color: var(--primary-color) !important;
+    box-shadow: 0 0 0 2px rgba(77,171,247,.25) !important;
+}
+body.dark-mode .airline-filter-btn[data-airline="all"] { color: var(--text-color) !important; }
+body.dark-mode .airline-filter-btn:not(.active) img { opacity: .85; }
+
+/* -- Map container -------------------------------------------------------- */
+body.dark-mode .map-container-wrapper { background: rgba(255,255,255,.03); }
+
+/* -- DataTables ----------------------------------------------------------- */
+body.dark-mode .dataTables_wrapper,
+body.dark-mode .dataTables_wrapper .dataTables_length,
+body.dark-mode .dataTables_wrapper .dataTables_filter,
+body.dark-mode .dataTables_wrapper .dataTables_info,
+body.dark-mode .dataTables_wrapper .dataTables_processing,
+body.dark-mode .dataTables_wrapper .dataTables_paginate {
+    color: var(--text-color) !important;
+}
+body.dark-mode .dataTables_wrapper .dataTables_length select,
+body.dark-mode .dataTables_wrapper .dataTables_filter input {
+    background-color: rgba(15,23,42,.55) !important;
+    color: var(--text-color) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: 6px;
+    padding: 2px 8px;
+}
+body.dark-mode .dataTables_wrapper .dataTables_paginate .paginate_button {
+    color: var(--text-color) !important;
+    background: transparent !important;
+    border-color: var(--border-color) !important;
+}
+body.dark-mode .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+    background: rgba(77,171,247,.18) !important;
+    color: #fff !important;
+    border-color: var(--primary-color) !important;
+}
+body.dark-mode .dataTables_wrapper .dataTables_paginate .paginate_button.current,
+body.dark-mode .dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
+    background: var(--primary-color) !important;
+    color: #fff !important;
+    border-color: var(--primary-color) !important;
+}
+body.dark-mode .dataTables_wrapper .dataTables_paginate .paginate_button.disabled,
+body.dark-mode .dataTables_wrapper .dataTables_paginate .paginate_button.disabled:hover {
+    color: rgba(232,234,237,.35) !important;
+    background: transparent !important;
+}
+body.dark-mode table.dataTable thead th,
+body.dark-mode table.dataTable thead td {
+    border-bottom-color: var(--border-color) !important;
+    color: var(--text-color);
+    background: rgba(255,255,255,.04);
+}
+body.dark-mode table.dataTable.no-footer { border-bottom-color: var(--border-color) !important; }
+body.dark-mode table.dataTable tbody tr { background-color: transparent; color: var(--text-color); }
+body.dark-mode table.dataTable tbody tr.odd > * { box-shadow: inset 0 0 0 9999px rgba(255,255,255,.03); }
+body.dark-mode table.dataTable tbody tr.even > * { box-shadow: inset 0 0 0 9999px transparent; }
+body.dark-mode table.dataTable tbody tr:hover > * { box-shadow: inset 0 0 0 9999px rgba(77,171,247,.10) !important; }
+
+/* -- Cards Bootstrap genéricos -------------------------------------------- */
+body.dark-mode .card { background-color: var(--card-bg); color: var(--text-color); border-color: var(--border-color); }
+body.dark-mode .card-header,
+body.dark-mode .card-footer { background-color: rgba(255,255,255,.03); border-color: var(--border-color); color: var(--text-color); }
+body.dark-mode .card-body { color: var(--text-color); }
+body.dark-mode .card-title,
+body.dark-mode .card-subtitle { color: var(--text-color); }
+
+/* -- Accordion ------------------------------------------------------------ */
+body.dark-mode .accordion-item { background-color: var(--card-bg); border-color: var(--border-color); color: var(--text-color); }
+body.dark-mode .accordion-button {
+    background-color: rgba(255,255,255,.04);
+    color: var(--text-color);
+}
+body.dark-mode .accordion-button:not(.collapsed) {
+    background-color: rgba(77,171,247,.14);
+    color: #f8fafc;
+    box-shadow: inset 0 -1px 0 var(--border-color);
+}
+body.dark-mode .accordion-button::after { filter: invert(1) grayscale(1) brightness(1.8); }
+body.dark-mode .accordion-body { background-color: var(--card-bg); color: var(--text-color); }
+
+/* -- Pagination ----------------------------------------------------------- */
+body.dark-mode .pagination .page-link {
+    background-color: rgba(15,23,42,.55);
+    color: var(--text-color);
+    border-color: var(--border-color);
+}
+body.dark-mode .pagination .page-item.active .page-link {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    color: #fff;
+}
+body.dark-mode .pagination .page-item.disabled .page-link {
+    background-color: transparent;
+    color: rgba(232,234,237,.35);
+    border-color: var(--border-color);
+}
+
+/* -- Nav tabs / pills ----------------------------------------------------- */
+body.dark-mode .nav-tabs { border-bottom-color: var(--border-color); }
+body.dark-mode .nav-tabs .nav-link {
+    color: var(--text-muted-color);
+    border-color: transparent;
+}
+body.dark-mode .nav-tabs .nav-link:hover { color: var(--text-color); border-color: transparent; }
+body.dark-mode .nav-tabs .nav-link.active {
+    background-color: var(--card-bg);
+    color: var(--text-color);
+    border-color: var(--border-color) var(--border-color) transparent;
+}
+body.dark-mode .nav-pills .nav-link { color: var(--text-color); }
+body.dark-mode .nav-pills .nav-link.active,
+body.dark-mode .nav-pills .show > .nav-link {
+    background-color: var(--primary-color);
+    color: #fff;
+}
+
+/* -- Badge utility (color subset) ---------------------------------------- */
+body.dark-mode .badge.bg-light { background-color: rgba(255,255,255,.10) !important; color: var(--text-color) !important; }
+body.dark-mode .badge.text-bg-light { background-color: rgba(255,255,255,.10) !important; color: var(--text-color) !important; }
+
+/* -- Alerts (legibilidad mínima) ----------------------------------------- */
+body.dark-mode .alert-light {
+    background-color: rgba(255,255,255,.06);
+    color: var(--text-color);
+    border-color: var(--border-color);
+}
+
+/* -- Inputs check / radio ------------------------------------------------- */
+body.dark-mode .form-check-label { color: var(--text-color); }
+
+/* -- Progress ------------------------------------------------------------- */
+body.dark-mode .progress { background-color: rgba(255,255,255,.08); }
+
+/* -- Bootstrap btn-light / btn-outline-secondary --------------------------- */
+body.dark-mode .btn-light {
+    background-color: rgba(255,255,255,.08);
+    border-color: rgba(255,255,255,.10);
+    color: var(--text-color);
+}
+body.dark-mode .btn-light:hover { background-color: rgba(255,255,255,.14); color: #fff; }
+body.dark-mode .btn-outline-secondary {
+    color: var(--text-color);
+    border-color: rgba(255,255,255,.22);
+}
+body.dark-mode .btn-outline-secondary:hover {
+    background-color: rgba(255,255,255,.10);
+    color: #fff;
+    border-color: rgba(255,255,255,.32);
+}
+body.dark-mode .btn-outline-dark {
+    color: var(--text-color);
+    border-color: rgba(255,255,255,.22);
+}
+body.dark-mode .btn-outline-dark:hover {
+    background-color: rgba(255,255,255,.12);
+    color: #fff;
+    border-color: rgba(255,255,255,.32);
+}
+
+/* -- close button (Bootstrap) -------------------------------------------- */
+body.dark-mode .btn-close { filter: invert(1) grayscale(100%) brightness(2); }
+
+/* -- Aviso para inputs auto-fill (Chrome) -------------------------------- */
+body.dark-mode input:-webkit-autofill,
+body.dark-mode input:-webkit-autofill:hover,
+body.dark-mode input:-webkit-autofill:focus,
+body.dark-mode textarea:-webkit-autofill,
+body.dark-mode select:-webkit-autofill {
+    -webkit-text-fill-color: var(--text-color) !important;
+    -webkit-box-shadow: 0 0 0 1000px rgba(15,23,42,.85) inset !important;
+    caret-color: var(--text-color);
+    transition: background-color 9999s ease-in-out 0s;
+}
+
+/* -- hr / divisores ------------------------------------------------------- */
+body.dark-mode hr { border-color: var(--border-color); opacity: .6; }
+
+/* -- Texto en SVG / charts canvas: nada (Chart.js usa getChartColors) ---- */
+
+/* -- Headers de tabla con "table-light" ---------------------------------- */
+body.dark-mode .table-light,
+body.dark-mode .table-light > th,
+body.dark-mode .table-light > td {
+    background-color: rgba(255,255,255,.04) !important;
+    color: var(--text-color) !important;
+    border-color: var(--border-color) !important;
+}
+
+/* -- Code / kbd / pre ---------------------------------------------------- */
+body.dark-mode code { color: #f59f00; background-color: rgba(255,255,255,.06); padding: .1rem .35rem; border-radius: 4px; }
+body.dark-mode kbd { background-color: rgba(255,255,255,.10); color: var(--text-color); border: 1px solid var(--border-color); }
+body.dark-mode pre {
+    background-color: #0f172a;
+    color: #e2e8f0;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 12px;
+}
+
+/* -- Sticky thead (frecuencias internacionales) -------------------------- */
+body.dark-mode #frecuencias-int-destinos-table thead th {
+    background-color: var(--card-bg) !important;
+    color: var(--text-color) !important;
+}
+
+/* -- Map container fallback ---------------------------------------------- */
+body.dark-mode .leaflet-popup-content-wrapper,
+body.dark-mode .leaflet-popup-tip {
+    background: var(--card-bg);
+    color: var(--text-color);
+    box-shadow: 0 4px 14px rgba(0,0,0,.45);
+}
+
+/* ==========================================================================
+   FIN DARK MODE SAFETY NET
+   ========================================================================== */
+
+/* ==========================================================================
+   DARK MODE SAFETY NET v2 (v=20260617b) — ATAQUE DE INLINE STYLES
+   Sobreescribe estilos hardcoded en atributo `style="..."` (regla no usa
+   !important pero gana con `!important` aqui) que dejan fondos blancos o
+   pasteles con texto oscuro ilegible al cambiar a tema oscuro.
+   ========================================================================== */
+
+/* ---- BLANCOS / GRISES CLAROS de fondo ---------------------------------- */
+body.dark-mode [style*="background:#fff;"],
+body.dark-mode [style*="background: #fff;"],
+body.dark-mode [style*="background:#ffffff"],
+body.dark-mode [style*="background: #ffffff"],
+body.dark-mode [style*="background:white"],
+body.dark-mode [style*="background: white"],
+body.dark-mode [style*="background-color:#fff;"],
+body.dark-mode [style*="background-color: #fff;"],
+body.dark-mode [style*="background-color:#ffffff"],
+body.dark-mode [style*="background-color: #ffffff"],
+body.dark-mode [style*="background-color:white"],
+body.dark-mode [style*="background-color: white"],
+body.dark-mode [style*="background-color: rgb(255, 255, 255)"],
+body.dark-mode [style*="background-color:rgb(255,255,255)"],
+body.dark-mode [style*="background: rgb(255, 255, 255)"],
+body.dark-mode [style*="background:#f8f9fa"],
+body.dark-mode [style*="background: #f8f9fa"],
+body.dark-mode [style*="background-color:#f8f9fa"],
+body.dark-mode [style*="background-color: #f8f9fa"],
+body.dark-mode [style*="background:#f8fafc"],
+body.dark-mode [style*="background: #f8fafc"],
+body.dark-mode [style*="background-color:#f8fafc"],
+body.dark-mode [style*="background-color: #f8fafc"],
+body.dark-mode [style*="background:#f1f5f9"],
+body.dark-mode [style*="background: #f1f5f9"],
+body.dark-mode [style*="background:#f7f9ff"],
+body.dark-mode [style*="background: #f7f9ff"],
+body.dark-mode [style*="background:#f5f5f5"],
+body.dark-mode [style*="background: #f5f5f5"],
+body.dark-mode [style*="background:#fafafa"],
+body.dark-mode [style*="background: #fafafa"],
+body.dark-mode [style*="background:#fafbff"],
+body.dark-mode [style*="background:#f0f4f8"],
+body.dark-mode [style*="background: #f0f4f8"],
+body.dark-mode [style*="background:#e9ecef"],
+body.dark-mode [style*="background: #e9ecef"],
+body.dark-mode [style*="background:#e2e8f0"],
+body.dark-mode [style*="background: #e2e8f0"] {
+    background: var(--card-bg) !important;
+    background-color: var(--card-bg) !important;
+    color: var(--text-color) !important;
+}
+
+/* ---- AZUL CLARO (eff6ff, dbeafe, bfdbfe) ------------------------------- */
+body.dark-mode [style*="background:#eff6ff"],
+body.dark-mode [style*="background: #eff6ff"],
+body.dark-mode [style*="background-color:#eff6ff"],
+body.dark-mode [style*="background-color: #eff6ff"],
+body.dark-mode [style*="background:#dbeafe"],
+body.dark-mode [style*="background: #dbeafe"],
+body.dark-mode [style*="background-color:#dbeafe"],
+body.dark-mode [style*="background:#bfdbfe"],
+body.dark-mode [style*="background: #bfdbfe"],
+body.dark-mode [style*="background:#cfe2ff"],
+body.dark-mode [style*="background: #cfe2ff"] {
+    background: rgba(59, 130, 246, 0.16) !important;
+    background-color: rgba(59, 130, 246, 0.16) !important;
+    color: #93c5fd !important;
+    border-color: rgba(96, 165, 250, 0.35) !important;
+}
+
+/* ---- VERDE CLARO (f0fdf4, dcfce7, d1fae5, bbf7d0) ---------------------- */
+body.dark-mode [style*="background:#f0fdf4"],
+body.dark-mode [style*="background: #f0fdf4"],
+body.dark-mode [style*="background-color:#f0fdf4"],
+body.dark-mode [style*="background-color: #f0fdf4"],
+body.dark-mode [style*="background:#dcfce7"],
+body.dark-mode [style*="background: #dcfce7"],
+body.dark-mode [style*="background-color:#dcfce7"],
+body.dark-mode [style*="background:#d1fae5"],
+body.dark-mode [style*="background: #d1fae5"],
+body.dark-mode [style*="background:#bbf7d0"],
+body.dark-mode [style*="background: #bbf7d0"],
+body.dark-mode [style*="background:#d4f5e2"] {
+    background: rgba(34, 197, 94, 0.18) !important;
+    background-color: rgba(34, 197, 94, 0.18) !important;
+    color: #86efac !important;
+    border-color: rgba(74, 222, 128, 0.35) !important;
+}
+
+/* ---- NARANJA / DURAZNO CLARO (fff7ed, fed7aa, fff3cd) ------------------ */
+body.dark-mode [style*="background:#fff7ed"],
+body.dark-mode [style*="background: #fff7ed"],
+body.dark-mode [style*="background-color:#fff7ed"],
+body.dark-mode [style*="background-color: #fff7ed"],
+body.dark-mode [style*="background:#fed7aa"],
+body.dark-mode [style*="background: #fed7aa"],
+body.dark-mode [style*="background:#fff3cd"],
+body.dark-mode [style*="background: #fff3cd"],
+body.dark-mode [style*="background:#ffedd5"],
+body.dark-mode [style*="background:#fff3e0"],
+body.dark-mode [style*="background:#fffaf4"],
+body.dark-mode [style*="background:#fff3bf"],
+body.dark-mode [style*="background:#fffde7"],
+body.dark-mode [style*="background: #fffde7"] {
+    background: rgba(249, 115, 22, 0.18) !important;
+    background-color: rgba(249, 115, 22, 0.18) !important;
+    color: #fdba74 !important;
+    border-color: rgba(251, 146, 60, 0.4) !important;
+}
+
+/* ---- ROJO / ROSA CLARO (fef2f2, fee2e2, fecaca) ------------------------ */
+body.dark-mode [style*="background:#fef2f2"],
+body.dark-mode [style*="background: #fef2f2"],
+body.dark-mode [style*="background:#fee2e2"],
+body.dark-mode [style*="background: #fee2e2"],
+body.dark-mode [style*="background:#fecaca"],
+body.dark-mode [style*="background: #fecaca"],
+body.dark-mode [style*="background:#fde2e4"] {
+    background: rgba(239, 68, 68, 0.16) !important;
+    background-color: rgba(239, 68, 68, 0.16) !important;
+    color: #fca5a5 !important;
+    border-color: rgba(248, 113, 113, 0.4) !important;
+}
+
+/* ---- MORADO CLARO (fdf4ff, e9d5ff, f3e8ff) ----------------------------- */
+body.dark-mode [style*="background:#fdf4ff"],
+body.dark-mode [style*="background: #fdf4ff"],
+body.dark-mode [style*="background:#e9d5ff"],
+body.dark-mode [style*="background: #e9d5ff"],
+body.dark-mode [style*="background:#f3e8ff"],
+body.dark-mode [style*="background:#fae8ff"] {
+    background: rgba(168, 85, 247, 0.16) !important;
+    background-color: rgba(168, 85, 247, 0.16) !important;
+    color: #d8b4fe !important;
+    border-color: rgba(192, 132, 252, 0.4) !important;
+}
+
+/* ---- AMARILLO CLARO (fffbeb, fde68a, fef3c7) --------------------------- */
+body.dark-mode [style*="background:#fffbeb"],
+body.dark-mode [style*="background: #fffbeb"],
+body.dark-mode [style*="background:#fde68a"],
+body.dark-mode [style*="background: #fde68a"],
+body.dark-mode [style*="background:#fef3c7"] {
+    background: rgba(234, 179, 8, 0.18) !important;
+    background-color: rgba(234, 179, 8, 0.18) !important;
+    color: #fde047 !important;
+    border-color: rgba(250, 204, 21, 0.4) !important;
+}
+
+/* ---- TEXTO OSCURO inline (gris muy oscuro / casi negro) ---------------- */
+body.dark-mode [style*="color:#212529"],
+body.dark-mode [style*="color: #212529"],
+body.dark-mode [style*="color: rgb(33, 37, 41)"],
+body.dark-mode [style*="color: rgb(33,37,41)"],
+body.dark-mode [style*="color:#1e293b"],
+body.dark-mode [style*="color: #1e293b"],
+body.dark-mode [style*="color:#0f172a"],
+body.dark-mode [style*="color: #0f172a"],
+body.dark-mode [style*="color:#111"],
+body.dark-mode [style*="color: #111"],
+body.dark-mode [style*="color:#222"],
+body.dark-mode [style*="color: #222"],
+body.dark-mode [style*="color:#333"],
+body.dark-mode [style*="color: #333"],
+body.dark-mode [style*="color:#000"],
+body.dark-mode [style*="color: #000"],
+body.dark-mode [style*="color: rgb(0, 0, 0)"],
+body.dark-mode [style*="color:#1e3a5f"],
+body.dark-mode [style*="color: #1e3a5f"],
+body.dark-mode [style*="color:#374151"],
+body.dark-mode [style*="color: #374151"],
+body.dark-mode [style*="color:#4a5568"],
+body.dark-mode [style*="color:#495057"],
+body.dark-mode [style*="color:#343a40"],
+body.dark-mode [style*="color: #343a40"] {
+    color: var(--text-color) !important;
+}
+
+/* ---- TEXTO GRIS MEDIO inline (mejorar contraste) ----------------------- */
+body.dark-mode [style*="color:#888"]:not([style*="background:"]),
+body.dark-mode [style*="color: #888"]:not([style*="background:"]),
+body.dark-mode [style*="color:#6c757d"]:not([style*="background:"]),
+body.dark-mode [style*="color: #6c757d"]:not([style*="background:"]),
+body.dark-mode [style*="color:#6b7280"]:not([style*="background:"]),
+body.dark-mode [style*="color: #6b7280"]:not([style*="background:"]),
+body.dark-mode [style*="color:#64748b"]:not([style*="background:"]),
+body.dark-mode [style*="color: #64748b"]:not([style*="background:"]),
+body.dark-mode [style*="color:#94a3b8"]:not([style*="background:"]),
+body.dark-mode [style*="color: #94a3b8"]:not([style*="background:"]),
+body.dark-mode [style*="color:#adb5bd"]:not([style*="background:"]) {
+    color: rgba(232, 234, 237, 0.78) !important;
+}
+
+/* ---- TEXTO AZUL OSCURO en pasteles (acordeón sec/oper totales) --------- */
+body.dark-mode [style*="color:#1565c0"],
+body.dark-mode [style*="color: #1565c0"],
+body.dark-mode [style*="color:#1d4ed8"],
+body.dark-mode [style*="color: #1d4ed8"],
+body.dark-mode [style*="color:#1d3557"],
+body.dark-mode [style*="color: #1d3557"],
+body.dark-mode [style*="color:#0d4fa3"],
+body.dark-mode [style*="color: #0d4fa3"] {
+    color: #93c5fd !important;
+}
+body.dark-mode [style*="color:#2e7d32"],
+body.dark-mode [style*="color: #2e7d32"],
+body.dark-mode [style*="color:#166534"],
+body.dark-mode [style*="color: #166534"],
+body.dark-mode [style*="color:#14532d"] {
+    color: #86efac !important;
+}
+body.dark-mode [style*="color:#e65100"],
+body.dark-mode [style*="color: #e65100"],
+body.dark-mode [style*="color:#9a3412"],
+body.dark-mode [style*="color: #9a3412"],
+body.dark-mode [style*="color:#92400e"],
+body.dark-mode [style*="color: #92400e"],
+body.dark-mode [style*="color:#856404"],
+body.dark-mode [style*="color: #856404"],
+body.dark-mode [style*="color:#d46000"] {
+    color: #fdba74 !important;
+}
+body.dark-mode [style*="color:#7e22ce"],
+body.dark-mode [style*="color: #7e22ce"],
+body.dark-mode [style*="color:#581c87"] {
+    color: #d8b4fe !important;
+}
+body.dark-mode [style*="color:#991b1b"],
+body.dark-mode [style*="color: #991b1b"],
+body.dark-mode [style*="color:#7f1d1d"],
+body.dark-mode [style*="color:#dc2626"] {
+    color: #fca5a5 !important;
+}
+
+/* ---- THEAD inline white --------------------------------------------------- */
+body.dark-mode thead[style*="background"] {
+    background: var(--card-bg) !important;
+    background-color: var(--card-bg) !important;
+}
+
+/* ---- Reforzar safety net base con !important ---------------------------- */
+body.dark-mode .accordion-button {
+    background-color: rgba(255,255,255,.04) !important;
+    color: var(--text-color) !important;
+}
+body.dark-mode .accordion-button:not(.collapsed) {
+    background-color: rgba(77,171,247,.14) !important;
+    color: #f8fafc !important;
+    box-shadow: inset 0 -1px 0 var(--border-color) !important;
+}
+body.dark-mode .modal-content,
+body.dark-mode .modal-header,
+body.dark-mode .modal-footer,
+body.dark-mode .modal-body {
+    background-color: var(--card-bg) !important;
+    color: var(--text-color) !important;
+    border-color: var(--border-color) !important;
+}
+body.dark-mode .dropdown-menu {
+    background-color: #1f2a3a !important;
+    border-color: var(--border-color) !important;
+    color: var(--text-color) !important;
+}
+
+/* ---- Tablas Bootstrap con .table-light o thead "luz" ------------------- */
+body.dark-mode .table > thead {
+    background-color: rgba(255,255,255,.04) !important;
+}
+body.dark-mode .table-light,
+body.dark-mode .table-light > th,
+body.dark-mode .table-light > td,
+body.dark-mode tr.table-light > * {
+    background-color: rgba(255,255,255,.04) !important;
+    color: var(--text-color) !important;
+}
+
+/* ---- Bordes light hardcoded -------------------------------------------- */
+body.dark-mode [style*="border:1px solid #dee2e6"],
+body.dark-mode [style*="border:1px solid #e5e7eb"],
+body.dark-mode [style*="border:1px solid #e9ecef"],
+body.dark-mode [style*="border:1px solid #ced4da"],
+body.dark-mode [style*="border-color:#dee2e6"],
+body.dark-mode [style*="border-color:#e5e7eb"],
+body.dark-mode [style*="border-color: #dee2e6"],
+body.dark-mode [style*="border-color: #e5e7eb"] {
+    border-color: var(--border-color) !important;
+}
+
+/* ---- PivotTable.js & componentes de tabla pivot ------------------------ */
+body.dark-mode .pvtTable th,
+body.dark-mode .pvtTable td {
+    background-color: var(--card-bg) !important;
+    color: var(--text-color) !important;
+    border-color: var(--border-color) !important;
+}
+body.dark-mode .pvtAxisContainer,
+body.dark-mode .pvtVals,
+body.dark-mode .pvtRows,
+body.dark-mode .pvtCols {
+    background-color: rgba(255,255,255,.04) !important;
+    color: var(--text-color) !important;
+    border-color: var(--border-color) !important;
+}
+body.dark-mode .pvtAxisContainer li span.pvtAttr {
+    background-color: rgba(255,255,255,.10) !important;
+    color: var(--text-color) !important;
+    border-color: var(--border-color) !important;
+}
+body.dark-mode .pvtFilteredAttribute {
+    color: rgba(232,234,237,.6) !important;
+}
+body.dark-mode .pvtFilterBox {
+    background-color: var(--card-bg) !important;
+    color: var(--text-color) !important;
+    border-color: var(--border-color) !important;
+}
+
+/* ---- Badges Bootstrap "light" / "secondary" ---------------------------- */
+body.dark-mode .badge.bg-secondary,
+body.dark-mode .badge.text-bg-secondary {
+    background-color: rgba(255,255,255,.14) !important;
+    color: var(--text-color) !important;
+}
+
+/* ---- Spinner border / bg light ----------------------------------------- */
+body.dark-mode .spinner-border {
+    color: var(--primary-color) !important;
+}
+
+/* ---- Subheadings con .text-muted en dark legibles ---------------------- */
+body.dark-mode h1.text-muted,
+body.dark-mode h2.text-muted,
+body.dark-mode h3.text-muted,
+body.dark-mode h4.text-muted,
+body.dark-mode h5.text-muted,
+body.dark-mode h6.text-muted,
+body.dark-mode .h1.text-muted,
+body.dark-mode .h2.text-muted,
+body.dark-mode .h3.text-muted,
+body.dark-mode .h4.text-muted,
+body.dark-mode .h5.text-muted,
+body.dark-mode .h6.text-muted {
+    color: rgba(232,234,237,.85) !important;
+}
+
+/* ---- Excelente legibilidad para titulos pequeños ----------------------- */
+body.dark-mode .text-uppercase.text-muted {
+    color: rgba(232,234,237,.7) !important;
+}
+
+/* ==========================================================================
+   FIN SAFETY NET v2
+   ========================================================================== */
+
+/* ==========================================================================
+   FIX accordion-button con pasteles inline en operaciones-totales
+   Estos botones tienen background:#eff6ff/#f0fdf4/#fff7ed inline con
+   border-left de color. La regla genérica .accordion-button:not(.collapsed)
+   tiene mayor especificidad que la regla [style*="..."]. Forzamos la
+   especificidad combinada aquí (al final del archivo).
+   ========================================================================== */
+body.dark-mode .accordion-button[style*="background:#eff6ff"],
+body.dark-mode .accordion-button[style*="background: #eff6ff"] {
+    background: linear-gradient(135deg, rgba(33,150,243,.22), rgba(33,150,243,.08)) !important;
+    background-color: rgba(33,150,243,.18) !important;
+    color: #93c5fd !important;
+}
+body.dark-mode .accordion-button[style*="background:#f0fdf4"],
+body.dark-mode .accordion-button[style*="background: #f0fdf4"] {
+    background: linear-gradient(135deg, rgba(34,197,94,.22), rgba(34,197,94,.08)) !important;
+    background-color: rgba(34,197,94,.18) !important;
+    color: #86efac !important;
+}
+body.dark-mode .accordion-button[style*="background:#fff7ed"],
+body.dark-mode .accordion-button[style*="background: #fff7ed"] {
+    background: linear-gradient(135deg, rgba(249,115,22,.22), rgba(249,115,22,.08)) !important;
+    background-color: rgba(249,115,22,.18) !important;
+    color: #fdba74 !important;
+}
+body.dark-mode .accordion-button[style*="background:#fef2f2"],
+body.dark-mode .accordion-button[style*="background:#fdf4ff"],
+body.dark-mode .accordion-button[style*="background:#fffbeb"] {
+    background-color: rgba(255,255,255,.06) !important;
+    color: var(--text-color) !important;
+}
+
+/* Refuerzo: card-body sin estilo pero hereda fondo blanco indebidamente
+   en algunos contenedores con .bg-white o .pdf-viewer-light */
+body.dark-mode .card-body.bg-white,
+body.dark-mode .card-body.bg-light {
+    background-color: var(--card-bg) !important;
+    color: var(--text-color) !important;
+}
+
+/* List groups Bootstrap con .list-group-item-light */
+body.dark-mode .list-group-item-light,
+body.dark-mode .list-group-item.list-group-item-light {
+    background-color: rgba(255,255,255,.06) !important;
+    color: var(--text-color) !important;
+    border-color: var(--border-color) !important;
+}
+
+/* Code blocks / pre con fondo claro inline */
+body.dark-mode pre[style*="background:#f5f5f5"],
+body.dark-mode pre[style*="background:#eee"],
+body.dark-mode code[style*="background:#f5f5f5"] {
+    background-color: rgba(255,255,255,.05) !important;
+    color: var(--text-color) !important;
+}
+
+/* ==========================================================================
+   FONDOS BLANCO-AZULOSOS faltantes (#f8fbff, #f8faff, #f7faff, #e0eaff)
+   ========================================================================== */
+body.dark-mode [style*="background:#f8fbff"],
+body.dark-mode [style*="background: #f8fbff"],
+body.dark-mode [style*="background-color:#f8fbff"],
+body.dark-mode [style*="background-color: #f8fbff"],
+body.dark-mode [style*="background:#f8faff"],
+body.dark-mode [style*="background: #f8faff"],
+body.dark-mode [style*="background-color:#f8faff"],
+body.dark-mode [style*="background-color: #f8faff"],
+body.dark-mode [style*="background:#f7faff"],
+body.dark-mode [style*="background: #f7faff"],
+body.dark-mode [style*="background:#eef2ff"],
+body.dark-mode [style*="background: #eef2ff"],
+body.dark-mode [style*="background:#e0eaff"],
+body.dark-mode [style*="background: #e0eaff"],
+body.dark-mode [style*="background:#f3f4f6"],
+body.dark-mode [style*="background: #f3f4f6"] {
+    background: rgba(96, 165, 250, 0.10) !important;
+    background-color: rgba(96, 165, 250, 0.10) !important;
+    color: var(--text-color) !important;
+}
+
+body.dark-mode [style*="border:1px solid #e0eaff"],
+body.dark-mode [style*="border: 1px solid #e0eaff"],
+body.dark-mode [style*="border:1px solid #c7d2fe"],
+body.dark-mode [style*="border:1px solid #ddd"],
+body.dark-mode [style*="border: 1px solid #ddd"],
+body.dark-mode [style*="border:2px solid #f8faff"] {
+    border-color: var(--border-color) !important;
+}
+
+/* Dropdown divider light */
+body.dark-mode .dropdown-divider {
+    border-top-color: var(--border-color) !important;
+}
+
+/* Tabs Bootstrap card-header-tabs en card-header dark */
+body.dark-mode .card-header.bg-white,
+body.dark-mode .card-header.bg-light {
+    background-color: rgba(255,255,255,.04) !important;
+    color: var(--text-color) !important;
+    border-color: var(--border-color) !important;
+}
+
+/* Form text inputs/checks dentro de modales con bg blanco inline */
+body.dark-mode .modal [style*="background:#f8faff"] {
+    background-color: rgba(96, 165, 250, 0.08) !important;
+}
+
+/* Badge .bg-light o text-bg-light Bootstrap */
+body.dark-mode .badge.bg-light,
+body.dark-mode .badge.text-bg-light {
+    background-color: rgba(255,255,255,.12) !important;
+    color: var(--text-color) !important;
+}
+
+/* Inicio: tarjetas de operaciones / KPIs con bg blanco inline */
+body.dark-mode .ops-card[style*="background"],
+body.dark-mode .kpi-card[style*="background:#fff"],
+body.dark-mode .summary-card[style*="background:#fff"] {
+    background-color: var(--card-bg) !important;
+}
+
+/* ==========================================================================
+   FIX: títulos demoras (Análisis de Demoras / Demoras mensuales) usan
+   #b45309 (ámbar oscuro) que casi no contrasta en dark.
+   ========================================================================== */
+body.dark-mode #demoras-section[data-demoras-scope="monthly"] #demoras-table-title,
+body.dark-mode #demoras-section[data-demoras-scope="monthly"] #demoras-title,
+body.dark-mode #demoras-section[data-demoras-scope="current"] #demoras-table-title,
+body.dark-mode #demoras-section[data-demoras-scope="current"] #demoras-title,
+body.dark-mode #demoras-section .section-title,
+body.dark-mode #demoras-section h3.h5 {
+    color: #fdba74 !important;
+    text-shadow: 0 1px 2px rgba(0,0,0,.45);
+}
+
+/* Encabezados de tabla demoras: mejorar lectura sobre gradiente naranja */
+body.dark-mode #demoras-section[data-demoras-scope="monthly"] .table thead th,
+body.dark-mode #demoras-section[data-demoras-scope="current"] .table thead th {
+    color: #ffffff !important;
+    text-shadow: 0 1px 2px rgba(0,0,0,.55);
+    background: linear-gradient(135deg, #c2410c, #ea580c) !important;
+}
+
+/* ==========================================================================
+   FIX: clases con fondos blancos definidos por CSS (no inline)
+   - .library-doc-chip / .library-action-btn / .library-item-title (biblioteca)
+   - .ops-month-pill (analisis-operaciones)
+   - .col-cvs-status / DataTable headers (conciliacion)
+   ========================================================================== */
+body.dark-mode .library-item-title {
+    color: var(--text-color) !important;
+}
+body.dark-mode .library-doc-chip {
+    background: rgba(255,255,255,.06) !important;
+    color: rgba(232,234,237,.85) !important;
+    border-color: var(--border-color) !important;
+}
+body.dark-mode .library-doc-chip:hover {
+    background: rgba(96,165,250,.15) !important;
+    color: #93c5fd !important;
+    border-color: rgba(96,165,250,.4) !important;
+}
+body.dark-mode .library-action-btn {
+    background: rgba(255,255,255,.06) !important;
+    border-color: var(--border-color) !important;
+    color: #93c5fd !important;
+}
+body.dark-mode .library-action-btn:hover {
+    background: #1d4ed8 !important;
+    color: #fff !important;
+    box-shadow: 0 4px 12px rgba(13,110,253,.4) !important;
+}
+
+body.dark-mode .ops-month-pill {
+    background: rgba(255,255,255,.06) !important;
+    color: rgba(232,234,237,.85) !important;
+    border-color: var(--border-color) !important;
+}
+body.dark-mode .ops-month-pill.active {
+    background: #1d4ed8 !important;
+    color: #fff !important;
+    border-color: #1d4ed8 !important;
+}
+body.dark-mode .ops-month-pill:hover:not(.active):not(:disabled) {
+    background: rgba(96,165,250,.18) !important;
+    border-color: rgba(96,165,250,.45) !important;
+    color: #93c5fd !important;
+}
+
+/* Datatables col-cvs-* fixed headers / sticky cells */
+body.dark-mode #container-ops-flights-csv th,
+body.dark-mode #container-ops-flights-csv .col-cvs-status,
+body.dark-mode #container-ops-flights-csv .col-cvs-arr-airline,
+body.dark-mode #container-ops-flights-csv [class^="col-cvs-"] {
+    background-color: rgba(255,255,255,.04) !important;
+    color: var(--text-color) !important;
+    border-color: var(--border-color) !important;
+}
+
+/* Card-header utilizando .bg-white o .bg-light vía Bootstrap (clase, no inline) */
+body.dark-mode .card-header.border-bottom.bg-white,
+body.dark-mode .card-header.bg-light,
+body.dark-mode .card .card-header.bg-white,
+body.dark-mode .card .card-header.bg-light {
+    background-color: rgba(255,255,255,.04) !important;
+    color: var(--text-color) !important;
+    border-bottom-color: var(--border-color) !important;
+}
+
+/* ==========================================================================
+   FONDOS adicionales encontrados en auditoría progresiva
+   ========================================================================== */
+
+/* #f0f9ff (alice-blue) y bordes #bae6fd / #b3e5fc */
+body.dark-mode [style*="background:#f0f9ff"],
+body.dark-mode [style*="background: #f0f9ff"],
+body.dark-mode [style*="background-color:#f0f9ff"],
+body.dark-mode [style*="background-color: #f0f9ff"] {
+    background: rgba(56, 189, 248, 0.10) !important;
+    background-color: rgba(56, 189, 248, 0.10) !important;
+    color: var(--text-color) !important;
+}
+
+body.dark-mode [style*="border:1px solid #bae6fd"],
+body.dark-mode [style*="border:1.5px solid #b3e5fc"],
+body.dark-mode [style*="border:2px solid #bae6fd"] {
+    border-color: rgba(125, 211, 252, 0.4) !important;
+}
+
+/* Email-análisis dropzone */
+body.dark-mode #em-dropzone-recv,
+body.dark-mode #em-dropzone-sent,
+body.dark-mode .em-dropzone {
+    background: rgba(56, 189, 248, 0.08) !important;
+    border-color: rgba(125, 211, 252, 0.4) !important;
+    color: var(--text-color) !important;
+}
+
+/* Abordadores - row striping con bg #f8f9fd inline */
+body.dark-mode [style*="background:#f8f9fd"],
+body.dark-mode [style*="background: #f8f9fd"],
+body.dark-mode [style*="background-color:#f8f9fd"] {
+    background: rgba(255,255,255,.04) !important;
+    background-color: rgba(255,255,255,.04) !important;
+    color: var(--text-color) !important;
+}
+
+/* Tarjetas modernas inicio con linear-gradient blanco */
+body.dark-mode [style*="linear-gradient(145deg, #f0f9ff, #ffffff)"],
+body.dark-mode [style*="linear-gradient(135deg, #f0f9ff, #ffffff)"] {
+    background: linear-gradient(145deg, rgba(56,189,248,.10), rgba(15,23,42,.6)) !important;
+    color: var(--text-color) !important;
+}
+
+/* CD AMONEST / CCAL ALERT UI light surfaces */
+body.dark-mode .cc-ctx-item:hover {
+    background: rgba(96, 165, 250, 0.18) !important;
+    color: #93c5fd !important;
+}
+
+/* Agenda calendar empty cells */
+body.dark-mode .ag-cal-cell[style*="background:#f9fafb"],
+body.dark-mode .ag-cal-cell[style*="background: #f9fafb"] {
+    background: rgba(255,255,255,.02) !important;
+    border-color: var(--border-color) !important;
+}
+
+/* Vac periodo cards */
+body.dark-mode .vac-period-card.estado-programado {
+    background: rgba(56,189,248,.10) !important;
+    border-color: rgba(125,211,252,.4) !important;
+    color: var(--text-color) !important;
+}
+
+/* Modal bodies con background pastel inline */
+body.dark-mode #colabVacModal .modal-body,
+body.dark-mode #colabVacCalModal .modal-body,
+body.dark-mode #colabEditModal .modal-body,
+body.dark-mode #colabNuevoModal .modal-body,
+body.dark-mode #colabBatchCursosModal .modal-body,
+body.dark-mode #colabMasivaCursosModal .modal-body,
+body.dark-mode #colabDropCursoModal .modal-body {
+    background: var(--card-bg) !important;
+    color: var(--text-color) !important;
+}
+
+/* Pivot/Excel-like filter dropdowns */
+body.dark-mode .ctbl-cfp-foot {
+    background: rgba(255,255,255,.04) !important;
+    color: var(--text-color) !important;
+}
+
+/* Chip "ls-none" en airline-logos.html */
+body.dark-mode .ls-none {
+    background: rgba(255,255,255,.06) !important;
+    color: rgba(232,234,237,.8) !important;
+}
+
+/* ==========================================================================
+   FIX: textos oscuros faltantes
+   - color:#495057 (Bootstrap text-secondary)
+   - color:#0a1f44 (navy del Portal)
+   - .text-body en alertas .alert.bg-transparent
+   ========================================================================== */
+body.dark-mode [style*="color:#495057"],
+body.dark-mode [style*="color: #495057"],
+body.dark-mode [style*="color: rgb(73, 80, 87)"] {
+    color: rgba(232,234,237,.86) !important;
+}
+
+body.dark-mode [style*="color:#0a1f44"],
+body.dark-mode [style*="color: #0a1f44"],
+body.dark-mode [style*="color:#102d68"],
+body.dark-mode [style*="color: #102d68"] {
+    color: #93c5fd !important;
+}
+
+/* Bootstrap .text-body en dark debe ser claro */
+body.dark-mode .text-body,
+body.dark-mode .text-body-secondary,
+body.dark-mode .text-body-tertiary {
+    color: var(--text-color) !important;
+}
+
+/* Alert info / warning / success / danger en bg-transparent dentro de dark */
+body.dark-mode .alert.bg-transparent {
+    color: var(--text-color) !important;
+}
+body.dark-mode .alert-info.bg-transparent { color: #93c5fd !important; }
+body.dark-mode .alert-warning.bg-transparent { color: #fdba74 !important; }
+body.dark-mode .alert-success.bg-transparent { color: #86efac !important; }
+body.dark-mode .alert-danger.bg-transparent { color: #fca5a5 !important; }
+
+/* Frecuencias auto-generated insight pills: span color #495057 inline */
+body.dark-mode #frecuencias-auto-content [style*="color: #495057"],
+body.dark-mode #frecuencias-auto-content-int [style*="color: #495057"] {
+    color: rgba(232,234,237,.92) !important;
+}
+
+/* Iata-badge fondo gris claro */
+body.dark-mode .iata-badge {
+    background: rgba(255,255,255,.10) !important;
+    color: var(--text-color) !important;
+}
+
+/* ==========================================================================
+   FIX yoy-data-table en dark: Bootstrap usa box-shadow inset desde
+   --bs-table-bg, --bs-table-hover-bg, --bs-table-bg-state. Las reglas
+   background-color: NO sobreescriben el inset shadow. Hay que mapear las
+   variables de Bootstrap al valor oscuro deseado.
+   ========================================================================== */
+body.dark-mode #yoy-data-table,
+body.dark-mode #yoy-data-table > :not(caption) > * > * {
+    --bs-table-color: #e8eaed;
+    --bs-table-bg: transparent;
+    --bs-table-border-color: rgba(96, 165, 250, 0.18);
+    --bs-table-striped-color: #e8eaed;
+    --bs-table-striped-bg: rgba(255, 255, 255, 0.05);
+    --bs-table-active-color: #e8eaed;
+    --bs-table-active-bg: rgba(96, 165, 250, 0.20);
+    --bs-table-hover-color: #ffffff;
+    --bs-table-hover-bg: rgba(96, 165, 250, 0.16);
+    color: var(--bs-table-color);
+    border-color: var(--bs-table-border-color);
+}
+
+/* Refuerza last-row (TOTAL POR AÑO): la regla previa con linear-gradient
+   era pintada por encima del box-shadow blanco de Bootstrap. Forzamos las
+   variables locales para que el inset shadow sea oscuro. */
+body.dark-mode #yoy-data-table tbody tr:last-child > * {
+    --bs-table-bg: rgba(30, 58, 138, 0.30);
+    --bs-table-bg-state: rgba(30, 58, 138, 0.30);
+    --bs-table-striped-bg: rgba(30, 58, 138, 0.30);
+    --bs-table-hover-bg: rgba(96, 165, 250, 0.28);
+    background-color: rgba(30, 58, 138, 0.30) !important;
+    color: #f8fafc !important;
+}
+
+/* Hover normal: el box-shadow inset queda con transparencia azulada */
+body.dark-mode #yoy-data-table tbody tr:hover > * {
+    --bs-table-bg-state: rgba(96, 165, 250, 0.16);
+    color: #ffffff !important;
+}
+
+/* ==========================================================================
+   FIX TOTAL POR AÑO + ACUMULADO HISTÓRICO en #yoy-data-table
+   - Bootstrap aplica .table-light y .table-secondary que setean
+     --bs-table-bg / --bs-table-color a valores claros (box-shadow inset).
+   - Override explícito de las CSS vars en dark mode.
+   ========================================================================== */
+body.dark-mode #yoy-data-table tr.table-light,
+body.dark-mode #yoy-data-table tr.table-light > * {
+    --bs-table-color: #f8fafc;
+    --bs-table-bg: rgba(30, 58, 138, 0.34);
+    --bs-table-bg-state: rgba(30, 58, 138, 0.34);
+    --bs-table-striped-bg: rgba(30, 58, 138, 0.34);
+    --bs-table-hover-bg: rgba(96, 165, 250, 0.32);
+    --bs-table-hover-color: #ffffff;
+    --bs-table-border-color: rgba(96, 165, 250, 0.32);
+    color: #f8fafc !important;
+    background-color: rgba(30, 58, 138, 0.34) !important;
+    border-color: rgba(96, 165, 250, 0.32) !important;
+}
+
+body.dark-mode #yoy-data-table tr.table-secondary,
+body.dark-mode #yoy-data-table tr.table-secondary > * {
+    --bs-table-color: #f1f5f9;
+    --bs-table-bg: rgba(15, 23, 42, 0.65);
+    --bs-table-bg-state: rgba(15, 23, 42, 0.65);
+    --bs-table-striped-bg: rgba(15, 23, 42, 0.65);
+    --bs-table-hover-bg: rgba(96, 165, 250, 0.22);
+    --bs-table-hover-color: #ffffff;
+    --bs-table-border-color: rgba(96, 165, 250, 0.32);
+    color: #f1f5f9 !important;
+    background-color: rgba(15, 23, 42, 0.65) !important;
+    border-color: rgba(96, 165, 250, 0.32) !important;
+}
+
+/* Nested td con inline style="background:#e2e8f0" en ACUMULADO HISTÓRICO */
+body.dark-mode #yoy-data-table tr.table-secondary td[style*="background:#e2e8f0"],
+body.dark-mode #yoy-data-table tr.table-secondary td[style*="background: #e2e8f0"] {
+    background: rgba(15, 23, 42, 0.65) !important;
+    color: #f1f5f9 !important;
+}
+
+/* El .text-muted del sufijo "Operaciones" / "Pasajeros" debe quedar legible */
+body.dark-mode #yoy-data-table tr.table-secondary .text-muted {
+    color: rgba(241, 245, 249, 0.75) !important;
+}
+
+/* Hover sobre TOTAL POR AÑO */
+body.dark-mode #yoy-data-table tr.table-light:hover > * {
+    --bs-table-bg-state: rgba(96, 165, 250, 0.32);
+    background-color: rgba(96, 165, 250, 0.32) !important;
+    color: #ffffff !important;
+}
+
+/* Hover sobre ACUMULADO HISTÓRICO */
+body.dark-mode #yoy-data-table tr.table-secondary:hover > * {
+    --bs-table-bg-state: rgba(96, 165, 250, 0.22);
+    background-color: rgba(96, 165, 250, 0.22) !important;
+    color: #ffffff !important;
+}
+
+/* ==========================================================================
+   Mismo tratamiento dark para #gen-yoy-table (Aviación General) y
+   #cargo-yoy-table (Aviación Carga). Antes el fix vivía solo en
+   #yoy-data-table (Aviación Comercial).
+   ========================================================================== */
+body.dark-mode #gen-yoy-table,
+body.dark-mode #gen-yoy-table > :not(caption) > * > *,
+body.dark-mode #cargo-yoy-table,
+body.dark-mode #cargo-yoy-table > :not(caption) > * > * {
+    --bs-table-color: #e8eaed;
+    --bs-table-bg: transparent;
+    --bs-table-border-color: rgba(96, 165, 250, 0.18);
+    --bs-table-striped-color: #e8eaed;
+    --bs-table-striped-bg: rgba(255, 255, 255, 0.05);
+    --bs-table-active-color: #e8eaed;
+    --bs-table-active-bg: rgba(96, 165, 250, 0.20);
+    --bs-table-hover-color: #ffffff;
+    --bs-table-hover-bg: rgba(96, 165, 250, 0.16);
+    color: var(--bs-table-color);
+    border-color: var(--bs-table-border-color);
+}
+
+body.dark-mode #gen-yoy-table thead th,
+body.dark-mode #cargo-yoy-table thead th {
+    background: linear-gradient(135deg, #1e293b 0%, #334155 100%) !important;
+    color: #e8eaed !important;
+    border-color: rgba(96, 165, 250, 0.28) !important;
+}
+
+body.dark-mode #gen-yoy-table tbody td,
+body.dark-mode #cargo-yoy-table tbody td {
+    color: #e8eaed !important;
+    border-color: rgba(96, 165, 250, 0.18) !important;
+}
+
+body.dark-mode #gen-yoy-table tbody tr:nth-child(odd) td,
+body.dark-mode #cargo-yoy-table tbody tr:nth-child(odd) td {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+body.dark-mode #gen-yoy-table tbody tr:hover > *,
+body.dark-mode #cargo-yoy-table tbody tr:hover > * {
+    --bs-table-bg-state: rgba(96, 165, 250, 0.16);
+    color: #ffffff !important;
+}
+
+/* TOTAL POR AÑO row (.table-light) */
+body.dark-mode #gen-yoy-table tr.table-light,
+body.dark-mode #gen-yoy-table tr.table-light > *,
+body.dark-mode #cargo-yoy-table tr.table-light,
+body.dark-mode #cargo-yoy-table tr.table-light > * {
+    --bs-table-color: #f8fafc;
+    --bs-table-bg: rgba(30, 58, 138, 0.34);
+    --bs-table-bg-state: rgba(30, 58, 138, 0.34);
+    --bs-table-striped-bg: rgba(30, 58, 138, 0.34);
+    --bs-table-hover-bg: rgba(96, 165, 250, 0.32);
+    --bs-table-hover-color: #ffffff;
+    --bs-table-border-color: rgba(96, 165, 250, 0.32);
+    color: #f8fafc !important;
+    background-color: rgba(30, 58, 138, 0.34) !important;
+    border-color: rgba(96, 165, 250, 0.32) !important;
+}
+
+/* ACUMULADO HISTÓRICO row (.table-secondary) */
+body.dark-mode #gen-yoy-table tr.table-secondary,
+body.dark-mode #gen-yoy-table tr.table-secondary > *,
+body.dark-mode #cargo-yoy-table tr.table-secondary,
+body.dark-mode #cargo-yoy-table tr.table-secondary > * {
+    --bs-table-color: #f1f5f9;
+    --bs-table-bg: rgba(15, 23, 42, 0.65);
+    --bs-table-bg-state: rgba(15, 23, 42, 0.65);
+    --bs-table-striped-bg: rgba(15, 23, 42, 0.65);
+    --bs-table-hover-bg: rgba(96, 165, 250, 0.22);
+    --bs-table-hover-color: #ffffff;
+    --bs-table-border-color: rgba(96, 165, 250, 0.32);
+    color: #f1f5f9 !important;
+    background-color: rgba(15, 23, 42, 0.65) !important;
+    border-color: rgba(96, 165, 250, 0.32) !important;
+}
+
+body.dark-mode #gen-yoy-table tr.table-secondary td[style*="background:#e2e8f0"],
+body.dark-mode #gen-yoy-table tr.table-secondary td[style*="background: #e2e8f0"],
+body.dark-mode #cargo-yoy-table tr.table-secondary td[style*="background:#e2e8f0"],
+body.dark-mode #cargo-yoy-table tr.table-secondary td[style*="background: #e2e8f0"] {
+    background: rgba(15, 23, 42, 0.65) !important;
+    color: #f1f5f9 !important;
+}
+
+body.dark-mode #gen-yoy-table tr.table-secondary .text-muted,
+body.dark-mode #cargo-yoy-table tr.table-secondary .text-muted {
+    color: rgba(241, 245, 249, 0.75) !important;
+}
+
+body.dark-mode #gen-yoy-table tr.table-light:hover > *,
+body.dark-mode #cargo-yoy-table tr.table-light:hover > * {
+    --bs-table-bg-state: rgba(96, 165, 250, 0.32);
+    background-color: rgba(96, 165, 250, 0.32) !important;
+    color: #ffffff !important;
+}
+
+body.dark-mode #gen-yoy-table tr.table-secondary:hover > *,
+body.dark-mode #cargo-yoy-table tr.table-secondary:hover > * {
+    --bs-table-bg-state: rgba(96, 165, 250, 0.22);
+    background-color: rgba(96, 165, 250, 0.22) !important;
+    color: #ffffff !important;
+}
