@@ -15967,8 +15967,8 @@ body:not(.dark-mode) .ndw-hero-badge {
 }
 
 /* Tarjetas de los 6 segmentos (Comercial/Carga/General con imagen).
-   La imagen queda en la mitad superior; la inferior es un panel blanco sólido
-   con los textos en oscuro para máxima legibilidad. */
+   La imagen se ve plena; el degradado blanco es suave y solo refuerza la
+   legibilidad de las cifras, sin "cortar" la foto. */
 body:not(.dark-mode) .ndw-card {
     border-color: rgba(20, 33, 61, .12);
     color: var(--text-color);
@@ -15980,23 +15980,24 @@ body:not(.dark-mode) .ndw-card:hover {
 body:not(.dark-mode) .ndw-card-overlay {
     background: linear-gradient(180deg,
         rgba(255, 255, 255, 0) 0%,
-        rgba(255, 255, 255, 0) 38%,
-        rgba(255, 255, 255, .55) 48%,
-        rgba(255, 255, 255, .97) 60%,
-        #ffffff 100%);
+        rgba(255, 255, 255, .08) 45%,
+        rgba(255, 255, 255, .55) 78%,
+        rgba(255, 255, 255, .88) 100%);
 }
 body:not(.dark-mode) .ndw-card-tag {
     color: var(--primary-color, #0d6efd);
     font-weight: 800;
+    text-shadow: 0 1px 2px rgba(255, 255, 255, .7);
 }
 body:not(.dark-mode) .ndw-card-value {
     color: var(--text-color);
-    text-shadow: none;
+    text-shadow: 0 1px 3px rgba(255, 255, 255, .85);
     font-weight: 900;
 }
 body:not(.dark-mode) .ndw-card-sub {
-    color: rgba(20, 33, 61, .7);
+    color: rgba(20, 33, 61, .72);
     font-weight: 700;
+    text-shadow: 0 1px 2px rgba(255, 255, 255, .75);
 }
 /* El icono badge superior derecho mantiene su color de marca pero con borde
    blanco para resaltar contra la imagen */
