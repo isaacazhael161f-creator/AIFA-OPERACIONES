@@ -50,7 +50,7 @@
         href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Roboto+Mono:wght@400;700&family=Roboto+Condensed:wght@400;500;700&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
-    <link rel="stylesheet" href="style.css?v=20260618B">
+    <link rel="stylesheet" href="style.css?v=20260618C">
     <link rel="stylesheet" href="visual-cards.css?v=1"> <!-- Visual Cards Styles -->
     <link rel="stylesheet" href="admin.css?v=20260203">
     <link rel="icon" type="image/png" sizes="192x192" href="images/icons/aifa-app-icon-192.png?v=20251126">
@@ -74,7 +74,7 @@
     <!-- Preload de los 5 scripts mas pesados (descarga en paralelo desde el primer byte del HTML).
          No altera el orden de ejecución: los <script> tags más abajo siguen mandando.
          Los hrefs DEBEN coincidir EXACTAMENTE con el src del script para que el navegador reuse el preload. -->
-    <link rel="preload" as="script" href="script.js?v=20260618B" fetchpriority="high">
+    <link rel="preload" as="script" href="script.js?v=20260618C" fetchpriority="high">
     <link rel="preload" as="script" href="js/manifiestos.js">
     <link rel="preload" as="script" href="js/data-management.js">
     <link rel="preload" as="script" href="js/analisis-operaciones.js?v=2">
@@ -19742,14 +19742,14 @@ FF
                             </div>
                             <div class="col-12 col-md-3">
                               <div class="hidra-kpi-card hidra-kpi--teal">
-                                <div class="hidra-kpi-label">Promedio diario</div>
+                                <div class="hidra-kpi-label">Promedio mensual</div>
                                 <div class="hidra-kpi-value" id="hidra-kpi-prom">—</div>
-                                <div class="hidra-kpi-unit">m³ / día</div>
+                                <div class="hidra-kpi-unit">m³ / mes</div>
                               </div>
                             </div>
                             <div class="col-12 col-md-3">
                               <div class="hidra-kpi-card hidra-kpi--violet">
-                                <div class="hidra-kpi-label">Máximo diario</div>
+                                <div class="hidra-kpi-label">Pozo con más extracción</div>
                                 <div class="hidra-kpi-value" id="hidra-kpi-max">—</div>
                                 <div class="hidra-kpi-unit"><span id="hidra-kpi-max-day">—</span></div>
                               </div>
@@ -19777,6 +19777,12 @@ FF
                             </div>
                             <div class="col-12">
                               <div class="hidra-chart-card">
+                                <h5 class="hidra-chart-title">Mensual por pozo (apilado)</h5>
+                                <div class="hidra-chart-host" style="height:340px;"><canvas id="hidra-chart-per-pozo"></canvas></div>
+                              </div>
+                            </div>
+                            <div class="col-12">
+                              <div class="hidra-chart-card">
                                 <h5 class="hidra-chart-title">Acumulado año vs año anterior</h5>
                                 <div class="hidra-chart-host"><canvas id="hidra-chart-cumulative"></canvas></div>
                               </div>
@@ -19797,7 +19803,9 @@ FF
                             </div>
                             <div class="col-auto">
                               <label class="form-label small mb-1 fw-bold">Pozo</label>
-                              <input type="text" id="hidra-edit-pozo" class="form-control form-control-sm" placeholder="(opcional)" style="min-width:140px;">
+                              <select id="hidra-edit-pozo" class="form-select form-select-sm" style="min-width:140px;">
+                                <option value="">— elige pozo —</option>
+                              </select>
                             </div>
                             <div class="col-auto">
                               <button id="hidra-edit-load" class="btn btn-outline-primary btn-sm" type="button">
@@ -27875,7 +27883,7 @@ FF
     <script src="js/portal-admin.js"></script>
     <script src="js/medicas.js?v=2"></script>
     <script src="js/fauna.js"></script>
-    <script src="js/hidraulicas.js?v=1"></script>
+    <script src="js/hidraulicas.js?v=2"></script>
     <script src="js/vehiculos.js"></script>
     <script src="js/email-analisis.js"></script>
     <script src="js/agenda.js?v=8"></script>
@@ -28027,7 +28035,7 @@ FF
     })();
     </script>
     <script src="js/frecuencias_upload_test.js" defer></script>
-    <script src="script.js?v=20260618B" defer></script>
+    <script src="script.js?v=20260618C" defer></script>
     <script src="js/manifiestos_pax.js?v=9999999999993" defer></script>
     <script src="js/puntualidad.js" defer></script>
     <script>
