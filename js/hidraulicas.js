@@ -44,6 +44,15 @@
         if (n === null || n === undefined || isNaN(n)) return '0';
         return Number(n).toLocaleString('es-MX', { maximumFractionDigits: 2 });
     };
+    const fmtCompact = (n) => {
+        if (n === null || n === undefined || isNaN(n)) return '0';
+        const v = Number(n);
+        const abs = Math.abs(v);
+        if (abs >= 1e6) return (v / 1e6).toFixed(v >= 1e7 ? 1 : 2).replace(/\.0+$/, '') + 'M';
+        if (abs >= 1e3) return (v / 1e3).toFixed(v >= 1e4 ? 0 : 1).replace(/\.0$/, '') + 'K';
+        return Math.round(v).toString();
+    };
+    const fmtPct = (n) => `${(Number(n) || 0).toFixed(1)}%`;
     /** Convierte "9,759.94" / "9759.94" / 12.3 en number */
     function toNum(v) {
         if (v === null || v === undefined || v === '') return 0;
@@ -194,6 +203,13 @@
     // ─── Charts ────────────────────────────────────────────────
     function destroyChart(k) { if (charts[k]) { charts[k].destroy(); charts[k] = null; } }
 
+    // Paleta cohesiva tipo dashboard profesional
+    const PALETTE = [
+        '#1e3a8a', '#0ea5e9', '#10b981', '#7c3aed', '#f59e0b',
+        '#ef4444', '#0891b2', '#a855f7', '#059669',
+    ];
+    const hasDL = () => typeof window !== 'undefined' && !!window.ChartDataLabels;
+
     function renderMonthlyChart() {
         const ctx = $('hidra-chart-monthly'); if (!ctx || typeof Chart === 'undefined') return;
         const data = aggregateMonthlyForYear(state.selectedYear, state.selectedPozo);
@@ -211,123 +227,203 @@
                         g.addColorStop(0, '#3b82f6'); g.addColorStop(1, '#0ea5e9');
                         return g;
                     },
-                    borderRadius: 6, maxBarThickness: 48,
+                    borderRadius: 6, maxBarThickness: 56,
                 }],
             },
             options: {
                 responsive: true, maintainAspectRatio: false,
+                layout: { padding: { top: 20 } },
                 plugins: {
                     legend: { display: false },
                     tooltip: { callbacks: { label: c => ` ${fmt(c.parsed.y)} m³` } },
+                    datalabels: hasDL() ? {
+                        anchor: 'end', align: 'end', offset: 2,
+                        color: '#1e293b', font: { size: 11, weight: '700' },
+                        formatter: v => v ? fmtCompact(v) : '',
+                    } : undefined,
                 },
-                scales: { y: { beginAtZero: true, ticks: { callback: v => fmt(v) } }, x: { grid: { display: false } } },
+                scales: {
+                    y: { beginAtZero: true, ticks: { callback: v => fmtCompact(v) }, grid: { color: '#eef2f7' } },
+                    x: { grid: { display: false } },
+                },
             },
+            plugins: hasDL() ? [window.ChartDataLabels] : [],
         });
     }
 
     function renderYoyChart() {
         const ctx = $('hidra-chart-yoy'); if (!ctx || typeof Chart === 'undefined') return;
-        const palette = ['#2f6fb5', '#e07a3c', '#10b981', '#8b5cf6', '#f59e0b', '#ef4444'];
+        const yoyPalette = ['#2f6fb5', '#e07a3c', '#10b981', '#8b5cf6', '#f59e0b', '#ef4444'];
         const years = state.years.slice(0, 6);
         const ds = years.map((y, i) => ({
             label: String(y),
             data: aggregateMonthlyForYear(y, state.selectedPozo),
-            backgroundColor: palette[i % palette.length],
-            borderColor: palette[i % palette.length],
+            backgroundColor: yoyPalette[i % yoyPalette.length],
+            borderColor: yoyPalette[i % yoyPalette.length],
             borderWidth: 0,
-            borderRadius: 2,
+            borderRadius: 3,
             categoryPercentage: 0.78,
             barPercentage: 0.92,
         }));
         destroyChart('yoy');
-        const hasDataLabels = typeof window !== 'undefined' && window.ChartDataLabels;
         charts.yoy = new Chart(ctx.getContext('2d'), {
             type: 'bar',
             data: { labels: MES_NOMBRES_CORTOS, datasets: ds },
             options: {
                 responsive: true, maintainAspectRatio: false,
-                layout: { padding: { top: 24 } },
+                layout: { padding: { top: 22 } },
                 plugins: {
                     legend: { position: 'bottom', labels: { boxWidth: 14, font: { size: 12 } } },
                     tooltip: { callbacks: { label: c => ` ${c.dataset.label}: ${fmt(c.parsed.y)} m³` } },
-                    datalabels: hasDataLabels ? {
+                    datalabels: hasDL() ? {
                         anchor: 'end', align: 'end', offset: 2,
                         rotation: -90,
                         font: { size: 10, weight: '600' },
-                        color: '#374151',
-                        formatter: v => v ? fmt(Math.round(v)) : '',
+                        color: '#475569',
+                        formatter: v => v ? fmtCompact(v) : '',
                     } : undefined,
                 },
                 scales: {
-                    y: { beginAtZero: true, ticks: { callback: v => fmt(v) }, grid: { color: '#e5e7eb' } },
+                    y: { beginAtZero: true, ticks: { callback: v => fmtCompact(v) }, grid: { color: '#eef2f7' } },
                     x: { grid: { display: false } },
                 },
             },
-            plugins: hasDataLabels ? [window.ChartDataLabels] : [],
+            plugins: hasDL() ? [window.ChartDataLabels] : [],
         });
     }
 
     function renderPozosChart() {
         const ctx = $('hidra-chart-pozos'); if (!ctx || typeof Chart === 'undefined') return;
         const data = aggregateByPozoForYear(state.selectedYear);
-        const palette = ['#1d4ed8', '#06b6d4', '#10b981', '#8b5cf6', '#f59e0b', '#ef4444', '#0e7490', '#6d28d9', '#0f766e'];
         destroyChart('pozos');
         if (!data.length) return;
+        const total = data.reduce((s, d) => s + d[1], 0) || 1;
         charts.pozos = new Chart(ctx.getContext('2d'), {
             type: 'doughnut',
             data: {
                 labels: data.map(d => d[0]),
                 datasets: [{
                     data: data.map(d => d[1]),
-                    backgroundColor: data.map((_, i) => palette[i % palette.length]),
+                    backgroundColor: data.map((_, i) => PALETTE[i % PALETTE.length]),
                     borderWidth: 2, borderColor: '#fff',
+                    hoverOffset: 8,
                 }],
             },
             options: {
-                responsive: true, maintainAspectRatio: false, cutout: '58%',
+                responsive: true, maintainAspectRatio: false, cutout: '62%',
                 plugins: {
-                    legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } },
+                    legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 }, padding: 10 } },
                     tooltip: {
                         callbacks: {
                             label: c => {
-                                const total = c.dataset.data.reduce((a, b) => a + b, 0) || 1;
                                 const pct = (c.parsed / total * 100).toFixed(1);
                                 return ` ${c.label}: ${fmt(c.parsed)} m³ (${pct}%)`;
                             },
                         },
                     },
+                    datalabels: hasDL() ? {
+                        color: '#fff',
+                        font: { weight: '700', size: 12 },
+                        textStrokeColor: 'rgba(0,0,0,.35)',
+                        textStrokeWidth: 2,
+                        formatter: (v) => {
+                            const pct = (v / total) * 100;
+                            return pct >= 4 ? fmtPct(pct) : '';
+                        },
+                    } : undefined,
                 },
             },
+            plugins: hasDL() ? [window.ChartDataLabels] : [],
         });
     }
 
     function renderPerPozoChart() {
         const ctx = $('hidra-chart-per-pozo'); if (!ctx || typeof Chart === 'undefined') return;
-        const palette = ['#1d4ed8', '#06b6d4', '#10b981', '#8b5cf6', '#f59e0b', '#ef4444', '#0e7490', '#6d28d9', '#0f766e'];
         const rows = getRowsByYear(state.selectedYear);
         const datasets = rows.map((r, i) => ({
             label: rowPozo(r) || `Fila ${i + 1}`,
             data: rowMonths(r),
-            backgroundColor: palette[i % palette.length],
-            borderColor: palette[i % palette.length],
-            borderWidth: 1,
+            backgroundColor: PALETTE[i % PALETTE.length],
+            borderColor: '#ffffff',
+            borderWidth: 1.5,
+            borderRadius: 2,
             stack: 'stack0',
+            maxBarThickness: 64,
         }));
+
+        // Totales por mes (para mostrar % por segmento y total arriba)
+        const monthTotals = MES_NOMBRES_CORTOS.map((_, mIdx) =>
+            datasets.reduce((s, d) => s + (Number(d.data[mIdx]) || 0), 0)
+        );
+
+        // Dataset invisible solo para pintar el total encima de la barra
+        const totalsDs = {
+            label: '__totals__',
+            data: monthTotals.map(() => 0),
+            backgroundColor: 'rgba(0,0,0,0)',
+            borderWidth: 0,
+            stack: 'stack0',
+            datalabels: hasDL() ? {
+                display: ctx => monthTotals[ctx.dataIndex] > 0,
+                anchor: 'end', align: 'end', offset: 4,
+                color: '#0f172a', font: { weight: '700', size: 12 },
+                formatter: (_, ctx) => fmtCompact(monthTotals[ctx.dataIndex]),
+            } : undefined,
+        };
+
         destroyChart('perPozo');
         charts.perPozo = new Chart(ctx.getContext('2d'), {
             type: 'bar',
-            data: { labels: MES_NOMBRES_CORTOS, datasets },
+            data: { labels: MES_NOMBRES_CORTOS, datasets: [...datasets, totalsDs] },
             options: {
                 responsive: true, maintainAspectRatio: false,
+                layout: { padding: { top: 24 } },
                 plugins: {
-                    legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } },
-                    tooltip: { callbacks: { label: c => ` ${c.dataset.label}: ${fmt(c.parsed.y)} m³` } },
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            boxWidth: 12, padding: 10, font: { size: 11 },
+                            filter: (item) => item.text !== '__totals__',
+                        },
+                    },
+                    tooltip: {
+                        filter: (item) => item.dataset.label !== '__totals__',
+                        callbacks: {
+                            label: (c) => {
+                                const v = c.parsed.y || 0;
+                                const tot = monthTotals[c.dataIndex] || 1;
+                                const pct = (v / tot) * 100;
+                                return ` ${c.dataset.label}: ${fmt(v)} m³ (${fmtPct(pct)})`;
+                            },
+                        },
+                    },
+                    datalabels: hasDL() ? {
+                        color: '#fff',
+                        font: { weight: '700', size: 11 },
+                        textStrokeColor: 'rgba(0,0,0,.45)',
+                        textStrokeWidth: 2,
+                        display: (ctx) => {
+                            if (ctx.dataset.label === '__totals__') return true;
+                            const v = ctx.dataset.data[ctx.dataIndex] || 0;
+                            const tot = monthTotals[ctx.dataIndex] || 1;
+                            return (v / tot) * 100 >= 6;
+                        },
+                        formatter: (v, ctx) => {
+                            if (ctx.dataset.label === '__totals__') {
+                                return monthTotals[ctx.dataIndex] > 0 ? fmtCompact(monthTotals[ctx.dataIndex]) : '';
+                            }
+                            const tot = monthTotals[ctx.dataIndex] || 1;
+                            const pct = (v / tot) * 100;
+                            return pct >= 6 ? fmtPct(pct) : '';
+                        },
+                    } : undefined,
                 },
                 scales: {
                     x: { stacked: true, grid: { display: false } },
-                    y: { stacked: true, beginAtZero: true, ticks: { callback: v => fmt(v) } },
+                    y: { stacked: true, beginAtZero: true, ticks: { callback: v => fmtCompact(v) }, grid: { color: '#eef2f7' } },
                 },
             },
+            plugins: hasDL() ? [window.ChartDataLabels] : [],
         });
     }
 
@@ -336,22 +432,59 @@
         const yCurr = state.selectedYear, yPrev = yCurr - 1;
         const cur  = cumulative(aggregateMonthlyForYear(yCurr, state.selectedPozo));
         const prev = cumulative(aggregateMonthlyForYear(yPrev, state.selectedPozo));
+        const lastIdxCur  = lastNonZeroIndex(cur);
+        const lastIdxPrev = lastNonZeroIndex(prev);
         destroyChart('cumulative');
         charts.cumulative = new Chart(ctx.getContext('2d'), {
             type: 'line',
             data: {
                 labels: MES_NOMBRES_CORTOS,
                 datasets: [
-                    { label: String(yPrev), data: prev,  borderColor: '#94a3b8', backgroundColor: 'rgba(148,163,184,.15)', borderWidth: 2, tension: 0.3, fill: true, pointRadius: 2 },
-                    { label: String(yCurr), data: cur,   borderColor: '#1d4ed8', backgroundColor: 'rgba(29,78,216,.15)',  borderWidth: 3, tension: 0.3, fill: true, pointRadius: 3 },
+                    {
+                        label: String(yPrev), data: prev,
+                        borderColor: '#94a3b8', backgroundColor: 'rgba(148,163,184,.18)',
+                        borderWidth: 2, tension: 0.3, fill: true,
+                        pointRadius: 0, pointHoverRadius: 5,
+                    },
+                    {
+                        label: String(yCurr), data: cur,
+                        borderColor: '#1d4ed8', backgroundColor: 'rgba(29,78,216,.15)',
+                        borderWidth: 3, tension: 0.3, fill: true,
+                        pointRadius: 0, pointHoverRadius: 5,
+                    },
                 ],
             },
             options: {
                 responsive: true, maintainAspectRatio: false,
-                plugins: { legend: { position: 'bottom' }, tooltip: { callbacks: { label: c => ` ${c.dataset.label}: ${fmt(c.parsed.y)} m³` } } },
-                scales: { y: { beginAtZero: true, ticks: { callback: v => fmt(v) } } },
+                interaction: { mode: 'index', intersect: false },
+                layout: { padding: { top: 14, right: 32 } },
+                plugins: {
+                    legend: { position: 'bottom' },
+                    tooltip: { callbacks: { label: c => ` ${c.dataset.label}: ${fmt(c.parsed.y)} m³` } },
+                    datalabels: hasDL() ? {
+                        display: (ctx) => {
+                            const isPrev = ctx.datasetIndex === 0 && ctx.dataIndex === lastIdxPrev;
+                            const isCur  = ctx.datasetIndex === 1 && ctx.dataIndex === lastIdxCur;
+                            return isPrev || isCur;
+                        },
+                        align: 'top', anchor: 'end', offset: 4,
+                        color: (ctx) => ctx.datasetIndex === 1 ? '#1d4ed8' : '#475569',
+                        font: { weight: '700', size: 11 },
+                        formatter: (v) => fmtCompact(v),
+                    } : undefined,
+                },
+                scales: {
+                    y: { beginAtZero: true, ticks: { callback: v => fmtCompact(v) }, grid: { color: '#eef2f7' } },
+                    x: { grid: { display: false } },
+                },
             },
+            plugins: hasDL() ? [window.ChartDataLabels] : [],
         });
+    }
+
+    function lastNonZeroIndex(arr) {
+        for (let i = arr.length - 1; i >= 0; i--) if (arr[i] > 0) return i;
+        return -1;
     }
 
     function renderDashboard() {

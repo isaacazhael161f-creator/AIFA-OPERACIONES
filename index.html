@@ -19671,6 +19671,7 @@ FF
                     #hidraulicas-section .hidra-kpi-value{ font-size:2.2rem; font-weight:800; line-height:1.1; margin-top:4px; }
                     #hidraulicas-section .hidra-kpi-unit{ font-size:.78rem; opacity:.85; margin-top:2px; }
                     #hidraulicas-section .hidra-chart-card{ background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:16px; box-shadow:0 2px 8px rgba(0,0,0,.04); height:100%; }
+                    #hidraulicas-section .hidra-chart-card--main{ border-top:4px solid #1d4ed8; box-shadow:0 4px 16px rgba(29,78,216,.08); }
                     #hidraulicas-section .hidra-chart-title{ font-size:.95rem; font-weight:700; color:#0f172a; margin-bottom:10px; }
                     #hidraulicas-section .hidra-chart-host{ position:relative; height:280px; }
                     #hidraulicas-section .hidra-edit-summary{ background:#f1f5f9; border-radius:8px; padding:10px 14px; font-size:.9rem; color:#0f172a; }
@@ -19758,33 +19759,39 @@ FF
 
                           <div class="row g-3">
                             <div class="col-12">
-                              <div class="hidra-chart-card">
-                                <h5 class="hidra-chart-title">Extracción mensual del año seleccionado</h5>
-                                <div class="hidra-chart-host"><canvas id="hidra-chart-monthly"></canvas></div>
+                              <div class="hidra-chart-card hidra-chart-card--main">
+                                <div class="d-flex align-items-center justify-content-between mb-1">
+                                  <h5 class="hidra-chart-title mb-0">
+                                    <i class="fas fa-layer-group me-1 text-primary"></i>
+                                    Mensual por pozo (apilado · % de aporte)
+                                  </h5>
+                                  <span class="badge bg-light text-secondary border">% sobre el total mensual</span>
+                                </div>
+                                <div class="hidra-chart-host" style="height:440px;"><canvas id="hidra-chart-per-pozo"></canvas></div>
                               </div>
                             </div>
                             <div class="col-12 col-lg-7">
                               <div class="hidra-chart-card">
-                                <h5 class="hidra-chart-title">Comparativo anual (m³ por mes)</h5>
-                                <div class="hidra-chart-host"><canvas id="hidra-chart-yoy"></canvas></div>
+                                <h5 class="hidra-chart-title">Extracción mensual del año seleccionado</h5>
+                                <div class="hidra-chart-host" style="height:300px;"><canvas id="hidra-chart-monthly"></canvas></div>
                               </div>
                             </div>
                             <div class="col-12 col-lg-5">
                               <div class="hidra-chart-card">
                                 <h5 class="hidra-chart-title">Distribución por pozo (año seleccionado)</h5>
-                                <div class="hidra-chart-host"><canvas id="hidra-chart-pozos"></canvas></div>
+                                <div class="hidra-chart-host" style="height:300px;"><canvas id="hidra-chart-pozos"></canvas></div>
                               </div>
                             </div>
                             <div class="col-12">
                               <div class="hidra-chart-card">
-                                <h5 class="hidra-chart-title">Mensual por pozo (apilado)</h5>
-                                <div class="hidra-chart-host" style="height:340px;"><canvas id="hidra-chart-per-pozo"></canvas></div>
+                                <h5 class="hidra-chart-title">Comparativo anual (m³ por mes)</h5>
+                                <div class="hidra-chart-host" style="height:320px;"><canvas id="hidra-chart-yoy"></canvas></div>
                               </div>
                             </div>
                             <div class="col-12">
                               <div class="hidra-chart-card">
                                 <h5 class="hidra-chart-title">Acumulado año vs año anterior</h5>
-                                <div class="hidra-chart-host"><canvas id="hidra-chart-cumulative"></canvas></div>
+                                <div class="hidra-chart-host" style="height:300px;"><canvas id="hidra-chart-cumulative"></canvas></div>
                               </div>
                             </div>
                           </div>
@@ -27883,7 +27890,7 @@ FF
     <script src="js/portal-admin.js"></script>
     <script src="js/medicas.js?v=2"></script>
     <script src="js/fauna.js"></script>
-    <script src="js/hidraulicas.js?v=3"></script>
+    <script src="js/hidraulicas.js?v=4"></script>
     <script src="js/vehiculos.js"></script>
     <script src="js/email-analisis.js"></script>
     <script src="js/agenda.js?v=8"></script>
