@@ -227,28 +227,43 @@
 
     function renderYoyChart() {
         const ctx = $('hidra-chart-yoy'); if (!ctx || typeof Chart === 'undefined') return;
-        const palette = ['#1d4ed8', '#06b6d4', '#10b981', '#8b5cf6', '#f59e0b', '#ef4444'];
-        const ds = state.years.slice(0, 6).map((y, i) => ({
+        const palette = ['#2f6fb5', '#e07a3c', '#10b981', '#8b5cf6', '#f59e0b', '#ef4444'];
+        const years = state.years.slice(0, 6);
+        const ds = years.map((y, i) => ({
             label: String(y),
             data: aggregateMonthlyForYear(y, state.selectedPozo),
+            backgroundColor: palette[i % palette.length],
             borderColor: palette[i % palette.length],
-            backgroundColor: palette[i % palette.length] + '22',
-            tension: 0.35, fill: false,
-            borderWidth: y === state.selectedYear ? 3 : 1.6,
-            pointRadius: y === state.selectedYear ? 4 : 2,
+            borderWidth: 0,
+            borderRadius: 2,
+            categoryPercentage: 0.78,
+            barPercentage: 0.92,
         }));
         destroyChart('yoy');
+        const hasDataLabels = typeof window !== 'undefined' && window.ChartDataLabels;
         charts.yoy = new Chart(ctx.getContext('2d'), {
-            type: 'line',
+            type: 'bar',
             data: { labels: MES_NOMBRES_CORTOS, datasets: ds },
             options: {
                 responsive: true, maintainAspectRatio: false,
+                layout: { padding: { top: 24 } },
                 plugins: {
-                    legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } },
+                    legend: { position: 'bottom', labels: { boxWidth: 14, font: { size: 12 } } },
                     tooltip: { callbacks: { label: c => ` ${c.dataset.label}: ${fmt(c.parsed.y)} m³` } },
+                    datalabels: hasDataLabels ? {
+                        anchor: 'end', align: 'end', offset: 2,
+                        rotation: -90,
+                        font: { size: 10, weight: '600' },
+                        color: '#374151',
+                        formatter: v => v ? fmt(Math.round(v)) : '',
+                    } : undefined,
                 },
-                scales: { y: { beginAtZero: true, ticks: { callback: v => fmt(v) } } },
+                scales: {
+                    y: { beginAtZero: true, ticks: { callback: v => fmt(v) }, grid: { color: '#e5e7eb' } },
+                    x: { grid: { display: false } },
+                },
             },
+            plugins: hasDataLabels ? [window.ChartDataLabels] : [],
         });
     }
 
