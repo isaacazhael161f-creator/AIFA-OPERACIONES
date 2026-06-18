@@ -50,7 +50,7 @@
         href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Roboto+Mono:wght@400;700&family=Roboto+Condensed:wght@400;500;700&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
-    <link rel="stylesheet" href="style.css?v=20260617N">
+    <link rel="stylesheet" href="style.css?v=20260617O">
     <link rel="stylesheet" href="visual-cards.css?v=1"> <!-- Visual Cards Styles -->
     <link rel="stylesheet" href="admin.css?v=20260203">
     <link rel="icon" type="image/png" sizes="192x192" href="images/icons/aifa-app-icon-192.png?v=20251126">
@@ -1204,8 +1204,12 @@ FF
                                     </button>
                                     <div class="collapse" id="sg-gpyc">
                                         <div class="si-body si-body--ger">
-                                            <a class="menu-item si-link si-link--l2" href="#" data-section="agenda">
-                                                <i class="fas fa-calendar-check si-ico"></i><span class="si-txt">Agenda de Comités</span>
+                                            <a class="menu-item si-link si-link--l2" href="#" data-section="agenda" style="justify-content:center;gap:6px;text-align:center;">
+                                                <span style="flex:none;">Agenda de Comités</span>
+                                            </a>
+                                            <a class="menu-item si-link si-link--l2" href="https://contratos-aifa.vercel.app/" target="_blank" rel="noopener noreferrer" style="justify-content:center;gap:6px;text-align:center;">
+                                                <span style="flex:none;">Contratos</span>
+                                                <i class="fas fa-external-link-alt" style="font-size:.62rem;opacity:.55;flex:none;"></i>
                                             </a>
                                             <span class="si-coming">Más módulos próximamente</span>
                                         </div>
@@ -1301,8 +1305,12 @@ FF
                                     </button>
                                     <div class="collapse" id="sg-gso-ger">
                                         <div class="si-body si-body--ger">
-                                            <a class="menu-item si-link si-link--l2" href="#" data-section="fauna">
-                                                <i class="fas fa-shield-alt si-ico"></i><span class="si-txt">GSO</span>
+                                            <a class="menu-item si-link si-link--l2" href="#" data-section="fauna" style="justify-content:center;gap:6px;text-align:center;">
+                                                <span style="flex:none;">Fauna</span>
+                                            </a>
+                                            <a class="menu-item si-link si-link--l2" href="https://maintenance-host-report-phi.vercel.app/" target="_blank" rel="noopener noreferrer" style="justify-content:center;gap:6px;text-align:center;">
+                                                <span style="flex:none;">Reportes</span>
+                                                <i class="fas fa-external-link-alt" style="font-size:.62rem;opacity:.55;flex:none;"></i>
                                             </a>
                                         </div>
                                     </div>
@@ -4422,7 +4430,35 @@ FF
                 .bhs-upload-card.ok{border-color:#16a34a;background:#f0fdf4;}
                 .bhs-upload-card.loading{border-color:#f59e0b;background:#fffbeb;}
                 .bhs-stat{font-size:1.6rem;font-weight:700;line-height:1;}
-                .bhs-tab-btn.active{background:#1e3a5f;color:#fff;}
+
+                /* ── Pestañas BHS — diseño moderno ─────────────────────── */
+                .bhs-tabs-bar{background:linear-gradient(180deg,#f8fafc 0%,#f1f5f9 100%);border-bottom:1px solid #e2e8f0;padding:10px 14px !important;gap:8px !important;border-radius:14px 14px 0 0;}
+                .bhs-tab-btn{position:relative;display:inline-flex;align-items:center;gap:8px;padding:8px 18px !important;border-radius:999px !important;border:1px solid transparent !important;background:#fff;color:#475569;font-weight:600;font-size:.82rem;letter-spacing:.01em;box-shadow:0 1px 2px rgba(15,23,42,.04),0 0 0 1px rgba(15,23,42,.05);transition:all .25s cubic-bezier(.4,0,.2,1);overflow:hidden;}
+                .bhs-tab-btn::before{content:"";position:absolute;inset:0;background:linear-gradient(135deg,rgba(99,102,241,0) 0%,rgba(99,102,241,0) 100%);opacity:0;transition:opacity .25s ease;border-radius:inherit;pointer-events:none;}
+                .bhs-tab-btn i{font-size:.85rem;transition:transform .25s ease;}
+                .bhs-tab-btn:hover{transform:translateY(-1px);box-shadow:0 4px 10px rgba(15,23,42,.08),0 0 0 1px rgba(15,23,42,.06);color:#1e293b;background:#fff;}
+                .bhs-tab-btn:hover i{transform:scale(1.1);}
+                .bhs-tab-btn:focus{outline:none;box-shadow:0 0 0 3px rgba(99,102,241,.25),0 1px 2px rgba(15,23,42,.04);}
+
+                /* Estado activo: gradiente + sombra de color por tipo */
+                .bhs-tab-btn.active{color:#fff !important;border-color:transparent !important;transform:translateY(-1px);}
+                .bhs-tab-btn.active i{color:#fff;}
+                /* Llegadas (azul) */
+                .bhs-tab-btn[onclick*="'arr'"].active{background:linear-gradient(135deg,#3b82f6 0%,#2563eb 100%) !important;box-shadow:0 6px 16px rgba(37,99,235,.35),0 1px 3px rgba(37,99,235,.2);}
+                .bhs-tab-btn[onclick*="'arr'"]:not(.active) i{color:#3b82f6;}
+                /* Salidas (naranja) */
+                .bhs-tab-btn[onclick*="'dep'"].active{background:linear-gradient(135deg,#fb923c 0%,#ea580c 100%) !important;box-shadow:0 6px 16px rgba(234,88,12,.35),0 1px 3px rgba(234,88,12,.2);}
+                .bhs-tab-btn[onclick*="'dep'"]:not(.active) i{color:#ea580c;}
+                /* Sin Vuelo (verde) */
+                .bhs-tab-btn[onclick*="'bwf'"].active{background:linear-gradient(135deg,#22c55e 0%,#16a34a 100%) !important;box-shadow:0 6px 16px rgba(22,163,74,.35),0 1px 3px rgba(22,163,74,.2);}
+                .bhs-tab-btn[onclick*="'bwf'"]:not(.active) i{color:#16a34a;}
+
+                /* Indicador animado debajo del activo */
+                .bhs-tab-btn.active::after{content:"";position:absolute;left:50%;bottom:-12px;width:24px;height:3px;border-radius:2px 2px 0 0;background:currentColor;opacity:.85;transform:translateX(-50%);animation:bhsTabSlide .3s cubic-bezier(.4,0,.2,1);}
+                @keyframes bhsTabSlide{from{width:0;opacity:0;}to{width:24px;opacity:.85;}}
+
+                /* Badge de fecha cargada */
+                #bhs-loaded-date{background:linear-gradient(135deg,#eef2ff 0%,#e0e7ff 100%) !important;color:#4338ca !important;border:1px solid #c7d2fe;padding:6px 12px !important;border-radius:999px;font-weight:600;letter-spacing:.02em;}
                 </style>
 
                 <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
@@ -4538,11 +4574,11 @@ FF
 
                 <!-- Tabs de resultados -->
                 <div class="card border-0 shadow-sm">
-                    <div class="card-header bg-white border-bottom d-flex flex-wrap gap-2 py-2" style="border-color:#e2e8f0;">
-                        <button class="btn btn-sm bhs-tab-btn active" onclick="bhsShowTab('arr',this)"><i class="fas fa-plane-arrival me-1"></i>Llegadas</button>
-                        <button class="btn btn-sm bhs-tab-btn btn-outline-secondary" onclick="bhsShowTab('dep',this)"><i class="fas fa-plane-departure me-1"></i>Salidas</button>
-                        <button class="btn btn-sm bhs-tab-btn btn-outline-secondary" onclick="bhsShowTab('bwf',this)"><i class="fas fa-tag me-1"></i>Sin Vuelo</button>
-                        <span id="bhs-loaded-date" class="badge bg-light text-secondary ms-auto align-self-center" style="font-size:.75rem;"></span>
+                    <div class="card-header bhs-tabs-bar bg-white d-flex flex-wrap gap-2 py-2">
+                        <button class="btn btn-sm bhs-tab-btn active" onclick="bhsShowTab('arr',this)"><i class="fas fa-plane-arrival"></i>Llegadas</button>
+                        <button class="btn btn-sm bhs-tab-btn" onclick="bhsShowTab('dep',this)"><i class="fas fa-plane-departure"></i>Salidas</button>
+                        <button class="btn btn-sm bhs-tab-btn" onclick="bhsShowTab('bwf',this)"><i class="fas fa-tag"></i>Sin Vuelo</button>
+                        <span id="bhs-loaded-date" class="badge ms-auto align-self-center" style="font-size:.75rem;"></span>
                     </div>
 
                     <!-- TAB ARRIVALS -->
@@ -4688,8 +4724,8 @@ FF
                                 <div class="col-12 col-md-5">
                                     <div class="card border-0" style="border-radius:14px;box-shadow:0 2px 10px rgba(0,0,0,.07);padding:20px;">
                                         <div style="font-size:.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#94a3b8;margin-bottom:12px;">Proporción por aerolínea</div>
-                                        <div style="position:relative;max-width:260px;margin:0 auto;">
-                                            <canvas id="bhs-chart-donut" height="260"></canvas>
+                                        <div style="position:relative;width:260px;height:260px;margin:0 auto;">
+                                            <canvas id="bhs-chart-donut"></canvas>
                                             <div id="bhs-donut-center" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none;"></div>
                                         </div>
                                         <div id="bhs-donut-legend" style="margin-top:12px;"></div>
@@ -4818,10 +4854,8 @@ FF
                     });
                     document.querySelectorAll('.bhs-tab-btn').forEach(function(b){
                         b.classList.remove('active');
-                        b.classList.add('btn-outline-secondary');
-                        b.classList.remove('btn-secondary');
                     });
-                    if(btn){btn.classList.add('active');btn.classList.remove('btn-outline-secondary');}
+                    if(btn){ btn.classList.add('active'); }
                 };
 
                 // ── drag & drop ───────────────────────────────────────────────
@@ -5572,6 +5606,8 @@ FF
                                 type:'doughnut',
                                 data:{labels:labels,datasets:[{data:vals,backgroundColor:colors,borderWidth:2,borderColor:'#fff',hoverBorderColor:'#fff',hoverOffset:6}]},
                                 options:{
+                                    responsive:true,
+                                    maintainAspectRatio:false,
                                     cutout:'68%',
                                     plugins:{
                                         legend:{display:false},
@@ -5670,10 +5706,55 @@ FF
                     }).join('');
                 }
 
-                // ── Auto-init with today's date ───────────────────────────────
+                // ── Auto-init: cargar la fecha más reciente con datos ─────────
+                function bhsAutoLoadLatest(retries){
+                    retries = (retries==null) ? 30 : retries;
+                    var client = window.supabaseClient;
+                    var df = document.getElementById('bhs-date-filter');
+                    if(!df) return;
+                    if(!client){
+                        if(retries>0) setTimeout(function(){ bhsAutoLoadLatest(retries-1); }, 500);
+                        return;
+                    }
+                    Promise.all([
+                        client.from('bhs_arrivals').select('fecha').order('fecha',{ascending:false}).limit(1),
+                        client.from('bhs_departures').select('fecha').order('fecha',{ascending:false}).limit(1),
+                        client.from('bhs_bags_without_flight').select('fecha').order('fecha',{ascending:false}).limit(1)
+                    ]).then(function(res){
+                        var dates = res
+                            .map(function(r){ return (r && r.data && r.data[0]) ? r.data[0].fecha : null; })
+                            .filter(Boolean)
+                            .sort()
+                            .reverse();
+                        var latest = dates[0];
+                        if(!latest){
+                            if(!df.value) df.value = today();
+                            return;
+                        }
+                        df.value = latest;
+                        bhsLoadFromDB(latest);
+                    }).catch(function(err){
+                        console.warn('[BHS] auto-load latest failed', err);
+                        if(!df.value) df.value = today();
+                    });
+                }
+
                 document.addEventListener('DOMContentLoaded',function(){
                     var df=document.getElementById('bhs-date-filter');
-                    if(df) df.value=today();
+                    if(df && !df.value) df.value=today();
+                    bhsAutoLoadLatest();
+
+                    // Re-cargar al entrar a la sección BHS (por si el cliente Supabase
+                    // tarda más que DOMContentLoaded o si hay datos nuevos).
+                    var origShow = window.showSection;
+                    if(typeof origShow === 'function' && !origShow.__bhsAutoLatestPatched){
+                        window.showSection = function(id){
+                            var ret = origShow.apply(this, arguments);
+                            if(id === 'bhs') bhsAutoLoadLatest();
+                            return ret;
+                        };
+                        window.showSection.__bhsAutoLatestPatched = true;
+                    }
                 });
 
                 })();
@@ -19213,7 +19294,14 @@ FF
                                                 class="fas fa-arrow-left me-2"></i>Regresar al menú GSO</button>
                                     </div>
                                     <div class="text-center mb-3">
-                                        <h3 class="fw-bold mb-0"><i class="fas fa-dove me-2"></i>Impactos de Ave</h3>
+                                        <h3 class="fw-bold mb-1"><i class="fas fa-dove me-2"></i>Impactos de Ave
+                                            <span id="fauna-impactos-year-label"></span>
+                                        </h3>
+                                        <div class="btn-group btn-group-sm fauna-rescate-year-switch"
+                                            id="fauna-impactos-year-switch" role="group"
+                                            aria-label="Selecciona año">
+                                            <!-- botones dinámicos -->
+                                        </div>
                                     </div>
                                     <div class="card">
                                         <div
@@ -19230,7 +19318,7 @@ FF
                                                     <input type="date" id="fauna-date-to"
                                                         class="form-control form-control-sm" aria-label="Fecha fin" />
                                                 </div>
-                                                <div class="chip">
+                                                <div class="chip" style="display:none;">
                                                     <label class="me-1" for="fauna-year"><i
                                                             class="fas fa-calendar-alt me-1"></i>Año</label>
                                                     <select id="fauna-year" class="form-select form-select-sm"
@@ -19475,15 +19563,10 @@ FF
                                         <div class="card-body">
                                             <div
                                                 class="fauna-rescate-badges d-flex flex-wrap align-items-center gap-3 mb-4">
-                                                <span class="fauna-rescate-metric metric-total"
-                                                    id="fauna-rescate-total-badge" role="status" aria-live="polite">
-                                                    <span class="fauna-rescate-label">Total rescates</span>
-                                                    <span class="fauna-rescate-value">0</span>
-                                                </span>
                                                 <span class="fauna-rescate-metric metric-individuals"
                                                     id="fauna-rescate-individuals-badge" role="status"
                                                     aria-live="polite">
-                                                    <span class="fauna-rescate-label">Individuos atendidos</span>
+                                                    <span class="fauna-rescate-label">Total de rescates</span>
                                                     <span class="fauna-rescate-value">0</span>
                                                 </span>
                                                 <span class="badge bg-info-subtle text-info fw-semibold d-none"

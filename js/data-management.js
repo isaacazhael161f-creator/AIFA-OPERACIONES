@@ -67,13 +67,13 @@
                     ]
                 },
                 {
-                    name: 'category', label: 'Categor�a', type: 'select', options: [
+                    name: 'category', label: 'Categoría', type: 'select', options: [
                         { value: 'Pasajeros', label: 'Pasajeros' },
                         { value: 'Operaciones', label: 'Operaciones' },
                         { value: 'Carga', label: 'Carga' }
                     ]
                 },
-                { name: 'metric', label: 'M�trica', type: 'text' },
+                { name: 'metric', label: 'Métrica', type: 'text' },
                 { name: 'value', label: 'Valor', type: 'number' }
             ],
             daily_operations: [
@@ -125,9 +125,9 @@
                         { value: '10', label: 'Octubre' }, { value: '11', label: 'Noviembre' }, { value: '12', label: 'Diciembre' }
                     ]
                 },
-                { name: 'airline', label: 'Aerol�nea', type: 'text' },
+                { name: 'airline', label: 'Aerolínea', type: 'text' },
                 {
-                    name: 'category', label: 'Categor�a', type: 'select', options: [
+                    name: 'category', label: 'Categoría', type: 'select', options: [
                         { value: 'Pasajeros', label: 'Pasajeros' },
                         { value: 'Carga', label: 'Carga' }
                     ]
@@ -139,14 +139,14 @@
             ],
             flight_itinerary: [
                 { name: 'flight_number', label: 'No. Vuelo', type: 'text' },
-                { name: 'airline', label: 'Aerol�nea', type: 'text' },
+                { name: 'airline', label: 'Aerolínea', type: 'text' },
                 { name: 'origin_destination', label: 'Origen/Destino', type: 'text' },
                 { name: 'arrival_date', label: 'Fecha', type: 'date' },
                 { name: 'arrival_time', label: 'Hora', type: 'time' },
                 {
                     name: 'status', label: 'Estado', type: 'select', options: [
                         { value: 'Programado', label: 'Programado' },
-                        { value: 'Aterriz�', label: 'Aterriz�' },
+                        { value: 'Aterrizó', label: 'Aterrizó' },
                         { value: 'Demorado', label: 'Demorado' },
                         { value: 'Cancelado', label: 'Cancelado' }
                     ]
@@ -157,26 +157,26 @@
             wildlife_strikes: [
                 { name: 'date', label: 'Fecha del Evento', type: 'date' },
                 { name: 'time', label: 'Hora del Evento', type: 'time' },
-                { name: 'location', label: 'Ubicaci�n General', type: 'text', placeholder: 'Ej. Aproximaci�n Pista 04C' },
+                { name: 'location', label: 'Ubicación General', type: 'text', placeholder: 'Ej. Aproximación Pista 04C' },
                 { name: 'impact_zone', label: 'Zona de Impacto (Aeronave)', type: 'text', placeholder: 'Ej. Radomo, Motor 1, Ala derecha' },
-                { name: 'operation_phase', label: 'Fase de la Operaci�n', type: 'text', placeholder: 'Ej. Aterrizaje, Despegue, Rodaje' },
-                { name: 'airline', label: 'Aerol�nea', type: 'text' },
+                { name: 'operation_phase', label: 'Fase de la Operación', type: 'text', placeholder: 'Ej. Aterrizaje, Despegue, Rodaje' },
+                { name: 'airline', label: 'Aerolínea', type: 'text' },
                 { name: 'aircraft', label: 'Tipo de Aeronave', type: 'text', placeholder: 'Ej. B737-800' },
-                { name: 'registration', label: 'Matr�cula', type: 'text' },
+                { name: 'registration', label: 'Matrícula', type: 'text' },
                 { name: 'impact_zone_remains', label: 'Zona de Hallazgo de Restos', type: 'text', placeholder: 'Ej. Pista 04C cerca de calle Bravo' },
                 { name: 'remains_count', label: 'Cantidad de Restos', type: 'number' },
                 {
-                    name: 'size', label: 'TamAño de la Fauna', type: 'select', options: [
-                        { value: 'Peque�o', label: 'Peque�o' },
+                    name: 'size', label: 'Tamaño de la Fauna', type: 'select', options: [
+                        { value: 'Pequeño', label: 'Pequeño' },
                         { value: 'Mediano', label: 'Mediano' },
                         { value: 'Grande', label: 'Grande' }
                     ]
                 },
-                { name: 'species', label: 'Especie (Cient�fico)', type: 'text', placeholder: 'Ej. Quiscalus mexicanus' },
-                { name: 'common_name', label: 'Nombre Com�n', type: 'text', placeholder: 'Ej. Zanate' },
+                { name: 'species', label: 'Especie (Científico)', type: 'text', placeholder: 'Ej. Quiscalus mexicanus' },
+                { name: 'common_name', label: 'Nombre Común', type: 'text', placeholder: 'Ej. Zanate' },
                 { name: 'reporter', label: 'Personal que reporta', type: 'text' },
-                { name: 'proactive_measures', label: 'Medidas Proactivas Previas', type: 'textarea', placeholder: 'Descripci�n de medidas tomadas antes del evento' },
-                { name: 'weather_conditions', label: 'Condiciones Meteorol�gicas', type: 'text', placeholder: 'Ej. Nublado, Lluvia ligera' },
+                { name: 'proactive_measures', label: 'Medidas Proactivas Previas', type: 'textarea', placeholder: 'Descripción de medidas tomadas antes del evento' },
+                { name: 'weather_conditions', label: 'Condiciones Meteorológicas', type: 'text', placeholder: 'Ej. Nublado, Lluvia ligera' },
                 { name: 'measure_results', label: 'Resultados de las Medidas', type: 'textarea' }
             ],
             rescued_wildlife: [
@@ -191,25 +191,25 @@
                 },
                 { name: 'time', label: 'Hora', type: 'time' },
                 { name: 'capture_number', label: 'No. Captura', type: 'text', placeholder: 'Ej. GSO-2025-001' },
-                { name: 'common_name', label: 'Nombre Com�n', type: 'text', placeholder: 'Ej. Tlacuache' },
-                { name: 'scientific_name', label: 'Nombre Cient�fico', type: 'text', placeholder: 'Ej. Didelphis marsupialis' },
+                { name: 'common_name', label: 'Nombre Común', type: 'text', placeholder: 'Ej. Tlacuache' },
+                { name: 'scientific_name', label: 'Nombre Científico', type: 'text', placeholder: 'Ej. Didelphis marsupialis' },
                 { 
                     name: 'class', label: 'Clase', type: 'select', 
                     options: [
                         { value: 'Aves', label: 'Aves' },
-                        { value: 'Mam�feros', label: 'Mam�feros' },
+                        { value: 'Mamíferos', label: 'Mamíferos' },
                         { value: 'Reptiles', label: 'Reptiles' },
                         { value: 'Anfibios', label: 'Anfibios' },
                         { value: 'Insectos', label: 'Insectos' }
                     ]
                 },
                 { name: 'quantity', label: 'No. Individuos', type: 'number' },
-                { name: 'capture_method', label: 'M�todo de Captura', type: 'text', placeholder: 'Ej. Trampa Tomahawk, Manual, Red' },
+                { name: 'capture_method', label: 'Método de Captura', type: 'text', placeholder: 'Ej. Trampa Tomahawk, Manual, Red' },
                 { name: 'quadrant', label: 'Cuadrante', type: 'text', placeholder: 'Ej. 14A' },
                 { 
-                    name: 'final_disposition', label: 'Disposici�n Final', type: 'select',
+                    name: 'final_disposition', label: 'Disposición Final', type: 'select',
                     options: [
-                        { value: 'Liberaci�n', label: 'Liberaci�n' },
+                        { value: 'Liberación', label: 'Liberación' },
                         { value: 'Traslado', label: 'Traslado' },
                         { value: 'Eutanasia', label: 'Eutanasia' },
                         { value: 'Muerto', label: 'Encontrado Muerto' }
@@ -226,11 +226,11 @@
                         { value: 'Octubre', label: 'Octubre' }, { value: 'Noviembre', label: 'Noviembre' }, { value: 'Diciembre', label: 'Diciembre' }
                     ]
                 },
-                { name: 'aifa_personnel', label: 'Personal AIFA', type: 'number', placeholder: 'Ej. 15', help: 'N�mero de atenciones a personal militar o civil del AIFA' },
-                { name: 'other_companies', label: 'Otras Empresas', type: 'number', placeholder: 'Ej. 8', help: 'Atenciones a personal de aerol�neas, comercios, etc.' },
+                { name: 'aifa_personnel', label: 'Personal AIFA', type: 'number', placeholder: 'Ej. 15', help: 'Número de atenciones a personal militar o civil del AIFA' },
+                { name: 'other_companies', label: 'Otras Empresas', type: 'number', placeholder: 'Ej. 8', help: 'Atenciones a personal de aerolíneas, comercios, etc.' },
                 { name: 'passengers', label: 'Pasajeros', type: 'number', placeholder: 'Ej. 45', help: 'Atenciones a usuarios/viajeros del aeropuerto' },
-                { name: 'visitors', label: 'Visitantes', type: 'number', placeholder: 'Ej. 3', help: 'Atenciones a p�blico general o visitantes externos' },
-                { name: 'total', label: 'Total', type: 'number', readonly: true, help: 'Calculado autom�ticamente: Personal + Otros + Pasajeros + Visitantes' } 
+                { name: 'visitors', label: 'Visitantes', type: 'number', placeholder: 'Ej. 3', help: 'Atenciones a público general o visitantes externos' },
+                { name: 'total', label: 'Total', type: 'number', readonly: true, help: 'Calculado automáticamente: Personal + Otros + Pasajeros + Visitantes' } 
             ],
             medical_types: [
                 { name: 'year', label: 'Año', type: 'number' },
@@ -242,9 +242,9 @@
                         { value: 'Octubre', label: 'Octubre' }, { value: 'Noviembre', label: 'Noviembre' }, { value: 'Diciembre', label: 'Diciembre' }
                     ]
                 },
-                { name: 'traslado', label: 'Traslado', type: 'number', placeholder: 'Ej. 5', help: 'N�mero de traslados a hospitales' },
+                { name: 'traslado', label: 'Traslado', type: 'number', placeholder: 'Ej. 5', help: 'Número de traslados a hospitales' },
                 { name: 'ambulatorio', label: 'Ambulatorio', type: 'number', placeholder: 'Ej. 12', help: 'Atenciones en consultorio o sitio' },
-                { name: 'total', label: 'Total', type: 'number', readonly: true, help: 'Calculado autom�ticamente: Traslado + Ambulatorio' }
+                { name: 'total', label: 'Total', type: 'number', readonly: true, help: 'Calculado automáticamente: Traslado + Ambulatorio' }
             ],
             medical_directory: [
                 { name: 'asunto', label: 'Asunto', type: 'text' },
@@ -264,60 +264,60 @@
                 },
                 { name: 'cause', label: 'Causa', type: 'text' },
                 { name: 'count', label: 'Cantidad', type: 'number' },
-                { name: 'description', label: 'Descripci�n', type: 'textarea' },
+                { name: 'description', label: 'Descripción', type: 'textarea' },
                 { name: 'observations', label: 'Observaciones', type: 'textarea' }
             ],
             weekly_frequencies: [
                 { name: 'week_label', label: 'Etiqueta Semana (ej. 08-14 Dic 2025)', type: 'text' },
-                { name: 'valid_from', label: 'V�lido Desde', type: 'date' },
-                { name: 'valid_to', label: 'V�lido Hasta', type: 'date' },
+                { name: 'valid_from', label: 'Válido Desde', type: 'date' },
+                { name: 'valid_to', label: 'Válido Hasta', type: 'date' },
                 { name: 'route_id', label: 'ID Ruta', type: 'number' },
                 { name: 'city', label: 'Ciudad', type: 'text' },
                 { name: 'state', label: 'Estado', type: 'text' },
-                { name: 'iata', label: 'C�digo IATA', type: 'text' },
-                { name: 'airline', label: 'Aerol�nea', type: 'text' },
+                { name: 'iata', label: 'Código IATA', type: 'text' },
+                { name: 'airline', label: 'Aerolínea', type: 'text' },
                 { name: 'monday', label: 'Lunes', type: 'number' },
                 { name: 'tuesday', label: 'Martes', type: 'number' },
-                { name: 'wednesday', label: 'Mi�rcoles', type: 'number' },
+                { name: 'wednesday', label: 'Miércoles', type: 'number' },
                 { name: 'thursday', label: 'Jueves', type: 'number' },
                 { name: 'friday', label: 'Viernes', type: 'number' },
-                { name: 'saturday', label: 'S�bado', type: 'number' },
+                { name: 'saturday', label: 'Sábado', type: 'number' },
                 { name: 'sunday', label: 'Domingo', type: 'number' },
                 { name: 'weekly_total', label: 'Total Semanal', type: 'number', readonly: true }
             ],
             weekly_frequencies_int: [
                 { name: 'week_label', label: 'Etiqueta Semana (ej. 08-14 Dic 2025)', type: 'text' },
-                { name: 'valid_from', label: 'V�lido Desde', type: 'date' },
-                { name: 'valid_to', label: 'V�lido Hasta', type: 'date' },
+                { name: 'valid_from', label: 'Válido Desde', type: 'date' },
+                { name: 'valid_to', label: 'Válido Hasta', type: 'date' },
                 { name: 'route_id', label: 'ID Ruta', type: 'number' },
-                { name: 'city', label: 'Ciudad / Pa�s', type: 'text' },
-                { name: 'state', label: 'Regi�n', type: 'text' },
-                { name: 'iata', label: 'C�digo IATA', type: 'text' },
-                { name: 'airline', label: 'Aerol�nea', type: 'text' },
+                { name: 'city', label: 'Ciudad / País', type: 'text' },
+                { name: 'state', label: 'Región', type: 'text' },
+                { name: 'iata', label: 'Código IATA', type: 'text' },
+                { name: 'airline', label: 'Aerolínea', type: 'text' },
                 { name: 'monday', label: 'Lunes', type: 'number' },
                 { name: 'tuesday', label: 'Martes', type: 'number' },
-                { name: 'wednesday', label: 'Mi�rcoles', type: 'number' },
+                { name: 'wednesday', label: 'Miércoles', type: 'number' },
                 { name: 'thursday', label: 'Jueves', type: 'number' },
                 { name: 'friday', label: 'Viernes', type: 'number' },
-                { name: 'saturday', label: 'S�bado', type: 'number' },
+                { name: 'saturday', label: 'Sábado', type: 'number' },
                 { name: 'sunday', label: 'Domingo', type: 'number' },
                 { name: 'weekly_total', label: 'Total Semanal', type: 'number', readonly: true }
             ],
             weekly_frequencies_cargo: [
                 { name: 'week_label', label: 'Etiqueta Semana (ej. 08-14 Dic 2025)', type: 'text' },
-                { name: 'valid_from', label: 'V�lido Desde', type: 'date' },
-                { name: 'valid_to', label: 'V�lido Hasta', type: 'date' },
+                { name: 'valid_from', label: 'Válido Desde', type: 'date' },
+                { name: 'valid_to', label: 'Válido Hasta', type: 'date' },
                 { name: 'route_id', label: 'ID Ruta', type: 'number' },
-                { name: 'city', label: 'Ciudad / Pa�s', type: 'text' },
-                { name: 'state', label: 'Regi�n', type: 'text' },
-                { name: 'iata', label: 'C�digo IATA', type: 'text' },
-                { name: 'airline', label: 'Aerol�nea', type: 'text' },
+                { name: 'city', label: 'Ciudad / País', type: 'text' },
+                { name: 'state', label: 'Región', type: 'text' },
+                { name: 'iata', label: 'Código IATA', type: 'text' },
+                { name: 'airline', label: 'Aerolínea', type: 'text' },
                 { name: 'monday', label: 'Lunes', type: 'number' },
                 { name: 'tuesday', label: 'Martes', type: 'number' },
-                { name: 'wednesday', label: 'Mi�rcoles', type: 'number' },
+                { name: 'wednesday', label: 'Miércoles', type: 'number' },
                 { name: 'thursday', label: 'Jueves', type: 'number' },
                 { name: 'friday', label: 'Viernes', type: 'number' },
-                { name: 'saturday', label: 'S�bado', type: 'number' },
+                { name: 'saturday', label: 'Sábado', type: 'number' },
                 { name: 'sunday', label: 'Domingo', type: 'number' },
                 { name: 'weekly_total', label: 'Total Semanal', type: 'number', readonly: true }
             ],
@@ -331,9 +331,9 @@
                         { value: '10', label: 'Octubre' }, { value: '11', label: 'Noviembre' }, { value: '12', label: 'Diciembre' }
                     ]
                 },
-                { name: 'airline', label: 'Aerol�nea', type: 'select', options: [] }, // Populated dynamically
+                { name: 'airline', label: 'Aerolínea', type: 'select', options: [] }, // Populated dynamically
                 {
-                    name: 'category', label: 'Categor�a', type: 'select', options: [
+                    name: 'category', label: 'Categoría', type: 'select', options: [
                         { value: 'Pasajeros', label: 'Pasajeros' },
                         { value: 'Carga', label: 'Carga' }
                     ]
@@ -345,14 +345,14 @@
             ],
             flight_itinerary: [
                 { name: 'flight_number', label: 'No. Vuelo', type: 'text' },
-                { name: 'airline', label: 'Aerol�nea', type: 'text' },
+                { name: 'airline', label: 'Aerolínea', type: 'text' },
                 { name: 'origin_destination', label: 'Origen/Destino', type: 'text' },
                 { name: 'arrival_date', label: 'Fecha', type: 'date' },
                 { name: 'arrival_time', label: 'Hora', type: 'time' },
                 {
                     name: 'status', label: 'Estado', type: 'select', options: [
                         { value: 'Programado', label: 'Programado' },
-                        { value: 'Aterriz�', label: 'Aterriz�' },
+                        { value: 'Aterrizó', label: 'Aterrizó' },
                         { value: 'Demorado', label: 'Demorado' },
                         { value: 'Cancelado', label: 'Cancelado' }
                     ]
@@ -365,17 +365,17 @@
                 { name: 'time', label: 'Hora', type: 'time' },
                 { name: 'capture_number', label: 'No. Captura', type: 'number' },
                 { name: 'class', label: 'Clase', type: 'text' },
-                { name: 'common_name', label: 'Nombre com�n', type: 'text' },
-                { name: 'scientific_name', label: 'Nombre cient�fico', type: 'text' },
+                { name: 'common_name', label: 'Nombre común', type: 'text' },
+                { name: 'scientific_name', label: 'Nombre científico', type: 'text' },
                 { name: 'quantity', label: 'No. Individuos', type: 'number' },
-                { name: 'capture_method', label: 'M�todo de captura', type: 'text' },
+                { name: 'capture_method', label: 'Método de captura', type: 'text' },
                 { name: 'quadrant', label: 'Cuadrante', type: 'text' },
-                { name: 'final_disposition', label: 'Disposici�n final', type: 'text' }
+                { name: 'final_disposition', label: 'Disposición final', type: 'text' }
             ],
             daily_flights_ops: [
                 { name: 'fecha', label: 'Fecha', type: 'date' },
                 { name: 'seq_no', label: 'No.', type: 'number' },
-                { name: 'aerolinea', label: 'Aerol�nea', type: 'text' },
+                { name: 'aerolinea', label: 'Aerolínea', type: 'text' },
                 { name: 'vuelo_llegada', label: 'Vuelo Arr', type: 'text' },
                 { name: 'origen', label: 'Origen', type: 'text' },
                 { name: 'fecha_hora_prog_llegada', label: 'H. Prog Arr', type: 'text' },
@@ -386,17 +386,17 @@
                 { name: 'fecha_hora_prog_salida', label: 'H. Prog Dep', type: 'text' },
                 { name: 'fecha_hora_real_salida', label: 'H. Real Dep', type: 'text' },
                 { name: 'pasajeros_salida', label: 'Pax Dep', type: 'number' },
-                { name: 'matricula', label: 'Matr�cula', type: 'text' }
+                { name: 'matricula', label: 'Matrícula', type: 'text' }
             ],
             library_categories: [
-                { name: 'title', label: 'T�tulo del Cuadro', type: 'text' },
-                { name: 'description', label: 'Descripci�n', type: 'textarea' },
+                { name: 'title', label: 'Título del Cuadro', type: 'text' },
+                { name: 'description', label: 'Descripción', type: 'textarea' },
                 { name: 'icon', label: 'Icono (Visual)', type: 'icon', placeholder: 'fas fa-book' },
                 { name: 'order_index', label: 'Orden', type: 'number' }
             ],
             library_items: [
-                { name: 'category_id', label: 'Cuadro / Categor�a', type: 'select', options: [] },
-                { name: 'title', label: 'T�tulo del �tem', type: 'text' },
+                { name: 'category_id', label: 'Cuadro / Categoría', type: 'select', options: [] },
+                { name: 'title', label: 'Título del ítem', type: 'text' },
                 {
                     name: 'type', label: 'Tipo', type: 'select', options: [
                         { value: 'pdf', label: 'Archivo PDF' },
@@ -412,16 +412,16 @@
                 { name: 'order_index', label: 'Orden', type: 'number' }
             ],
             system_alerts: [
-                { name: 'title', label: 'T�tulo del Aviso', type: 'text', placeholder: 'Ej. Cierre de Pista' },
+                { name: 'title', label: 'Título del Aviso', type: 'text', placeholder: 'Ej. Cierre de Pista' },
                 { name: 'message', label: 'Mensaje Detallado', type: 'textarea', placeholder: 'Detalles del aviso o alerta...' },
                 {
-                    name: 'level', label: 'Nivel (Sem�foro)', type: 'select', options: [
+                    name: 'level', label: 'Nivel (Semáforo)', type: 'select', options: [
                         { value: 'info', label: 'Informativo (Verde)' },
-                        { value: 'warning', label: 'Precauci�n (Amarillo)' },
-                        { value: 'critical', label: 'Cr�tico (Rojo)' }
+                        { value: 'warning', label: 'Precaución (Amarillo)' },
+                        { value: 'critical', label: 'Crítico (Rojo)' }
                     ]
                 },
-                { name: 'active', label: 'Activo', type: 'select', options: [{ value: true, label: 'S�' }, { value: false, label: 'No' }] },
+                { name: 'active', label: 'Activo', type: 'select', options: [{ value: true, label: 'Sí' }, { value: false, label: 'No' }] },
                 { name: 'expires_at', label: 'Expira (Opcional)', type: 'date' }
             ],
         };
@@ -1471,7 +1471,7 @@
                     const input = document.createElement('input');
                     input.type = 'text';
                     input.className = 'flights-col-filter w-100';
-                    input.placeholder = headerText ? 'Filtrar�' : '';
+                    input.placeholder = headerText ? 'Filtrar…' : '';
                     input.title = headerText ? `Filtrar por ${headerText}` : '';
 
                     input.addEventListener('input', function () {
@@ -1481,7 +1481,7 @@
 
                     td.appendChild(input);
                 } else {
-                    td.innerHTML = '<span class="text-muted small">�</span>';
+                    td.innerHTML = '<span class="text-muted small">—</span>';
                 }
 
                 filterRow.appendChild(td);
@@ -2479,11 +2479,11 @@ const loadingMsg = document.createElement('div'); loadingMsg.id = 'deleting-sing
         };
 
         // Ask for the year (default current)
-        const yearVal = prompt('�A qu� Año corresponde el CSV? (ejemplo: 2026)', new Date().getFullYear());
+        const yearVal = prompt('¿A qué Año corresponde el CSV? (ejemplo: 2026)', new Date().getFullYear());
         if (!yearVal) return;
         const year = parseInt(yearVal, 10);
         if (isNaN(year) || year < 2020 || year > 2100) {
-            alert('Año inv�lido.');
+            alert('Año inválido.');
             return;
         }
 
@@ -2496,9 +2496,9 @@ const loadingMsg = document.createElement('div'); loadingMsg.id = 'deleting-sing
 
             const text = await file.text();
             const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').filter(l => l.trim());
-            if (lines.length < 2) { alert('El CSV est� vac�o o no tiene datos.'); return; }
+            if (lines.length < 2) { alert('El CSV está vacío o no tiene datos.'); return; }
 
-            // Parse CSV (simple split � assumes no quoted commas in data)
+            // Parse CSV (simple split — assumes no quoted commas in data)
             const parseRow = (line) => line.split(',').map(c => c.trim());
             const headers = parseRow(lines[0]).map(h => h.toLowerCase());
 
@@ -2512,18 +2512,18 @@ const loadingMsg = document.createElement('div'); loadingMsg.id = 'deleting-sing
             };
 
             const colMes       = idx(['mes']);
-            const colAerolinea = idx(['aerolinea', 'aerol�nea', 'airline']);
-            const colCategoria = idx(['categoria', 'categor�a', 'category']);
+            const colAerolinea = idx(['aerolinea', 'aerolínea', 'airline']);
+            const colCategoria = idx(['categoria', 'categoría', 'category']);
             const colATiempo   = idx(['a tiempo', 'on_time', 'tiempo']);
             const colDemora    = idx(['demora', 'delayed']);
             const colCancelado = idx(['cancelado', 'cancelled']);
             const colTotal     = idx(['total_flights', 'total vuelos', 'total']);
-            const colImp       = idx(['imputables a la', 'imputable_airline', 'imp. aerol�nea']);
+            const colImp       = idx(['imputables a la', 'imputable_airline', 'imp. aerolínea']);
             const colCancImp   = idx(['cancelados imputables', 'cancelled_imputable']);
             const colTotImp    = idx(['total imputables', 'total_imputable']);
 
             if (colAerolinea < 0 || colTotal < 0) {
-                alert('No se reconoci� el formato del CSV. Aseg�rese de que tenga columnas: Aerolinea, A tiempo, Demora, Cancelado, Total.');
+                alert('No se reconoció el formato del CSV. Asegúrese de que tenga columnas: Aerolinea, A tiempo, Demora, Cancelado, Total.');
                 return;
             }
 
@@ -2536,7 +2536,7 @@ const loadingMsg = document.createElement('div'); loadingMsg.id = 'deleting-sing
 
                 const mesRaw = colMes >= 0 ? (cells[colMes] || '').toLowerCase() : '';
                 const month = MONTH_MAP[mesRaw] || null;
-                if (!month) { console.warn(`Mes no reconocido: "${mesRaw}" en l�nea ${i + 1}`); continue; }
+                if (!month) { console.warn(`Mes no reconocido: "${mesRaw}" en línea ${i + 1}`); continue; }
 
                 const row = {
                     year,
@@ -2560,7 +2560,7 @@ const loadingMsg = document.createElement('div'); loadingMsg.id = 'deleting-sing
             }
 
             if (rows.length === 0) {
-                alert('No se encontraron filas v�lidas en el CSV.');
+                alert('No se encontraron filas válidas en el CSV.');
                 return;
             }
 
@@ -2568,7 +2568,7 @@ const loadingMsg = document.createElement('div'); loadingMsg.id = 'deleting-sing
             const months = [...new Set(rows.map(r => r.month))];
             const monthNames = ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
             const monthsStr = months.map(m => monthNames[m] || m).join(', ');
-            const confirm1 = confirm(`Se encontraron ${rows.length} filas para ${monthsStr} ${year}.\n${hasImputables ? '? Incluye columnas de imputables.' : '? Sin columnas de imputables.'}\n\n�Desea importar los datos? Los registros existentes para estos meses ser�n reemplazados.`);
+            const confirm1 = confirm(`Se encontraron ${rows.length} filas para ${monthsStr} ${year}.\n${hasImputables ? '? Incluye columnas de imputables.' : '? Sin columnas de imputables.'}\n\n¿Desea importar los datos? Los registros existentes para estos meses serán reemplazados.`);
             if (!confirm1) return;
 
             try {
@@ -3618,33 +3618,33 @@ const loadingMsg = document.createElement('div'); loadingMsg.id = 'deleting-sing
             // Manual mapping for clean international names
             const IATA_LOCATIONS = {
                 'HAV': { city: 'La Habana', country: 'Cuba' },
-                'PUJ': { city: 'Punta Cana', country: 'Rep�blica Dominicana' },
-                'SDQ': { city: 'Santo Domingo', country: 'Rep�blica Dominicana' },
-                'BOG': { city: 'Bogot�', country: 'Colombia' },
+                'PUJ': { city: 'Punta Cana', country: 'República Dominicana' },
+                'SDQ': { city: 'Santo Domingo', country: 'República Dominicana' },
+                'BOG': { city: 'Bogotá', country: 'Colombia' },
                 'CCS': { city: 'Caracas', country: 'Venezuela' },
-                'PTY': { city: 'Ciudad de Panam�', country: 'Panam�' },
+                'PTY': { city: 'Ciudad de Panamá', country: 'Panamá' },
                 'IAH': { city: 'Houston', country: 'Estados Unidos' },
                 'MIA': { city: 'Miami', country: 'Estados Unidos' },
                 'JFK': { city: 'Nueva York', country: 'Estados Unidos' },
                 'ORD': { city: 'Chicago', country: 'Estados Unidos' },
                 'DFW': { city: 'Dallas', country: 'Estados Unidos' },
-                'MAD': { city: 'Madrid', country: 'Espa�a' },
-                'CDG': { city: 'Par�s', country: 'Francia' },
-                'AMS': { city: '�msterdam', country: 'Pa�ses Bajos' },
+                'MAD': { city: 'Madrid', country: 'España' },
+                'CDG': { city: 'París', country: 'Francia' },
+                'AMS': { city: 'Ámsterdam', country: 'Países Bajos' },
                 'LHR': { city: 'Londres', country: 'Reino Unido' },
-                'FRA': { city: 'Fr�ncfort', country: 'Alemania' },
+                'FRA': { city: 'Fráncfort', country: 'Alemania' },
                 'DOH': { city: 'Doha', country: 'Catar' },
-                'ICN': { city: 'Se�l', country: 'Corea del Sur' },
-                'NRT': { city: 'Tokio', country: 'Jap�n' },
+                'ICN': { city: 'Seúl', country: 'Corea del Sur' },
+                'NRT': { city: 'Tokio', country: 'Japón' },
                 'HKG': { city: 'Hong Kong', country: 'China' },
-                'YYZ': { city: 'Toronto', country: 'Canad�' },
-                'YVR': { city: 'Vancouver', country: 'Canad�' },
-                'YUL': { city: 'Montreal', country: 'Canad�' },
-                'LIM': { city: 'Lima', country: 'Per�' },
+                'YYZ': { city: 'Toronto', country: 'Canadá' },
+                'YVR': { city: 'Vancouver', country: 'Canadá' },
+                'YUL': { city: 'Montreal', country: 'Canadá' },
+                'LIM': { city: 'Lima', country: 'Perú' },
                 'SCL': { city: 'Santiago', country: 'Chile' },
                 'EZE': { city: 'Buenos Aires', country: 'Argentina' },
-                'GRU': { city: 'S�o Paulo', country: 'Brasil' },
-                'GIG': { city: 'R�o de Janeiro', country: 'Brasil' },
+                'GRU': { city: 'São Paulo', country: 'Brasil' },
+                'GIG': { city: 'Río de Janeiro', country: 'Brasil' },
                 'MCALLEN': { city: 'McAllen', country: 'Estados Unidos' },
                 'MFE': { city: 'McAllen', country: 'Estados Unidos' }
             };
@@ -4225,8 +4225,8 @@ const loadingMsg = document.createElement('div'); loadingMsg.id = 'deleting-sing
                 const tdLevel = document.createElement('td');
                 let badgeClass = 'bg-info text-dark';
                 let levelLabel = 'Informativo';
-                if (item.level === 'warning') { badgeClass = 'bg-warning text-dark'; levelLabel = 'Precauci�n'; }
-                if (item.level === 'critical') { badgeClass = 'bg-danger text-white'; levelLabel = 'Cr�tico'; }
+                if (item.level === 'warning') { badgeClass = 'bg-warning text-dark'; levelLabel = 'Precaución'; }
+                if (item.level === 'critical') { badgeClass = 'bg-danger text-white'; levelLabel = 'Crítico'; }
                 tdLevel.innerHTML = `<span class="badge ${badgeClass}">${levelLabel}</span>`;
                 tr.appendChild(tdLevel);
 
@@ -4481,8 +4481,8 @@ const loadingMsg = document.createElement('div'); loadingMsg.id = 'deleting-sing
                         btnAdd.className = 'btn btn-sm btn-outline-warning d-block mx-auto mt-2';
                         btnAdd.style.fontSize = '0.7rem';
                         btnAdd.style.padding = '2px 6px';
-                        btnAdd.innerHTML = '<i class="fas fa-plus"></i> Aerol�nea';
-                        btnAdd.title = 'Agregar aerol�nea a este destino de Carga';
+                        btnAdd.innerHTML = '<i class="fas fa-plus"></i> Aerolínea';
+                        btnAdd.title = 'Agregar aerolínea a este destino de Carga';
                         btnAdd.onclick = () => this.addCargoAirlineToDestination(groupItem);
                         tdRoute.appendChild(btnAdd);
 
@@ -4872,7 +4872,7 @@ const loadingMsg = document.createElement('div'); loadingMsg.id = 'deleting-sing
         const selectedLabel = labelSelect ? labelSelect.value : '';
         if (!selectedLabel) return;
 
-        if (!confirm(`�Est�s seguro de eliminar TODOS los registros de Carga de la semana: ${selectedLabel}?`)) return;
+        if (!confirm(`¿Estás seguro de eliminar TODOS los registros de Carga de la semana: ${selectedLabel}?`)) return;
 
         try {
             const { error } = await this.client.from('weekly_frequencies_cargo').delete().eq('week_label', selectedLabel);
@@ -5472,7 +5472,7 @@ window.toggleDmSidebar = toggleDmSidebar;
 document.addEventListener('DOMContentLoaded', () => { setTimeout(() => window.dataManagement.renderPublicAlerts(), 2000); });
 
 /* --------------------------------------------------------------------------
-   M�DULO AEROL�NEAS � gesti�n inline en Gesti�n de Datos
+   MÓDULO AEROLÍNEAS — gestión inline en Gestión de Datos
    Tabla: airlines   Bucket: airline-logos
    -------------------------------------------------------------------------- */
 (function () {
@@ -5648,8 +5648,8 @@ document.addEventListener('DOMContentLoaded', () => { setTimeout(() => window.da
             return `<tr id="al-row-${escA(a.id)}">
                 <td style="vertical-align:middle;padding:.4rem .6rem">${alLogoThumb(a)}</td>
                 <td style="font-weight:600;font-size:.88rem">${esc(a.name)}</td>
-                <td>${codes || '<span class="text-muted small">�</span>'}</td>
-                <td>${alTypeBadges(a) || '<span class="text-muted small">�</span>'}</td>
+                <td>${codes || '<span class="text-muted small">—</span>'}</td>
+                <td>${alTypeBadges(a) || '<span class="text-muted small">—</span>'}</td>
                 <td><span style="display:inline-block;width:14px;height:14px;border-radius:3px;border:1px solid rgba(0,0,0,.15);background:${escA(color)};vertical-align:middle;margin-right:4px"></span><code style="font-size:.72rem">${esc(color)}</code></td>
                 <td>${alStatusPill(a)}</td>
                 <td style="text-align:center;white-space:nowrap">
@@ -5834,12 +5834,12 @@ document.addEventListener('DOMContentLoaded', () => { setTimeout(() => window.da
     // -- delete ----------------------------------------------------------------
     window.alConfirmDelete = async function (id) {
         const a = alAll.find(x => x.id === id);
-        if (!confirm(`�Eliminar "${a ? a.name : id}"? Esta acci�n no se puede deshacer.`)) return;
+        if (!confirm(`¿Eliminar "${a ? a.name : id}"? Esta acción no se puede deshacer.`)) return;
         const client = sb();
         if (a?.logo_filename) await client.storage.from(AL_BUCKET).remove([a.logo_filename]);
         const { error } = await client.from(AL_TABLE).delete().eq('id', id);
         if (error) { alToast(`Error: ${error.message}`, 'danger'); return; }
-        alToast('Aerol�nea eliminada.', 'warning');
+        alToast('Aerolínea eliminada.', 'warning');
         await alLoad();
     };
 
@@ -5857,10 +5857,10 @@ document.addEventListener('DOMContentLoaded', () => { setTimeout(() => window.da
 })();
 
 /* --------------------------------------------------------------------------
-   M�DULO AEROL�NEAS MENSUALES � tabla completa inline-editable
+   MÓDULO AEROLÍNEAS MENSUALES — tabla completa inline-editable
    -------------------------------------------------------------------------- */
 (function () {
-    const AM_TABLE = 'Aerol�neas';
+    const AM_TABLE = 'Aerolíneas';
     const AM_MONTHS = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
     const AM_MON_SHORT = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 
@@ -5892,7 +5892,7 @@ document.addEventListener('DOMContentLoaded', () => { setTimeout(() => window.da
 
         // Header
         thead.innerHTML = '<tr>'
-            + '<th style="min-width:220px;padding:10px 12px;">Aerol�nea</th>'
+            + '<th style="min-width:220px;padding:10px 12px;">Aerolínea</th>'
             + '<th style="min-width:140px;padding:10px 12px;">Tipo de Servicio</th>'
             + AM_MON_SHORT.map(function(m){ return '<th style="min-width:68px;text-align:center;padding:10px 6px;">' + m + '</th>'; }).join('')
             + '<th style="min-width:80px;text-align:center;padding:10px 6px;">Acciones</th>'
@@ -5914,7 +5914,7 @@ document.addEventListener('DOMContentLoaded', () => { setTimeout(() => window.da
             tbody.appendChild(amBuildRow(row));
         });
 
-        if (countEl) countEl.textContent = visible.length + ' aerol�nea(s) mostradas de ' + amAllRows.length + ' en total.';
+        if (countEl) countEl.textContent = visible.length + ' aerolínea(s) mostradas de ' + amAllRows.length + ' en total.';
     }
 
     function amBuildRow(row) {
@@ -5926,14 +5926,14 @@ document.addEventListener('DOMContentLoaded', () => { setTimeout(() => window.da
         tr.dataset.rowkey = rowKey;
         if (isNew) tr.classList.add('table-warning');
 
-        let cells = '<td style="padding:4px 8px;"><input type="text" class="form-control form-control-sm am-cell-nombre" value="' + esc(nombre) + '" placeholder="Nombre aerol�nea" style="min-width:180px;"></td>'
+        let cells = '<td style="padding:4px 8px;"><input type="text" class="form-control form-control-sm am-cell-nombre" value="' + esc(nombre) + '" placeholder="Nombre aerolínea" style="min-width:180px;"></td>'
             + '<td style="padding:4px 8px;"><input type="text" class="form-control form-control-sm am-cell-servicio" value="' + esc(servicio) + '" placeholder="Ej. Regular de Carga" style="min-width:120px;"></td>';
 
         AM_MONTHS.forEach(function(mon) {
             const colKey = mon + '-' + amSelectedYr;
             const v = row[colKey];
             const val = (v !== null && v !== undefined && v !== '') ? v : '';
-            cells += '<td style="padding:4px 4px;"><input type="number" class="form-control form-control-sm text-center am-cell-month" data-col="' + colKey + '" value="' + esc(val) + '" placeholder="�" min="0" step="1" style="min-width:60px;padding:4px 2px;"></td>';
+            cells += '<td style="padding:4px 4px;"><input type="number" class="form-control form-control-sm text-center am-cell-month" data-col="' + colKey + '" value="' + esc(val) + '" placeholder="…" min="0" step="1" style="min-width:60px;padding:4px 2px;"></td>';
         });
 
         cells += '<td style="text-align:center;padding:4px 6px;">'
@@ -5954,7 +5954,7 @@ document.addEventListener('DOMContentLoaded', () => { setTimeout(() => window.da
     // -- Load all data ---------------------------------------------------------
     window.amRefresh = async function () {
         const tbody = document.getElementById('am-tbody');
-        if (tbody) tbody.innerHTML = '<tr><td colspan="16" class="text-center py-4 text-muted"><i class="fas fa-spinner fa-spin me-2"></i>Cargando�</td></tr>';
+        if (tbody) tbody.innerHTML = '<tr><td colspan="16" class="text-center py-4 text-muted"><i class="fas fa-spinner fa-spin me-2"></i>Cargando…</td></tr>';
         const client = sb();
         if (!client) { amToast('Cliente Supabase no disponible.', 'danger'); return; }
         const { data, error } = await client.from(AM_TABLE).select('*').order('AEROLINEA');
@@ -5999,7 +5999,7 @@ document.addEventListener('DOMContentLoaded', () => { setTimeout(() => window.da
 
         const nombre = tr.querySelector('.am-cell-nombre')?.value.trim() || '';
         const servicio = tr.querySelector('.am-cell-servicio')?.value.trim() || '';
-        if (!nombre) { amToast('El nombre de la aerol�nea no puede estar vac�o.', 'warning'); return; }
+        if (!nombre) { amToast('El nombre de la aerolínea no puede estar vacío.', 'warning'); return; }
 
         const updates = { 'AEROLINEA': nombre, 'TIPO DE SERVICIO': servicio };
         tr.querySelectorAll('.am-cell-month').forEach(function(inp) {
@@ -6037,7 +6037,7 @@ document.addEventListener('DOMContentLoaded', () => { setTimeout(() => window.da
             return;
         }
 
-        amToast((isNew ? 'Aerol�nea agregada' : 'Cambios guardados') + ': ' + nombre, 'success');
+        amToast((isNew ? 'Aerolínea agregada' : 'Cambios guardados') + ': ' + nombre, 'success');
         // Reload fresh data
         await amRefresh();
         try { window.aeroDataCache = null; } catch(_) {}
@@ -6058,7 +6058,7 @@ document.addEventListener('DOMContentLoaded', () => { setTimeout(() => window.da
             return;
         }
 
-        if (!confirm('�Eliminar la aerol�nea "' + nombre + '"? Esta acci�n no se puede deshacer.')) return;
+        if (!confirm('¿Eliminar la aerolínea "' + nombre + '"? Esta acción no se puede deshacer.')) return;
 
         const client = sb();
         if (!client) { amToast('Cliente Supabase no disponible.', 'danger'); return; }
@@ -6073,7 +6073,7 @@ document.addEventListener('DOMContentLoaded', () => { setTimeout(() => window.da
         }
 
         if (queryError) { amToast('Error: ' + queryError.message, 'danger'); return; }
-        amToast('Aerol�nea eliminada: ' + nombre, 'warning');
+        amToast('Aerolínea eliminada: ' + nombre, 'warning');
         await amRefresh();
         try { window.aeroDataCache = null; } catch(_) {}
     };
@@ -6088,7 +6088,7 @@ document.addEventListener('DOMContentLoaded', () => { setTimeout(() => window.da
         const client = sb();
         if (!client) { amToast('Cliente Supabase no disponible.', 'danger'); return; }
 
-        if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Guardando�'; }
+        if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Guardando…'; }
 
         let ok = 0, fail = 0;
         for (const tr of rows) {

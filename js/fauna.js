@@ -732,18 +732,46 @@
 
   // Removed Chart.js chart builders; using ECharts above
 
+  function renderImpactosYearSwitch(){
+    const container = document.getElementById('fauna-impactos-year-switch');
+    if (!container) return;
+    const years = Array.isArray(state.impactosYears) ? state.impactosYears : [];
+    const yearSel = document.getElementById('fauna-year');
+    const current = (yearSel && yearSel.value) ? yearSel.value : 'all';
+    const options = ['all'].concat(years);
+    container.innerHTML = options.map(year => {
+      const active = String(current) === String(year);
+      const label = year === 'all' ? 'Todos' : year;
+      const btnClass = active ? 'btn btn-primary active' : 'btn btn-outline-primary';
+      return `<button type="button" class="${btnClass}" data-year="${escapeHtml(year)}">${escapeHtml(label)}</button>`;
+    }).join('');
+  }
+
+  function updateImpactosYearLabel(){
+    const el = document.getElementById('fauna-impactos-year-label');
+    if (!el) return;
+    const yearSel = document.getElementById('fauna-year');
+    const current = (yearSel && yearSel.value) ? yearSel.value : 'all';
+    el.textContent = current === 'all' ? '' : current;
+  }
+
   function populateFilters(){
     const selMonth = document.getElementById('fauna-month');
     if (selMonth){ /* keep predefined months */ }
     // Populate year filter dynamically
     const yearSel = document.getElementById('fauna-year');
+    const years = Array.from(new Set(state.raw.map(r => {
+      const d = parseDMY(r['Fecha']); return d ? String(d.getUTCFullYear()) : null;
+    }).filter(Boolean))).sort();
     if (yearSel) {
-      const years = Array.from(new Set(state.raw.map(r => {
-        const d = parseDMY(r['Fecha']); return d ? String(d.getUTCFullYear()) : null;
-      }).filter(Boolean))).sort();
+      const prev = yearSel.value || 'all';
       yearSel.innerHTML = '<option value="all" selected>Todos</option>' +
         years.map(y => `<option value="${escapeHtml(y)}">${escapeHtml(y)}</option>`).join('');
+      if (prev === 'all' || years.includes(prev)) yearSel.value = prev;
     }
+    state.impactosYears = years;
+    renderImpactosYearSwitch();
+    updateImpactosYearLabel();
     const speciesSel = document.getElementById('fauna-species');
     const sizeSel = document.getElementById('fauna-size');
     const phaseSel = document.getElementById('fauna-phase');
@@ -767,7 +795,22 @@
         renderTable();
     });
 
-    document.getElementById('fauna-year')?.addEventListener('change', applyFilters);
+    document.getElementById('fauna-year')?.addEventListener('change', () => {
+      renderImpactosYearSwitch();
+      updateImpactosYearLabel();
+      applyFilters();
+    });
+    document.getElementById('fauna-impactos-year-switch')?.addEventListener('click', (ev) => {
+      const btn = ev.target.closest('button[data-year]');
+      if (!btn) return;
+      const targetYear = btn.getAttribute('data-year') || 'all';
+      const yearSel = document.getElementById('fauna-year');
+      if (yearSel) {
+        if (yearSel.value === targetYear) return;
+        yearSel.value = targetYear;
+        yearSel.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    });
     document.getElementById('fauna-month')?.addEventListener('change', applyFilters);
     document.getElementById('fauna-date-from')?.addEventListener('change', applyFilters);
     document.getElementById('fauna-date-to')?.addEventListener('change', applyFilters);
@@ -784,6 +827,8 @@
       const sz = document.getElementById('fauna-size'); if (sz) sz.value='all';
       const ph = document.getElementById('fauna-phase'); if (ph) ph.value='all';
       const al = document.getElementById('fauna-airline'); if (al) al.value='all';
+      renderImpactosYearSwitch();
+      updateImpactosYearLabel();
       applyFilters();
     });
     document.getElementById('fauna-export-csv')?.addEventListener('click', exportCSV);
@@ -1306,9 +1351,9 @@
       const totalIndividuals = state.filtered.reduce((sum, row) => sum + Number(row['No. individuos'] || 0), 0);
       const labelEl = individualsBadge.querySelector('.fauna-rescate-label');
       const valueEl = individualsBadge.querySelector('.fauna-rescate-value');
-      if (labelEl) labelEl.textContent = 'Individuos atendidos';
+      if (labelEl) labelEl.textContent = 'Total de rescates';
       if (valueEl) valueEl.textContent = totalIndividuals.toLocaleString('es-MX');
-      individualsBadge.setAttribute('aria-label', `Individuos atendidos ${totalIndividuals.toLocaleString('es-MX')}`);
+      individualsBadge.setAttribute('aria-label', `Total de rescates ${totalIndividuals.toLocaleString('es-MX')}`);
     }
   }
 
@@ -1348,7 +1393,7 @@
     disposeChart(state.charts.hour);
     disposeChart(state.charts.method);
     const monthData = aggregateByMonth(state.filtered);
-    const classData = aggregateByKey(state.filtered, 'Clase');
+    const classData = aggregateByClase(state.filtered);
     const relocationData = aggregateByKey(state.filtered, 'Disposición final');
     const hourData = aggregateByHour(state.filtered);
     const methodData = aggregateByKey(state.filtered, 'Método de captura');
@@ -1359,14 +1404,50 @@
     state.charts.method = renderBarChart('fauna-rescate-by-method', methodData.labels, methodData.values, { color: '#6366f1', orientation: 'h' });
   }
 
+  function normalizeClase(raw){
+    const s = String(raw || '').trim();
+    if (!s) return 'Sin clasificar';
+    const norm = s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+    if (/^aves?$/.test(norm) || norm.startsWith('ave ')) return 'Ave';
+    if (/^mamifer/.test(norm)) return 'Mamífero';
+    if (/^reptil/.test(norm)) return 'Reptil';
+    if (/^anfibi/.test(norm)) return 'Anfibio';
+    if (/^pe[sc]/.test(norm)) return 'Pez';
+    if (/^insect/.test(norm) || /^artropod/.test(norm)) return 'Insecto';
+    return s;
+  }
+
+  function rowIndividuals(row){
+    const n = Number(row && row['No. individuos']);
+    return Number.isFinite(n) && n > 0 ? n : 0;
+  }
+
+  function aggregateByClase(rows){
+    const counts = new Map();
+    rows.forEach(row => {
+      const inc = rowIndividuals(row);
+      if (!inc) return;
+      const key = normalizeClase(row['Clase']);
+      counts.set(key, (counts.get(key) || 0) + inc);
+    });
+    const ordered = Array.from(counts.entries()).sort((a,b)=>b[1]-a[1]);
+    return {
+      labels: ordered.map(([label]) => label),
+      values: ordered.map(([,value]) => value)
+    };
+  }
+
+
   function aggregateByMonth(rows){
     const counts = new Map();
     rows.forEach(row => {
       const month = String(row['Mes'] || '').trim();
       if (!month) return;
+      const inc = rowIndividuals(row);
+      if (!inc) return;
       const idx = MONTH_NAMES.indexOf(month);
       const key = idx >= 0 ? `${String(idx).padStart(2,'0')}-${month}` : `99-${month}`;
-      counts.set(key, (counts.get(key) || 0) + 1);
+      counts.set(key, (counts.get(key) || 0) + inc);
     });
     const ordered = Array.from(counts.entries()).sort((a,b)=>a[0].localeCompare(b[0]));
     return {
@@ -1384,7 +1465,9 @@
     rows.forEach(row => {
       const val = String(row[key] || '').trim();
       if (!val) return;
-      counts.set(val, (counts.get(val) || 0) + 1);
+      const inc = rowIndividuals(row);
+      if (!inc) return;
+      counts.set(val, (counts.get(val) || 0) + inc);
     });
     const ordered = Array.from(counts.entries()).sort((a,b)=>b[1]-a[1]);
     return {
@@ -1400,8 +1483,10 @@
       // Match HH:MM or HH:MM:SS
       const match = raw.match(/^([01]?\d|2[0-3]):([0-5]\d)(?::[0-5]\d)?$/);
       if (!match) return;
+      const inc = rowIndividuals(row);
+      if (!inc) return;
       const hour = Number(match[1]);
-      buckets[hour] += 1;
+      buckets[hour] += inc;
     });
     return {
       labels: buckets.map((_, idx) => `${String(idx).padStart(2,'0')}:00`),
