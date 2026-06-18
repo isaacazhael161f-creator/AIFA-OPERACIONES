@@ -19673,6 +19673,20 @@ FF
                     #hidraulicas-section .hidra-chart-card{ background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:16px; box-shadow:0 2px 8px rgba(0,0,0,.04); height:100%; }
                     #hidraulicas-section .hidra-chart-card--main{ border-top:4px solid #1d4ed8; box-shadow:0 4px 16px rgba(29,78,216,.08); }
                     #hidraulicas-section .hidra-chart-title{ font-size:.95rem; font-weight:700; color:#0f172a; margin-bottom:10px; }
+                    #hidraulicas-section .hidra-quarter-strip{ background:linear-gradient(135deg,#f8fafc,#eef2ff); border:1px solid #e2e8f0; border-radius:12px; padding:14px; }
+                    #hidraulicas-section .hidra-quarter-card{ background:#fff; border:1px solid #e2e8f0; border-radius:10px; padding:14px 18px; min-width:160px; box-shadow:0 1px 3px rgba(0,0,0,.04); transition:transform .12s, box-shadow .12s; }
+                    #hidraulicas-section .hidra-quarter-card:hover{ transform:translateY(-1px); box-shadow:0 4px 12px rgba(29,78,216,.08); }
+                    #hidraulicas-section .hidra-quarter-card[data-q="1"]{ border-left:4px solid #1d4ed8; }
+                    #hidraulicas-section .hidra-quarter-card[data-q="2"]{ border-left:4px solid #0ea5e9; }
+                    #hidraulicas-section .hidra-quarter-card[data-q="3"]{ border-left:4px solid #10b981; }
+                    #hidraulicas-section .hidra-quarter-card[data-q="4"]{ border-left:4px solid #f59e0b; }
+                    #hidraulicas-section .hidra-quarter-card--total{ background:linear-gradient(135deg,#1d4ed8,#0ea5e9); color:#fff; border:none; }
+                    #hidraulicas-section .hidra-quarter-card--total .hidra-quarter-label,
+                    #hidraulicas-section .hidra-quarter-card--total .hidra-quarter-pct{ color:rgba(255,255,255,.85); }
+                    #hidraulicas-section .hidra-quarter-label{ font-size:.7rem; text-transform:uppercase; letter-spacing:.5px; color:#64748b; font-weight:700; }
+                    #hidraulicas-section .hidra-quarter-value{ font-size:1.6rem; font-weight:800; color:#0f172a; line-height:1.1; margin-top:2px; }
+                    #hidraulicas-section .hidra-quarter-card--total .hidra-quarter-value{ color:#fff; }
+                    #hidraulicas-section .hidra-quarter-pct{ font-size:.72rem; color:#64748b; margin-top:2px; }
                     #hidraulicas-section .hidra-chart-host{ position:relative; height:280px; }
                     #hidraulicas-section .hidra-edit-summary{ background:#f1f5f9; border-radius:8px; padding:10px 14px; font-size:.9rem; color:#0f172a; }
                     #hidraulicas-section .hidra-edit-table input{ font-size:.85rem; }
@@ -19770,28 +19784,93 @@ FF
                                 <div class="hidra-chart-host" style="height:440px;"><canvas id="hidra-chart-per-pozo"></canvas></div>
                               </div>
                             </div>
+
+                            <!-- KPIs trimestrales -->
+                            <div class="col-12">
+                              <div class="hidra-quarter-strip d-flex flex-wrap gap-2">
+                                <div class="hidra-quarter-card flex-grow-1" data-q="1">
+                                  <div class="hidra-quarter-label">Q1 · Ene–Mar</div>
+                                  <div class="hidra-quarter-value" id="hidra-q-1">—</div>
+                                  <div class="hidra-quarter-pct"><span id="hidra-q-1-pct">—</span> del año</div>
+                                </div>
+                                <div class="hidra-quarter-card flex-grow-1" data-q="2">
+                                  <div class="hidra-quarter-label">Q2 · Abr–Jun</div>
+                                  <div class="hidra-quarter-value" id="hidra-q-2">—</div>
+                                  <div class="hidra-quarter-pct"><span id="hidra-q-2-pct">—</span> del año</div>
+                                </div>
+                                <div class="hidra-quarter-card flex-grow-1" data-q="3">
+                                  <div class="hidra-quarter-label">Q3 · Jul–Sep</div>
+                                  <div class="hidra-quarter-value" id="hidra-q-3">—</div>
+                                  <div class="hidra-quarter-pct"><span id="hidra-q-3-pct">—</span> del año</div>
+                                </div>
+                                <div class="hidra-quarter-card flex-grow-1" data-q="4">
+                                  <div class="hidra-quarter-label">Q4 · Oct–Dic</div>
+                                  <div class="hidra-quarter-value" id="hidra-q-4">—</div>
+                                  <div class="hidra-quarter-pct"><span id="hidra-q-4-pct">—</span> del año</div>
+                                </div>
+                                <div class="hidra-quarter-card hidra-quarter-card--total flex-grow-1">
+                                  <div class="hidra-quarter-label">Total año</div>
+                                  <div class="hidra-quarter-value" id="hidra-q-total">—</div>
+                                  <div class="hidra-quarter-pct">m³ acumulados</div>
+                                </div>
+                              </div>
+                            </div>
+
                             <div class="col-12 col-lg-7">
+                              <div class="hidra-chart-card">
+                                <h5 class="hidra-chart-title">Trimestres · año actual vs anterior</h5>
+                                <div class="hidra-chart-host" style="height:300px;"><canvas id="hidra-chart-quarter"></canvas></div>
+                              </div>
+                            </div>
+                            <div class="col-12 col-lg-5">
                               <div class="hidra-chart-card">
                                 <h5 class="hidra-chart-title">Extracción mensual del año seleccionado</h5>
                                 <div class="hidra-chart-host" style="height:300px;"><canvas id="hidra-chart-monthly"></canvas></div>
                               </div>
                             </div>
-                            <div class="col-12 col-lg-5">
+
+                            <!-- Destinos -->
+                            <div class="col-12 col-lg-8">
+                              <div class="hidra-chart-card">
+                                <div class="d-flex align-items-center justify-content-between mb-1">
+                                  <h5 class="hidra-chart-title mb-0">
+                                    <i class="fas fa-share-alt me-1 text-primary"></i>
+                                    Destinos por trimestre (AIFA · Ciudad Militar · otros)
+                                  </h5>
+                                  <span class="badge bg-light text-secondary border">m³ y % por trimestre</span>
+                                </div>
+                                <div class="hidra-chart-host" style="height:340px;"><canvas id="hidra-chart-destinos"></canvas></div>
+                              </div>
+                            </div>
+                            <div class="col-12 col-lg-4">
+                              <div class="hidra-chart-card">
+                                <h5 class="hidra-chart-title">% por destino (año)</h5>
+                                <div class="hidra-chart-host" style="height:230px;"><canvas id="hidra-chart-destinos-pie"></canvas></div>
+                                <div class="mt-2 small">
+                                  <div class="text-muted">Total entregado:</div>
+                                  <div class="fw-bold mb-2" id="hidra-dest-total">0 m³</div>
+                                  <div id="hidra-dest-list"></div>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div class="col-12 col-lg-7">
                               <div class="hidra-chart-card">
                                 <h5 class="hidra-chart-title">Distribución por pozo (año seleccionado)</h5>
                                 <div class="hidra-chart-host" style="height:300px;"><canvas id="hidra-chart-pozos"></canvas></div>
                               </div>
                             </div>
+                            <div class="col-12 col-lg-5">
+                              <div class="hidra-chart-card">
+                                <h5 class="hidra-chart-title">Acumulado año vs año anterior</h5>
+                                <div class="hidra-chart-host" style="height:300px;"><canvas id="hidra-chart-cumulative"></canvas></div>
+                              </div>
+                            </div>
+
                             <div class="col-12">
                               <div class="hidra-chart-card">
                                 <h5 class="hidra-chart-title">Comparativo anual (m³ por mes)</h5>
                                 <div class="hidra-chart-host" style="height:320px;"><canvas id="hidra-chart-yoy"></canvas></div>
-                              </div>
-                            </div>
-                            <div class="col-12">
-                              <div class="hidra-chart-card">
-                                <h5 class="hidra-chart-title">Acumulado año vs año anterior</h5>
-                                <div class="hidra-chart-host" style="height:300px;"><canvas id="hidra-chart-cumulative"></canvas></div>
                               </div>
                             </div>
                           </div>
@@ -19849,6 +19928,70 @@ FF
                                 <tr><td colspan="4" class="text-center text-muted py-4">Selecciona año y mes y haz clic en <strong>Cargar</strong>.</td></tr>
                               </tbody>
                             </table>
+                          </div>
+
+                          <!-- DESTINOS · Editor trimestral -->
+                          <div class="mt-5 pt-3 border-top">
+                            <h5 class="fw-bold mb-1" style="color:#1d4ed8;">
+                              <i class="fas fa-share-alt me-2"></i>Distribución por destino (trimestral)
+                            </h5>
+                            <p class="text-muted small mb-3">Por cada pozo y trimestre, captura cuánto se entregó a <strong>AIFA</strong>, <strong>Ciudad Militar</strong> u otros destinos.</p>
+
+                            <div class="row g-2 align-items-end mb-3">
+                              <div class="col-auto">
+                                <label class="form-label small mb-1 fw-bold">Año</label>
+                                <select id="hidra-dest-edit-year" class="form-select form-select-sm"></select>
+                              </div>
+                              <div class="col-auto">
+                                <label class="form-label small mb-1 fw-bold">Trimestre</label>
+                                <select id="hidra-dest-edit-quarter" class="form-select form-select-sm" style="min-width:160px;"></select>
+                              </div>
+                              <div class="col-auto">
+                                <label class="form-label small mb-1 fw-bold">Pozo</label>
+                                <select id="hidra-dest-edit-pozo" class="form-select form-select-sm" style="min-width:140px;">
+                                  <option value="">— elige pozo —</option>
+                                </select>
+                              </div>
+                              <div class="col-auto">
+                                <button id="hidra-dest-edit-load" class="btn btn-outline-primary btn-sm" type="button">
+                                  <i class="fas fa-arrow-down me-1"></i>Cargar
+                                </button>
+                              </div>
+                              <div class="col-auto">
+                                <button id="hidra-dest-edit-add" class="btn btn-outline-secondary btn-sm" type="button">
+                                  <i class="fas fa-plus me-1"></i>Otro destino
+                                </button>
+                              </div>
+                              <div class="col-auto">
+                                <button id="hidra-dest-edit-save" class="btn btn-success btn-sm" type="button">
+                                  <i class="fas fa-save me-1"></i>Guardar
+                                </button>
+                              </div>
+                              <div class="col text-end">
+                                <span id="hidra-dest-edit-status" class="small text-muted"></span>
+                              </div>
+                            </div>
+
+                            <div class="hidra-edit-summary mb-3">
+                              <strong>Total del trimestre (pozo seleccionado):</strong>
+                              <span id="hidra-dest-edit-total">0</span> m³
+                            </div>
+
+                            <div class="table-responsive">
+                              <table class="table table-bordered table-sm hidra-edit-table align-middle mb-0">
+                                <thead class="table-primary">
+                                  <tr>
+                                    <th style="width:30%;">Destino</th>
+                                    <th style="width:20%;">Volumen (m³)</th>
+                                    <th>Observaciones</th>
+                                    <th style="width:60px;"></th>
+                                  </tr>
+                                </thead>
+                                <tbody id="hidra-dest-edit-tbody">
+                                  <tr><td colspan="4" class="text-center text-muted py-4">Selecciona año, trimestre y pozo, y haz clic en <strong>Cargar</strong>.</td></tr>
+                                </tbody>
+                              </table>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -27890,7 +28033,7 @@ FF
     <script src="js/portal-admin.js"></script>
     <script src="js/medicas.js?v=2"></script>
     <script src="js/fauna.js"></script>
-    <script src="js/hidraulicas.js?v=4"></script>
+    <script src="js/hidraulicas.js?v=5"></script>
     <script src="js/vehiculos.js"></script>
     <script src="js/email-analisis.js"></script>
     <script src="js/agenda.js?v=8"></script>

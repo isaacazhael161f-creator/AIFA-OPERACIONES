@@ -12,8 +12,16 @@
 ;(function () {
     'use strict';
 
-    const TBL_MENSUAL = 'Extracción_agua';
-    const TBL_DIARIA  = 'Extracción_agua_diaria';
+    const TBL_MENSUAL  = 'Extracción_agua';
+    const TBL_DIARIA   = 'Extracción_agua_diaria';
+    const TBL_DESTINOS = 'Extracción_agua_destinos';
+    const DESTINOS_PRESET = ['AIFA', 'Ciudad Militar'];
+    const DESTINO_COLORS  = {
+        'AIFA':           '#1d4ed8',
+        'Ciudad Militar': '#0ea5e9',
+        'Otros':          '#64748b',
+    };
+    const TRIMESTRES = ['Q1', 'Q2', 'Q3', 'Q4'];
 
     const MES_NOMBRES_CORTOS = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
     const MES_NOMBRES_LARGOS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
@@ -28,14 +36,25 @@
         selectedYear: null,
         selectedPozo: '',  // '' = todos
 
-        // editor
+        // editor diario
         editYear: null,
         editMonth: null,
         editPozo: '',
         editRows: [],      // [{ day, volumen_m3, observaciones, _id, _origVol, _origObs, _dirty }]
+
+        // destinos (trimestrales)
+        destinos: [],          // filas crudas de Extracción_agua_destinos
+        destinosLoaded: false,
+        editDestYear: null,
+        editDestQuarter: null,
+        editDestPozo: '',
+        editDestRows: [],      // [{ id, destino, volumen_m3, observaciones, _orig, _dirty, _new, _del }]
     };
 
-    const charts = { monthly: null, yoy: null, pozos: null, perPozo: null, cumulative: null };
+    const charts = {
+        monthly: null, yoy: null, pozos: null, perPozo: null, cumulative: null,
+        quarter: null, destStacked: null, destDoughnut: null,
+    };
     let initDone = false;
 
     // ─── Helpers ───────────────────────────────────────────────
@@ -153,6 +172,63 @@
         let acc = 0;
         for (let i = 0; i < 12; i++) { acc += monthlyArr[i] || 0; out[i] = acc; }
         return out;
+    }
+
+    /** [Q1,Q2,Q3,Q4] a partir de un arreglo mensual de 12 elementos. */
+    function quarterlyFromMonthly(arr) {
+        return [
+            (arr[0] || 0) + (arr[1] || 0) + (arr[2]  || 0),
+            (arr[3] || 0) + (arr[4] || 0) + (arr[5]  || 0),
+            (arr[6] || 0) + (arr[7] || 0) + (arr[8]  || 0),
+            (arr[9] || 0) + (arr[10]|| 0) + (arr[11] || 0),
+        ];
+    }
+    function quarterlyForYear(year, pozo) {
+        return quarterlyFromMonthly(aggregateMonthlyForYear(year, pozo));
+    }
+
+    // ─── Carga / agregaci\u00f3n DESTINOS ─────────────────────────
+    async function loadDestinos(force) {
+        if (state.destinosLoaded && !force) return;
+        try {
+            const client = await getClient();
+            if (!client) throw new Error('Supabase no disponible');
+            const { data, error } = await client
+                .from(TBL_DESTINOS)
+                .select('id,anio,trimestre,pozo,destino,volumen_m3,observaciones');
+            if (error) throw error;
+            state.destinos = data || [];
+            state.destinosLoaded = true;
+        } catch (err) {
+            console.error('[hidraulicas] loadDestinos error:', err);
+            state.destinos = [];
+            state.destinosLoaded = true; // evita loops; usuario ver\u00e1 0
+        }
+    }
+    function destinosForYear(year, pozo) {
+        return state.destinos.filter(r =>
+            Number(r.anio) === Number(year) &&
+            (!pozo || String(r.pozo).trim() === pozo)
+        );
+    }
+    /** {byDestino:Map, byQuarterDestino:Map(`${Q}|${dest}`)} */
+    function aggregateDestinos(year, pozo) {
+        const byDestino = new Map();
+        const byQ = new Map();
+        for (const r of destinosForYear(year, pozo)) {
+            const dest = String(r.destino || '').trim() || 'Sin destino';
+            const v = Number(r.volumen_m3) || 0;
+            byDestino.set(dest, (byDestino.get(dest) || 0) + v);
+            const q = Number(r.trimestre);
+            if (q >= 1 && q <= 4) {
+                const k = `Q${q}|${dest}`;
+                byQ.set(k, (byQ.get(k) || 0) + v);
+            }
+        }
+        return { byDestino, byQ };
+    }
+    function destinoColor(name, idx) {
+        return DESTINO_COLORS[name] || PALETTE[idx % PALETTE.length];
     }
 
     // ─── Filtros UI ────────────────────────────────────────────
@@ -487,12 +563,241 @@
         return -1;
     }
 
+    // ─── Trimestres ────────────────────────────────────────────
+    function renderQuarterlyKpis() {
+        const q = quarterlyForYear(state.selectedYear, state.selectedPozo);
+        const total = q.reduce((a, b) => a + b, 0);
+        for (let i = 0; i < 4; i++) {
+            const el = $(`hidra-q-${i + 1}`); if (el) el.textContent = fmt(q[i]);
+            const pctEl = $(`hidra-q-${i + 1}-pct`);
+            if (pctEl) pctEl.textContent = total > 0 ? fmtPct((q[i] / total) * 100) : '0%';
+        }
+        const tot = $('hidra-q-total'); if (tot) tot.textContent = fmt(total);
+    }
+
+    function renderQuarterChart() {
+        const ctx = $('hidra-chart-quarter'); if (!ctx || typeof Chart === 'undefined') return;
+        const yCurr = state.selectedYear, yPrev = yCurr - 1;
+        const cur  = quarterlyForYear(yCurr, state.selectedPozo);
+        const prev = quarterlyForYear(yPrev, state.selectedPozo);
+        const totalCur = cur.reduce((a, b) => a + b, 0) || 1;
+        destroyChart('quarter');
+        charts.quarter = new Chart(ctx.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: TRIMESTRES,
+                datasets: [
+                    {
+                        label: String(yPrev), data: prev,
+                        backgroundColor: '#cbd5e1', borderRadius: 4,
+                        categoryPercentage: 0.7, barPercentage: 0.95,
+                    },
+                    {
+                        label: String(yCurr), data: cur,
+                        backgroundColor: ctxRef => {
+                            const c = ctxRef.chart.canvas.getContext('2d');
+                            const g = c.createLinearGradient(0, 0, 0, 280);
+                            g.addColorStop(0, '#1d4ed8'); g.addColorStop(1, '#0ea5e9');
+                            return g;
+                        },
+                        borderRadius: 4,
+                        categoryPercentage: 0.7, barPercentage: 0.95,
+                    },
+                ],
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                layout: { padding: { top: 24 } },
+                plugins: {
+                    legend: { position: 'bottom', labels: { boxWidth: 14, font: { size: 12 } } },
+                    tooltip: {
+                        callbacks: {
+                            label: c => {
+                                const pct = c.datasetIndex === 1 ? ` (${fmtPct((c.parsed.y / totalCur) * 100)})` : '';
+                                return ` ${c.dataset.label}: ${fmt(c.parsed.y)} m³${pct}`;
+                            },
+                        },
+                    },
+                    datalabels: hasDL() ? {
+                        anchor: 'end', align: 'end', offset: 2,
+                        font: { weight: '700', size: 11 },
+                        color: ctx => ctx.datasetIndex === 1 ? '#1d4ed8' : '#475569',
+                        formatter: (v, ctx) => {
+                            if (!v) return '';
+                            if (ctx.datasetIndex === 1) {
+                                return `${fmtCompact(v)}\n${fmtPct((v / totalCur) * 100)}`;
+                            }
+                            return fmtCompact(v);
+                        },
+                    } : undefined,
+                },
+                scales: {
+                    y: { beginAtZero: true, ticks: { callback: v => fmtCompact(v) }, grid: { color: '#eef2f7' } },
+                    x: { grid: { display: false } },
+                },
+            },
+            plugins: hasDL() ? [window.ChartDataLabels] : [],
+        });
+    }
+
+    // ─── Destinos charts ───────────────────────────────────────
+    function renderDestinosChart() {
+        const ctx = $('hidra-chart-destinos'); if (!ctx || typeof Chart === 'undefined') return;
+        const { byQ, byDestino } = aggregateDestinos(state.selectedYear, state.selectedPozo);
+        const destinos = [...byDestino.keys()].sort((a, b) => (byDestino.get(b) || 0) - (byDestino.get(a) || 0));
+
+        const quarterTotals = TRIMESTRES.map((_, qIdx) => {
+            const q = qIdx + 1;
+            return destinos.reduce((s, d) => s + (byQ.get(`Q${q}|${d}`) || 0), 0);
+        });
+
+        const datasets = destinos.map((d, i) => ({
+            label: d,
+            data: TRIMESTRES.map((_, qIdx) => byQ.get(`Q${qIdx + 1}|${d}`) || 0),
+            backgroundColor: destinoColor(d, i),
+            borderColor: '#fff', borderWidth: 1.5, borderRadius: 2,
+            stack: 'd0', maxBarThickness: 80,
+        }));
+
+        const totalsDs = {
+            label: '__totals__',
+            data: quarterTotals.map(() => 0),
+            backgroundColor: 'rgba(0,0,0,0)',
+            borderWidth: 0, stack: 'd0',
+            datalabels: hasDL() ? {
+                display: ctx => quarterTotals[ctx.dataIndex] > 0,
+                anchor: 'end', align: 'end', offset: 4,
+                color: '#0f172a', font: { weight: '700', size: 12 },
+                formatter: (_, ctx) => fmtCompact(quarterTotals[ctx.dataIndex]),
+            } : undefined,
+        };
+
+        destroyChart('destStacked');
+        charts.destStacked = new Chart(ctx.getContext('2d'), {
+            type: 'bar',
+            data: { labels: TRIMESTRES, datasets: [...datasets, totalsDs] },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                layout: { padding: { top: 24 } },
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            boxWidth: 14, padding: 10, font: { size: 12 },
+                            filter: item => item.text !== '__totals__',
+                        },
+                    },
+                    tooltip: {
+                        filter: item => item.dataset.label !== '__totals__',
+                        callbacks: {
+                            label: c => {
+                                const tot = quarterTotals[c.dataIndex] || 1;
+                                return ` ${c.dataset.label}: ${fmt(c.parsed.y)} m³ (${fmtPct((c.parsed.y / tot) * 100)})`;
+                            },
+                        },
+                    },
+                    datalabels: hasDL() ? {
+                        color: '#fff', font: { weight: '700', size: 11 },
+                        textStrokeColor: 'rgba(0,0,0,.45)', textStrokeWidth: 2,
+                        display: ctx => {
+                            if (ctx.dataset.label === '__totals__') return true;
+                            const v = ctx.dataset.data[ctx.dataIndex] || 0;
+                            const tot = quarterTotals[ctx.dataIndex] || 1;
+                            return (v / tot) * 100 >= 8;
+                        },
+                        formatter: (v, ctx) => {
+                            if (ctx.dataset.label === '__totals__') {
+                                return quarterTotals[ctx.dataIndex] > 0 ? fmtCompact(quarterTotals[ctx.dataIndex]) : '';
+                            }
+                            const tot = quarterTotals[ctx.dataIndex] || 1;
+                            return fmtPct((v / tot) * 100);
+                        },
+                    } : undefined,
+                },
+                scales: {
+                    x: { stacked: true, grid: { display: false } },
+                    y: { stacked: true, beginAtZero: true, ticks: { callback: v => fmtCompact(v) }, grid: { color: '#eef2f7' } },
+                },
+            },
+            plugins: hasDL() ? [window.ChartDataLabels] : [],
+        });
+    }
+
+    function renderDestinosDoughnut() {
+        const ctx = $('hidra-chart-destinos-pie'); if (!ctx || typeof Chart === 'undefined') return;
+        const { byDestino } = aggregateDestinos(state.selectedYear, state.selectedPozo);
+        const entries = [...byDestino.entries()].sort((a, b) => b[1] - a[1]);
+        destroyChart('destDoughnut');
+        if (!entries.length) {
+            // pinta vac\u00edo
+            charts.destDoughnut = new Chart(ctx.getContext('2d'), {
+                type: 'doughnut',
+                data: { labels: ['Sin datos'], datasets: [{ data: [1], backgroundColor: ['#e2e8f0'], borderWidth: 0 }] },
+                options: { responsive: true, maintainAspectRatio: false, cutout: '62%', plugins: { legend: { display: false }, tooltip: { enabled: false } } },
+            });
+            const totEl = $('hidra-dest-total'); if (totEl) totEl.textContent = '0 m³';
+            const listEl = $('hidra-dest-list'); if (listEl) listEl.innerHTML = '<div class="text-muted small">Sin registros para este año.</div>';
+            return;
+        }
+        const total = entries.reduce((s, [, v]) => s + v, 0) || 1;
+        charts.destDoughnut = new Chart(ctx.getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: entries.map(e => e[0]),
+                datasets: [{
+                    data: entries.map(e => e[1]),
+                    backgroundColor: entries.map((e, i) => destinoColor(e[0], i)),
+                    borderColor: '#fff', borderWidth: 2, hoverOffset: 8,
+                }],
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false, cutout: '62%',
+                plugins: {
+                    legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 }, padding: 10 } },
+                    tooltip: {
+                        callbacks: {
+                            label: c => ` ${c.label}: ${fmt(c.parsed)} m³ (${fmtPct((c.parsed / total) * 100)})`,
+                        },
+                    },
+                    datalabels: hasDL() ? {
+                        color: '#fff', font: { weight: '700', size: 12 },
+                        textStrokeColor: 'rgba(0,0,0,.4)', textStrokeWidth: 2,
+                        formatter: v => {
+                            const pct = (v / total) * 100;
+                            return pct >= 4 ? fmtPct(pct) : '';
+                        },
+                    } : undefined,
+                },
+            },
+            plugins: hasDL() ? [window.ChartDataLabels] : [],
+        });
+
+        // panel lateral con cifras totales
+        const totEl = $('hidra-dest-total');
+        if (totEl) totEl.textContent = `${fmt(total)} m³`;
+        const listEl = $('hidra-dest-list');
+        if (listEl) {
+            listEl.innerHTML = entries.map(([d, v], i) => {
+                const pct = (v / total) * 100;
+                const color = destinoColor(d, i);
+                return `<div class="d-flex justify-content-between align-items-center py-1 border-bottom">
+                    <span><span class="d-inline-block me-2" style="width:10px;height:10px;border-radius:2px;background:${color};"></span>${escapeHtml(d)}</span>
+                    <span class="fw-bold">${fmt(v)} <small class="text-muted">m³ · ${fmtPct(pct)}</small></span>
+                </div>`;
+            }).join('');
+        }
+    }
+
     function renderDashboard() {
         renderKpis();
+        renderQuarterlyKpis();
         renderMonthlyChart();
         renderYoyChart();
         renderPozosChart();
         renderPerPozoChart();
+        renderQuarterChart();
+        renderDestinosChart();
+        renderDestinosDoughnut();
         renderCumulativeChart();
     }
 
@@ -721,6 +1026,200 @@
         }
     }
 
+    // ─── Editor DESTINOS (trimestral) ──────────────────────────
+    function destinoRowKey(r) {
+        return `${r.destino}`.toLowerCase();
+    }
+
+    async function loadEditorDestinos() {
+        const tbody = $('hidra-dest-edit-tbody'); if (!tbody) return;
+        const status = $('hidra-dest-edit-status');
+        const y = state.editDestYear, q = state.editDestQuarter, pozo = state.editDestPozo.trim();
+
+        if (!y || !q || !pozo) {
+            tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-4">Selecciona año, trimestre y pozo, y haz clic en <strong>Cargar</strong>.</td></tr>';
+            return;
+        }
+        if (status) status.textContent = 'Cargando…';
+
+        try {
+            const client = await getClient();
+            if (!client) throw new Error('Supabase no disponible');
+            const { data, error } = await client
+                .from(TBL_DESTINOS)
+                .select('id,anio,trimestre,pozo,destino,volumen_m3,observaciones')
+                .eq('anio', y).eq('trimestre', q).eq('pozo', pozo);
+            if (error) throw error;
+
+            const map = new Map();
+            for (const r of (data || [])) map.set(String(r.destino).toLowerCase(), r);
+
+            const rows = [];
+            // Garantiza filas para los destinos preset
+            for (const dest of DESTINOS_PRESET) {
+                const r = map.get(dest.toLowerCase());
+                rows.push({
+                    id: r ? r.id : null,
+                    destino: dest,
+                    volumen_m3:    r ? Number(r.volumen_m3) : '',
+                    observaciones: r ? (r.observaciones || '') : '',
+                    _orig: { vol: r ? Number(r.volumen_m3) : '', obs: r ? (r.observaciones || '') : '', destino: dest },
+                    _dirty: false, _new: !r, _del: false, _preset: true,
+                });
+                map.delete(dest.toLowerCase());
+            }
+            // Otros destinos personalizados ya guardados
+            for (const r of map.values()) {
+                rows.push({
+                    id: r.id,
+                    destino: r.destino,
+                    volumen_m3: Number(r.volumen_m3),
+                    observaciones: r.observaciones || '',
+                    _orig: { vol: Number(r.volumen_m3), obs: r.observaciones || '', destino: r.destino },
+                    _dirty: false, _new: false, _del: false, _preset: false,
+                });
+            }
+            state.editDestRows = rows;
+            renderEditorDestinos();
+            if (status) status.textContent = `${(data || []).length} destinos con dato.`;
+        } catch (err) {
+            console.error('[hidraulicas] loadEditorDestinos error:', err);
+            tbody.innerHTML = `<tr><td colspan="4" class="text-center text-danger py-3">Error: ${err.message || err}</td></tr>`;
+            if (status) status.textContent = '';
+        }
+    }
+
+    function renderEditorDestinos() {
+        const tbody = $('hidra-dest-edit-tbody'); if (!tbody) return;
+        const html = state.editDestRows.filter(r => !r._del).map((r, idx) => {
+            const destInput = r._preset
+                ? `<input type="text" class="form-control form-control-sm" value="${escapeHtml(r.destino)}" disabled>`
+                : `<input type="text" class="form-control form-control-sm hidra-dest-input-name" data-idx="${idx}" value="${escapeHtml(r.destino)}" placeholder="Otro destino">`;
+            const delBtn = r._preset
+                ? ''
+                : `<button type="button" class="btn btn-sm btn-outline-danger hidra-dest-row-del" data-idx="${idx}" title="Quitar"><i class="fas fa-times"></i></button>`;
+            return `<tr data-idx="${idx}">
+                <td>${destInput}</td>
+                <td>
+                    <input type="number" step="0.01" min="0" class="form-control form-control-sm hidra-dest-input-vol" data-idx="${idx}"
+                           value="${r.volumen_m3 === '' ? '' : r.volumen_m3}" placeholder="0">
+                </td>
+                <td>
+                    <input type="text" class="form-control form-control-sm hidra-dest-input-obs" data-idx="${idx}"
+                           value="${escapeHtml(r.observaciones)}" placeholder="—">
+                </td>
+                <td class="text-end">${delBtn}</td>
+            </tr>`;
+        }).join('');
+        tbody.innerHTML = html;
+        attachEditorDestinosInputs();
+        recalcDestinosTotal();
+    }
+
+    function recalcDestinosTotal() {
+        const total = state.editDestRows
+            .filter(r => !r._del)
+            .reduce((s, r) => s + (Number(r.volumen_m3) || 0), 0);
+        const el = $('hidra-dest-edit-total'); if (el) el.textContent = fmt(total);
+    }
+
+    function attachEditorDestinosInputs() {
+        const tbody = $('hidra-dest-edit-tbody'); if (!tbody) return;
+        tbody.querySelectorAll('input').forEach(inp => {
+            inp.addEventListener('input', () => {
+                const idx = Number(inp.dataset.idx); if (Number.isNaN(idx)) return;
+                const row = state.editDestRows[idx]; if (!row) return;
+                if (inp.classList.contains('hidra-dest-input-vol')) row.volumen_m3 = inp.value === '' ? '' : Number(inp.value);
+                else if (inp.classList.contains('hidra-dest-input-obs')) row.observaciones = inp.value;
+                else if (inp.classList.contains('hidra-dest-input-name')) row.destino = inp.value.trim();
+                row._dirty = (
+                    String(row._orig.vol) !== String(row.volumen_m3) ||
+                    row._orig.obs !== row.observaciones ||
+                    row._orig.destino !== row.destino
+                );
+                inp.classList.toggle('hidra-changed', row._dirty);
+                recalcDestinosTotal();
+            });
+        });
+        tbody.querySelectorAll('.hidra-dest-row-del').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const idx = Number(btn.dataset.idx); if (Number.isNaN(idx)) return;
+                const row = state.editDestRows[idx]; if (!row) return;
+                if (row._new) {
+                    state.editDestRows.splice(idx, 1);
+                } else {
+                    row._del = true;
+                    row._dirty = true;
+                }
+                renderEditorDestinos();
+            });
+        });
+    }
+
+    function addEditorDestinoRow() {
+        state.editDestRows.push({
+            id: null, destino: '', volumen_m3: '', observaciones: '',
+            _orig: { vol: '', obs: '', destino: '' },
+            _dirty: true, _new: true, _del: false, _preset: false,
+        });
+        renderEditorDestinos();
+    }
+
+    async function saveEditorDestinos() {
+        const status = $('hidra-dest-edit-status');
+        const y = state.editDestYear, q = state.editDestQuarter, pozo = state.editDestPozo.trim();
+        if (!y || !q || !pozo) { if (status) status.textContent = 'Selecciona año, trimestre y pozo.'; return; }
+
+        const dirty = state.editDestRows.filter(r => r._dirty);
+        if (!dirty.length) { if (status) status.textContent = 'Sin cambios.'; return; }
+
+        const client = await getClient();
+        if (!client) { if (status) status.textContent = 'Supabase no disponible'; return; }
+
+        const toUpsert = [];
+        const toDelete = [];
+        for (const r of dirty) {
+            if (r._del && r.id) { toDelete.push(r.id); continue; }
+            if (!r.destino || !String(r.destino).trim()) continue;
+            const vol = Number(r.volumen_m3);
+            if (r.volumen_m3 === '' || r.volumen_m3 === null) {
+                if (r.id) { toDelete.push(r.id); }
+                continue;
+            }
+            toUpsert.push({
+                anio: y, trimestre: q, pozo,
+                destino: String(r.destino).trim(),
+                volumen_m3: isFinite(vol) ? vol : 0,
+                observaciones: r.observaciones ? String(r.observaciones).trim() : null,
+            });
+        }
+
+        if (status) status.textContent = `Guardando ${dirty.length} cambios…`;
+        try {
+            if (toDelete.length) {
+                const { error } = await client.from(TBL_DESTINOS).delete().in('id', toDelete);
+                if (error) throw error;
+            }
+            if (toUpsert.length) {
+                const { error } = await client.from(TBL_DESTINOS).upsert(toUpsert, { onConflict: 'anio,trimestre,pozo,destino' });
+                if (error) throw error;
+            }
+            if (status) status.textContent = `Guardado · ${dirty.length} cambios.`;
+            // Refrescar dashboard
+            await loadDestinos(true);
+            renderDashboard();
+            await loadEditorDestinos();
+        } catch (err) {
+            console.error('[hidraulicas] saveEditorDestinos error:', err);
+            if (status) status.textContent = 'Error al guardar: ' + (err.message || err);
+        }
+    }
+
+    function populateQuarterSelect(id) {
+        const sel = $(id); if (!sel) return;
+        sel.innerHTML = TRIMESTRES.map((q, i) => `<option value="${i + 1}">${q} · ${['Ene-Mar','Abr-Jun','Jul-Sep','Oct-Dic'][i]}</option>`).join('');
+    }
+
     // ─── Bindings ──────────────────────────────────────────────
     let bound = false;
     function bind() {
@@ -736,11 +1235,14 @@
         });
         $('hidra-btn-refresh')?.addEventListener('click', async () => {
             state.loaded = false;
-            await loadAll(true);
+            state.destinosLoaded = false;
+            await Promise.all([loadAll(true), loadDestinos(true)]);
             populateYearSelect('hidra-filter-year', state.selectedYear);
             populatePozoSelect('hidra-filter-pozo', true);
             populateYearSelect('hidra-edit-year', state.editYear);
             populatePozoSelect('hidra-edit-pozo', false);
+            populateYearSelect('hidra-dest-edit-year', state.editDestYear);
+            populatePozoSelect('hidra-dest-edit-pozo', false);
             renderDashboard();
         });
 
@@ -751,24 +1253,42 @@
             loadEditorRows();
         });
         $('hidra-edit-save')?.addEventListener('click', saveEditor);
+
+        // Destinos editor
+        $('hidra-dest-edit-load')?.addEventListener('click', () => {
+            state.editDestYear    = Number($('hidra-dest-edit-year').value) || state.editDestYear;
+            state.editDestQuarter = Number($('hidra-dest-edit-quarter').value) || state.editDestQuarter;
+            state.editDestPozo    = $('hidra-dest-edit-pozo').value || '';
+            loadEditorDestinos();
+        });
+        $('hidra-dest-edit-save')?.addEventListener('click', saveEditorDestinos);
+        $('hidra-dest-edit-add')?.addEventListener('click', addEditorDestinoRow);
     }
 
     // ─── Init ──────────────────────────────────────────────────
     async function init() {
         if (!initDone) {
             const now = new Date();
+            const curMonth = now.getMonth() + 1;
             state.editYear  = now.getFullYear();
-            state.editMonth = now.getMonth() + 1;
+            state.editMonth = curMonth;
             state.selectedYear = now.getFullYear();
+            state.editDestYear    = now.getFullYear();
+            state.editDestQuarter = Math.ceil(curMonth / 3);
             populateMonthSelect('hidra-edit-month');
+            populateQuarterSelect('hidra-dest-edit-quarter');
             bind();
             initDone = true;
         }
-        await loadAll(false);
+        await Promise.all([loadAll(false), loadDestinos(false)]);
         populateYearSelect('hidra-filter-year', state.selectedYear);
         populatePozoSelect('hidra-filter-pozo', true);
         populateYearSelect('hidra-edit-year', state.editYear);
         populatePozoSelect('hidra-edit-pozo', false);
+        populateYearSelect('hidra-dest-edit-year', state.editDestYear);
+        populatePozoSelect('hidra-dest-edit-pozo', false);
+        // valor por defecto del trimestre
+        const qSel = $('hidra-dest-edit-quarter'); if (qSel) qSel.value = String(state.editDestQuarter);
         renderDashboard();
     }
 

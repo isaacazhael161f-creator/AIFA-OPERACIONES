@@ -67,6 +67,56 @@ create policy ead_delete on public."Extracción_agua_diaria"
 grant select, insert, update, delete on public."Extracción_agua_diaria" to authenticated;
 grant usage, select on sequence public."Extracción_agua_diaria_id_seq" to authenticated;
 
+-- ============================================================
+--  Tabla "Extracción_agua_destinos"
+--  Distribución TRIMESTRAL por (pozo, destino) — p.ej.:
+--  Q1·2026·Pozo 3 → AIFA 12,500 m³ + Ciudad Militar 4,200 m³
+--  Permite obtener volumen total entregado por cada lugar.
+-- ============================================================
+create table if not exists public."Extracción_agua_destinos" (
+    id              bigserial    primary key,
+    anio            smallint     not null check (anio between 2000 and 2100),
+    trimestre       smallint     not null check (trimestre between 1 and 4),
+    pozo            text         not null,
+    destino         text         not null,           -- 'AIFA', 'Ciudad Militar', etc.
+    volumen_m3      numeric      not null default 0,
+    observaciones   text,
+    created_at      timestamptz  not null default now(),
+    updated_at      timestamptz  not null default now(),
+    constraint extraccion_agua_destinos_uk unique (anio, trimestre, pozo, destino)
+);
+
+create index if not exists idx_extraccion_agua_destinos_anio
+    on public."Extracción_agua_destinos" (anio);
+create index if not exists idx_extraccion_agua_destinos_destino
+    on public."Extracción_agua_destinos" (destino);
+
+drop trigger if exists trg_extraccion_agua_destinos_upd on public."Extracción_agua_destinos";
+create trigger trg_extraccion_agua_destinos_upd
+    before update on public."Extracción_agua_destinos"
+    for each row execute function public.tg_set_updated_at();
+
+alter table public."Extracción_agua_destinos" enable row level security;
+
+drop policy if exists ead2_select on public."Extracción_agua_destinos";
+create policy ead2_select on public."Extracción_agua_destinos"
+    for select to authenticated using (true);
+
+drop policy if exists ead2_insert on public."Extracción_agua_destinos";
+create policy ead2_insert on public."Extracción_agua_destinos"
+    for insert to authenticated with check (true);
+
+drop policy if exists ead2_update on public."Extracción_agua_destinos";
+create policy ead2_update on public."Extracción_agua_destinos"
+    for update to authenticated using (true) with check (true);
+
+drop policy if exists ead2_delete on public."Extracción_agua_destinos";
+create policy ead2_delete on public."Extracción_agua_destinos"
+    for delete to authenticated using (true);
+
+grant select, insert, update, delete on public."Extracción_agua_destinos" to authenticated;
+grant usage, select on sequence public."Extracción_agua_destinos_id_seq" to authenticated;
+
 -- ──────────────────────────────────────────────────────────────
 --  Permisos en la tabla ancha existente "Extracción_agua".
 --  Si su RLS bloquea writes, descomenta estas políticas.
