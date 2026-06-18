@@ -50,7 +50,7 @@
         href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Roboto+Mono:wght@400;700&family=Roboto+Condensed:wght@400;500;700&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
-    <link rel="stylesheet" href="style.css?v=20260618A">
+    <link rel="stylesheet" href="style.css?v=20260618B">
     <link rel="stylesheet" href="visual-cards.css?v=1"> <!-- Visual Cards Styles -->
     <link rel="stylesheet" href="admin.css?v=20260203">
     <link rel="icon" type="image/png" sizes="192x192" href="images/icons/aifa-app-icon-192.png?v=20251126">
@@ -74,7 +74,7 @@
     <!-- Preload de los 5 scripts mas pesados (descarga en paralelo desde el primer byte del HTML).
          No altera el orden de ejecución: los <script> tags más abajo siguen mandando.
          Los hrefs DEBEN coincidir EXACTAMENTE con el src del script para que el navegador reuse el preload. -->
-    <link rel="preload" as="script" href="script.js?v=20260618A" fetchpriority="high">
+    <link rel="preload" as="script" href="script.js?v=20260618B" fetchpriority="high">
     <link rel="preload" as="script" href="js/manifiestos.js">
     <link rel="preload" as="script" href="js/data-management.js">
     <link rel="preload" as="script" href="js/analisis-operaciones.js?v=2">
@@ -1451,6 +1451,23 @@ FF
                         </button>
                         <div class="collapse" id="sg-si">
                             <div class="si-body si-body--sub">
+                                <!-- GOMIH — Operación y Mantenimiento de Instalaciones Hidráulicas -->
+                                <div class="si-group si-group--ger">
+                                    <button class="si-grp-btn si-grp-btn--ger collapsed"
+                                            data-bs-toggle="collapse" data-bs-target="#sg-gomih" aria-expanded="false">
+                                        <i class="fas fa-tint si-ger-ico"></i>
+                                        <span class="si-bdg si-bdg--ger">GOMIH</span>
+                                        <span class="si-grp-lbl">Op. y Mtto. Instl. Hidráulicas</span>
+                                        <i class="fas fa-chevron-down si-chev"></i>
+                                    </button>
+                                    <div class="collapse" id="sg-gomih">
+                                        <div class="si-body si-body--ger">
+                                            <a class="menu-item si-link si-link--l2" href="#" data-section="hidraulicas">
+                                                <i class="fas fa-water si-ico"></i><span class="si-txt">Extracción de Agua</span>
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
                                 <div class="si-group si-group--ger si-group--pend">
                                     <button class="si-grp-btn si-grp-btn--ger collapsed"
                                             data-bs-toggle="collapse" data-bs-target="#sg-gielec" aria-expanded="false">
@@ -19638,6 +19655,194 @@ FF
                     </div>
                 </div>
                 <!-- --------------------------------------------------
+                     EXTRACCIÓN DE AGUA — GOMIH
+                --------------------------------------------------- -->
+                <div id="hidraulicas-section" class="content-section">
+                  <style>
+                    #hidraulicas-section .hidra-tabs .nav-link{ color:#1e40af; font-weight:600; }
+                    #hidraulicas-section .hidra-tabs .nav-link.active{ background:#dbeafe; border-color:#bfdbfe #bfdbfe #fff; color:#1e3a8a; }
+                    #hidraulicas-section .hidra-kpi-card{ border-radius:14px; padding:18px 20px; color:#fff; box-shadow:0 4px 14px rgba(0,0,0,.08); position:relative; overflow:hidden; }
+                    #hidraulicas-section .hidra-kpi-card::before{ content:""; position:absolute; right:-30px; top:-30px; width:120px; height:120px; border-radius:50%; background:rgba(255,255,255,.1); }
+                    #hidraulicas-section .hidra-kpi--blue{ background:linear-gradient(135deg,#1d4ed8,#3b82f6); }
+                    #hidraulicas-section .hidra-kpi--cyan{ background:linear-gradient(135deg,#0e7490,#06b6d4); }
+                    #hidraulicas-section .hidra-kpi--teal{ background:linear-gradient(135deg,#047857,#10b981); }
+                    #hidraulicas-section .hidra-kpi--violet{ background:linear-gradient(135deg,#6d28d9,#8b5cf6); }
+                    #hidraulicas-section .hidra-kpi-label{ font-size:.78rem; opacity:.92; text-transform:uppercase; letter-spacing:.5px; }
+                    #hidraulicas-section .hidra-kpi-value{ font-size:2.2rem; font-weight:800; line-height:1.1; margin-top:4px; }
+                    #hidraulicas-section .hidra-kpi-unit{ font-size:.78rem; opacity:.85; margin-top:2px; }
+                    #hidraulicas-section .hidra-chart-card{ background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:16px; box-shadow:0 2px 8px rgba(0,0,0,.04); height:100%; }
+                    #hidraulicas-section .hidra-chart-title{ font-size:.95rem; font-weight:700; color:#0f172a; margin-bottom:10px; }
+                    #hidraulicas-section .hidra-chart-host{ position:relative; height:280px; }
+                    #hidraulicas-section .hidra-edit-summary{ background:#f1f5f9; border-radius:8px; padding:10px 14px; font-size:.9rem; color:#0f172a; }
+                    #hidraulicas-section .hidra-edit-table input{ font-size:.85rem; }
+                    #hidraulicas-section .hidra-edit-table input.hidra-changed{ background:#fef3c7; }
+                    #hidraulicas-section .hidra-edit-table tr.hidra-weekend td{ background:#fafafa; }
+                  </style>
+                  <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-white border-bottom py-3 px-4">
+                      <h2 class="fw-bold mb-1" style="font-size:1.25rem;color:#1d4ed8;">
+                        <i class="fas fa-tint me-2"></i>Extracción de Agua — GOMIH
+                      </h2>
+                      <p class="text-muted mb-0" style="font-size:0.85rem;">
+                        Gerencia de Operación y Mantenimiento de Instalaciones Hidráulicas · Subdirección de Ingeniería
+                      </p>
+                    </div>
+                    <div class="card-body px-3 px-md-4 pt-3">
+                      <ul class="nav nav-tabs hidra-tabs mb-3" role="tablist">
+                        <li class="nav-item" role="presentation">
+                          <button class="nav-link active" id="hidra-tabbtn-dash" data-bs-toggle="tab" data-bs-target="#hidra-tab-dashboard" type="button" role="tab">
+                            <i class="fas fa-chart-line me-2"></i>Dashboard
+                          </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                          <button class="nav-link" id="hidra-tabbtn-edit" data-bs-toggle="tab" data-bs-target="#hidra-tab-editor" type="button" role="tab">
+                            <i class="fas fa-edit me-2"></i>Editor diario
+                          </button>
+                        </li>
+                      </ul>
+
+                      <div class="tab-content">
+                        <!-- DASHBOARD -->
+                        <div class="tab-pane fade show active" id="hidra-tab-dashboard" role="tabpanel">
+                          <div class="row g-2 align-items-end mb-3">
+                            <div class="col-auto">
+                              <label class="form-label small mb-1 fw-bold">Año</label>
+                              <select id="hidra-filter-year" class="form-select form-select-sm"></select>
+                            </div>
+                            <div class="col-auto">
+                              <label class="form-label small mb-1 fw-bold">Pozo</label>
+                              <select id="hidra-filter-pozo" class="form-select form-select-sm">
+                                <option value="">Todos</option>
+                              </select>
+                            </div>
+                            <div class="col-auto">
+                              <button id="hidra-btn-refresh" class="btn btn-outline-primary btn-sm" type="button">
+                                <i class="fas fa-sync me-1"></i>Refrescar
+                              </button>
+                            </div>
+                            <div class="col text-end">
+                              <span id="hidra-status-badge" class="badge bg-secondary">Sin datos</span>
+                            </div>
+                          </div>
+
+                          <div class="row g-3 mb-4">
+                            <div class="col-12 col-md-3">
+                              <div class="hidra-kpi-card hidra-kpi--blue">
+                                <div class="hidra-kpi-label">Acumulado del año</div>
+                                <div class="hidra-kpi-value" id="hidra-kpi-anio">—</div>
+                                <div class="hidra-kpi-unit">m³</div>
+                              </div>
+                            </div>
+                            <div class="col-12 col-md-3">
+                              <div class="hidra-kpi-card hidra-kpi--cyan">
+                                <div class="hidra-kpi-label">Mes con más extracción</div>
+                                <div class="hidra-kpi-value" id="hidra-kpi-mes-top">—</div>
+                                <div class="hidra-kpi-unit"><span id="hidra-kpi-mes-top-name">—</span></div>
+                              </div>
+                            </div>
+                            <div class="col-12 col-md-3">
+                              <div class="hidra-kpi-card hidra-kpi--teal">
+                                <div class="hidra-kpi-label">Promedio diario</div>
+                                <div class="hidra-kpi-value" id="hidra-kpi-prom">—</div>
+                                <div class="hidra-kpi-unit">m³ / día</div>
+                              </div>
+                            </div>
+                            <div class="col-12 col-md-3">
+                              <div class="hidra-kpi-card hidra-kpi--violet">
+                                <div class="hidra-kpi-label">Máximo diario</div>
+                                <div class="hidra-kpi-value" id="hidra-kpi-max">—</div>
+                                <div class="hidra-kpi-unit"><span id="hidra-kpi-max-day">—</span></div>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div class="row g-3">
+                            <div class="col-12">
+                              <div class="hidra-chart-card">
+                                <h5 class="hidra-chart-title">Extracción mensual del año seleccionado</h5>
+                                <div class="hidra-chart-host"><canvas id="hidra-chart-monthly"></canvas></div>
+                              </div>
+                            </div>
+                            <div class="col-12 col-lg-7">
+                              <div class="hidra-chart-card">
+                                <h5 class="hidra-chart-title">Comparativo anual (m³ por mes)</h5>
+                                <div class="hidra-chart-host"><canvas id="hidra-chart-yoy"></canvas></div>
+                              </div>
+                            </div>
+                            <div class="col-12 col-lg-5">
+                              <div class="hidra-chart-card">
+                                <h5 class="hidra-chart-title">Distribución por pozo (año seleccionado)</h5>
+                                <div class="hidra-chart-host"><canvas id="hidra-chart-pozos"></canvas></div>
+                              </div>
+                            </div>
+                            <div class="col-12">
+                              <div class="hidra-chart-card">
+                                <h5 class="hidra-chart-title">Acumulado año vs año anterior</h5>
+                                <div class="hidra-chart-host"><canvas id="hidra-chart-cumulative"></canvas></div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <!-- EDITOR -->
+                        <div class="tab-pane fade" id="hidra-tab-editor" role="tabpanel">
+                          <div class="row g-2 align-items-end mb-3">
+                            <div class="col-auto">
+                              <label class="form-label small mb-1 fw-bold">Año</label>
+                              <select id="hidra-edit-year" class="form-select form-select-sm"></select>
+                            </div>
+                            <div class="col-auto">
+                              <label class="form-label small mb-1 fw-bold">Mes</label>
+                              <select id="hidra-edit-month" class="form-select form-select-sm"></select>
+                            </div>
+                            <div class="col-auto">
+                              <label class="form-label small mb-1 fw-bold">Pozo</label>
+                              <input type="text" id="hidra-edit-pozo" class="form-control form-control-sm" placeholder="(opcional)" style="min-width:140px;">
+                            </div>
+                            <div class="col-auto">
+                              <button id="hidra-edit-load" class="btn btn-outline-primary btn-sm" type="button">
+                                <i class="fas fa-arrow-down me-1"></i>Cargar
+                              </button>
+                            </div>
+                            <div class="col-auto">
+                              <button id="hidra-edit-save" class="btn btn-success btn-sm" type="button">
+                                <i class="fas fa-save me-1"></i>Guardar cambios
+                              </button>
+                            </div>
+                            <div class="col text-end">
+                              <span id="hidra-edit-status" class="small text-muted"></span>
+                            </div>
+                          </div>
+
+                          <div class="hidra-edit-summary mb-3 d-flex flex-wrap gap-4">
+                            <div><strong>Total mes:</strong> <span id="hidra-edit-total-mes">0</span> m³</div>
+                            <div><strong>Acumulado año:</strong> <span id="hidra-edit-total-anio">0</span> m³</div>
+                            <div><strong>Días con dato:</strong> <span id="hidra-edit-dias-llenos">0</span> / <span id="hidra-edit-dias-mes">—</span></div>
+                          </div>
+
+                          <div class="table-responsive">
+                            <table class="table table-bordered table-sm hidra-edit-table align-middle mb-0">
+                              <thead class="table-primary">
+                                <tr>
+                                  <th style="width:60px;">Día</th>
+                                  <th style="width:140px;">Fecha</th>
+                                  <th style="width:160px;">m³ extraídos</th>
+                                  <th>Observaciones</th>
+                                </tr>
+                              </thead>
+                              <tbody id="hidra-edit-tbody">
+                                <tr><td colspan="4" class="text-center text-muted py-4">Selecciona año y mes y haz clic en <strong>Cargar</strong>.</td></tr>
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <!-- /hidraulicas-section -->
+
+                <!-- --------------------------------------------------
                      ANÁLISIS DE CORREOS (Outlook CSV)
                 --------------------------------------------------- -->
                 <div id="email-analisis-section" class="content-section">
@@ -27670,6 +27875,7 @@ FF
     <script src="js/portal-admin.js"></script>
     <script src="js/medicas.js?v=2"></script>
     <script src="js/fauna.js"></script>
+    <script src="js/hidraulicas.js?v=1"></script>
     <script src="js/vehiculos.js"></script>
     <script src="js/email-analisis.js"></script>
     <script src="js/agenda.js?v=8"></script>
@@ -27821,7 +28027,7 @@ FF
     })();
     </script>
     <script src="js/frecuencias_upload_test.js" defer></script>
-    <script src="script.js?v=20260618A" defer></script>
+    <script src="script.js?v=20260618B" defer></script>
     <script src="js/manifiestos_pax.js?v=9999999999993" defer></script>
     <script src="js/puntualidad.js" defer></script>
     <script>
