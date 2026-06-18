@@ -15605,6 +15605,10 @@ let _conciLoadRequestSeq = 0;
 let _conciRenderSeq = 0;
 const _conciRenderCache = new Map();
 let _conciRenderedKey = '';
+// Raw-data cache: avoids re-fetching the (potentially large) supabase tables
+// every time the user changes year/month/day. Only the slicing is re-applied.
+const _CONCI_RAW_TTL_MS = 5 * 60 * 1000; // 5 minutes
+let _conciRawCache = null; // { manifestRows, vuelosRows, ts }
 
 function _conciNormalizeAirlineName(value) {
     return String(value || '')
@@ -16360,164 +16364,37 @@ async function loadConciliacionManifiestos(options = {}) {
     try {
         let client = window.supabaseClient;
         if (!client && window.ensureSupabaseClient) client = await window.ensureSupabaseClient();
-        if (!client) throw new Error('No se pudo inicializar el cliente de Supabase.');        // Fetch both tables in parallel
-        const [manifestResult, vuelosResult, paxResult] = await Promise.all([
-            _concifetchAllRows(client, 'Conciliación Manifiestos', {
-                batchSize: 5000,
-                orderBy: [{ column: 'id', ascending: true }],
-            }),
-            _concifetchAllRows(client, 'vuelos_parte_operaciones_csv', {        
-                batchSize: 5000,
-            }),
-            _concifetchAllRows(client, 'manifiestos_pasajeros', {        
-                batchSize: 5000,
-            }),
-        ]);
+        if (!client) throw new Error('No se pudo inicializar el cliente de Supabase.');
 
-        if (requestSeq !== _conciLoadRequestSeq) return;
+        let manifestRows;
+        let vuelosRows;
 
-        // Ignore manifest fetch error gracefully (table may be empty)
-        let manifestRows = manifestResult.data || [];
-        const vuelosRows   = vuelosResult.data   || [];
-        const paxRows = paxResult ? (paxResult.data || []) : [];
-        if (vuelosResult.error && manifestResult.error) throw vuelosResult.error;
+        const rawFresh = _conciRawCache && (Date.now() - _conciRawCache.ts) < _CONCI_RAW_TTL_MS;
+        if (!config.forceRefresh && rawFresh) {
+            manifestRows = _conciRawCache.manifestRows;
+            vuelosRows   = _conciRawCache.vuelosRows;
+        } else {
+            // Fetch both tables in parallel
+            const [manifestResult, vuelosResult] = await Promise.all([
+                _concifetchAllRows(client, 'Conciliación Manifiestos', {
+                    batchSize: 5000,
+                    orderBy: [{ column: 'id', ascending: true }],
+                }),
+                _concifetchAllRows(client, 'vuelos_parte_operaciones_csv', {
+                    batchSize: 5000,
+                }),
+            ]);
 
-        // Map paxRows to match manifestRows structure
-                let mCols = {
-            tipo: 'TIPO DE MANIFIESTO',
-            vuelo: '# DE VUELO',
-            aerolinea: 'AEROLINEA',
-            tipo_aeronave: 'AERONAVE',
-            matricula: 'MATRÍCULA',
-            origen_destino: 'DESTINO / ORIGEN',
-            h_itin: 'HR. DE OPERACIÓN',
-            h_real: 'HR. DE EMBARQUE O DESEMBARQUE',
-            h_calzos: 'HR. DE INICIO O TERMINO DE PERNOCTA',
-            posicion: 'HR. DE RECEPCIÓN',
-            pasajeros_total: 'TOTAL PAX',
-            fecha: 'FECHA',
-            year: 'MES',
-            month: 'MES',
-            day: 'FECHA',
-            slot_asig: 'SLOT ASIGNADO',
-            slot_coord: 'SLOT COORDINADO',
-            hr_pernocta: 'HR. DE INICIO O TERMINO DE PERNOCTA',
-            hr_embarque: 'HR. DE EMBARQUE O DESEMBARQUE',
-            hr_operacion: 'HR. DE OPERACIÓN',
-            hr_max_ent: 'HR. MÁXIMA DE ENTREGA',
-            tipo_operacion: 'TIPO DE OPERACIÓN',
-            evidencia: 'EVIDENCIA'
-        };
+            if (requestSeq !== _conciLoadRequestSeq) return;
 
-        if (manifestRows.length > 0) {
-            const keys = Object.keys(manifestRows[0]);
-            const findKey = (pattern) => keys.find(k => pattern.test(k));      
-            const ct = findKey(/tipo.*(manif)/i); if(ct) mCols.tipo = ct;      
-            const cv = findKey(/(#.*vuelo|n[oú]?\.?\s*vuelo|flight\s*des|designat)/i); if(cv) mCols.vuelo = cv;
-            const ca = findKey(/(aerol[ií]nea|airline\s*cod|c[oó]d.*aerol)/i); if(ca) mCols.aerolinea = ca;
-            const cta = findKey(/(aeronave|aircraft|tipo\s*aeronave)/i); if(cta) mCols.tipo_aeronave = cta;
-            const cm = findKey(/(matr[ií]cula|registrat)/i); if(cm) mCols.matricula = cm;
-            const co = findKey(/(routing|origen|ruta)/i); if(co) mCols.origen_destino = co;
-            const chi = findKey(/sibt/i); if(chi) mCols.h_itin = chi; 
-            const chr = findKey(/aibt/i); if(chr) mCols.h_real = chr;
-            const chc = findKey(/aldt/i); if(chc) mCols.h_calzos = chc;        
-            const cpos = findKey(/stand/i); if(cpos) mCols.posicion = cpos;    
-            const cpax = findKey(/(pax|boarded|pasaj)/i); if(cpax) mCols.pasajeros_total = cpax;
-            const cdate = findKey(/(^|\b)fecha(\b|$)/i); if(cdate) mCols.fecha = cdate;
+            manifestRows = manifestResult.data || [];
+            vuelosRows   = vuelosResult.data   || [];
+            if (vuelosResult.error && manifestResult.error) throw vuelosResult.error;
 
-            const cyear = findKey(/^a[ñn]o$/i) || findKey(/year/i); if(cyear) mCols.year = cyear;
-            const cmonth = findKey(/^mes$/i) || findKey(/month/i); if(cmonth) mCols.month = cmonth;
-            const cday = findKey(/^d[ií]a$/i) || findKey(/\bday\b/i); if(cday) mCols.day = cday;
-
-            const cslotasig = findKey(/(slot\s*asig|slot_asig)/i); if(cslotasig) mCols.slot_asig = cslotasig;
-            const cslotcoord = findKey(/(slot\s*coord|slot_coord)/i); if(cslotcoord) mCols.slot_coord = cslotcoord;
-            const chrpern = findKey(/(pernocta)/i); if(chrpern) mCols.hr_pernocta = chrpern;
-            const chremb = findKey(/(embarque\s*o|desembarque)/i); if(chremb) mCols.hr_embarque = chremb;
-            const chroper = findKey(/(hr\.?\s*de\s*oper|hora\s*de\s*oper)/i); if(chroper) mCols.hr_operacion = chroper;
-            const chrent = findKey(/(m[áa]xima\s*de\s*entrega|max.*ent)/i); if(chrent) mCols.hr_max_ent = chrent;
-            const ctoper = findKey(/^(tipo?.*oper|service\s*type)/i); if(ctoper) mCols.tipo_operacion = ctoper;
-            const cevid = findKey(/evidencia/i); if(cevid) mCols.evidencia = cevid;
+            _conciRawCache = { manifestRows, vuelosRows, ts: Date.now() };
+            // Filter-level cache becomes stale when raw data is refreshed
+            _conciRenderCache.clear();
         }
-
-        const _isNacionalMX = (code) => {
-            if (!code) return false;
-            const c = String(code).trim().toUpperCase();
-            if (c === 'NLU' || c === 'MEX' || c === 'TLC' || c === 'AIFA' || c === 'MMSM') return true;
-            if (/^MM[A-Z]{2}$/.test(c)) return true;
-            const mx_iata = new Set(['ACA','AGU','BJX','CME','CPE','CUN','CTM','CJS','CVA','CUL','CZA','CUU','CYW','CEN','DGO','GDL','GYM','HMO','HUX','JAL','LAP','LMM','LTO','ZLO','MAM','MZT','MID','MXL','MEX','NLU','MTY','MLM','NLD','OAX','PAZ','PBC','PQM','PXM','PVR','QRO','REX','SLW','SJD','SLP','TAM','TAP','TIJ','TLC','TRC','TGZ','UPN','VSA','ZCL','TZM','TQO']);
-            if (c.length === 3 && mx_iata.has(c)) return true;
-            const mx_cities = ['ACAPULCO','AGUASCALIENTES','CANCUN','CANCÚN','CAMPECHE','CHETUMAL','CIUDAD JUAREZ','CIUDAD JUÁREZ','CULIACAN','CULIACÁN','CHIHUAHUA','DURANGO','GUADALAJARA','HERMOSILLO','HUATULCO','LA PAZ','LORETO','MANZANILLO','MAZATLAN','MAZATLÁN','MERIDA','MÉRIDA','MEXICALI','MONTERREY','MORELIA','OAXACA','PACHUCA','PUEBLA','PUERTO ESCONDIDO','PUERTO VALLARTA','QUERETARO','QUERÉTARO','REYNOSA','SALTILLO','LOS CABOS','SAN LUIS POTOSI','SAN LUIS POTOSÍ','TAMPICO','TAPACHULA','TIJUANA','TOLUCA','TORREON','TORREÓN','TULUM','TUXTLA','VILLAHERMOSA','ZACATECAS','IXTAPA','ZIHUATANEJO','CIUDAD DEL CARMEN','COZUMEL','MINATITLAN','MINATITLÁN', 'MEXICO', 'MÉXICO', 'HIDALGO', 'JALISCO', 'NUEVO LEON', 'NUEVO LEÓN', 'VERACRUZ', 'SONORA', 'SINALOA', 'BAJA CALIFORNIA', 'GUANAJUATO', 'QUINTANA ROO', 'TAMAULIPAS', 'COLIMA', 'NAYARIT', 'MICHOACAN', 'MICHOACÁN', 'GUERRERO', 'TABASCO', 'CHIAPAS', 'YUCATAN', 'YUCATÁN', 'CAMPECHE', 'OAXACA'];
-            if (mx_cities.some(mxc => c.includes(mxc))) return true;
-            return false;
-        };
-
-        const paxMapped = paxRows.map(p => {
-            const obj = { _isPax: true, id: p.id };
-            
-            let fDesig = String(p.vuelo || "").trim();
-            const exp = String(p.explotador || "").trim();
-            if (exp && fDesig && !fDesig.toUpperCase().startsWith(exp.toUpperCase())) {
-                fDesig = exp + fDesig;
-            }
-
-            obj[mCols.tipo] = p.tipo;
-            obj[mCols.vuelo] = fDesig;
-            obj[mCols.aerolinea] = p.aerolinea;
-            obj[mCols.tipo_aeronave] = p.tipo_aeronave;
-            obj[mCols.matricula] = p.matricula;
-            obj[mCols.origen_destino] = p.aeropuerto_origen || p.aeropuerto_escala || p.aeropuerto_llegada_salida || '';
-            obj[mCols.h_itin] = p.h_itin;
-            obj[mCols.h_real] = p.h_real;
-            obj[mCols.h_calzos] = p.h_calzos;
-            obj[mCols.posicion] = p.posicion;
-            obj[mCols.pasajeros_total] = p.pasajeros_total;
-            obj[mCols.fecha] = p.fecha ? (p.fecha.includes('-') ? p.fecha.split('-').reverse().join('/') : p.fecha) : ''; 
-
-            if (mCols.slot_asig) obj[mCols.slot_asig] = p.h_itin || p.slot_asig || "";
-            if (mCols.slot_coord) obj[mCols.slot_coord] = "";
-            if (mCols.hr_pernocta) obj[mCols.hr_pernocta] = "";
-            if (mCols.hr_embarque) obj[mCols.hr_embarque] = p.h_puerta || "";
-            if (mCols.hr_operacion) obj[mCols.hr_operacion] = p.h_calzos || p.hora_operacion || "";
-            if (mCols.hr_max_ent) obj[mCols.hr_max_ent] = "";
-            if (mCols.evidencia) obj[mCols.evidencia] = p.pdf_url || "";
-
-            if (mCols.tipo_operacion) {
-                const locs = [p.aeropuerto_origen, p.oaci_origen, p.aeropuerto_escala, p.oaci_escala, p.aeropuerto_llegada_salida, p.origen_destino].filter(Boolean);
-                const otherLocs = locs.filter(l => {
-                    const sl = String(l).trim().toUpperCase();
-                    return sl !== 'NLU' && sl !== 'AIFA' && sl !== 'MMSM'; 
-                });
-                
-                let isNac = true;
-                if (otherLocs.length > 0) {
-                    isNac = otherLocs.every(l => _isNacionalMX(l));
-                }
-                obj[mCols.tipo_operacion] = isNac ? 'Nacional' : 'Internacional';
-            }
-
-            obj[mCols.year] = '';
-            obj[mCols.month] = '';
-            obj[mCols.day] = '';
-
-            if (p.fecha && p.fecha.includes('-')) {
-                const parts = p.fecha.split('-');
-                if(parts.length >= 3) {
-                    obj[mCols.year] = parts[0].trim();
-                    obj[mCols.month] = parseInt(parts[1], 10);
-                    obj[mCols.day] = parseInt(parts[2], 10);
-                }
-            } else if (p.fecha && p.fecha.includes('/')) {
-                const parts = p.fecha.split('/');
-                if(parts.length >= 3) {
-                    obj[mCols.year] = parts[2].trim();
-                    obj[mCols.month] = parseInt(parts[1], 10);
-                    obj[mCols.day] = parseInt(parts[0], 10);
-                }
-            }
-            return obj;
-        });
-
-        // manifestRows = manifestRows.concat(paxMapped); // DESHABILITADO PARA NO DUPLICAR
 
         // Filter vuelos by selected month (year is implicit — dates have no year in storage)
         const filteredVuelos = vuelosRows.filter(r => {
@@ -16527,7 +16404,7 @@ async function loadConciliacionManifiestos(options = {}) {
         });
 
         // Filter manifest rows by year/month if columns exist
-        let filteredManifest = manifestRows; console.log('Manifest KEYS:', Object.keys(manifestRows[0]||{}), 'PAX:', paxRows);
+        let filteredManifest = manifestRows;
         if (manifestRows.length > 0) {
             const keys = Object.keys(manifestRows[0]);
             const yearKey  = keys.find(k => /^a[ñn]o$/i.test(k) || /year/i.test(k));
@@ -16562,17 +16439,19 @@ async function loadConciliacionManifiestos(options = {}) {
 
         const { rows, columns } = _conciBuildEnriched(filteredManifest, filteredVuelos, manifestRows);
 
-        const chronoRows = [...rows].sort((a, b) => {
-            const da = _conciBuildSortDate(a, columns, year);
-            const db = _conciBuildSortDate(b, columns, year);
-            const ta = da ? da.getTime() : Number.MAX_SAFE_INTEGER;
-            const tb = db ? db.getTime() : Number.MAX_SAFE_INTEGER;
-            if (ta !== tb) return ta - tb;
-            const ida = Number(a?.id);
-            const idb = Number(b?.id);
-            if (Number.isFinite(ida) && Number.isFinite(idb)) return ida - idb;
-            return String(a?.id || '').localeCompare(String(b?.id || ''), 'es', { numeric: true, sensitivity: 'base' });
+        // Decorate-sort-undecorate: compute sort key once per row instead of n·log(n) times.
+        const decorated = rows.map((r) => {
+            const d = _conciBuildSortDate(r, columns, year);
+            return { r, t: d ? d.getTime() : Number.MAX_SAFE_INTEGER };
         });
+        decorated.sort((a, b) => {
+            if (a.t !== b.t) return a.t - b.t;
+            const ida = Number(a.r?.id);
+            const idb = Number(b.r?.id);
+            if (Number.isFinite(ida) && Number.isFinite(idb)) return ida - idb;
+            return String(a.r?.id || '').localeCompare(String(b.r?.id || ''), 'es', { numeric: true, sensitivity: 'base' });
+        });
+        const chronoRows = decorated.map(d => d.r);
 
         _conciRenderCache.set(cacheKey, { rows: chronoRows, columns, year });
 
@@ -16637,8 +16516,7 @@ function _renderConciManifiestosTable(data, columns, fallbackYear) {
     const trHead = document.createElement('tr');
     displayCols.forEach(c => {
         const th = document.createElement('th');
-        th.className = 'text-nowrap';
-        th.style.cssText = 'position:relative;top:0;z-index:6;background:#343a40;color:#fff;padding:8px 10px;border:1px solid #454d55;white-space:nowrap;text-align:center;';
+        th.className = 'text-nowrap conci-th';
         th.textContent = c;
         trHead.appendChild(th);
     });
@@ -16675,6 +16553,43 @@ function _renderConciManifiestosTable(data, columns, fallbackYear) {
     let appendScheduled = false;
     const scrollWrap = table.closest('.table-responsive');
 
+    // Per-render memoization caches: many cells share the same value/airline/airport,
+    // so memoizing avoids recomputing identical work for thousands of rows.
+    const _airlineMetaCache = new Map();
+    const resolveAirlineMeta = (raw) => {
+        if (_airlineMetaCache.has(raw)) return _airlineMetaCache.get(raw);
+        const meta = _conciResolveAirlineMeta(raw);
+        _airlineMetaCache.set(raw, meta);
+        return meta;
+    };
+    const _iataCityCache = new Map();
+    const iataToCity = (code) => {
+        if (_iataCityCache.has(code)) return _iataCityCache.get(code);
+        const city = window._iataToCity ? window._iataToCity(code) : code;
+        _iataCityCache.set(code, city);
+        return city;
+    };
+    const _displayValueCache = new Map();
+    const formatDisplay = (col, val, row) => {
+        const rawKey = (val === null || val === undefined) ? '' : String(val);
+        // Skip cache if column requires per-row context (e.g. row-date for time-only cells)
+        const useCache = !/(hora|hr\.?\s*de|slot|sibt|aibt|aldt|sobt|aobt|atot|attt)/i.test(col);
+        const cacheKey = useCache ? `${col}\u0001${rawKey}` : null;
+        if (cacheKey && _displayValueCache.has(cacheKey)) return _displayValueCache.get(cacheKey);
+        const out = _conciFormatDisplayValue(col, val, row, _fechaCol, fallbackYear);
+        if (cacheKey) _displayValueCache.set(cacheKey, out);
+        return out;
+    };
+
+    // Precompute column metadata once instead of running regex tests per cell.
+    const hasIataMap = !!window._iataToCity;
+    const colMeta = displayCols.map(c => ({
+        c,
+        isAirline:   c === _airlineCol,
+        isRouting:   c === _routingCol && hasIataMap,
+        isEvidencia: /evidencia/i.test(c),
+    }));
+
     const appendBatch = () => {
         appendScheduled = false;
         if (renderSeq !== _conciRenderSeq) return;
@@ -16693,37 +16608,38 @@ function _renderConciManifiestosTable(data, columns, fallbackYear) {
             tr.dataset.rowFuente = _rowFuente;
             tr.dataset.rowIndex = String(idx);
 
-            displayCols.forEach(c => {
+            displayCols.forEach((c, ci) => {
+                const meta = colMeta[ci];
                 const td = document.createElement('td');
-                td.style.cssText = 'text-align:center;padding:5px 8px;border:1px solid #dee2e6;white-space:nowrap;font-size:0.82rem;';
+                td.className = 'conci-cell';
                 td.dataset.col = c;
                 const val = row[c];
                 const rawStr = String(val !== null && val !== undefined ? val : '').trim();
                 td.dataset.raw = rawStr;
 
-                if (_airlineCol && c === _airlineCol) {
-                    const meta = _conciResolveAirlineMeta(rawStr);
-                    if (meta) {
+                if (meta.isAirline) {
+                    const airlineMeta = resolveAirlineMeta(rawStr);
+                    if (airlineMeta) {
                         const badge = document.createElement('span');
-                        badge.style.cssText = `display:inline-block;padding:2px 10px;border-radius:999px;font-size:0.74rem;font-weight:700;line-height:1.2;background:${meta.color || '#6c757d'};color:${meta.textColor || '#ffffff'};border:1px solid rgba(0,0,0,.15);`;
-                        badge.textContent = String(meta.name || rawStr).toUpperCase();
-                        td.style.borderLeft = `3px solid ${meta.color || '#6c757d'}`;
+                        badge.style.cssText = `display:inline-block;padding:2px 10px;border-radius:999px;font-size:0.74rem;font-weight:700;line-height:1.2;background:${airlineMeta.color || '#6c757d'};color:${airlineMeta.textColor || '#ffffff'};border:1px solid rgba(0,0,0,.15);`;
+                        badge.textContent = String(airlineMeta.name || rawStr).toUpperCase();
+                        td.style.borderLeft = `3px solid ${airlineMeta.color || '#6c757d'}`;
                         td.appendChild(badge);
-                        if (rawStr && rawStr.toUpperCase() !== String(meta.name || '').toUpperCase()) td.title = rawStr;
+                        if (rawStr && rawStr.toUpperCase() !== String(airlineMeta.name || '').toUpperCase()) td.title = rawStr;
                     } else {
                         td.textContent = rawStr;
                     }
-                } else if (_routingCol && c === _routingCol && window._iataToCity) {
+                } else if (meta.isRouting) {
                     const tipo = _tipoCol ? String(row[_tipoCol] || '') : '';
                     const isArr = /lleg|arr/i.test(tipo);
                     const parts = rawStr.toUpperCase().split(/[-\/]+/);
                     const code = (parts.length >= 2)
                         ? (isArr ? parts[0] : parts[parts.length - 1])
                         : (parts[0] || '');
-                    const city = code ? window._iataToCity(code) : rawStr;
+                    const city = code ? iataToCity(code) : rawStr;
                     td.textContent = city || rawStr;
                     if (rawStr) td.title = rawStr;
-                } else if (/evidencia/i.test(c)) {
+                } else if (meta.isEvidencia) {
                     // Si es la columna de evidencia de PDF y trae link
                     if (rawStr && (rawStr.startsWith('http') || rawStr.endsWith('.pdf'))) {
                         const a = document.createElement('a');
@@ -16738,9 +16654,9 @@ function _renderConciManifiestosTable(data, columns, fallbackYear) {
                         td.textContent = rawStr;
                     }
                 } else {
-                    const displayValue = _conciFormatDisplayValue(c, val, row, _fechaCol, fallbackYear);
+                    const displayValue = formatDisplay(c, val, row);
                     td.textContent = displayValue;
-                    if (displayValue && String(displayValue) !== String(val || '').trim()) td.title = String(val || '').trim();
+                    if (displayValue && String(displayValue) !== rawStr) td.title = rawStr;
                 }
 
                 tr.appendChild(td);

@@ -16685,6 +16685,26 @@ body.dark-mode #table-conci-manifiestos tbody tr.conci-row-tone-1 > td { backgro
 body.dark-mode #table-conci-manifiestos tbody tr:hover > td { background: rgba(77,171,247,.16) !important; }
 body.dark-mode #table-conci-manifiestos tbody tr.conci-row-selected > td { background: rgba(243,156,18,.22) !important; box-shadow: inset 0 1px 0 rgba(255,229,138,.55), inset 0 -1px 0 rgba(255,229,138,.55); }
 
+/* Fast cell styles for conciliacion table (replaces per-cell inline cssText for performance) */
+#table-conci-manifiestos thead th.conci-th {
+    position: relative;
+    top: 0;
+    z-index: 6;
+    background: #343a40;
+    color: #fff;
+    padding: 8px 10px;
+    border: 1px solid #454d55;
+    white-space: nowrap;
+    text-align: center;
+}
+#table-conci-manifiestos tbody td.conci-cell {
+    text-align: center;
+    padding: 5px 8px;
+    border: 1px solid #dee2e6;
+    white-space: nowrap;
+    font-size: 0.82rem;
+}
+
 /* -- Daily flights tables (Arrivals / Departures) ------------------------ */
 body.dark-mode #table-daily-flights-arrivals thead tr:first-child th,
 body.dark-mode #table-daily-flights-departures thead tr:first-child th {
