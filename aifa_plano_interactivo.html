@@ -437,7 +437,9 @@ button{font-family:inherit;cursor:pointer}
     <div class="sec">
       <div class="sec__title"><span class="dot"></span>Capa base</div>
       <div class="seg" id="baseseg">
-        <button data-base="satelite" class="active">Satélite</button>
+        <button data-base="google" class="active">Google Sat</button>
+        <button data-base="googleHibrido">Google Híbrido</button>
+        <button data-base="satelite">Esri</button>
         <button data-base="calles">Calles</button>
       </div>
     </div>
@@ -946,6 +948,12 @@ L.control.zoom({position:'bottomright'}).addTo(map);
 L.control.scale({position:'bottomright',imperial:false}).addTo(map);
 
 const bases = {
+  // Google Satélite: la imagen más reciente y nítida del AIFA (uso interno).
+  google: L.tileLayer('https://mt{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+    {maxZoom:CONFIG.zoomMax, subdomains:'0123', attribution:'Imágenes © Google'}),
+  // Google Híbrido: satélite + vialidades y etiquetas en un solo tile.
+  googleHibrido: L.tileLayer('https://mt{s}.google.com/vt/lyrs=y&x={x}&y={y}&z={z}',
+    {maxZoom:CONFIG.zoomMax, subdomains:'0123', attribution:'Imágenes © Google'}),
   satelite: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
     {maxZoom:CONFIG.zoomMax, attribution:'Imágenes © Esri, Maxar, Earthstar Geographics'}),
   calles: L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
@@ -954,13 +962,14 @@ const bases = {
 const etiquetas = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/light_only_labels/{z}/{x}/{y}{r}.png',
   {maxZoom:CONFIG.zoomMax, attribution:'Etiquetas © CARTO', pane:'shadowPane'});
 
-let baseActual = bases.satelite.addTo(map);
+let baseActual = bases.google.addTo(map);
 
 /* overlay del plano maestro */
 let planoLayer = null;
 function setBase(key){
   if(baseActual) map.removeLayer(baseActual);
-  baseActual = bases[key === 'hibrido' ? 'satelite' : key].addTo(map);
+  const baseKey = (key === 'hibrido') ? 'satelite' : key;
+  baseActual = (bases[baseKey] || bases.google).addTo(map);
   if(key === 'hibrido'){ etiquetas.addTo(map); } else { map.removeLayer(etiquetas); }
 }
 
