@@ -50,7 +50,7 @@
         href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Roboto+Mono:wght@400;700&family=Roboto+Condensed:wght@400;500;700&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
-    <link rel="stylesheet" href="style.css?v=20260618C">
+    <link rel="stylesheet" href="style.css?v=20260619A">
     <link rel="stylesheet" href="visual-cards.css?v=1"> <!-- Visual Cards Styles -->
     <link rel="stylesheet" href="admin.css?v=20260203">
     <link rel="icon" type="image/png" sizes="192x192" href="images/icons/aifa-app-icon-192.png?v=20251126">
@@ -2192,7 +2192,16 @@ FF
                                     </div>
                                     <div class="col-12 col-md-4">
                                         <label class="form-label small fw-semibold mb-1">Contraseña *</label>
-                                        <input type="password" class="form-control form-control-sm" id="au-reg-password" placeholder="Contraseña segura">
+                                        <div class="input-group input-group-sm">
+                                            <input type="password" class="form-control form-control-sm" id="au-reg-password" placeholder="Contraseña segura" autocomplete="new-password">
+                                            <button type="button" class="btn btn-outline-warning" onclick="auGenPassword()" title="Generar contraseña aleatoria segura">
+                                                <i class="fas fa-dice"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-outline-secondary" onclick="auTogglePassword()" title="Mostrar / ocultar contraseña">
+                                                <i class="fas fa-eye" id="au-pwd-eye"></i>
+                                            </button>
+                                        </div>
+                                        <div id="au-pwd-hint" class="form-text small text-muted d-none mt-1" style="word-break:break-all"></div>
                                     </div>
                                     <div class="col-12 col-md-4">
                                         <label class="form-label small fw-semibold mb-1">Email de contacto</label>

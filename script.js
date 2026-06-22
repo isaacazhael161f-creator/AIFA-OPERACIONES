@@ -1372,7 +1372,7 @@ function clampAnalyticsCutoffToCurrentDate(candidateIndex, yearKey) {
         const currentYear = now.getFullYear();
         if (Number(yearKey) !== currentYear) return candidateIndex;
         const currentMonthIndex = now.getMonth();
-        const maxClosedIndex = currentMonthIndex - 1;
+        const maxClosedIndex = currentMonthIndex; // include current in-progress month
         if (maxClosedIndex < 0) return -1;
         return Math.min(candidateIndex, maxClosedIndex);
     } catch (_) {
@@ -3323,6 +3323,17 @@ async function bindSupabaseAuthSessionBridge() {
         if (!window.supabaseClient?.auth?.onAuthStateChange) return;
         window.supabaseClient.auth.onAuthStateChange((event, session) => {
             if (session) {
+                // Si el email de sesión cambia (p.ej. signUp crea un usuario distinto),
+                // limpiar el rol almacenado para que se recargue con los datos correctos
+                // del usuario activo, evitando que la sesión quede confundida.
+                const prevEmail = sessionStorage.getItem(SESSION_USER);
+                if (prevEmail && session.user?.email && prevEmail !== session.user.email) {
+                    try {
+                        sessionStorage.removeItem('user_role');
+                        sessionStorage.removeItem('user_allowed_sections');
+                        sessionStorage.removeItem('user_area');
+                    } catch (_) {}
+                }
                 cacheSupabaseSession(session);
                 return;
             }
@@ -7608,6 +7619,32 @@ function getAllowedMonthsForYear(year) {
         scanSeries(monthly?.general?.pasajeros, 'pasajeros');
     }
 
+    // Always scan weekly datasets to pick up months with captured daily data
+    // (e.g., current in-progress month that hasn't been consolidated yet)
+    const _weekSourcesToScan = [
+        ...(Array.isArray(WEEKLY_OPERATIONS_DATASETS) ? WEEKLY_OPERATIONS_DATASETS : []),
+        staticData?.operacionesSemanaActual
+    ].filter(Boolean);
+    const _seenDates = new Set();
+    _weekSourcesToScan.forEach((week) => {
+        if (!Array.isArray(week?.dias)) return;
+        week.dias.forEach((day) => {
+            const iso = day?.fecha;
+            if (!iso || _seenDates.has(iso)) return;
+            _seenDates.add(iso);
+            const parsed = parseIsoDay(iso);
+            if (!parsed || parsed.getFullYear() !== yearNum) return;
+            const hasData = [
+                day?.comercial?.operaciones, day?.comercial?.pasajeros,
+                day?.general?.operaciones, day?.general?.pasajeros,
+                day?.carga?.operaciones, day?.carga?.toneladas
+            ].some((v) => { const n = Number(v); return Number.isFinite(n) && n > 0; });
+            if (!hasData) return;
+            const monthCode = normalizeMonthCode(parsed.getMonth() + 1);
+            if (monthCode) monthSet.add(monthCode);
+        });
+    });
+
     if (monthSet.size) {
         return OPS_ALL_MONTH_CODES.filter((code) => monthSet.has(code));
     }
@@ -7759,6 +7796,9 @@ function refreshOpsMonthsSelectionUI() {
     if (!panel) return;
     const activeYear = opsUIState?.activeMonthlyYear ? String(opsUIState.activeMonthlyYear) : getOpsActiveMonthlyYear();
     const allowed = createAllowedMonthsSet(activeYear);
+    const previousAllowed = opsUIState?.allowedMonthsSnapshot instanceof Set
+        ? new Set(Array.from(opsUIState.allowedMonthsSnapshot).map((c) => String(c || '').padStart(2, '0')))
+        : new Set();
     opsUIState.allowedMonthsSnapshot = new Set(allowed);
     const selection = opsUIState?.months2025 instanceof Set ? opsUIState.months2025 : new Set();
     const normalizedSelection = new Set();
@@ -7766,6 +7806,15 @@ function refreshOpsMonthsSelectionUI() {
         const normalized = String(code || '').padStart(2, '0');
         if (allowed.has(normalized)) normalizedSelection.add(normalized);
     });
+    // If the user previously had ALL allowed months selected and new months became available,
+    // automatically include the new months (e.g., current in-progress month from daily data).
+    const hadFullSelection = previousAllowed.size > 0
+        && previousAllowed.size === selection.size
+        && Array.from(previousAllowed).every((c) => selection.has(String(c).padStart(2, '0')));
+    if (hadFullSelection && allowed.size > previousAllowed.size) {
+        normalizedSelection.clear();
+        allowed.forEach((code) => normalizedSelection.add(String(code).padStart(2, '0')));
+    }
     if (!normalizedSelection.size && allowed.size) {
         allowed.forEach((code) => normalizedSelection.add(String(code).padStart(2, '0')));
     }
@@ -10245,12 +10294,12 @@ window.updateOpsSummary = updateOpsSummary;
    ════════════════════════════════════════════════════════════════════════ */
 
 const NDW_CARD_DEFS = [
-    { cat: 'comercial', metric: 'operaciones', label: 'Comercial', sub: 'Operaciones semana', icon: 'fas fa-plane-departure', img: 'images/Aviones%20pax.jpeg', accent: '#3b82f6' },
-    { cat: 'comercial', metric: 'pasajeros', label: 'Comercial', sub: 'Pasajeros semana', icon: 'fas fa-user-friends', img: 'images/Pax.jpeg', accent: '#3b82f6' },
-    { cat: 'carga', metric: 'operaciones', label: 'Carga', sub: 'Operaciones semana', icon: 'fas fa-box-open', img: 'images/Aeronaves%20carga.jpg', accent: '#f59e0b' },
-    { cat: 'carga', metric: 'toneladas', label: 'Carga', sub: 'Toneladas semana', icon: 'fas fa-weight-hanging', img: 'images/Carga%20a%C3%A9rea.jpg', accent: '#f59e0b' },
-    { cat: 'general', metric: 'operaciones', label: 'General', sub: 'Operaciones semana', icon: 'fas fa-paper-plane', img: 'images/Aviones%20FBO.png', accent: '#22c55e' },
-    { cat: 'general', metric: 'pasajeros', label: 'General', sub: 'Pasajeros semana', icon: 'fas fa-user-check', img: 'images/Pasajero%20FBO.jpg', accent: '#22c55e' }
+    { cat: 'comercial', metric: 'operaciones', label: 'Comercial', sub: 'Operaciones semana', icon: 'fas fa-plane-departure', img: 'images/Aviones%20pax.jpeg', accent: '#3b82f6', bgPos: 'center 28%' },
+    { cat: 'comercial', metric: 'pasajeros', label: 'Comercial', sub: 'Pasajeros semana', icon: 'fas fa-user-friends', img: 'images/Pax.jpeg', accent: '#3b82f6', bgPos: 'center center' },
+    { cat: 'carga', metric: 'operaciones', label: 'Carga', sub: 'Operaciones semana', icon: 'fas fa-box-open', img: 'images/Aeronaves%20carga.jpg', accent: '#f59e0b', bgPos: 'center center' },
+    { cat: 'carga', metric: 'toneladas', label: 'Carga', sub: 'Toneladas semana', icon: 'fas fa-weight-hanging', img: 'images/Carga%20a%C3%A9rea.jpg', accent: '#f59e0b', bgPos: 'center center' },
+    { cat: 'general', metric: 'operaciones', label: 'General', sub: 'Operaciones semana', icon: 'fas fa-paper-plane', img: 'images/Aviones%20FBO.png', accent: '#22c55e', bgPos: 'center 72%' },
+    { cat: 'general', metric: 'pasajeros', label: 'General', sub: 'Pasajeros semana', icon: 'fas fa-user-check', img: 'images/Pasajero%20FBO.jpg', accent: '#22c55e', bgPos: 'center center' }
 ];
 
 function ndwFormatValue(value, metric) {
@@ -10258,6 +10307,251 @@ function ndwFormatValue(value, metric) {
         return Number(value || 0).toLocaleString('es-MX', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
     }
     return Number(value || 0).toLocaleString('es-MX');
+}
+
+/* ── NDW shared view state ── */
+let NDW_VIEW_STATE = { mode: 'weekly', year: null, monthIdx: null };
+let _ndwDetailChart = null;
+
+/* ── Peak-line chart config (badge labels + gradient fill) for NDW modals ── */
+function ndwBuildPeakLineCfg(canvas, labels, data, def, highlightIdx) {
+    const accent  = def.accent;
+    const gCtx    = canvas.getContext('2d');
+    const h       = canvas.offsetHeight || canvas.parentElement?.offsetHeight || 260;
+    const grad    = gCtx.createLinearGradient(0, 0, 0, h);
+    grad.addColorStop(0, hexToRgba(accent, 0.40));
+    grad.addColorStop(1, hexToRgba(accent, 0.02));
+
+    /* Badge-label plugin (scoped per chart instance) */
+    const badgePlugin = {
+        id: 'ndwBadge',
+        afterDraw(chart) {
+            try {
+                const meta = chart.getDatasetMeta(0);
+                if (!meta?.data?.length) return;
+                const cctx  = chart.ctx;
+                const vals  = chart.data.datasets[0].data;
+                const lbls  = chart.data.labels;
+                const area  = chart.chartArea;
+                const placed = [];
+
+                meta.data.forEach((pt, i) => {
+                    const raw = vals[i];
+                    if (raw == null || !Number.isFinite(Number(raw))) return;
+                    const isHl  = i === highlightIdx;
+                    const line1 = String(lbls[i]);
+                    const line2 = ndwFormatValue(Number(raw), def.metric);
+
+                    cctx.save();
+                    const fontSize1 = 10;
+                    const fontSize2 = isHl ? 13 : 11;
+                    cctx.font = `600 ${fontSize1}px system-ui,-apple-system,sans-serif`;
+                    const tw1 = cctx.measureText(line1).width;
+                    cctx.font = `bold ${fontSize2}px system-ui,-apple-system,sans-serif`;
+                    const tw2 = cctx.measureText(line2).width;
+                    const bw = Math.max(tw1, tw2) + 20;
+                    const bh = isHl ? 42 : 36;
+                    const br = 7;
+
+                    /* Position: prefer above, clamp to chart area */
+                    let bx = pt.x - bw / 2;
+                    let by = pt.y - bh - 14;
+                    bx = Math.max(area.left + 2, Math.min(bx, area.right - bw - 2));
+                    if (by < area.top) by = pt.y + 14; /* flip below if no room */
+
+                    /* Avoid overlap with already-placed badges */
+                    const overlaps = placed.some(p =>
+                        bx < p.x + p.w + 4 && bx + bw > p.x - 4 &&
+                        by < p.y + p.h + 4 && by + bh > p.y - 4
+                    );
+                    if (overlaps) { cctx.restore(); return; }
+                    placed.push({ x: bx, y: by, w: bw, h: bh });
+
+                    /* Shadow */
+                    cctx.shadowColor   = 'rgba(0,0,0,0.30)';
+                    cctx.shadowBlur    = 9;
+                    cctx.shadowOffsetY = 3;
+
+                    /* Rounded rect */
+                    cctx.fillStyle = isHl ? accent : hexToRgba(accent, 0.80);
+                    cctx.beginPath();
+                    cctx.moveTo(bx + br, by);
+                    cctx.lineTo(bx + bw - br, by);
+                    cctx.quadraticCurveTo(bx + bw, by,      bx + bw, by + br);
+                    cctx.lineTo(bx + bw, by + bh - br);
+                    cctx.quadraticCurveTo(bx + bw, by + bh, bx + bw - br, by + bh);
+                    cctx.lineTo(bx + br, by + bh);
+                    cctx.quadraticCurveTo(bx, by + bh,      bx, by + bh - br);
+                    cctx.lineTo(bx, by + br);
+                    cctx.quadraticCurveTo(bx, by,           bx + br, by);
+                    cctx.closePath();
+                    cctx.fill();
+
+                    cctx.shadowColor = 'transparent';
+
+                    /* Text */
+                    const cx = bx + bw / 2;
+                    const gap = isHl ? 11 : 9;
+                    cctx.textAlign    = 'center';
+                    cctx.textBaseline = 'middle';
+                    cctx.font      = `600 ${fontSize1}px system-ui,-apple-system,sans-serif`;
+                    cctx.fillStyle = 'rgba(255,255,255,0.80)';
+                    cctx.fillText(line1, cx, by + bh / 2 - gap);
+                    cctx.font      = `bold ${fontSize2}px system-ui,-apple-system,sans-serif`;
+                    cctx.fillStyle = '#ffffff';
+                    cctx.fillText(line2, cx, by + bh / 2 + gap);
+                    cctx.restore();
+                });
+            } catch (_) { /* noop */ }
+        }
+    };
+
+    const processed = data.map(v => { const n = Number(v); return Number.isFinite(n) ? n : null; });
+    const nums      = processed.filter(v => v !== null);
+    const maxVal    = nums.length ? Math.max(...nums) : 0;
+    const minVal    = nums.length ? Math.min(...nums) : 0;
+    const span      = Math.max(0, maxVal - minVal);
+    const yPadUp    = span > 0 ? span * 0.55 : maxVal * 0.25 || 10;  /* room for badges */
+    const yPadDown  = span > 0 ? span * 0.25 : maxVal * 0.10 || 5;
+
+    return {
+        type: 'line',
+        plugins: [badgePlugin],
+        data: {
+            labels,
+            datasets: [{
+                label: def.label,
+                data: processed,
+                fill: true,
+                backgroundColor: grad,
+                borderColor: accent,
+                borderWidth: 2.5,
+                tension: 0.4,
+                cubicInterpolationMode: 'monotone',
+                pointBackgroundColor: processed.map((_, i) => i === highlightIdx ? '#fff' : accent),
+                pointBorderColor:     processed.map((_, i) => i === highlightIdx ? accent : 'rgba(255,255,255,0.4)'),
+                pointBorderWidth:     processed.map((_, i) => i === highlightIdx ? 3 : 1.5),
+                pointRadius:          processed.map((_, i) => i === highlightIdx ? 7 : 4.5),
+                pointHoverRadius: 7,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            layout: { padding: { top: 8, right: 14, bottom: 8, left: 8 } },
+            animation: { duration: 750, easing: 'easeOutCubic' },
+            plugins: {
+                legend: { display: false },
+                datalabels: { display: false },
+                tooltip: {
+                    backgroundColor: 'rgba(8,14,28,.92)',
+                    borderColor:     'rgba(148,186,255,.2)',
+                    borderWidth: 1,
+                    titleColor: '#fff',
+                    bodyColor:  '#b4d0f0',
+                    padding: 10,
+                    callbacks: { label: (ctx) => '  ' + ndwFormatValue(ctx.raw, def.metric) }
+                }
+            },
+            scales: {
+                x: {
+                    grid:  { color: 'rgba(148,186,255,.08)' },
+                    ticks: { color: 'rgba(190,214,255,.65)', font: { size: 11, weight: '600' } }
+                },
+                y: {
+                    min: Math.max(0, minVal - yPadDown),
+                    max: maxVal + yPadUp,
+                    grid:  { color: 'rgba(148,186,255,.08)' },
+                    ticks: {
+                        color: 'rgba(190,214,255,.65)', font: { size: 11 },
+                        maxTicksLimit: 5,
+                        callback: v => ndwFormatValue(v, def.metric)
+                    }
+                }
+            }
+        }
+    };
+}
+
+function ndwGetAvailableYears() {
+    if (!AVIATION_ANALYTICS_DATA) return [];
+    const yearsArr = AVIATION_ANALYTICS_DATA.comercial?.years;
+    return Array.isArray(yearsArr) ? [...yearsArr] : [];
+}
+
+function ndwGetMonthlyVal(cat, metric, yearStr, monthIdx) {
+    if (!AVIATION_ANALYTICS_DATA) return 0;
+    const metricKey = metric === 'toneladas' ? 'tons_transportadas' : metric;
+    const monthKey = AVIATION_ANALYTICS_MONTH_KEYS[monthIdx];
+    const val = AVIATION_ANALYTICS_DATA[cat]?.[metricKey]?.years?.[yearStr]?.months?.[monthKey];
+    if (val != null && Number.isFinite(Number(val))) return Number(val);
+    // Fallback: derive from captured daily data (for current in-progress month)
+    return ndwComputeMonthFromDailyData(cat, metric, yearStr, monthIdx);
+}
+
+/* Sum captured daily operations for a given year/month from weekly datasets. */
+function ndwComputeMonthFromDailyData(cat, metric, yearStr, monthIdx) {
+    const yearNum = Number(yearStr);
+    if (!Number.isFinite(yearNum)) return 0;
+    const dailyField = metric === 'pasajeros' ? 'pasajeros'
+        : metric === 'toneladas' ? 'toneladas'
+        : 'operaciones';
+    const weekSources = [
+        ...(Array.isArray(WEEKLY_OPERATIONS_DATASETS) ? WEEKLY_OPERATIONS_DATASETS : []),
+        staticData?.operacionesSemanaActual
+    ].filter(Boolean);
+    const seenDates = new Set();
+    let total = 0;
+    weekSources.forEach((week) => {
+        if (!Array.isArray(week?.dias)) return;
+        week.dias.forEach((day) => {
+            const iso = day?.fecha;
+            if (!iso || seenDates.has(iso)) return;
+            const parsed = parseIsoDay(iso);
+            if (!parsed) return;
+            if (parsed.getFullYear() !== yearNum) return;
+            if (parsed.getMonth() !== monthIdx) return;
+            seenDates.add(iso);
+            const raw = day?.[cat]?.[dailyField];
+            const num = Number(raw);
+            if (Number.isFinite(num) && num > 0) total += num;
+        });
+    });
+    return total;
+}
+
+/* Returns the last available month index for a given year — mirrors AVIATION_ANALYTICS_LAST_CLOSED_MONTH_INDEX
+   for the cutoff year, and 11 (all months) for fully-closed past years. */
+function ndwGetMonthCutoff(yearStr) {
+    const cutoffYear = String(AVIATION_ANALYTICS_CUTOFF_YEAR);
+    if (yearStr === cutoffYear) {
+        const baseCutoff = Number.isFinite(AVIATION_ANALYTICS_LAST_CLOSED_MONTH_INDEX)
+            ? AVIATION_ANALYTICS_LAST_CLOSED_MONTH_INDEX
+            : new Date().getMonth();
+        const todayMonth = new Date().getMonth(); // 0-based
+        // Extend cutoff to include the current in-progress month when daily captures exist
+        if (todayMonth > baseCutoff) {
+            const hasCurrentMonthData = ['comercial', 'general', 'carga'].some((cat) => {
+                const metric = cat === 'carga' ? 'toneladas' : 'operaciones';
+                return ndwComputeMonthFromDailyData(cat, metric, yearStr, todayMonth) > 0;
+            });
+            if (hasCurrentMonthData) return todayMonth;
+        }
+        return baseCutoff;
+    }
+    return 11;
+}
+
+function ndwGetAnnualVal(cat, metric, yearStr) {
+    if (!AVIATION_ANALYTICS_DATA) return 0;
+    // Sum all available months (including current in-progress month from daily captures)
+    // so the annual total matches what the comparison charts show.
+    const cutoff = ndwGetMonthCutoff(yearStr);
+    let total = 0;
+    for (let i = 0; i <= cutoff; i++) {
+        total += ndwGetMonthlyVal(cat, metric, yearStr, i);
+    }
+    return total;
 }
 
 function renderNavdeckWeeklyBanner() {
@@ -10269,42 +10563,179 @@ function renderNavdeckWeeklyBanner() {
     }
     try {
         const weekly = (typeof getActiveWeeklyDataset === 'function') ? getActiveWeeklyDataset() : null;
-        const days = Array.isArray(weekly?.dias) ? weekly.dias : [];
-        if (!days.length) { container.innerHTML = ''; return; }
+        const days   = Array.isArray(weekly?.dias) ? weekly.dias : [];
+        const mode   = NDW_VIEW_STATE.mode;
 
-        const range = weekly?.rango || {};
-        const rangeLabel = (typeof formatWeekLabel === 'function')
-            ? formatWeekLabel(weekly)
-            : (range.descripcion || 'Semana reciente');
+        if (mode === 'weekly' && !days.length) { container.innerHTML = ''; return; }
 
-        const sumCat = (cat, metric) => days.reduce((acc, d) => acc + getWeeklyValue(d, cat, metric), 0);
+        /* ── resolve available years & defaults ── */
+        const availableYears = ndwGetAvailableYears();
+        const currentYear    = new Date().getFullYear().toString();
+        const defaultYear    = availableYears.includes(currentYear) ? currentYear
+                             : (availableYears.length ? availableYears[availableYears.length - 1] : currentYear);
+        if (!NDW_VIEW_STATE.year)         NDW_VIEW_STATE.year     = defaultYear;
+        if (NDW_VIEW_STATE.monthIdx === null) NDW_VIEW_STATE.monthIdx = Math.max(0, new Date().getMonth() - 1);
+
+        const selYear     = NDW_VIEW_STATE.year;
+        const selMonthIdx = NDW_VIEW_STATE.monthIdx;
+
+        const MONTH_SHORT = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+        const MONTH_FULL  = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+        /* ── hero content per mode ── */
+        let heroIcon, heroKicker, heroTitle, periodPickerHtml = '';
+
+        if (mode === 'weekly') {
+            const rangeLabel = (typeof formatWeekLabel === 'function')
+                ? formatWeekLabel(weekly)
+                : (weekly?.rango?.descripcion || 'Semana reciente');
+            heroIcon   = 'fas fa-calendar-week';
+            heroKicker = 'Periodo activo';
+            heroTitle  = rangeLabel;
+
+            /* Preliminary banner note when the active week is in the current month */
+            const _wkStartFecha = weekly?.rango?.inicio || days[0]?.fecha;
+            const _wkStartDate  = _wkStartFecha ? parseIsoDay(_wkStartFecha) : null;
+            const _now = new Date();
+            if (_wkStartDate
+                && _wkStartDate.getMonth()    === _now.getMonth()
+                && _wkStartDate.getFullYear() === _now.getFullYear()) {
+                const _mName = MONTH_FULL[_now.getMonth()];
+
+                /* Last day with any captured data across all available weeks */
+                const _MONTH_NAMES_ES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+                const _DOW_ES = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+                const _allDays = [];
+                const _seenFechas = new Set();
+                const _weekSrcs = [
+                    ...(Array.isArray(WEEKLY_OPERATIONS_DATASETS) ? WEEKLY_OPERATIONS_DATASETS : []),
+                    staticData?.operacionesSemanaActual
+                ].filter(Boolean);
+                _weekSrcs.forEach((wk) => {
+                    if (!Array.isArray(wk?.dias)) return;
+                    wk.dias.forEach((d) => {
+                        if (!d?.fecha || _seenFechas.has(d.fecha)) return;
+                        const _hasVal = [d?.comercial?.operaciones, d?.comercial?.pasajeros,
+                                         d?.general?.operaciones, d?.general?.pasajeros,
+                                         d?.carga?.operaciones, d?.carga?.toneladas]
+                            .some((v) => { const n = Number(v); return Number.isFinite(n) && n > 0; });
+                        if (!_hasVal) return;
+                        _seenFechas.add(d.fecha);
+                        _allDays.push(d.fecha);
+                    });
+                });
+                _allDays.sort();
+                const _lastFecha = _allDays.length ? _allDays[_allDays.length - 1] : null;
+                const _lastDate  = _lastFecha ? parseIsoDay(_lastFecha) : null;
+                const _lastDateStr = _lastDate
+                    ? `${_DOW_ES[_lastDate.getDay()]} ${_lastDate.getDate()} de ${_MONTH_NAMES_ES[_lastDate.getMonth()]}`
+                    : null;
+
+                periodPickerHtml = `
+                    <div class="ndw-prelim-banner-group">
+                        <p class="ndw-prelim-banner-note" aria-live="polite">
+                            <span class="ndw-prelim-banner-dot" aria-hidden="true"></span>
+                            <i class="fas fa-clock-rotate-left" aria-hidden="true"></i>
+                            <span>Cifras preliminares &mdash; <strong>${_mName} ${_now.getFullYear()}</strong> en curso</span>
+                        </p>
+                        ${_lastDateStr ? `
+                        <p class="ndw-prelim-last-date" aria-live="polite">
+                            <i class="fas fa-calendar-check" aria-hidden="true"></i>
+                            <span>Datos al <strong>${_lastDateStr}</strong></span>
+                        </p>` : ''}
+                    </div>`;
+            }
+
+        } else if (mode === 'monthly') {
+            heroIcon   = 'fas fa-calendar-alt';
+            heroKicker = 'Mes activo';
+            heroTitle  = `${MONTH_FULL[selMonthIdx]} ${selYear}`;
+
+            const yearChipsHtml = availableYears.length > 1
+                ? availableYears.map(y => `<button type="button" class="ndw-period-chip ndw-period-chip--year${y === selYear ? ' is-active' : ''}" data-ndw-year="${y}">${y}</button>`).join('')
+                : '';
+
+            const cutoffForYear = ndwGetMonthCutoff(selYear);
+            const canPrev = selMonthIdx > 0;
+            const canNext = selMonthIdx < cutoffForYear;
+
+            periodPickerHtml = `
+                <div class="ndw-period-picker ndw-period-picker--compact">
+                    ${yearChipsHtml ? `<div class="ndw-period-group">${yearChipsHtml}</div><span class="ndw-period-sep" aria-hidden="true"></span>` : ''}
+                    <div class="ndw-month-stepper">
+                        <button type="button" class="ndw-month-step" data-ndw-step="-1" aria-label="Mes anterior" ${canPrev ? '' : 'disabled'}>‹</button>
+                        <span class="ndw-month-step-label">
+                            <i class="fas fa-calendar-alt" aria-hidden="true"></i>
+                            ${MONTH_FULL[selMonthIdx]}
+                        </span>
+                        <button type="button" class="ndw-month-step" data-ndw-step="1" aria-label="Mes siguiente" ${canNext ? '' : 'disabled'}>›</button>
+                    </div>
+                </div>
+                <p class="ndw-tap-hint" aria-label="Las tarjetas son interactivas"><i class="fas fa-hand-pointer" aria-hidden="true"></i><span>Toca una tarjeta para ver el análisis completo</span></p>`;
+
+        } else { /* annual */
+            heroIcon   = 'fas fa-calendar';
+            heroKicker = 'Año activo';
+            heroTitle  = selYear;
+
+            const yearChipsHtml = availableYears.map(y =>
+                `<button type="button" class="ndw-period-chip ndw-period-chip--year ndw-period-chip--lg${y === selYear ? ' is-active' : ''}" data-ndw-year="${y}">${y}</button>`
+            ).join('');
+            periodPickerHtml = `
+                <div class="ndw-period-picker ndw-period-picker--compact"><div class="ndw-period-group">${yearChipsHtml}</div></div>
+                <p class="ndw-tap-hint" aria-label="Las tarjetas son interactivas"><i class="fas fa-hand-pointer" aria-hidden="true"></i><span>Toca una tarjeta para ver el histórico anual</span></p>`;
+        }
+
+        /* ── view toggle ── */
+        const viewToggleHtml = `
+            <div class="ndw-view-toggle" role="group" aria-label="Seleccionar vista">
+                <button type="button" class="ndw-view-btn${mode === 'weekly'  ? ' is-active' : ''}" data-ndw-mode="weekly"  aria-pressed="${mode === 'weekly'}">
+                    <i class="fas fa-calendar-week" aria-hidden="true"></i>Semanal
+                </button>
+                <button type="button" class="ndw-view-btn${mode === 'monthly' ? ' is-active' : ''}" data-ndw-mode="monthly" aria-pressed="${mode === 'monthly'}">
+                    <i class="fas fa-calendar-alt" aria-hidden="true"></i>Mensual
+                </button>
+                <button type="button" class="ndw-view-btn${mode === 'annual'  ? ' is-active' : ''}" data-ndw-mode="annual"  aria-pressed="${mode === 'annual'}">
+                    <i class="fas fa-calendar" aria-hidden="true"></i>Anual
+                </button>
+            </div>`;
+
+        /* ── card values per mode ── */
+        const subSuffix = { weekly: 'semana', monthly: 'mes', annual: 'año' }[mode];
+        const getCardVal = (def) => {
+            if (mode === 'weekly')  return days.reduce((acc, d) => acc + getWeeklyValue(d, def.cat, def.metric), 0);
+            if (mode === 'monthly') return ndwGetMonthlyVal(def.cat, def.metric, selYear, selMonthIdx);
+            return ndwGetAnnualVal(def.cat, def.metric, selYear);
+        };
 
         const cardsHtml = NDW_CARD_DEFS.map((def, idx) => {
-            const total = sumCat(def.cat, def.metric);
+            const total = getCardVal(def);
+            const sub   = def.sub.replace('semana', subSuffix);
             return `
             <button type="button" class="ndw-card ndw-card--${def.cat}" data-ndw-idx="${idx}"
-                    style="--ndw-accent:${def.accent};background-image:url('${def.img}');"
-                    aria-label="Ver detalle de ${def.label} ${def.sub}">
+                    style="--ndw-accent:${def.accent};background-image:url('${def.img}');background-position:${def.bgPos || 'center center'};"
+                    aria-label="${escapeHTML(def.label)} — ${escapeHTML(sub)}">
                 <span class="ndw-card-overlay" aria-hidden="true"></span>
                 <span class="ndw-card-icon"><i class="${def.icon}" aria-hidden="true"></i></span>
                 <span class="ndw-card-body">
                     <span class="ndw-card-tag">${escapeHTML(def.label)}</span>
                     <span class="ndw-card-value">${ndwFormatValue(total, def.metric)}</span>
-                    <span class="ndw-card-sub">${escapeHTML(def.sub)}</span>
+                    <span class="ndw-card-sub">${escapeHTML(sub)}</span>
                 </span>
-                <span class="ndw-card-cta" aria-hidden="true"><i class="fas fa-chart-column"></i> Ver detalle</span>
+                <span class="ndw-card-cta" aria-hidden="true"><i class="fas fa-${mode === 'weekly' ? 'chart-column' : 'chart-line'}"></i> ${mode === 'weekly' ? 'Ver detalle' : 'Ver análisis'}</span>
             </button>`;
         }).join('');
 
         container.innerHTML = `
-            <div class="ndw-hero" style="--ndw-hero-img:url('images/torre.jpg')">
+            <div class="ndw-hero ndw-hero--${mode}" style="--ndw-hero-img:url('images/torre.jpg')">
                 <div class="ndw-hero-media" aria-hidden="true"></div>
-                <span class="ndw-hero-icon" aria-hidden="true"><i class="fas fa-calendar-week"></i></span>
+                <span class="ndw-hero-icon" aria-hidden="true"><i class="${heroIcon}"></i></span>
                 <div class="ndw-hero-text">
-                    <span class="ndw-hero-kicker">Periodo activo</span>
-                    <span class="ndw-hero-title">${escapeHTML(rangeLabel)}</span>
+                    <span class="ndw-hero-kicker">${escapeHTML(heroKicker)}</span>
+                    <span class="ndw-hero-title">${escapeHTML(heroTitle)}</span>
+                    ${periodPickerHtml}
                 </div>
-                <span class="ndw-hero-badge"><i class="fas fa-layer-group me-1"></i>Vista semanal</span>
+                ${viewToggleHtml}
             </div>
             <div class="ndw-cards">${cardsHtml}</div>
         `;
@@ -10312,10 +10743,41 @@ function renderNavdeckWeeklyBanner() {
         if (!container._ndwWired) {
             container._ndwWired = true;
             container.addEventListener('click', (ev) => {
+                const modeBtn = ev.target.closest('[data-ndw-mode]');
+                if (modeBtn) {
+                    NDW_VIEW_STATE.mode = modeBtn.getAttribute('data-ndw-mode');
+                    renderNavdeckWeeklyBanner();
+                    return;
+                }
+                const stepBtn = ev.target.closest('[data-ndw-step]');
+                if (stepBtn && !stepBtn.disabled) {
+                    const delta     = Number(stepBtn.getAttribute('data-ndw-step'));
+                    const selYear   = NDW_VIEW_STATE.year || String(new Date().getFullYear());
+                    const cutoff    = ndwGetMonthCutoff(selYear);
+                    const next      = Math.max(0, Math.min(cutoff, (NDW_VIEW_STATE.monthIdx ?? 0) + delta));
+                    NDW_VIEW_STATE.monthIdx = next;
+                    renderNavdeckWeeklyBanner();
+                    return;
+                }
+                const monthChip = ev.target.closest('[data-ndw-monthidx]');
+                if (monthChip) {
+                    NDW_VIEW_STATE.monthIdx = Number(monthChip.getAttribute('data-ndw-monthidx'));
+                    renderNavdeckWeeklyBanner();
+                    return;
+                }
+                const yearChip = ev.target.closest('[data-ndw-year]');
+                if (yearChip) {
+                    NDW_VIEW_STATE.year = yearChip.getAttribute('data-ndw-year');
+                    renderNavdeckWeeklyBanner();
+                    return;
+                }
                 const card = ev.target.closest('.ndw-card');
                 if (!card) return;
                 const idx = Number(card.getAttribute('data-ndw-idx'));
-                if (Number.isFinite(idx)) openNavdeckWeeklyDetail(idx);
+                if (!Number.isFinite(idx)) return;
+                if (NDW_VIEW_STATE.mode === 'weekly')       openNavdeckWeeklyDetail(idx);
+                else if (NDW_VIEW_STATE.mode === 'monthly') openNavdeckMonthlyDetail(idx);
+                else                                        openNavdeckAnnualDetail(idx);
             });
         }
     } catch (e) { /* ignore */ }
@@ -10338,6 +10800,22 @@ function openNavdeckWeeklyDetail(idx) {
     const activeDays = rows.filter(r => r.value > 0).length || rows.length;
     const avg = total / activeDays;
     const peak = rows.reduce((best, r) => (r.value > (best?.value ?? -1) ? r : best), null);
+
+    /* ── Detect if this week belongs to the current in-progress month ── */
+    const _MONTH_F_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    const _today = new Date();
+    const _weekStartFecha = weekly?.rango?.inicio || days[0]?.fecha;
+    const _weekStartDate  = _weekStartFecha ? parseIsoDay(_weekStartFecha) : null;
+    const _weekIsCurrentMonth = _weekStartDate
+        && _weekStartDate.getMonth()    === _today.getMonth()
+        && _weekStartDate.getFullYear() === _today.getFullYear();
+    const _currentMonthName = _MONTH_F_ES[_today.getMonth()];
+    const weekPrelimNote = _weekIsCurrentMonth
+        ? `<div class="ndw-prelim-note">
+               <i class="fas fa-triangle-exclamation"></i>
+               <span>Cifras preliminares &mdash; Mes de <strong>${_currentMonthName}</strong> en curso</span>
+           </div>`
+        : '';
 
     const rowsHtml = rows.map(r => {
         const pct = total > 0 ? (r.value / total) * 100 : 0;
@@ -10366,14 +10844,21 @@ function openNavdeckWeeklyDetail(idx) {
 
     overlay.innerHTML = `
         <div class="ndw-modal-card ndw-modal-card--${def.cat}" role="dialog" aria-modal="true" aria-label="Detalle ${def.label} ${def.sub}">
-            <div class="ndw-modal-head" style="--ndw-accent:${def.accent};background-image:url('${def.img}');">
+            <div class="ndw-modal-head" style="--ndw-accent:${def.accent};background-image:url('${def.img}');background-position:${def.bgPos || 'center center'};">  
                 <span class="ndw-modal-head-overlay" aria-hidden="true"></span>
-                <span class="ndw-modal-head-icon"><i class="${def.icon}"></i></span>
-                <div class="ndw-modal-head-text">
-                    <span class="ndw-modal-tag">${escapeHTML(def.label)} · ${escapeHTML(def.sub.replace(' semana', ''))}</span>
-                    <span class="ndw-modal-range">${escapeHTML(rangeLabel)}</span>
+                <i class="${def.icon} ndw-modal-deco" aria-hidden="true"></i>
+                <!-- Barra superior: cerrar -->
+                <div class="ndw-modal-head-topbar">
+                    <button type="button" class="ndw-modal-close" data-ndw-close aria-label="Cerrar"><i class="fas fa-times"></i></button>
                 </div>
-                <button type="button" class="ndw-modal-close" data-ndw-close aria-label="Cerrar"><i class="fas fa-times"></i></button>
+                <!-- Barra inferior: ícono + info -->
+                <div class="ndw-modal-head-bottom">
+                    <span class="ndw-modal-head-icon"><i class="${def.icon}"></i></span>
+                    <div class="ndw-modal-head-text">
+                        <span class="ndw-modal-tag"><i class="${def.icon} me-1" style="font-size:.75em;opacity:.85"></i>${escapeHTML(def.label)} · ${escapeHTML(def.sub.replace(' semana', ''))}</span>
+                        <span class="ndw-modal-range">${escapeHTML(rangeLabel)}</span>
+                    </div>
+                </div>
             </div>
             <div class="ndw-modal-kpis">
                 <div class="ndw-kpi"><span class="ndw-kpi-val">${ndwFormatValue(total, def.metric)}</span><span class="ndw-kpi-lbl">Total semana</span></div>
@@ -10381,11 +10866,12 @@ function openNavdeckWeeklyDetail(idx) {
                 <div class="ndw-kpi"><span class="ndw-kpi-val">${ndwFormatValue(peak?.value || 0, def.metric)}</span><span class="ndw-kpi-lbl">Día pico</span></div>
             </div>
             <div class="ndw-modal-body">
-                <div class="ndw-detail-title"><i class="fas fa-calendar-day me-1"></i>Desglose por día</div>
+                ${weekPrelimNote}
+                <div class="ndw-detail-title"><i class="fas fa-calendar-day"></i>Desglose por día</div>
                 ${rowsHtml}
             </div>
             <div class="ndw-modal-foot">
-                <i class="fas fa-circle-info me-1"></i>${escapeHTML(def.label)} — suma de ${escapeHTML(def.sub.replace(' semana', '').toLowerCase())} del periodo activo.
+                <i class="fas fa-plane-circle-check"></i>${escapeHTML(def.label)} — ${escapeHTML(def.sub.replace(' semana', '').toLowerCase())} del periodo activo${_weekIsCurrentMonth ? ' &nbsp;·&nbsp; <i class="fas fa-triangle-exclamation ms-1 me-1"></i>Cifras preliminares' : ''}
             </div>
         </div>`;
 
@@ -10398,10 +10884,217 @@ function openNavdeckWeeklyDetail(idx) {
 function closeNavdeckWeeklyDetail() {
     const overlay = document.getElementById('ndw-modal');
     if (!overlay) return;
+    if (_ndwDetailChart) { try { _ndwDetailChart.destroy(); } catch (_) {} _ndwDetailChart = null; }
     overlay.classList.remove('is-open');
     document.body.classList.remove('ndw-modal-open');
     if (overlay._ndwEsc) { document.removeEventListener('keydown', overlay._ndwEsc); overlay._ndwEsc = null; }
     setTimeout(() => { if (overlay && !overlay.classList.contains('is-open')) overlay.innerHTML = ''; }, 240);
+}
+
+function _ndwGetOrCreateOverlay() {
+    let overlay = document.getElementById('ndw-modal');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'ndw-modal';
+        overlay.className = 'ndw-modal';
+        document.body.appendChild(overlay);
+        overlay.addEventListener('click', (ev) => {
+            if (ev.target === overlay || ev.target.closest('[data-ndw-close]')) closeNavdeckWeeklyDetail();
+        });
+    }
+    return overlay;
+}
+
+function _ndwOpenChartModal(overlayHtml, def, chartLabels, chartData) {
+    const overlay = _ndwGetOrCreateOverlay();
+    overlay.innerHTML = overlayHtml;
+    requestAnimationFrame(() => {
+        overlay.classList.add('is-open');
+        requestAnimationFrame(() => {
+            const canvas = document.getElementById('ndw-chart-canvas');
+            if (!canvas || typeof Chart === 'undefined') return;
+            if (_ndwDetailChart) { try { _ndwDetailChart.destroy(); } catch (_) {} _ndwDetailChart = null; }
+            const highlightIdx = chartData._selectedIdx ?? null;
+            const cfg = ndwBuildPeakLineCfg(canvas, chartLabels, chartData.values, def, highlightIdx);
+            _ndwDetailChart = new Chart(canvas, cfg);
+        });
+    });
+    document.body.classList.add('ndw-modal-open');
+    overlay._ndwEsc = (e) => { if (e.key === 'Escape') closeNavdeckWeeklyDetail(); };
+    document.addEventListener('keydown', overlay._ndwEsc);
+}
+
+function openNavdeckMonthlyDetail(idx) {
+    const def = NDW_CARD_DEFS[idx];
+    if (!def) return;
+    const selYear     = NDW_VIEW_STATE.year;
+    const rawSelMonth = NDW_VIEW_STATE.monthIdx ?? 0;
+    const MONTH_S = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+    const MONTH_F = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+    /* ── Respect the same cutoff the historical charts use ── */
+    const cutoffIdx    = ndwGetMonthCutoff(selYear);
+    const selMonthIdx  = Math.min(rawSelMonth, cutoffIdx); // cap selection to available data
+    const indices      = Array.from({ length: cutoffIdx + 1 }, (_, i) => i); // [0..cutoffIdx]
+
+    /* ── Detect current in-progress (preliminary) month ── */
+    const todayMonth   = new Date().getMonth(); // 0-based
+    const isCutoffYear = selYear === String(AVIATION_ANALYTICS_CUTOFF_YEAR);
+    const prelimIdx    = (isCutoffYear && cutoffIdx === todayMonth) ? cutoffIdx : -1;
+
+    const monthVals    = indices.map(i => ndwGetMonthlyVal(def.cat, def.metric, selYear, i));
+    const chartLabels  = indices.map(i => MONTH_S[i]);
+    const selVal       = monthVals[selMonthIdx] || 0;
+    const yearTotal    = monthVals.reduce((a, v) => a + v, 0);
+    const maxVal       = Math.max(...monthVals, 0);
+    const peakIdx      = maxVal > 0 ? monthVals.indexOf(maxVal) : -1;
+    const activeMonths = monthVals.filter(v => v > 0).length || 1;
+    const monthAvg     = yearTotal / activeMonths;
+    const sub          = def.sub.replace('semana', 'mes');
+
+    const rowsHtml = indices.map(i => {
+        const v      = monthVals[i] || 0;
+        const pct    = yearTotal > 0 ? (v / yearTotal) * 100 : 0;
+        const barPct = maxVal > 0 ? (v / maxVal) * 100 : 0;
+        const isPeak = i === peakIdx && maxVal > 0;
+        const isSel  = i === selMonthIdx;
+        const isPrelim = i === prelimIdx;
+        return `
+        <div class="ndw-detail-row${isPeak ? ' is-peak' : ''}${isSel ? ' is-selected' : ''}${isPrelim ? ' is-prelim' : ''}">
+            <div class="ndw-detail-row-top">
+                <span class="ndw-detail-day">${MONTH_F[i]}${
+                    isPeak ? ' <span class="ndw-peak-tag">pico</span>' : ''}
+                    ${isSel ? ' <span class="ndw-sel-tag">activo</span>' : ''}
+                    ${isPrelim ? ' <span class="ndw-prelim-tag"><i class="fas fa-clock-rotate-left me-1" style="font-size:.7em"></i>En curso</span>' : ''}</span>
+                <span class="ndw-detail-val">${ndwFormatValue(v, def.metric)}<span class="ndw-detail-pct">${pct.toFixed(1)}%</span></span>
+            </div>
+            <div class="ndw-detail-bar"><span style="width:${barPct.toFixed(1)}%"></span></div>
+        </div>`;
+    }).join('');
+
+    const prelimNote = prelimIdx >= 0
+        ? `<div class="ndw-prelim-note"><i class="fas fa-triangle-exclamation me-1"></i>Cifras preliminares — ${MONTH_F[prelimIdx]} aún en curso</div>`
+        : '';
+
+    const html = `
+        <div class="ndw-modal-card ndw-modal-card--${def.cat}" role="dialog" aria-modal="true" aria-label="Detalle ${def.label} ${sub}">
+            <div class="ndw-modal-head" style="--ndw-accent:${def.accent};background-image:url('${def.img}');background-position:${def.bgPos || 'center center'};">
+                <span class="ndw-modal-head-overlay" aria-hidden="true"></span>
+                <i class="${def.icon} ndw-modal-deco" aria-hidden="true"></i>
+                <div class="ndw-modal-head-topbar">
+                    <button type="button" class="ndw-modal-close" data-ndw-close aria-label="Cerrar"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="ndw-modal-head-bottom">
+                    <span class="ndw-modal-head-icon"><i class="${def.icon}"></i></span>
+                    <div class="ndw-modal-head-text">
+                        <span class="ndw-modal-tag"><i class="${def.icon} me-1" style="font-size:.75em;opacity:.85"></i>${escapeHTML(def.label)} · ${escapeHTML(def.sub.replace(' semana',''))}</span>
+                        <span class="ndw-modal-range">${escapeHTML(MONTH_F[selMonthIdx])} ${escapeHTML(selYear)}</span>
+                    </div>
+                </div>
+            </div>
+            <div class="ndw-modal-kpis">
+                <div class="ndw-kpi"><span class="ndw-kpi-val">${ndwFormatValue(yearTotal, def.metric)}</span><span class="ndw-kpi-lbl">Total ${escapeHTML(selYear)}</span></div>
+                <div class="ndw-kpi"><span class="ndw-kpi-val">${ndwFormatValue(monthAvg, def.metric)}</span><span class="ndw-kpi-lbl">Promedio mensual</span></div>
+                <div class="ndw-kpi"><span class="ndw-kpi-val">${peakIdx >= 0 ? escapeHTML(MONTH_S[peakIdx]) : '—'}</span><span class="ndw-kpi-lbl">Mes pico</span></div>
+            </div>
+            <div class="ndw-modal-body">
+                <div class="ndw-detail-title"><i class="fas fa-chart-bar"></i>Evolución mensual ${escapeHTML(selYear)}</div>
+                ${prelimNote}
+                <div class="ndw-chart-wrap"><canvas id="ndw-chart-canvas"></canvas></div>
+                <div class="ndw-detail-title" style="margin-top:18px"><i class="fas fa-list"></i>Desglose por mes</div>
+                ${rowsHtml}
+            </div>
+            <div class="ndw-modal-foot">
+                <i class="fas fa-calendar-alt"></i>${escapeHTML(def.label)} — ${escapeHTML(sub.replace(' mes','').toLowerCase())} mensual ${escapeHTML(selYear)}${prelimIdx >= 0 ? ' · <i class="fas fa-triangle-exclamation ms-1 me-1"></i>Cifras preliminares' : ''}
+            </div>
+        </div>`;
+
+    _ndwOpenChartModal(html, def,
+        chartLabels,
+        { values: monthVals, _selectedIdx: selMonthIdx }
+    );
+}
+
+function openNavdeckAnnualDetail(idx) {
+    const def = NDW_CARD_DEFS[idx];
+    if (!def) return;
+    const selYear        = NDW_VIEW_STATE.year;
+    const availableYears = ndwGetAvailableYears();
+    if (!availableYears.length) return;
+
+    const yearVals   = availableYears.map(y => ndwGetAnnualVal(def.cat, def.metric, y));
+    const selYearIdx = availableYears.indexOf(selYear);
+    const selVal     = selYearIdx >= 0 ? yearVals[selYearIdx] : 0;
+    const maxVal     = Math.max(...yearVals, 0);
+    const peakIdx    = maxVal > 0 ? yearVals.indexOf(maxVal) : -1;
+    const sub        = def.sub.replace('semana', 'año');
+
+    const isCurrentYear = selYear === String(new Date().getFullYear());
+
+    let yoyLabel = '—';
+    let yoyLbl   = 'Var. vs año ant.';
+    if (isCurrentYear) {
+        yoyLabel = `${selYear} En curso`;
+        yoyLbl   = 'Estado del año';
+    } else if (selYearIdx > 0 && yearVals[selYearIdx - 1] > 0) {
+        const pct  = ((selVal - yearVals[selYearIdx - 1]) / yearVals[selYearIdx - 1]) * 100;
+        const sign = pct >= 0 ? '+' : '';
+        yoyLabel   = `${sign}${pct.toFixed(1)}%`;
+    }
+
+    const rowsHtml = availableYears.map((y, i) => {
+        const v      = yearVals[i] || 0;
+        const barPct = maxVal > 0 ? (v / maxVal) * 100 : 0;
+        const isPeak = i === peakIdx && maxVal > 0;
+        const isSel  = y === selYear;
+        return `
+        <div class="ndw-detail-row${isPeak ? ' is-peak' : ''}${isSel ? ' is-selected' : ''}">
+            <div class="ndw-detail-row-top">
+                <span class="ndw-detail-day">${escapeHTML(y)}${
+                    isPeak ? ' <span class="ndw-peak-tag">mejor</span>' : ''}
+                    ${isSel ? ' <span class="ndw-sel-tag">activo</span>' : ''}</span>
+                <span class="ndw-detail-val">${ndwFormatValue(v, def.metric)}</span>
+            </div>
+            <div class="ndw-detail-bar"><span style="width:${barPct.toFixed(1)}%"></span></div>
+        </div>`;
+    }).join('');
+
+    const html = `
+        <div class="ndw-modal-card ndw-modal-card--${def.cat}" role="dialog" aria-modal="true" aria-label="Detalle ${def.label} ${sub}">
+            <div class="ndw-modal-head" style="--ndw-accent:${def.accent};background-image:url('${def.img}');background-position:${def.bgPos || 'center center'};">
+                <span class="ndw-modal-head-overlay" aria-hidden="true"></span>
+                <i class="${def.icon} ndw-modal-deco" aria-hidden="true"></i>
+                <div class="ndw-modal-head-topbar">
+                    <button type="button" class="ndw-modal-close" data-ndw-close aria-label="Cerrar"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="ndw-modal-head-bottom">
+                    <span class="ndw-modal-head-icon"><i class="${def.icon}"></i></span>
+                    <div class="ndw-modal-head-text">
+                        <span class="ndw-modal-tag"><i class="${def.icon} me-1" style="font-size:.75em;opacity:.85"></i>${escapeHTML(def.label)} · ${escapeHTML(def.sub.replace(' semana',''))}</span>
+                        <span class="ndw-modal-range">${escapeHTML(selYear)} · Histórico</span>
+                    </div>
+                </div>
+            </div>
+            <div class="ndw-modal-kpis">
+                <div class="ndw-kpi"><span class="ndw-kpi-val">${ndwFormatValue(selVal, def.metric)}</span><span class="ndw-kpi-lbl">${escapeHTML(selYear)}</span></div>
+                <div class="ndw-kpi"><span class="ndw-kpi-val">${peakIdx >= 0 ? escapeHTML(availableYears[peakIdx]) : '—'}</span><span class="ndw-kpi-lbl">Mejor año</span></div>
+                <div class="ndw-kpi"><span class="ndw-kpi-val${isCurrentYear ? ' ndw-kpi-val--incourse' : ''}">${escapeHTML(yoyLabel)}</span><span class="ndw-kpi-lbl">${escapeHTML(yoyLbl)}</span></div>
+            </div>
+            <div class="ndw-modal-body">
+                <div class="ndw-detail-title"><i class="fas fa-chart-bar"></i>Histórico por año</div>
+                <div class="ndw-chart-wrap"><canvas id="ndw-chart-canvas"></canvas></div>
+                <div class="ndw-detail-title" style="margin-top:18px"><i class="fas fa-list"></i>Desglose por año</div>
+                ${rowsHtml}
+            </div>
+            <div class="ndw-modal-foot">
+                <i class="fas fa-calendar"></i>${escapeHTML(def.label)} — histórico anual
+            </div>
+        </div>`;
+
+    _ndwOpenChartModal(html, def,
+        availableYears,
+        { values: yearVals, _selectedIdx: selYearIdx >= 0 ? selYearIdx : null }
+    );
 }
 
 window.renderNavdeckWeeklyBanner = renderNavdeckWeeklyBanner;
@@ -17464,9 +18157,20 @@ async function _conciSaveBulkEdits() {
     // ── Cargar lista de usuarios ──────────────────────────────────────────
     window.adminUsersLoad = async function () {
         if (!window.supabaseClient) return;
-        // Verificar que solo se ejecute para admin
-        const role = sessionStorage.getItem('user_role');
-        if (role !== 'admin') return;
+        // Verificar rol — si sessionStorage está vacío, re-fetchar desde Supabase
+        // (puede pasar si el usuario accede directo sin haber pasado por login fresh)
+        let role = sessionStorage.getItem('user_role');
+        if (role !== 'admin' && role !== 'superadmin') {
+            try {
+                const { data: { user } } = await window.supabaseClient.auth.getUser();
+                if (user?.id) {
+                    const { data: rd } = await window.supabaseClient
+                        .from('user_roles').select('role').eq('user_id', user.id).maybeSingle();
+                    if (rd?.role) { sessionStorage.setItem('user_role', rd.role); role = rd.role; }
+                }
+            } catch (_) {}
+        }
+        if (role !== 'admin' && role !== 'superadmin') return;
 
         await _auLoadAreas();
 
@@ -17943,6 +18647,62 @@ async function _conciSaveBulkEdits() {
         document.querySelectorAll('#au-reg-views-grid input[type="checkbox"]').forEach(cb => cb.checked = checked);
     };
 
+    // ── Lightbox de imagen en pantalla completa ──────────────────────────
+    window.ndwExpandImage = function (src, event) {
+        if (event) event.stopPropagation();
+        if (!src) return;
+        let lb = document.getElementById('ndw-img-lightbox');
+        if (!lb) {
+            lb = document.createElement('div');
+            lb.id = 'ndw-img-lightbox';
+            lb.className = 'ndw-img-lightbox';
+            lb.innerHTML = `
+                <img id="ndw-lb-img" src="" alt="Vista completa">
+                <button class="ndw-img-lightbox-close" aria-label="Cerrar"><i class="fas fa-times"></i></button>`;
+            lb.querySelector('.ndw-img-lightbox-close').addEventListener('click', () => window.ndwCloseLightbox());
+            lb.addEventListener('click', (e) => { if (e.target === lb) window.ndwCloseLightbox(); });
+            document.body.appendChild(lb);
+        }
+        const img = document.getElementById('ndw-lb-img');
+        if (img) img.src = src;
+        requestAnimationFrame(() => lb.classList.add('is-open'));
+        lb._kh = (e) => { if (e.key === 'Escape') window.ndwCloseLightbox(); };
+        document.addEventListener('keydown', lb._kh);
+    };
+
+    window.ndwCloseLightbox = function () {
+        const lb = document.getElementById('ndw-img-lightbox');
+        if (!lb) return;
+        lb.classList.remove('is-open');
+        if (lb._kh) { document.removeEventListener('keydown', lb._kh); lb._kh = null; }
+    };
+
+    // ── Generar contraseña aleatoria ──────────────────────────────────────
+    window.auGenPassword = function () {
+        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789@#$!%&*';
+        const array = new Uint8Array(14);
+        crypto.getRandomValues(array);
+        let pwd = '';
+        for (let i = 0; i < 14; i++) pwd += chars[array[i] % chars.length];
+        const el  = document.getElementById('au-reg-password');
+        const eye = document.getElementById('au-pwd-eye');
+        const hint = document.getElementById('au-pwd-hint');
+        if (!el) return;
+        el.value = pwd;
+        el.type  = 'text';
+        if (eye)  eye.className = 'fas fa-eye-slash';
+        if (hint) { hint.textContent = `Contraseña generada: ${pwd}  (cópiala ahora)`; hint.classList.remove('d-none'); }
+        navigator.clipboard?.writeText(pwd).catch(() => {});
+    };
+
+    window.auTogglePassword = function () {
+        const el  = document.getElementById('au-reg-password');
+        const eye = document.getElementById('au-pwd-eye');
+        if (!el) return;
+        el.type = el.type === 'password' ? 'text' : 'password';
+        if (eye) eye.className = el.type === 'password' ? 'fas fa-eye' : 'fas fa-eye-slash';
+    };
+
     // ── Crear nuevo usuario ───────────────────────────────────────────────
     window.auCreateUser = async function () {
         const username   = document.getElementById('au-reg-username')?.value.trim() || '';
@@ -17966,6 +18726,15 @@ async function _conciSaveBulkEdits() {
         if (msgEl) msgEl.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Creando usuario…';
 
         try {
+            // ── Guardar sesión del admin ANTES de signUp ─────────────────────
+            // signUp() auto-inicia sesión como el nuevo usuario, lo que rompería
+            // la sesión del admin y fallaría la asignación de rol (RPC verifica uid).
+            let adminSession = null;
+            try {
+                const { data: sd } = await window.supabaseClient.auth.getSession();
+                adminSession = sd?.session || null;
+            } catch (_) {}
+
             let authEmail = username;
             if (!authEmail.includes('@')) {
                 const normalized = username.toLowerCase()
@@ -17979,38 +18748,52 @@ async function _conciSaveBulkEdits() {
             });
             if (error) throw error;
             const userId = data.user?.id;
-            if (userId) {
-                // Usar RPC SECURITY DEFINER para bypasar RLS en user_roles
-                const { data: rd, error: re } = await window.supabaseClient
-                    .rpc('admin_create_user_role', {
-                        p_user_id:          userId,
-                        p_role:             role,
-                        p_dir_id:           dirId    || null,
-                        p_subdir_id:        subdirId || null,
-                        p_allowed_sections: allowedSections.length ? allowedSections : null
-                    });
-                if (re) throw re;
-                if (rd && rd.ok === false) throw new Error(rd.error || 'Error asignando rol');
 
-                // Guardar clave de área en permissions.area para que el módulo
-                // de Agenda pueda verificar permisos de edición correctamente
-                const areaId    = gerenciaId || subdirId || dirId;  // más específico
-                const areaEntry = areaId ? _auAreas.find(a => a.id === areaId) : null;
-                if (areaEntry?.clave) {
-                    const { data: ur2 } = await window.supabaseClient
-                        .from('user_roles').select('permissions').eq('user_id', userId).maybeSingle();
-                    const updatedPerms = { ...(ur2?.permissions || {}), area: areaEntry.clave };
-                    await window.supabaseClient
-                        .from('user_roles').update({ permissions: updatedPerms }).eq('user_id', userId);
-                }
+            // ── Restaurar sesión del admin inmediatamente ────────────────────
+            // Esto evita que la sesión quede como la del usuario recién creado.
+            if (adminSession?.access_token) {
+                try {
+                    await window.supabaseClient.auth.setSession({
+                        access_token:  adminSession.access_token,
+                        refresh_token: adminSession.refresh_token
+                    });
+                } catch (_) {}
             }
-            if (msgEl) msgEl.innerHTML = `<span class="text-success"><i class="fas fa-check me-1"></i>Usuario <strong>${username}</strong> creado con rol <strong>${role}</strong>.</span>`;
-            // Resetear selector de vistas
+
+            if (!userId) throw new Error('No se obtuvo ID del usuario creado');
+
+            // ── Asignar rol (ahora con sesión de admin restaurada) ───────────
+            const { data: rd, error: re } = await window.supabaseClient
+                .rpc('admin_create_user_role', {
+                    p_user_id:          userId,
+                    p_role:             role,
+                    p_dir_id:           dirId    || null,
+                    p_subdir_id:        subdirId || null,
+                    p_allowed_sections: allowedSections.length ? allowedSections : null
+                });
+            if (re) throw re;
+            if (rd && rd.ok === false) throw new Error(rd.error || 'Error asignando rol');
+
+            // Guardar clave de área en permissions.area
+            const areaId    = gerenciaId || subdirId || dirId;
+            const areaEntry = areaId ? _auAreas.find(a => a.id === areaId) : null;
+            if (areaEntry?.clave) {
+                const { data: ur2 } = await window.supabaseClient
+                    .from('user_roles').select('permissions').eq('user_id', userId).maybeSingle();
+                const updatedPerms = { ...(ur2?.permissions || {}), area: areaEntry.clave };
+                await window.supabaseClient
+                    .from('user_roles').update({ permissions: updatedPerms }).eq('user_id', userId);
+            }
+
+            if (msgEl) msgEl.innerHTML = `<span class="text-success"><i class="fas fa-check-circle me-1"></i>Usuario <strong>${username}</strong> creado con rol <strong>${role}</strong>.</span>`;
+            // Limpiar formulario
             const vModeAll = document.getElementById('au-reg-vmode-all');
             if (vModeAll) { vModeAll.checked = true; const vBox = document.getElementById('au-reg-views-box'); if (vBox) vBox.classList.add('d-none'); }
             ['au-reg-username','au-reg-password','au-reg-fullname','au-reg-email'].forEach(id => {
                 const el = document.getElementById(id); if (el) el.value = '';
             });
+            const hint = document.getElementById('au-pwd-hint');
+            if (hint) hint.classList.add('d-none');
             const dirSel = document.getElementById('au-reg-dir');
             if (dirSel) dirSel.value = '';
             const subSel = document.getElementById('au-reg-subdir');

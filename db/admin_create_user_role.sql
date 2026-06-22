@@ -4,8 +4,11 @@
 -- (bypasea RLS en user_roles al insertar el rol inicial)
 -- ============================================================
 
--- Eliminar versión anterior para evitar sobrecarga de funciones
+-- Eliminar TODAS las sobrecargas anteriores para evitar ambigüedad
 DROP FUNCTION IF EXISTS public.admin_create_user_role(UUID, TEXT, TEXT, TEXT);
+DROP FUNCTION IF EXISTS public.admin_create_user_role(UUID, TEXT, TEXT, TEXT, TEXT[]);
+DROP FUNCTION IF EXISTS public.admin_create_user_role(UUID, TEXT, UUID, UUID, UUID, TEXT[]);
+DROP FUNCTION IF EXISTS public.admin_create_user_role(p_user_id UUID, p_role TEXT, p_dir_id UUID, p_subdir_id UUID, p_ger_id UUID, p_allowed_sections TEXT[]);
 
 CREATE OR REPLACE FUNCTION public.admin_create_user_role(
     p_user_id          UUID,

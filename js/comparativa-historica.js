@@ -86,6 +86,8 @@
                     loadYoYData(client);
                 } else {
                     renderYoYChart();
+                    // Forzar resize después de la transición del tab (Bootstrap: ~300ms)
+                    setTimeout(() => { try { if (yoyChart) yoyChart.resize(); } catch(_){} }, 320);
                 }
             });
         });
@@ -336,6 +338,15 @@
             });
         });
 
+        // Asegurarse de que el canvas tenga dimensiones válidas antes de renderizar
+        // (puede ser 0×0 si el tab todavía estaba oculto al llamar esta función)
+        const canvasParent = canvas.parentElement;
+        if (canvasParent && (canvasParent.offsetWidth === 0 || canvasParent.offsetHeight === 0)) {
+            // Diferir hasta que el contenedor sea visible
+            setTimeout(() => renderYoYChart(), 120);
+            return;
+        }
+
         yoyChart = new Chart(canvas, {
             type: 'line',
             data: {
@@ -354,6 +365,8 @@
                     intersect: false,
                 },
                 plugins: {
+                    // Deshabilitar datalabels globales — evita números encimados
+                    datalabels: { display: false },
                     legend: {
                         position: 'top',
                         align: 'end',
@@ -446,6 +459,10 @@
                 }
             }
         });
+
+        // Resize post-render: corrige tamaño si el canvas se creó mientras
+        // el contenedor estaba en transición CSS (Bootstrap tab animation)
+        setTimeout(() => { try { if (yoyChart) yoyChart.resize(); } catch(_){} }, 160);
     }
 
     function renderYoYTable() {

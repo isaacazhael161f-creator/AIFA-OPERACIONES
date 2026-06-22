@@ -102,6 +102,11 @@
         if (!groups.length) return;
         var _chartTodayYear  = new Date().getFullYear();
         var _chartTodayMonth = new Date().getMonth() + 1;
+        // Diferir si el contenedor aún no tiene dimensiones (tab oculto)
+        var _parent = canvas.parentElement;
+        if (_parent && (_parent.offsetWidth === 0 || _parent.offsetHeight === 0)) {
+            setTimeout(renderChart, 120); return;
+        }
         const datasets = sorted.map(function(yr, idx){
             const col = yearColors[yr] || yearColors['default'];
             const last = idx === sorted.length - 1;
@@ -127,6 +132,7 @@
                 animation:{duration:750,easing:'easeInOutQuart'},
                 interaction:{mode:'index',intersect:false},
                 plugins:{
+                    datalabels:{ display:false },
                     legend:{ position:'top', align:'end', labels:{ usePointStyle:true, boxWidth:12, padding:15, font:{family:"'Inter','Segoe UI',sans-serif",size:13,weight:'600'}, color: (document.body.classList.contains('dark-mode') ? '#e8eaed' : '#334155') } },
                     tooltip:{
                         itemSort:function(a,b){ return b.datasetIndex-a.datasetIndex; },
@@ -150,6 +156,8 @@
                 }
             }
         });
+        // Resize post-render: corrige tamaño si canvas se creó durante transición de tab
+        setTimeout(function(){ try { if (chart) chart.resize(); } catch(_){} }, 160);
     }
 
     function renderTable() {
