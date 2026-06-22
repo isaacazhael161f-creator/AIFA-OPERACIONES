@@ -6675,6 +6675,13 @@ function handleNavigation(e) {
                 }, 60);
             } catch (_) { }
         }
+        if (section === 'combustibles') {
+            try {
+                setTimeout(() => {
+                    window.dispatchEvent(new Event('combustibles:visible'));
+                }, 60);
+            } catch (_) { }
+        }
         if (section === 'email-analisis') {
             setTimeout(() => window.dispatchEvent(new Event('email-analisis:visible')), 80);
         }

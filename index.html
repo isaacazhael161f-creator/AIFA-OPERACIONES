@@ -1433,7 +1433,11 @@ FF
                                         <i class="fas fa-chevron-down si-chev"></i>
                                     </button>
                                     <div class="collapse" id="sg-gcomb">
-                                        <div class="si-body si-body--ger"><span class="si-coming">Próximamente</span></div>
+                                        <div class="si-body si-body--ger">
+                                            <a class="menu-item si-link si-link--l2" href="#" data-section="combustibles">
+                                                <i class="fas fa-gas-pump si-ico"></i><span class="si-txt">Combustible de Aviación</span>
+                                            </a>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -20001,6 +20005,13 @@ FF
                 <!-- /hidraulicas-section -->
 
                 <!-- --------------------------------------------------
+                     SSC · COMBUSTIBLES — módulo autocontenido
+                     La UI se inyecta desde js/combustibles/combustibles.js
+                --------------------------------------------------- -->
+                <div id="combustibles-section" class="content-section"></div>
+                <!-- /combustibles-section -->
+
+                <!-- --------------------------------------------------
                      ANÁLISIS DE CORREOS (Outlook CSV)
                 --------------------------------------------------- -->
                 <div id="email-analisis-section" class="content-section">
@@ -28034,6 +28045,8 @@ FF
     <script src="js/medicas.js?v=2"></script>
     <script src="js/fauna.js"></script>
     <script src="js/hidraulicas.js?v=5"></script>
+    <link rel="stylesheet" href="js/combustibles/combustibles.css?v=1">
+    <script src="js/combustibles/combustibles.js?v=1"></script>
     <script src="js/vehiculos.js"></script>
     <script src="js/email-analisis.js"></script>
     <script src="js/agenda.js?v=8"></script>
