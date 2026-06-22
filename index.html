@@ -4489,6 +4489,8 @@ FF
 
                 /* Badge de fecha cargada */
                 #bhs-loaded-date{background:linear-gradient(135deg,#eef2ff 0%,#e0e7ff 100%) !important;color:#4338ca !important;border:1px solid #c7d2fe;padding:6px 12px !important;border-radius:999px;font-weight:600;letter-spacing:.02em;}
+                /* Delete button on date chips */
+                .bhs-del-btn:hover{background:#fee2e2 !important;color:#dc2626 !important;border-left-color:#fecaca !important;}
                 </style>
 
                 <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
@@ -4853,30 +4855,64 @@ FF
                     if(!client) return;
                     var list=document.getElementById('bhs-dates-list');
                     if(list) list.innerHTML='<div class="col-12 text-muted small">Cargando…</div>';
-                    Promise.all([
-                        client.from('bhs_arrivals').select('fecha'),
-                        client.from('bhs_departures').select('fecha'),
-                        client.from('bhs_bags_without_flight').select('fecha')
-                    ]).then(function(res){
-                        var arrD=new Set((res[0].data||[]).map(function(r){return r.fecha;}));
-                        var depD=new Set((res[1].data||[]).map(function(r){return r.fecha;}));
-                        var bwfD=new Set((res[2].data||[]).map(function(r){return r.fecha;}));
-                        var all=[...new Set([...arrD,...depD,...bwfD])].sort().reverse();
-                        if(!all.length){
+                    // Use RPC that returns DISTINCT dates from all 3 tables at DB level —
+                    // avoids fetching thousands of rows (one per flight) through the row limit.
+                    client.rpc('bhs_available_dates').then(function(res){
+                        if(res.error){ if(list) list.innerHTML='<div class="col-12 text-danger small">Error: '+res.error.message+'</div>'; return; }
+                        var rows=res.data||[];
+                        if(!rows.length){
                             if(list) list.innerHTML='<div class="col-12 text-muted small">No hay datos cargados aún</div>';
                             return;
                         }
-                        if(list) list.innerHTML=all.map(function(d){
+                        if(list) list.innerHTML=rows.map(function(row){
+                            var d=row.fecha;
                             var icons='';
-                            if(arrD.has(d)) icons+=' <span class="badge" style="background:#eff6ff;color:#2196f3;font-size:.65rem;" title="Llegadas"><i class="fas fa-plane-arrival"></i></span>';
-                            if(depD.has(d)) icons+=' <span class="badge" style="background:#fff7ed;color:#ea580c;font-size:.65rem;" title="Salidas"><i class="fas fa-plane-departure"></i></span>';
-                            if(bwfD.has(d)) icons+=' <span class="badge" style="background:#f0fdf4;color:#16a34a;font-size:.65rem;" title="Sin vuelo"><i class="fas fa-tag"></i></span>';
-                            return '<div class="col-auto mb-1"><button class="btn btn-sm btn-outline-secondary" style="font-size:.78rem;" onclick="document.getElementById(\'bhs-date-filter\').value=\''+d+'\';document.getElementById(\'bhs-dates-panel\').classList.add(\'d-none\');bhsLoadDate();">'+fmtDate(d)+icons+'</button></div>';
+                            if(row.has_arrivals)   icons+=' <span class="badge" style="background:#eff6ff;color:#2196f3;font-size:.65rem;" title="Llegadas"><i class="fas fa-plane-arrival"></i></span>';
+                            if(row.has_departures) icons+=' <span class="badge" style="background:#fff7ed;color:#ea580c;font-size:.65rem;" title="Salidas"><i class="fas fa-plane-departure"></i></span>';
+                            if(row.has_bwf)        icons+=' <span class="badge" style="background:#f0fdf4;color:#16a34a;font-size:.65rem;" title="Sin vuelo"><i class="fas fa-tag"></i></span>';
+                            return '<div class="col-auto mb-1">'
+                              +'<div class="d-inline-flex align-items-center border rounded" style="border-color:#dee2e6;overflow:hidden;">'
+                              +'<button class="btn btn-sm" style="border:none;border-radius:0;font-size:.78rem;padding:4px 9px;color:#374151;background:#fff;" '
+                              +'onclick="document.getElementById(\'bhs-date-filter\').value=\''+d+'\';document.getElementById(\'bhs-dates-panel\').classList.add(\'d-none\');bhsLoadDate();">'
+                              +fmtDate(d)+icons+'</button>'
+                              +'<button class="btn btn-sm bhs-del-btn" style="border:none;border-left:1px solid #f0f0f0;border-radius:0;padding:4px 8px;color:#9ca3af;background:#fff;" '
+                              +'onclick="bhsDeleteDate(\''+d+'\')" title="Eliminar datos del '+fmtDate(d)+'">'
+                              +'<i class="fas fa-trash-alt" style="font-size:.6rem;pointer-events:none;"></i></button>'
+                              +'</div>'
+                              +'</div>';
                         }).join('');
                     }).catch(function(e){ if(list) list.innerHTML='<div class="col-12 text-danger small">Error: '+e.message+'</div>'; });
                 }
 
-                // ── tab switching ─────────────────────────────────────────────
+                window.bhsDeleteDate=function(fecha){
+                    var label=fmtDate(fecha);
+                    if(!confirm('¿Eliminar todos los datos de BHS del '+label+'?\n\nEsta acción borrará Llegadas, Salidas y Maletas sin vuelo de esa fecha y no se puede deshacer.')) return;
+                    var client=window.supabaseClient;
+                    if(!client){ alert('Sin conexión a base de datos'); return; }
+                    var list=document.getElementById('bhs-dates-list');
+                    if(list) list.innerHTML='<div class="col-12 text-muted small"><i class="fas fa-spinner fa-spin me-1"></i>Eliminando '+label+'…</div>';
+                    Promise.all([
+                        client.from('bhs_arrivals').delete().eq('fecha',fecha),
+                        client.from('bhs_departures').delete().eq('fecha',fecha),
+                        client.from('bhs_bags_without_flight').delete().eq('fecha',fecha)
+                    ]).then(function(results){
+                        var errs=results.filter(function(r){return r.error;}).map(function(r){return r.error.message;});
+                        if(errs.length){ alert('Error al eliminar:\n'+errs.join('\n')); }
+                        else {
+                            // Clear the current view if the deleted date was loaded
+                            var df=document.getElementById('bhs-date-filter');
+                            if(df && df.value===fecha){
+                                ['arr','dep','bwf'].forEach(function(t){
+                                    var el=document.getElementById('bhs-tab-'+t);
+                                    if(el) el.innerHTML='';
+                                });
+                                var lbl=document.getElementById('bhs-loaded-date');
+                                if(lbl) lbl.textContent='';
+                            }
+                        }
+                        bhsLoadAvailableDates();
+                    }).catch(function(e){ alert('Error: '+e.message); bhsLoadAvailableDates(); });
+                };
                 window.bhsShowTab=function(tab,btn){
                     ['arr','dep','bwf'].forEach(function(t){
                         var el=document.getElementById('bhs-tab-'+t);
