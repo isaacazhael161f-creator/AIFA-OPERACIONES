@@ -1166,7 +1166,7 @@ FF
                                 data-bs-toggle="collapse" data-bs-target="#sg-operacion" aria-expanded="false">
                             <i class="fas fa-sitemap si-sub-ico"></i>
                             <span class="si-bdg">OP</span>
-                            <span class="si-grp-lbl">Operación</span>
+                            <span class="si-grp-lbl si-grp-lbl--info" data-area-clave="DO" data-area-nombre="Dirección de Operación" role="button" title="Ver información del área" style="cursor:pointer;">Operación <i class="fas fa-circle-info" style="font-size:.7em;opacity:.6;"></i></span>
                             <i class="fas fa-chevron-down si-chev"></i>
                         </button>
                         <div class="collapse" id="sg-operacion">
@@ -1240,7 +1240,7 @@ FF
                                 data-bs-toggle="collapse" data-bs-target="#sg-sso" aria-expanded="false">
                             <i class="fas fa-plane-departure si-sub-ico"></i>
                             <span class="si-bdg">SSO</span>
-                            <span class="si-grp-lbl">Sgd. Operacional</span>
+                            <span class="si-grp-lbl si-grp-lbl--info" data-area-clave="SD-SO" data-area-nombre="Subdirección de Seguridad Operacional" role="button" title="Ver información del área" style="cursor:pointer;">Sgd. Operacional <i class="fas fa-circle-info" style="font-size:.7em;opacity:.6;"></i></span>
                             <i class="fas fa-chevron-down si-chev"></i>
                         </button>
                         <div class="collapse" id="sg-sso">
@@ -1344,7 +1344,7 @@ FF
                                 data-bs-toggle="collapse" data-bs-target="#sg-ssa" aria-expanded="false">
                             <i class="fas fa-user-shield si-sub-ico"></i>
                             <span class="si-bdg">SSA</span>
-                            <span class="si-grp-lbl">Sgd. de la Aviación</span>
+                            <span class="si-grp-lbl si-grp-lbl--info" data-area-clave="SD-SA" data-area-nombre="Subdirección de Seguridad de la Aviación" role="button" title="Ver información del área" style="cursor:pointer;">Sgd. de la Aviación <i class="fas fa-circle-info" style="font-size:.7em;opacity:.6;"></i></span>
                             <i class="fas fa-chevron-down si-chev"></i>
                         </button>
                         <div class="collapse" id="sg-ssa">
@@ -1395,7 +1395,7 @@ FF
                                 data-bs-toggle="collapse" data-bs-target="#sg-ssc" aria-expanded="false">
                             <i class="fas fa-truck-loading si-sub-ico"></i>
                             <span class="si-bdg">SSC</span>
-                            <span class="si-grp-lbl">Servicios Conexos</span>
+                            <span class="si-grp-lbl si-grp-lbl--info" data-area-clave="SD-SC" data-area-nombre="Subdirección de Servicios Conexos" role="button" title="Ver información del área" style="cursor:pointer;">Servicios Conexos <i class="fas fa-circle-info" style="font-size:.7em;opacity:.6;"></i></span>
                             <i class="fas fa-chevron-down si-chev"></i>
                         </button>
                         <div class="collapse" id="sg-ssc">
@@ -1450,7 +1450,7 @@ FF
                                 data-bs-toggle="collapse" data-bs-target="#sg-si" aria-expanded="false">
                             <i class="fas fa-hard-hat si-sub-ico"></i>
                             <span class="si-bdg">SI</span>
-                            <span class="si-grp-lbl">Ingeniería</span>
+                            <span class="si-grp-lbl si-grp-lbl--info" data-area-clave="SD-ING" data-area-nombre="Subdirección de Ingeniería" role="button" title="Ver información del área" style="cursor:pointer;">Ingeniería <i class="fas fa-circle-info" style="font-size:.7em;opacity:.6;"></i></span>
                             <i class="fas fa-chevron-down si-chev"></i>
                         </button>
                         <div class="collapse" id="sg-si">
@@ -1506,7 +1506,7 @@ FF
                                 data-bs-toggle="collapse" data-bs-target="#sg-sge" aria-expanded="false">
                             <i class="fas fa-bolt si-sub-ico"></i>
                             <span class="si-bdg">SGE</span>
-                            <span class="si-grp-lbl">Gestión Energética</span>
+                            <span class="si-grp-lbl si-grp-lbl--info" data-area-clave="SGE" data-area-nombre="Gestión Energética" role="button" title="Ver información del área" style="cursor:pointer;">Gestión Energética <i class="fas fa-circle-info" style="font-size:.7em;opacity:.6;"></i></span>
                             <i class="fas fa-chevron-down si-chev"></i>
                         </button>
                         <div class="collapse" id="sg-sge">
@@ -28175,6 +28175,7 @@ FF
     <script src="js/conciliacion-board.js?v=20260616m" defer></script>
     <script src="js/analisis-mensual.js?v=1.0"></script>
     <script src="js/analisis-anual.js?v=1.0"></script>
+    <script src="js/subdirecciones-info.js?v=4"></script>
     <script>
     (function() { 
         /* 
@@ -28975,6 +28976,25 @@ FF
             </div>
         </div>
     </div>
+
+
+<!-- MODAL: INFORMACIÓN DE SUBDIRECCIÓN -->
+<div class="modal fade" id="subdirInfoModal" tabindex="-1" aria-labelledby="subdirInfoModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header" id="subdirInfoModalHeader" style="background:linear-gradient(135deg,#0d6efd,#0d6efdcc);color:#fff;">
+                <div>
+                    <h5 class="modal-title mb-0" id="subdirInfoModalLabel">
+                        <i class="fas fa-sitemap me-2"></i><span id="subdirInfoTitle">Subdirección</span>
+                    </h5>
+                    <small class="d-block mt-1" style="opacity:.85;" id="subdirInfoSubtitle"></small>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body p-3" id="subdirInfoBody"></div>
+        </div>
+    </div>
+</div>
 
 
 <!-- MODAL: CATLOGO TIPO DE SERVICIO -->
