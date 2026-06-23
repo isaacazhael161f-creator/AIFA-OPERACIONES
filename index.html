@@ -4491,6 +4491,18 @@ FF
                 #bhs-loaded-date{background:linear-gradient(135deg,#eef2ff 0%,#e0e7ff 100%) !important;color:#4338ca !important;border:1px solid #c7d2fe;padding:6px 12px !important;border-radius:999px;font-weight:600;letter-spacing:.02em;}
                 /* Delete button on date chips */
                 .bhs-del-btn:hover{background:#fee2e2 !important;color:#dc2626 !important;border-left-color:#fecaca !important;}
+                /* Banner de fecha por tab */
+                .bhs-date-banner{display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,#f0f9ff 0%,#e0f2fe 100%);border:1px solid #bae6fd;border-left:4px solid #0ea5e9;border-radius:10px;padding:10px 16px;font-size:.85rem;color:#0c4a6e;font-weight:500;}
+                .bhs-date-banner .bhs-date-banner-label{font-size:.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;opacity:.7;}
+                .bhs-date-banner .bhs-date-banner-val{font-size:1.05rem;font-weight:700;color:#0369a1;}
+                .bhs-date-banner-arr{border-left-color:#3b82f6 !important;background:linear-gradient(135deg,#eff6ff 0%,#dbeafe 100%) !important;color:#1e3a5f !important;}
+                .bhs-date-banner-arr .bhs-date-banner-val{color:#1d4ed8 !important;}
+                .bhs-date-banner-dep{border-left-color:#ea580c !important;background:linear-gradient(135deg,#fff7ed 0%,#fed7aa 100%) !important;color:#431407 !important;}
+                .bhs-date-banner-dep .bhs-date-banner-val{color:#c2410c !important;}
+                .bhs-date-banner-bwf{border-left-color:#16a34a !important;background:linear-gradient(135deg,#f0fdf4 0%,#dcfce7 100%) !important;color:#14532d !important;}
+                .bhs-date-banner-bwf .bhs-date-banner-val{color:#15803d !important;}
+                /* Panel de carga colapsable */
+                .bhs-upload-panel-hdr{background:linear-gradient(135deg,#f8fafc 0%,#f1f5f9 100%);border-bottom:1px solid #e2e8f0;padding:10px 16px;border-radius:12px 12px 0 0;}
                 </style>
 
                 <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
@@ -4499,10 +4511,8 @@ FF
                         <small class="text-muted">Gerencia de Operaciones · Edificio Terminal</small>
                     </div>
                     <div class="d-flex align-items-center gap-2">
-                        <button class="btn btn-sm btn-outline-secondary" onclick="bhsToggleDates()" title="Ver fechas con datos"><i class="fas fa-calendar-alt me-1"></i>Fechas con datos</button>
-                        <label for="bhs-date-filter" class="small fw-semibold text-secondary mb-0">Fecha:</label>
-                        <input type="date" id="bhs-date-filter" class="form-control form-control-sm" style="width:160px;">
-                        <button class="btn btn-sm btn-outline-primary" onclick="bhsLoadDate()"><i class="fas fa-sync-alt me-1"></i>Cargar</button>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="bhsToggleDates()" title="Ver fechas disponibles"><i class="fas fa-calendar-alt me-1"></i>Fechas con datos</button>
+                        <button class="btn btn-sm btn-primary" onclick="bhsToggleUpload()"><i class="fas fa-upload me-1"></i>Subir archivos</button>
                     </div>
                 </div>
 
@@ -4515,6 +4525,71 @@ FF
                         </div>
                         <div class="card-body p-3">
                             <div class="row g-2" id="bhs-dates-list"><div class="col-12 text-muted small">Cargando…</div></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Panel de carga (colapsable) -->
+                <div id="bhs-upload-panel" class="d-none mb-4">
+                    <div class="card border-0 shadow-sm" style="border-radius:14px;overflow:hidden;">
+                        <div class="bhs-upload-panel-hdr d-flex align-items-center justify-content-between">
+                            <span class="fw-semibold" style="font-size:.85rem;color:#1e3a5f;"><i class="fas fa-upload me-2 text-primary"></i>Cargar archivos Excel</span>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="bhsToggleUpload()"><i class="fas fa-times"></i></button>
+                        </div>
+                        <div class="card-body p-3">
+                            <div class="d-flex flex-wrap align-items-center gap-2 mb-3 pb-3" style="border-bottom:1px solid #e2e8f0;">
+                                <span class="small fw-semibold text-secondary">Cargar fecha desde BD:</span>
+                                <input type="date" id="bhs-date-filter" class="form-control form-control-sm" style="width:160px;">
+                                <button class="btn btn-sm btn-outline-primary" onclick="bhsLoadDate()"><i class="fas fa-sync-alt me-1"></i>Cargar</button>
+                                <span class="text-muted small ms-2">— o arrastra/sube archivos nuevos abajo —</span>
+                            </div>
+                            <div class="row g-3">
+                                <div class="col-12 col-md-4">
+                                    <div class="bhs-upload-card p-3 text-center h-100" id="bhs-arr-drop"
+                                         onclick="document.getElementById('bhs-arr-input').click()"
+                                         ondragover="event.preventDefault();this.classList.add('dragover')"
+                                         ondragleave="this.classList.remove('dragover')"
+                                         ondrop="bhsHandleDrop(event,'arrivals')">
+                                        <div class="rounded-circle mx-auto mb-2 d-flex align-items-center justify-content-center" style="width:48px;height:48px;background:#eff6ff;">
+                                            <i class="fas fa-plane-arrival" style="color:#2196f3;font-size:1.2rem;"></i>
+                                        </div>
+                                        <div class="fw-semibold mb-1" style="color:#1e3a5f;">Llegadas (Arrivals)</div>
+                                        <small class="text-muted d-block mb-2">Arrastra o haz click para cargar .xlsx</small>
+                                        <div id="bhs-arr-status" class="small text-muted"></div>
+                                        <input type="file" id="bhs-arr-input" accept=".xlsx,.xls" class="d-none" onchange="bhsHandleFile(this,'arrivals')">
+                                    </div>
+                                </div>
+                                <div class="col-12 col-md-4">
+                                    <div class="bhs-upload-card p-3 text-center h-100" id="bhs-dep-drop"
+                                         onclick="document.getElementById('bhs-dep-input').click()"
+                                         ondragover="event.preventDefault();this.classList.add('dragover')"
+                                         ondragleave="this.classList.remove('dragover')"
+                                         ondrop="bhsHandleDrop(event,'departures')">
+                                        <div class="rounded-circle mx-auto mb-2 d-flex align-items-center justify-content-center" style="width:48px;height:48px;background:#fff7ed;">
+                                            <i class="fas fa-plane-departure" style="color:#ea580c;font-size:1.2rem;"></i>
+                                        </div>
+                                        <div class="fw-semibold mb-1" style="color:#1e3a5f;">Salidas (Departures)</div>
+                                        <small class="text-muted d-block mb-2">Arrastra o haz click para cargar .xlsx</small>
+                                        <div id="bhs-dep-status" class="small text-muted"></div>
+                                        <input type="file" id="bhs-dep-input" accept=".xlsx,.xls" class="d-none" onchange="bhsHandleFile(this,'departures')">
+                                    </div>
+                                </div>
+                                <div class="col-12 col-md-4">
+                                    <div class="bhs-upload-card p-3 text-center h-100" id="bhs-bwf-drop"
+                                         onclick="document.getElementById('bhs-bwf-input').click()"
+                                         ondragover="event.preventDefault();this.classList.add('dragover')"
+                                         ondragleave="this.classList.remove('dragover')"
+                                         ondrop="bhsHandleDrop(event,'bwf')">
+                                        <div class="rounded-circle mx-auto mb-2 d-flex align-items-center justify-content-center" style="width:48px;height:48px;background:#f0fdf4;">
+                                            <i class="fas fa-tag" style="color:#16a34a;font-size:1.2rem;"></i>
+                                        </div>
+                                        <div class="fw-semibold mb-1" style="color:#1e3a5f;">Bags Without Flight</div>
+                                        <small class="text-muted d-block mb-2">Arrastra o haz click para cargar .xlsx</small>
+                                        <div id="bhs-bwf-status" class="small text-muted"></div>
+                                        <input type="file" id="bhs-bwf-input" accept=".xlsx,.xls" class="d-none" onchange="bhsHandleFile(this,'bwf')">
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -4552,58 +4627,6 @@ FF
                     </div>
                 </div>
 
-                <!-- Upload cards -->
-                <div class="row g-3 mb-4">
-                    <!-- ARRIVALS -->
-                    <div class="col-12 col-md-4">
-                        <div class="bhs-upload-card p-3 text-center h-100" id="bhs-arr-drop"
-                             onclick="document.getElementById('bhs-arr-input').click()"
-                             ondragover="event.preventDefault();this.classList.add('dragover')"
-                             ondragleave="this.classList.remove('dragover')"
-                             ondrop="bhsHandleDrop(event,'arrivals')">
-                            <div class="rounded-circle mx-auto mb-2 d-flex align-items-center justify-content-center" style="width:48px;height:48px;background:#eff6ff;">
-                                <i class="fas fa-plane-arrival" style="color:#2196f3;font-size:1.2rem;"></i>
-                            </div>
-                            <div class="fw-semibold mb-1" style="color:#1e3a5f;">Llegadas (Arrivals)</div>
-                            <small class="text-muted d-block mb-2">Arrastra o haz click para cargar .xlsx</small>
-                            <div id="bhs-arr-status" class="small text-muted"></div>
-                            <input type="file" id="bhs-arr-input" accept=".xlsx,.xls" class="d-none" onchange="bhsHandleFile(this,'arrivals')">
-                        </div>
-                    </div>
-                    <!-- DEPARTURES -->
-                    <div class="col-12 col-md-4">
-                        <div class="bhs-upload-card p-3 text-center h-100" id="bhs-dep-drop"
-                             onclick="document.getElementById('bhs-dep-input').click()"
-                             ondragover="event.preventDefault();this.classList.add('dragover')"
-                             ondragleave="this.classList.remove('dragover')"
-                             ondrop="bhsHandleDrop(event,'departures')">
-                            <div class="rounded-circle mx-auto mb-2 d-flex align-items-center justify-content-center" style="width:48px;height:48px;background:#fff7ed;">
-                                <i class="fas fa-plane-departure" style="color:#ea580c;font-size:1.2rem;"></i>
-                            </div>
-                            <div class="fw-semibold mb-1" style="color:#1e3a5f;">Salidas (Departures)</div>
-                            <small class="text-muted d-block mb-2">Arrastra o haz click para cargar .xlsx</small>
-                            <div id="bhs-dep-status" class="small text-muted"></div>
-                            <input type="file" id="bhs-dep-input" accept=".xlsx,.xls" class="d-none" onchange="bhsHandleFile(this,'departures')">
-                        </div>
-                    </div>
-                    <!-- BAGS WITHOUT FLIGHT -->
-                    <div class="col-12 col-md-4">
-                        <div class="bhs-upload-card p-3 text-center h-100" id="bhs-bwf-drop"
-                             onclick="document.getElementById('bhs-bwf-input').click()"
-                             ondragover="event.preventDefault();this.classList.add('dragover')"
-                             ondragleave="this.classList.remove('dragover')"
-                             ondrop="bhsHandleDrop(event,'bwf')">
-                            <div class="rounded-circle mx-auto mb-2 d-flex align-items-center justify-content-center" style="width:48px;height:48px;background:#f0fdf4;">
-                                <i class="fas fa-tag" style="color:#16a34a;font-size:1.2rem;"></i>
-                            </div>
-                            <div class="fw-semibold mb-1" style="color:#1e3a5f;">Bags Without Flight</div>
-                            <small class="text-muted d-block mb-2">Arrastra o haz click para cargar .xlsx</small>
-                            <div id="bhs-bwf-status" class="small text-muted"></div>
-                            <input type="file" id="bhs-bwf-input" accept=".xlsx,.xls" class="d-none" onchange="bhsHandleFile(this,'bwf')">
-                        </div>
-                    </div>
-                </div>
-
                 <!-- Tabs de resultados -->
                 <div class="card border-0 shadow-sm">
                     <div class="card-header bhs-tabs-bar bg-white d-flex flex-wrap gap-2 py-2">
@@ -4615,6 +4638,11 @@ FF
 
                     <!-- TAB ARRIVALS -->
                     <div id="bhs-tab-arr" class="p-3">
+                        <!-- Banner fecha -->
+                        <div id="bhs-arr-date-banner" class="bhs-date-banner bhs-date-banner-arr d-none mb-3">
+                            <i class="fas fa-plane-arrival fa-lg"></i>
+                            <div><div class="bhs-date-banner-label">Llegadas — datos del</div><div class="bhs-date-banner-val" id="bhs-arr-date-lbl">—</div></div>
+                        </div>
                         <!-- KPIs -->
                         <div class="row g-3 mb-3" id="bhs-arr-kpis">
                             <div class="col-6 col-md-3"><div class="card border-0 bg-light text-center p-3"><div class="bhs-stat text-primary" id="bhs-arr-total">—</div><small class="text-muted">Total maletas</small></div></div>
@@ -4670,6 +4698,11 @@ FF
 
                     <!-- TAB DEPARTURES -->
                     <div id="bhs-tab-dep" class="p-3 d-none">
+                        <!-- Banner fecha -->
+                        <div id="bhs-dep-date-banner" class="bhs-date-banner bhs-date-banner-dep d-none mb-3">
+                            <i class="fas fa-plane-departure fa-lg"></i>
+                            <div><div class="bhs-date-banner-label">Salidas — datos del</div><div class="bhs-date-banner-val" id="bhs-dep-date-lbl">—</div></div>
+                        </div>
                         <!-- KPI strip -->
                         <div class="row g-3 mb-3">
                             <div class="col-6 col-md-3"><div class="card border-0 bg-light text-center p-3"><div class="bhs-stat text-primary" id="bhs-dep-vuelos">—</div><small class="text-muted">Vuelos</small></div></div>
@@ -4738,6 +4771,11 @@ FF
 
                     <!-- TAB BWF -->
                     <div id="bhs-tab-bwf" class="p-3 d-none">
+                        <!-- Banner fecha -->
+                        <div id="bhs-bwf-date-banner" class="bhs-date-banner bhs-date-banner-bwf d-none mb-3">
+                            <i class="fas fa-tag fa-lg"></i>
+                            <div><div class="bhs-date-banner-label">Bags Without Flight — datos del</div><div class="bhs-date-banner-val" id="bhs-bwf-date-lbl">—</div></div>
+                        </div>
                         <!-- KPI strip -->
                         <div class="row g-3 mb-3">
                             <div class="col-6 col-md-4"><div class="card border-0 bg-light text-center p-3"><div class="bhs-stat text-primary" id="bhs-bwf-total">—</div><small class="text-muted">Maletas procesadas manual</small></div></div>
@@ -4905,6 +4943,8 @@ FF
                                 ['arr','dep','bwf'].forEach(function(t){
                                     var el=document.getElementById('bhs-tab-'+t);
                                     if(el) el.innerHTML='';
+                                    var banner=document.getElementById('bhs-'+t+'-date-banner');
+                                    if(banner) banner.classList.add('d-none');
                                 });
                                 var lbl=document.getElementById('bhs-loaded-date');
                                 if(lbl) lbl.textContent='';
@@ -4913,6 +4953,10 @@ FF
                         bhsLoadAvailableDates();
                     }).catch(function(e){ alert('Error: '+e.message); bhsLoadAvailableDates(); });
                 };
+                window.bhsToggleUpload=function(){
+                    document.getElementById('bhs-upload-panel').classList.toggle('d-none');
+                };
+
                 window.bhsShowTab=function(tab,btn){
                     ['arr','dep','bwf'].forEach(function(t){
                         var el=document.getElementById('bhs-tab-'+t);
@@ -4976,6 +5020,17 @@ FF
                     bhsLoadFromDB(d);
                 };
 
+                function bhsSetDateBanners(fecha){
+                    var fmt=fmtDate(fecha);
+                    ['arr','dep','bwf'].forEach(function(t){
+                        var b=document.getElementById('bhs-'+t+'-date-banner');
+                        var l=document.getElementById('bhs-'+t+'-date-lbl');
+                        if(b&&l){l.textContent=fmt;b.classList.remove('d-none');}
+                    });
+                    var ld=document.getElementById('bhs-loaded-date');
+                    if(ld) ld.textContent='📅 '+fmt;
+                }
+
                 function bhsLoadFromDB(fecha){
                     var client=window.supabaseClient;
                     if(!client) return;
@@ -4989,7 +5044,9 @@ FF
                         if(!results[0].error) bhsRenderArrivals(results[0].data||[]);
                         if(!results[1].error) bhsRenderDepartures(results[1].data||[]);
                         if(!results[2].error) bhsRenderBWF(results[2].data||[]);
-                        document.getElementById('bhs-loaded-date').textContent='📅 '+fmtDate(fecha);
+                        bhsSetDateBanners(fecha);
+                        // Auto-close upload panel once data is loaded from DB
+                        document.getElementById('bhs-upload-panel').classList.add('d-none');
                     }).catch(function(err){
                         console.error('BHS load error',err);
                     });
@@ -5044,7 +5101,8 @@ FF
                                 if(err){if(card)card.classList.remove('ok');if(status)status.innerHTML='<span style="color:#dc2626">Error: '+(err.message||JSON.stringify(err))+'</span>';console.error('[BHS] Save error:',err);}
                                 else{if(card)card.classList.add('ok');if(status)status.innerHTML='<span style="color:#16a34a">&#x2713; '+records.length+' registros guardados</span>';
                                     if(type==='arrivals')bhsRenderArrivals(records);else if(type==='departures')bhsRenderDepartures(records);else bhsRenderBWF(records);
-                                    document.getElementById('bhs-loaded-date').textContent='&#x1F4C5; '+fmtDate(fecha);}
+                                    bhsSetDateBanners(fecha);
+                                    document.getElementById('bhs-upload-panel').classList.add('d-none');}
                             });
                         }catch(err2){
                             if(card) card.classList.remove('loading');
