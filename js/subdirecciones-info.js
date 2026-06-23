@@ -18,22 +18,18 @@
     let _areasCache = null;     // arreglo de áreas cargado desde la tabla
     let _loadingPromise = null; // evita cargas duplicadas en paralelo
 
-    // Imágenes ya existentes en el sistema usadas como banner de la cabecera
-    // cuando el área no tiene `imagen_url` propia en `area_detalles`.
-    const FALLBACK_IMG = {
-        'DO':     'images/pistas_aifa.jpg',
-        'SD-SO':  'images/torre.jpg',
-        'SD-SA':  'images/mujer-bandera.png',
-        'SD-SC':  'images/Aeronaves%20carga.jpg',
-        'SD-ING': 'images/nlu-operacion.png',
-        'SGE':    'images/fondo-aifa.jpg'
-    };
-    const FALLBACK_IMG_DEFAULT = 'images/fondo-aifa.jpg';
+    // Banner de la cabecera: se eligen al azar entre estas tres imágenes
+    // del sistema (las seleccionadas para Operación, Seg. Operacional y
+    // Servicios Conexos). Cambia en cada apertura del modal.
+    const FALLBACK_IMGS = [
+        'images/pistas_aifa.jpg',       // Operación
+        'images/torre.jpg',             // Seguridad Operacional
+        'images/Aeronaves%20carga.jpg'  // Servicios Conexos
+    ];
 
     function _bannerImg(clave, imagenUrl) {
         if (imagenUrl) return imagenUrl;
-        const key = String(clave || '').trim().toUpperCase();
-        return FALLBACK_IMG[key] || FALLBACK_IMG_DEFAULT;
+        return FALLBACK_IMGS[Math.floor(Math.random() * FALLBACK_IMGS.length)];
     }
 
     /* ── Supabase helper ──────────────────────────────────────────── */
@@ -100,10 +96,31 @@
             .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
 
-    function _byClave(areas, clave) {
-        if (!areas || !clave) return null;
-        const norm = String(clave).trim().toUpperCase();
-        return areas.find(a => String(a.clave || '').trim().toUpperCase() === norm) || null;
+    // Normaliza para comparar: sin acentos, sin "subdirección de", minúsculas.
+    function _norm(s) {
+        return String(s == null ? '' : s)
+            .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase()
+            .replace(/subdireccion(\s+de(\s+la)?)?/g, '')
+            .replace(/[^a-z0-9]+/g, ' ')
+            .trim();
+    }
+
+    // Resuelve el área por clave; si no, por nombre (tolerante a acentos y
+    // al prefijo "Subdirección de"). Así no depende de la clave exacta.
+    function _resolveArea(areas, clave, nombre) {
+        if (!areas) return null;
+        const ck = String(clave || '').trim().toUpperCase();
+        if (ck) {
+            const byClave = areas.find(a => String(a.clave || '').trim().toUpperCase() === ck);
+            if (byClave) return byClave;
+        }
+        const nk = _norm(nombre);
+        if (nk) {
+            const byNombre = areas.find(a => _norm(a.nombre) === nk);
+            if (byNombre) return byNombre;
+        }
+        return null;
     }
 
     // Agrupa los datos por su campo `grupo` preservando el orden de llegada.
@@ -209,9 +226,12 @@
 
         contentEl.style.setProperty('--aim-accent', '#3b82f6');
 
+        // Banner aleatorio fijado para esta apertura (cambia en cada apertura).
+        const fallbackImg = _bannerImg(clave);
+
         // Estado de carga (cabecera con datos del trigger + banner de respaldo).
         contentEl.innerHTML =
-            _headHtml({ clave, title: nombre || clave, icon, img: _bannerImg(clave) }) +
+            _headHtml({ clave, title: nombre || clave, icon, img: fallbackImg }) +
             `<div class="aim-body"><div class="aim-loading"><i class="fas fa-spinner fa-spin me-2"></i>Cargando información…</div></div>`;
 
         if (window.bootstrap && bootstrap.Modal) {
@@ -223,7 +243,7 @@
 
         if (!areas) {
             contentEl.innerHTML =
-                _headHtml({ clave, title: nombre || clave, icon, img: _bannerImg(clave) }) +
+                _headHtml({ clave, title: nombre || clave, icon, img: fallbackImg }) +
                 `<div class="aim-body aim-empty">
                     <div class="aim-empty-icon"><i class="fas fa-wifi"></i></div>
                     <p class="aim-empty-txt">No se pudo consultar la información. Inicia sesión y revisa la conexión.</p>
@@ -231,7 +251,7 @@
             return;
         }
 
-        const area    = _byClave(areas, clave);
+        const area    = _resolveArea(areas, clave, nombre);
         const content = area ? await _loadAreaContent(area.id) : { detalle: null, datos: [] };
         if (!contentEl.isConnected) return;
 
@@ -239,7 +259,8 @@
         const titulo = (content.detalle && content.detalle.titulo)
             ? content.detalle.titulo
             : (area ? area.nombre : (nombre || clave));
-        const img    = _bannerImg(clave, content.detalle && content.detalle.imagen_url);
+        // Usa la imagen propia del área si existe; si no, el banner aleatorio.
+        const img    = (content.detalle && content.detalle.imagen_url) || fallbackImg;
 
         contentEl.style.setProperty('--aim-accent', color);
         contentEl.innerHTML =
