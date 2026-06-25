@@ -6702,6 +6702,13 @@ function handleNavigation(e) {
                 }, 60);
             } catch (_) { }
         }
+        if (section === 'analisis-operaciones') {
+            try {
+                setTimeout(() => {
+                    window.dispatchEvent(new Event('analisis-operaciones:visible'));
+                }, 60);
+            } catch (_) { }
+        }
         if (section === 'email-analisis') {
             setTimeout(() => window.dispatchEvent(new Event('email-analisis:visible')), 80);
         }

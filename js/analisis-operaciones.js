@@ -1,5 +1,9 @@
 // AIFA Operations Analysis Module - 2026 Refactor
 // Focus: Database View (Year > Month > Table) with Pivot Capabilities
+// Encapsulado en IIFE. API pública: window.AnalisisOperacionesModule
+// Inicialización perezosa vía evento 'analisis-operaciones:visible' (despachado desde script.js).
+;(function () {
+    'use strict';
 
 const OPS_MONTHS = [
     'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -11,19 +15,274 @@ let currentMonthOps = 'Enero';
 let opsDataTable = null;
 let opsRawData = [];
 
+// Filtros activos del pane Slots (aerolínea + tipo de tráfico carga/pasajeros)
+let _opsFilters = { airline: '', traffic: '' };
+
 // Cache key prefix
 const OPS_CACHE_KEY = 'aifa_ops_cache_';
 
-document.addEventListener('DOMContentLoaded', () => {
-    initOpsAnalysisTabs();
-});
-
 const OPS_MONTHS_SHORT = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 
-function initOpsAnalysisTabs() {
-    if (!document.getElementById('ops-month-pills')) return;
-    renderMonthPills();
-    loadOpsMonthData('Enero');
+// Inicialización idempotente del módulo (se ejecuta al hacerse visible la sección)
+let _moduleInitDone = false;
+function init() {
+    if (_moduleInitDone) return;
+    if (!document.getElementById('ops-filter-year')) return;
+    _moduleInitDone = true;
+    initOpsAnalysisTabs();
+}
+
+async function initOpsAnalysisTabs() {
+    if (!document.getElementById('ops-filter-year')) return;
+    // Determinar el periodo más reciente con datos antes de pintar los selectores
+    try { await _opsSetLatestPeriod(); } catch (e) { console.warn('No se pudo detectar el periodo más reciente', e); }
+    populateOpsYearSelect();
+    populateOpsMonthSelect();
+    bindOpsFilters();
+    loadOpsMonthData(currentMonthOps);
+}
+
+// Busca en Demoras el año/mes más reciente que tenga registros y ajusta
+// currentYearOps / currentMonthOps para que la vista cargue por defecto lo más nuevo.
+async function _opsSetLatestPeriod() {
+    let client = window.supabaseClient;
+    if (!client && window.ensureSupabaseClient) {
+        client = await window.ensureSupabaseClient();
+    }
+    if (!client) return;
+
+    const { data, error } = await client
+        .from('Demoras')
+        .select('ANIO, MES')
+        .not('ANIO', 'is', null)
+        .not('MES', 'is', null)
+        .order('ANIO', { ascending: false })
+        .order('MES', { ascending: false })
+        .limit(1);
+
+    if (error) { console.warn('Demoras latest period error:', error); return; }
+    if (data && data.length) {
+        const anio = parseInt(data[0].ANIO, 10);
+        const mes = parseInt(data[0].MES, 10);
+        if (anio) currentYearOps = anio;
+        if (mes >= 1 && mes <= 12) currentMonthOps = OPS_MONTHS[mes - 1];
+        console.log(`Periodo más reciente con datos: ${currentMonthOps} ${currentYearOps}`);
+    }
+}
+
+// ─── Selectores de Año / Mes ───────────────────────────────────────────────
+function populateOpsYearSelect() {
+    const sel = document.getElementById('ops-filter-year');
+    if (!sel) return;
+    const thisYear = Math.max(new Date().getFullYear(), currentYearOps);
+    const startYear = 2024;
+    sel.innerHTML = '';
+    for (let y = thisYear; y >= startYear; y--) {
+        const opt = document.createElement('option');
+        opt.value = String(y);
+        opt.textContent = y;
+        if (y === currentYearOps) opt.selected = true;
+        sel.appendChild(opt);
+    }
+}
+
+function populateOpsMonthSelect() {
+    const sel = document.getElementById('ops-filter-month');
+    if (!sel) return;
+    const today = new Date();
+    sel.innerHTML = '';
+    OPS_MONTHS.forEach((m, i) => {
+        const opt = document.createElement('option');
+        opt.value = m;
+        opt.textContent = m;
+        const isFuture = (currentYearOps === today.getFullYear()) && (i > today.getMonth());
+        if (isFuture) opt.disabled = true;
+        if (m === currentMonthOps) opt.selected = true;
+        sel.appendChild(opt);
+    });
+}
+
+function bindOpsFilters() {
+    const yearSel = document.getElementById('ops-filter-year');
+    const monthSel = document.getElementById('ops-filter-month');
+    const refreshBtn = document.getElementById('ops-btn-refresh');
+
+    if (yearSel && !yearSel.dataset.opsBound) {
+        yearSel.dataset.opsBound = '1';
+        yearSel.addEventListener('change', () => {
+            currentYearOps = parseInt(yearSel.value, 10) || currentYearOps;
+            populateOpsMonthSelect();
+            // Si el mes activo quedó deshabilitado (futuro), usar el último mes válido
+            const ms = document.getElementById('ops-filter-month');
+            if (ms && ms.selectedOptions[0] && ms.selectedOptions[0].disabled) {
+                const enabled = [...ms.options].filter(o => !o.disabled);
+                if (enabled.length) {
+                    currentMonthOps = enabled[enabled.length - 1].value;
+                    ms.value = currentMonthOps;
+                }
+            }
+            loadOpsMonthData(currentMonthOps);
+        });
+    }
+
+    if (monthSel && !monthSel.dataset.opsBound) {
+        monthSel.dataset.opsBound = '1';
+        monthSel.addEventListener('change', () => {
+            loadOpsMonthData(monthSel.value);
+        });
+    }
+
+    if (refreshBtn && !refreshBtn.dataset.opsBound) {
+        refreshBtn.dataset.opsBound = '1';
+        refreshBtn.addEventListener('click', () => {
+            loadOpsMonthData(currentMonthOps, true);
+        });
+    }
+
+    const airlineSel = document.getElementById('ops-filter-airline');
+    if (airlineSel && !airlineSel.dataset.opsBound) {
+        airlineSel.dataset.opsBound = '1';
+        airlineSel.addEventListener('change', () => {
+            _opsFilters.airline = airlineSel.value.trim().toUpperCase();
+            applyOpsFiltersAndRender();
+        });
+    }
+
+    const trafficSel = document.getElementById('ops-filter-traffic');
+    if (trafficSel && !trafficSel.dataset.opsBound) {
+        trafficSel.dataset.opsBound = '1';
+        trafficSel.addEventListener('change', () => {
+            _opsFilters.traffic = trafficSel.value;
+            applyOpsFiltersAndRender();
+        });
+    }
+}
+
+// ─── Detección de columnas / clasificación de tráfico ──────────────────────
+function _opsNormalizeStr(s) {
+    return String(s).normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[\/\s]+/g, '_')
+        .toLowerCase().trim();
+}
+
+function _opsDetectKey(sampleRow, terms) {
+    if (!sampleRow) return null;
+    const keys = Object.keys(sampleRow);
+    for (const term of terms) {
+        const t = _opsNormalizeStr(term);
+        let k = keys.find(k => _opsNormalizeStr(k) === t);
+        if (k) return k;
+        k = keys.find(k => _opsNormalizeStr(k).includes(t));
+        if (k) return k;
+    }
+    return null;
+}
+
+const _OPS_AIRLINE_TERMS = ['aerolinea', 'aerol', 'airline', 'carrier'];
+const _OPS_SERVICE_TERMS = ['servicio', 'tipo_de_servicio', 'service', 'tipo_servicio', 'service_type'];
+
+// Clasifica un registro como pasajeros / carga usando el código de servicio
+// cruzado con el catálogo flightservicetype.csv (columna "Tipo de Operación").
+// Los vuelos mixtos (p.ej. L, Q, R) cuentan para ambos.
+function _classifyOpsTraffic(serviceRaw) {
+    const code = String(serviceRaw || '').trim().toUpperCase().split(/[\s\/,;]+/)[0];
+    const ref = _opsMasterCatalogCache && _opsMasterCatalogCache.serviceTypeMap
+        ? _opsMasterCatalogCache.serviceTypeMap[code]
+        : null;
+    const hay = _opsNormalizeStr(ref ? ref.operationType : serviceRaw);
+    return {
+        pax:   /pasajero/.test(hay),
+        cargo: /carga|correo|freight|cargo/.test(hay)
+    };
+}
+
+// Devuelve opsRawData aplicando los filtros activos (aerolínea + tipo)
+function getFilteredOpsData() {
+    const data = opsRawData || [];
+    if (!data.length) return data;
+    const { airline, traffic } = _opsFilters;
+    if (!airline && !traffic) return data;
+    const sample = data[0];
+    const kAir = airline ? _opsDetectKey(sample, _OPS_AIRLINE_TERMS) : null;
+    const kSvc = traffic ? _opsDetectKey(sample, _OPS_SERVICE_TERMS) : null;
+    return data.filter(r => {
+        if (airline && kAir && String(r[kAir] || '').trim().toUpperCase() !== airline) return false;
+        if (traffic && kSvc) {
+            const t = _classifyOpsTraffic(r[kSvc]);
+            if (traffic === 'pasajeros' && !t.pax) return false;
+            if (traffic === 'carga' && !t.cargo) return false;
+        }
+        return true;
+    });
+}
+
+// Rellena el select de aerolíneas con los códigos presentes en los datos del mes
+function populateOpsAirlineFilter(data) {
+    const sel = document.getElementById('ops-filter-airline');
+    if (!sel) return;
+    const sample = (data && data[0]) || null;
+    const kAir = sample ? _opsDetectKey(sample, _OPS_AIRLINE_TERMS) : null;
+    const prev = sel.value;
+    sel.innerHTML = '<option value="">Todas</option>';
+    if (!kAir) return;
+    const catMap = (_opsMasterCatalogCache && _opsMasterCatalogCache.airlinesMap) || {};
+    const counts = {};
+    data.forEach(r => {
+        const code = String(r[kAir] || '').trim().toUpperCase();
+        if (code) counts[code] = (counts[code] || 0) + 1;
+    });
+    Object.keys(counts)
+        .sort((a, b) => (catMap[a] || a).localeCompare(catMap[b] || b))
+        .forEach(code => {
+            const name = catMap[code] || code;
+            const opt = document.createElement('option');
+            opt.value = code;
+            opt.textContent = (name === code)
+                ? `${code} (${counts[code]})`
+                : `${code} — ${name} (${counts[code]})`;
+            sel.appendChild(opt);
+        });
+    if (prev && counts[prev]) {
+        sel.value = prev;
+    } else {
+        sel.value = '';
+        _opsFilters.airline = '';
+    }
+}
+
+// Aplica los filtros activos y re-renderiza tabla (y gráficas si está activa)
+async function applyOpsFiltersAndRender() {
+    if (_opsFilters.traffic && !_opsMasterCatalogCache) {
+        try { await _loadOpsMasterCatalogs(); } catch (_) { }
+    }
+    const total = (opsRawData || []).length;
+    const filtered = getFilteredOpsData();
+    const countBadge = document.getElementById('record-count-badge');
+    if (countBadge) {
+        countBadge.textContent = (filtered.length === total)
+            ? `${total.toLocaleString()} registros`
+            : `${filtered.length.toLocaleString()} de ${total.toLocaleString()} registros`;
+    }
+
+    if (!filtered.length) {
+        if (opsDataTable) { opsDataTable.destroy(); opsDataTable = null; }
+        $('#ops-datatable').html(`
+            <tbody>
+                <tr><td colspan="100%" class="text-center text-muted py-5">
+                    No hay registros para los filtros seleccionados.
+                </td></tr>
+            </tbody>
+        `);
+        return;
+    }
+
+    renderOpsTable(filtered);
+    const checked = document.querySelector('input[name="viewmode"]:checked');
+    const activeMode = checked ? checked.id.replace('view-', '') : 'table';
+    if (activeMode === 'charts') {
+        setTimeout(renderOpsCharts, 100);
+    }
 }
 
 function renderMonthPills() {
@@ -51,13 +310,14 @@ function renderMonthPills() {
     if (btnNext) btnNext.disabled = currentYearOps >= today.getFullYear();
 }
 
-async function loadOpsMonthData(month) {
+async function loadOpsMonthData(month, force = false) {
     currentMonthOps = month;
 
-    // Sync active state on pills
-    document.querySelectorAll('#ops-month-pills .ops-month-pill').forEach(btn => {
-        btn.classList.toggle('active', btn.getAttribute('data-month') === month);
-    });
+    // Sincronizar selectores de Año / Mes
+    const yearSel = document.getElementById('ops-filter-year');
+    if (yearSel && yearSel.value !== String(currentYearOps)) yearSel.value = String(currentYearOps);
+    const monthSel = document.getElementById('ops-filter-month');
+    if (monthSel && monthSel.value !== month) monthSel.value = month;
 
     const badge = document.getElementById('current-month-badge');
     if (badge) badge.textContent = `${month} ${currentYearOps}`;
@@ -88,16 +348,14 @@ async function loadOpsMonthData(month) {
     }
 
     const cacheKey = `${OPS_CACHE_KEY}${currentYearOps}_${mesNumero}`;
-    const cached = getFromCache(cacheKey);
+    if (force) { try { sessionStorage.removeItem(cacheKey); } catch (_) { } }
+    const cached = force ? null : getFromCache(cacheKey);
 
     if (cached) {
         opsRawData = cached;
-        if (countBadge) countBadge.textContent = `${cached.length.toLocaleString()} registros (Caché)`;
-
-        renderOpsTable(cached);
-
-        const activeMode = document.querySelector('input[name="viewmode"]:checked').id.replace('view-', '');
-        if (activeMode !== 'table') window.toggleViewMode(activeMode);
+        try { await _loadOpsMasterCatalogs(); } catch (_) { }
+        populateOpsAirlineFilter(cached);
+        applyOpsFiltersAndRender();
         return;
     }
 
@@ -182,14 +440,9 @@ async function loadOpsMonthData(month) {
         opsRawData = allData;
         saveToCache(cacheKey, allData);
 
-        if (countBadge) countBadge.textContent = `${allData.length.toLocaleString()} registros`;
-
-        renderOpsTable(allData);
-
-        const activeMode = document.querySelector('input[name="viewmode"]:checked').id.replace('view-', '');
-        if (activeMode !== 'table') {
-            window.toggleViewMode(activeMode);
-        }
+        try { await _loadOpsMasterCatalogs(); } catch (_) { }
+        populateOpsAirlineFilter(allData);
+        applyOpsFiltersAndRender();
 
     } catch (err) {
         console.error("Error:", err);
@@ -274,7 +527,9 @@ function renderOpsTable(data) {
 
     const getOpsColumnWidth = (key) => {
         const columnKey = String(key || '').toLowerCase();
+        const idNorm = columnKey.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '');
 
+        if (idNorm === 'no' || idNorm === 'n' || idNorm === 'num' || idNorm === '') return '52px';
         if (/fecha|hora|aterrizaje|despegue/.test(columnKey)) return '170px';
         if (/codigo|motivo|observacion|descripcion/.test(columnKey)) return '240px';
         if (/ruta|matricula|vuelo|aerolinea|equipo|avion/.test(columnKey)) return '150px';
@@ -298,21 +553,60 @@ function renderOpsTable(data) {
         return `${d}/${m}/${y} ${hhmm}`;               // other date/time columns → DD/MM/YYYY HH:MM
     }
 
-    // 1. Dynamic Headers
-    const columns = Object.keys(data[0]).map(key => ({
-        title: formatHeader(key),
-        data: function (row) {
-            const value = row ? row[key] : '';
-            return formatOpsValue(key, value);
-        },
+    // 1. Dynamic Headers — se omite la columna índice del origen ("No." / "N°" / "#")
+    // y en su lugar se agrega un consecutivo automático estrecho.
+    const _isIndexCol = (key) => {
+        const norm = String(key || '')
+            .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase().replace(/[^a-z0-9]+/g, '');
+        return norm === 'no' || norm === 'n' || norm === 'num' || norm === '';
+    };
+    const consecutiveColumn = {
+        title: 'No.',
+        data: null,
+        orderable: false,
+        searchable: false,
         defaultContent: '',
-        className: 'text-center align-middle',
-        width: getOpsColumnWidth(key)
-    }));
+        className: 'text-center align-middle text-muted',
+        width: '48px',
+        render: function (d, type, row, meta) {
+            return meta.row + 1 + meta.settings._iDisplayStart;
+        }
+    };
+    // Columnas ocultas por defecto (el usuario las puede reactivar con "Campos").
+    // Se comparan por título normalizado (sin acentos/espacios/símbolos).
+    const _normTitle = (t) => String(t || '')
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase().replace(/[^a-z0-9]+/g, '');
+    const HIDDEN_BY_DEFAULT = new Set([
+        'codigodeafacaifa',   // Código de Afac/aifa
+        'serviciollegada',    // Servicio Llegada
+        'serviciodesalida',   // Servicio de Salida
+        'puntualidad',        // Puntualidad (NO la "Puntualidad Conciliada")
+        'mes',                // Mes
+        'anio'                // Anio
+    ]);
+
+    const columns = [consecutiveColumn].concat(
+        Object.keys(data[0]).filter(key => !_isIndexCol(key)).map(key => {
+            const title = formatHeader(key);
+            return {
+                title: title,
+                data: function (row) {
+                    const value = row ? row[key] : '';
+                    return formatOpsValue(key, value);
+                },
+                defaultContent: '',
+                className: 'text-center align-middle',
+                width: getOpsColumnWidth(key),
+                visible: !HIDDEN_BY_DEFAULT.has(_normTitle(title))
+            };
+        })
+    );
 
     // 2. Initialize DataTable
     const tableElement = $('#ops-datatable');
-    tableElement.css('width', '100%'); // Reset to standard width handling
+    tableElement.css('width', ''); // dejar que el CSS controle el ancho (auto + min-width)
     tableElement.empty(); // Clear loading message
 
     // Explicitly destroy if it exists (safety)
@@ -331,41 +625,165 @@ function renderOpsTable(data) {
         ordering: false, // Disable column sorting (removes arrows and click-to-sort)
         deferRender: true, // Optimizes rendering speed for large datasets
         processing: true,
-        scrollX: true, // This enables horizontal scroll 
-        scrollCollapse: true,
         autoWidth: false,
         paging: true,
         stateSave: false, // Don't save state (like width) to avoid corruption
         pageLength: 50,
         lengthMenu: [[25, 50, 100, 500, -1], [25, 50, 100, 500, "Todos"]],
-        dom: 'Bfrtip',
-        buttons: [
-            'copy', 'csv', 'excel', 'print', 'colvis'
-        ],
+        // UNA sola tabla. DataTables envuelve SOLO la tabla ('t') en un div
+        // '.ops-scroll' (vía la opción dom). Ese div tiene max-height + overflow
+        // y el thead usa position:sticky → encabezado fijo vertical, móvil
+        // horizontal. Al ser una única tabla, encabezado y datos comparten las
+        // MISMAS columnas: es imposible que se desfasen.
+        autoWidth: false,
+        dom: "<'row mb-2 align-items-center'<'col-sm-6'l><'col-sm-6'f>>" +
+             "r" +
+             "<'ops-scroll't>" +
+             "<'row mt-2'<'col-sm-5'i><'col-sm-7'p>>",
         language: {
              url: "//cdn.datatables.net/plug-ins/1.13.7/i18n/es-ES.json"
         },
         initComplete: function () {
-            applyExcelFilters(this.api());
-
-            setTimeout(() => {
-                this.api().columns.adjust().draw(false);
-            }, 100);
+            const api = this.api();
+            setTimeout(() => _opsInitScrollTable(api), 50);
         }
     });
 
-    // Force a re-adjustment when window resize is finished (debounce)
-    let resizeTimer;
-    $(window).off('resize.opsTable').on('resize.opsTable', function () {
-        clearTimeout(resizeTimer);
-        resizeTimer = setTimeout(function() {
+    // Al mostrar/ocultar columnas (ColVis "Campos"), re-aplicar filtros + manijas
+    tableElement.off('column-visibility.dt.opsCV').on('column-visibility.dt.opsCV', function () {
+        setTimeout(() => {
             if (opsDataTable) {
-                opsDataTable.columns.adjust().draw(false);
+                try { applyExcelFilters(opsDataTable); } catch (e) { console.warn('Excel filters', e); }
+                _opsAttachResizers();
             }
-        }, 100);
+        }, 60);
     });
 }
 
+// ── Encabezado fijo (tabla única, thead sticky) + ColVis ("Campos") + resize ──
+function _opsInitScrollTable(api) {
+    // Botón "Campos" (ColVis) colocado en el toolbar, sobre "Exportar Excel"
+    try {
+        const host = document.getElementById('ops-colvis-container');
+        if (host && $.fn.dataTable && $.fn.dataTable.Buttons) {
+            host.innerHTML = '';
+            const colvis = new $.fn.dataTable.Buttons(api, {
+                dom: { button: { className: 'btn btn-sm' } },
+                buttons: [{
+                    extend: 'colvis',
+                    text: '<i class="fas fa-check-square me-1"></i>Campos',
+                    className: 'btn-outline-primary',
+                    titleAttr: 'Seleccionar columnas a mostrar',
+                    columns: ':gt(0)', // todas menos el consecutivo "No."
+                    collectionLayout: 'two-column',
+                    postfixButtons: ['colvisRestore']
+                }]
+            });
+            $(colvis.container()).appendTo(host);
+        }
+    } catch (e) { console.warn('ColVis init', e); }
+
+    // Botón "Borrar filtros" a la derecha del buscador
+    try {
+        const wrapper = api.table().container();
+        const filterLabel = wrapper ? wrapper.querySelector('.dataTables_filter') : null;
+        if (filterLabel && !filterLabel.querySelector('.ops-clear-filters')) {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'btn btn-sm btn-outline-danger ops-clear-filters ms-2';
+            btn.innerHTML = '<i class="fas fa-filter-circle-xmark me-1"></i>Borrar filtros';
+            btn.title = 'Limpiar todos los filtros de los encabezados y la búsqueda';
+            btn.addEventListener('click', () => _opsClearAllFilters(api));
+            filterLabel.appendChild(btn);
+        }
+    } catch (e) { console.warn('Clear filters btn', e); }
+
+    // Filtros tipo Excel en cada encabezado (embudo)
+    try { applyExcelFilters(api); } catch (e) { console.warn('Excel filters', e); }
+
+    // Manijas para ajustar manualmente el ancho de las columnas
+    _opsAttachResizers();
+}
+
+// Limpia todos los filtros por columna (embudos) + búsqueda global y
+// restablece el icono de cada encabezado a su estado inactivo.
+function _opsClearAllFilters(api) {
+    if (!api) return;
+    api.columns().search('');
+    api.search('');
+    api.draw();
+    document.querySelectorAll('#ops-datatable thead .excel-filter-btn i')
+        .forEach(i => { i.classList.remove('text-primary'); i.classList.add('text-muted'); });
+    $('.excel-filter-dropdown').remove();
+    $('.excel-filter-btn').removeClass('active');
+}
+
+// Permite arrastrar el borde derecho de cada encabezado para cambiar su ancho.
+// Con UNA sola tabla (table-layout:fixed) basta con fijar el ancho del <th>; la
+// columna entera (encabezado + celdas) toma ese ancho porque es la misma tabla,
+// así que NUNCA se pierde la alineación.
+function _opsAttachResizers() {
+    const table = document.getElementById('ops-datatable');
+    if (!table) return;
+    table.style.tableLayout = 'fixed';
+    const ths = Array.from(table.querySelectorAll('thead th'));
+
+    // Congelar el ancho actual de cada columna y el total de la tabla, para que
+    // el ajuste sea preciso y no se reparta el espacio sobrante.
+    function freeze() {
+        let total = 0;
+        ths.forEach(h => {
+            const w = h.offsetWidth;
+            const px = w + 'px';
+            h.style.width = px; h.style.minWidth = px; h.style.maxWidth = px;
+            total += w;
+        });
+        table.style.width = total + 'px';
+        table.style.minWidth = total + 'px';
+    }
+
+    ths.forEach((th) => {
+        // NO tocar th.style.position: el CSS lo fija en `sticky` (encabezado fijo)
+        // y sticky ya es un contexto de posicionamiento, así que la manija
+        // absolute se ancla correctamente sin necesidad de `relative`.
+        const old = th.querySelector('.ops-col-resizer');
+        if (old) old.remove();
+
+        const handle = document.createElement('div');
+        handle.className = 'ops-col-resizer';
+        handle.title = 'Arrastra para ajustar el ancho';
+        th.appendChild(handle);
+
+        handle.addEventListener('mousedown', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            freeze();
+            const startX = e.pageX;
+            const startW = th.offsetWidth;
+            document.body.classList.add('ops-col-resizing');
+
+            function onMove(ev) {
+                const w = Math.max(40, startW + (ev.pageX - startX));
+                const px = w + 'px';
+                th.style.width = px; th.style.minWidth = px; th.style.maxWidth = px;
+                let total = 0;
+                ths.forEach(h => { total += h.offsetWidth; });
+                table.style.width = total + 'px';
+                table.style.minWidth = total + 'px';
+            }
+            function onUp() {
+                document.removeEventListener('mousemove', onMove);
+                document.removeEventListener('mouseup', onUp);
+                document.body.classList.remove('ops-col-resizing');
+            }
+            document.addEventListener('mousemove', onMove);
+            document.addEventListener('mouseup', onUp);
+        });
+
+        // Evitar que un click en la manija haga algo inesperado
+        handle.addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); });
+    });
+}
 
 
 function formatHeader(key) {
@@ -441,7 +859,7 @@ window.toggleViewMode = function(mode) {
         if(tableWrap) tableWrap.classList.remove('d-none');
     } else if (mode === 'charts') {
         if(chartsWrap) chartsWrap.classList.remove('d-none');
-        if (opsRawData.length > 0) {
+        if (getFilteredOpsData().length > 0) {
             setTimeout(renderOpsCharts, 100); // Small delay to ensure container visible
         }
     }
@@ -696,12 +1114,14 @@ async function _loadOpsMasterCatalogs() {
 
     const serviceTypeMap = {};
     serviceRows.forEach(row => {
-        const code = String(row.Code || '').trim().toUpperCase();
+        // El CSV tiene encabezados en español ("Código,Categoria,Tipo de Operación,Descripción")
+        // pero por compatibilidad aceptamos también variantes en inglés.
+        const code = String(row['Código'] || row['Codigo'] || row.Code || '').trim().toUpperCase();
         if (!code) return;
         serviceTypeMap[code] = {
-            category: row.Category || 'Otros',
-            operationType: row['Type of operation'] || 'No definido',
-            description: row.Description || ''
+            category: row['Categoria'] || row['Categoría'] || row.Category || 'Otros',
+            operationType: row['Tipo de Operación'] || row['Tipo de Operacion'] || row['Type of operation'] || 'No definido',
+            description: row['Descripción'] || row['Descripcion'] || row.Description || ''
         };
     });
 
@@ -911,7 +1331,7 @@ async function renderOpsCharts() {
         if(wrap) wrap.innerHTML = '<div class="alert alert-warning">Librería de Gráficos no cargada. Por favor recargue la página.</div>';
         return;
     }
-    const data = opsRawData;
+    const data = getFilteredOpsData();
     if (!data || data.length === 0) {
         console.warn("No data for charts");
         return;
@@ -2251,7 +2671,8 @@ window.opsNavYear = function(delta) {
 
 window.loadOperationsYear = function(year) {
     currentYearOps = year;
-    renderMonthPills();
+    populateOpsYearSelect();
+    populateOpsMonthSelect();
     loadOpsMonthData(currentMonthOps);
 };
 
@@ -2298,18 +2719,23 @@ function applyExcelFilters(api) {
     api.columns().every(function () {
         const column = this;
         const header = $(column.header());
-        
+
         // Remove existing custom elements
         header.find('.excel-filter-btn').remove();
         header.find('.excel-filter-dropdown').remove();
-        
+
         // Style Body Cells (Center Content)
         $(column.nodes()).addClass('text-center align-middle');
+
+        // Omitir columnas no buscables (p.ej. el consecutivo "No.")
+        if (column.settings()[0].aoColumns[column.index()].bSearchable === false) {
+            return;
+        }
 
         // Add Filter Button (Click to toggle menu)
         // Check if button already exists (FixedHeader might trigger redraws)
         if (header.find('.excel-filter-btn').length === 0) {
-             $('<span class="excel-filter-btn" style="position:absolute; right:5px; top:50%; transform:translateY(-50%); cursor:pointer;"><i class="fas fa-filter text-muted" style="font-size:0.8em"></i></span>')
+             $('<span class="excel-filter-btn" style="position:absolute; right:14px; top:50%; transform:translateY(-50%); cursor:pointer; z-index:15;"><i class="fas fa-filter text-muted" style="font-size:0.8em"></i></span>')
             .appendTo(header);
             header.addClass('has-filter'); // Ensure padding is applied via CSS
         } else {
@@ -2784,3 +3210,32 @@ function _showOpsHourDrilldown(hour, dayIdx) {
     if (!modalEl) return;
     bootstrap.Modal.getOrCreateInstance(modalEl).show();
 }
+
+// ─── Init / API pública del módulo ─────────────────────────────────
+window.addEventListener('analisis-operaciones:visible', () => {
+    try { init(); } catch (e) { console.error('[analisis-operaciones] init error', e); }
+});
+
+// Init directo si la sección ya está activa al cargar (deep-link / refresh)
+document.addEventListener('DOMContentLoaded', () => {
+    const sec = document.getElementById('analisis-operaciones-section');
+    if (sec && sec.classList.contains('active')) {
+        try { init(); } catch (e) { console.error('[analisis-operaciones] init error', e); }
+    }
+});
+
+window.AnalisisOperacionesModule = {
+    init,
+    loadMonth: loadOpsMonthData,
+    renderCharts: renderOpsCharts,
+    get state() {
+        return {
+            year: currentYearOps,
+            month: currentMonthOps,
+            rows: opsRawData,
+            initialized: _moduleInitDone
+        };
+    }
+};
+
+})();

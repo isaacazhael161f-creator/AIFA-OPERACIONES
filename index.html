@@ -77,7 +77,7 @@
     <link rel="preload" as="script" href="script.js?v=20260616n" fetchpriority="high">
     <link rel="preload" as="script" href="js/manifiestos.js">
     <link rel="preload" as="script" href="js/data-management.js">
-    <link rel="preload" as="script" href="js/analisis-operaciones.js?v=2">
+    <link rel="preload" as="script" href="js/analisis-operaciones.js?v=31">
     <link rel="preload" as="script" href="js/manifiestos-analisis.js">
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -117,36 +117,67 @@
     <script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.bootstrap5.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.html5.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.print.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.colVis.min.js"></script>
     <script src="https://cdn.datatables.net/fixedheader/3.4.0/js/dataTables.fixedHeader.min.js"></script>
     
     <style>
-        /* Excel-like Table Styles */
+        /* Tabla de Slots — UNA sola tabla con encabezado fijo (thead sticky).
+           Como encabezado y datos son la misma tabla, NUNCA se desfasan. */
         #ops-datatable {
-            width: 100% !important;
+            width: auto;
+            min-width: 100%;
+            table-layout: fixed;
+            border-collapse: separate !important; /* indispensable para que el th sticky conserve fondo */
+            border-spacing: 0;
+            margin: 0 !important;
+            overflow: visible !important; /* clave: si la tabla recorta, el thead sticky no se fija */
         }
 
-        .dataTables_wrapper .dataTables_scrollHead table thead th {
+        /* Contenedor desplazable (lo crea DataTables vía dom: <'ops-scroll't>).
+           Es el único elemento que hace scroll vertical y horizontal. */
+        .ops-scroll {
+            position: relative;
+            max-height: calc(100vh - 360px);
+            min-height: 300px;
+            overflow: auto;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+        }
+
+        #ops-datatable thead th {
+            position: -webkit-sticky;
+            position: sticky;
+            top: 0;
+            z-index: 10;
             background-color: #0f5132;
+            background-clip: padding-box;
             color: #ffffff;
             font-weight: 700;
             border-bottom: 2px solid #0b3d26;
             border-right: 1px solid rgba(255, 255, 255, 0.25);
-            position: relative;
-            padding: 0.6rem 2rem 0.6rem 0.5rem !important;
+            padding: 0.6rem 0.9rem 0.6rem 0.5rem !important;
             white-space: nowrap;
             text-align: center !important;
             vertical-align: middle !important;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
-        .dataTables_wrapper .dataTables_scrollHead table thead th:last-child {
+        #ops-datatable thead th:last-child {
             border-right: none;
         }
 
-        .dataTables_scrollHead th {
-            background-color: #0f5132 !important;
+        /* La columna "No." usa .text-muted (gris) en el cuerpo; forzar texto
+           blanco SOLO en su encabezado para que iguale al resto. */
+        #ops-datatable thead th.text-muted {
             color: #ffffff !important;
-            text-align: center !important;
-            vertical-align: middle !important;
+        }
+
+        /* Encabezado con embudo de filtro: deja espacio a la derecha para el
+           icono (right:14px) y la manija de redimensionado (right:0, 7px). */
+        #ops-datatable thead th.has-filter {
+            padding-right: 32px !important;
         }
 
         /* Hide DataTables sorting arrows completely */
@@ -169,15 +200,9 @@
             content: "" !important;
         }
 
-        .dataTables_wrapper .dataTables_scrollHead table thead th,
+        #ops-datatable thead th,
         #ops-datatable tbody td {
             box-sizing: border-box;
-        }
-
-        .dataTables_scrollHead table,
-        .dataTables_scrollBody table {
-            margin: 0 !important;
-            table-layout: fixed !important;
         }
 
 
@@ -187,14 +212,10 @@
             white-space: nowrap;
             padding: 0.5rem;
             text-align: center !important;
+            border-top: 1px solid #e9ecef;
             overflow: hidden;
             text-overflow: ellipsis;
             max-width: 0;
-        }
-
-        .dataTables_wrapper .dataTables_scrollHead table thead th {
-            overflow: hidden;
-            text-overflow: ellipsis;
         }
 
         #ops-datatable tbody tr:hover {
@@ -204,7 +225,7 @@
         /* Excel Filter Dropdown */
         .excel-filter-btn {
             position: absolute;
-            right: 4px;
+            right: 10px;
             top: 50%;
             transform: translateY(-50%);
             background: transparent;
@@ -19689,7 +19710,7 @@ FF
                     #hidraulicas-section .hidra-edit-table input{ font-size:.85rem; }
                     #hidraulicas-section .hidra-edit-table input.hidra-changed{ background:#fef3c7; }
                     #hidraulicas-section .hidra-edit-table tr.hidra-weekend td{ background:#fafafa; }
-                    /* ── Paneles estilo reporte (réplica dashboards GOMIH) ── */
+
                     #hidraulicas-section .hidra-panel{ background:#fff; border:1px solid #e5e7eb; border-radius:14px; padding:18px 20px 22px; box-shadow:0 4px 18px rgba(15,23,42,.06); margin-bottom:22px; }
                     #hidraulicas-section .hidra-panel-head{ display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap; margin-bottom:16px; }
                     #hidraulicas-section .hidra-panel-title{ border:2px solid #1e3a8a; border-radius:6px; padding:6px 16px; font-size:1.35rem; font-weight:800; color:#1e3a8a; letter-spacing:.2px; }
@@ -21065,23 +21086,38 @@ FF
 
                         <!--  SLOTS PANE  -->
                         <div class="tab-pane fade show active" id="aops-pane-slots" role="tabpanel">
-                        <!-- -- Selector de Mes / AÑo -- -->
-                        <div class="px-3 py-2 border-bottom bg-white d-flex flex-wrap align-items-center gap-2" id="ops-period-picker">
-                            <span class="fw-semibold text-muted small"><i class="fas fa-database me-1"></i>Base de Datos de Operaciones</span>
-                            <div class="d-flex align-items-center gap-1 ms-auto">
-                                <button class="btn btn-sm btn-outline-primary px-2 py-1" onclick="opsNavYear(-1)" title="Año anterior">
-                                    <i class="fas fa-chevron-left fa-xs"></i>
-                                </button>
-                                <span class="fw-bold text-primary px-2" id="ops-year-display" style="min-width:46px;text-align:center;font-size:1rem;letter-spacing:.03em">2025</span>
-                                <button class="btn btn-sm btn-outline-primary px-2 py-1" onclick="opsNavYear(1)" title="Año siguiente" id="ops-year-next-btn">
-                                    <i class="fas fa-chevron-right fa-xs"></i>
-                                </button>
+                        <!-- -- Selector de Año / Mes -- -->
+                        <div class="px-3 py-2 border-bottom bg-white" id="ops-period-picker">
+                          <div class="row g-2 align-items-end">
+                            <div class="col-auto">
+                              <label class="form-label small mb-1 fw-bold">Año</label>
+                              <select id="ops-filter-year" class="form-select form-select-sm" style="min-width:90px;"></select>
                             </div>
-                            <div id="ops-month-pills" class="d-flex flex-wrap gap-1">
-                                <!-- Generated by JS -->
+                            <div class="col-auto">
+                              <label class="form-label small mb-1 fw-bold">Mes</label>
+                              <select id="ops-filter-month" class="form-select form-select-sm" style="min-width:130px;"></select>
+                            </div>
+                            <div class="col-auto">
+                              <label class="form-label small mb-1 fw-bold">Aerolínea</label>
+                              <select id="ops-filter-airline" class="form-select form-select-sm" style="min-width:180px;">
+                                <option value="">Todas</option>
+                              </select>
+                            </div>
+                            <div class="col-auto">
+                              <label class="form-label small mb-1 fw-bold">Tipo</label>
+                              <select id="ops-filter-traffic" class="form-select form-select-sm" style="min-width:130px;">
+                                <option value="">Todos</option>
+                                <option value="pasajeros">Pasajeros</option>
+                                <option value="carga">Carga</option>
+                              </select>
+                            </div>
+                            <div class="col-auto">
+                              <button id="ops-btn-refresh" class="btn btn-outline-primary btn-sm" type="button" title="Recargar datos del periodo seleccionado">
+                                <i class="fas fa-sync me-1"></i>Refrescar
+                              </button>
                             </div>
                             <!-- Importar / Borrar Demoras (solo admin/editor) -->
-                            <div id="demoras-admin-btns" class="d-flex gap-2 ms-auto" style="display:none!important">
+                            <div id="demoras-admin-btns" class="col-auto ms-auto d-flex gap-2 align-items-end" style="display:none!important">
                                 <button id="demoras-delete-btn"
                                     class="btn btn-sm btn-outline-danger px-3"
                                     onclick="demorasAbrirBorrar()"
@@ -21095,6 +21131,7 @@ FF
                                     <i class="fas fa-file-upload me-1"></i>Importar Demoras
                                 </button>
                             </div>
+                          </div>
                         </div>
                         <style>
                             .ops-month-pill { border:1px solid #d1d5db; background:#fff; color:#374151;
@@ -21103,6 +21140,31 @@ FF
                             .ops-month-pill.active { background:#1565c0; color:#fff; border-color:#1565c0; font-weight:600; }
                             .ops-month-pill:hover:not(.active):not(:disabled) { background:#eff6ff; border-color:#93c5fd; color:#1e40af; }
                             .ops-month-pill:disabled { opacity:.35; cursor:not-allowed; }
+                            /* Tabla de Slots: una sola tabla con encabezado fijo (thead sticky) */
+                            #ops-table-wrapper .table-responsive { overflow: visible; }
+                            /* Contenedor desplazable: barras de scroll visibles */
+                            #ops-table-wrapper .ops-scroll {
+                                scrollbar-width: thin; scrollbar-color: #90a4ae #eceff1;
+                            }
+                            #ops-table-wrapper .ops-scroll::-webkit-scrollbar { width: 12px; height: 12px; }
+                            #ops-table-wrapper .ops-scroll::-webkit-scrollbar-track { background:#eceff1; border-radius:6px; }
+                            #ops-table-wrapper .ops-scroll::-webkit-scrollbar-thumb { background:#90a4ae; border-radius:6px; }
+                            #ops-table-wrapper .ops-scroll::-webkit-scrollbar-thumb:hover { background:#607d8b; }
+                            /* Manija para ajustar el ancho de columnas (dentro del th del encabezado) */
+                            #ops-table-wrapper .ops-col-resizer {
+                                position:absolute; top:0; right:0; width:7px; height:100%;
+                                cursor:col-resize; user-select:none; z-index:20;
+                                touch-action:none;
+                            }
+                            #ops-table-wrapper .ops-col-resizer:hover { background:rgba(255,255,255,.6); }
+                            body.ops-col-resizing { cursor: col-resize !important; user-select:none; }
+                            body.ops-col-resizing * { cursor: col-resize !important; }
+                            /* Botón "Campos" (ColVis) en el toolbar */
+                            #ops-colvis-container .dt-buttons {
+                                background: transparent !important; box-shadow: none !important;
+                                margin: 0 !important; display: inline-flex;
+                            }
+                            #ops-colvis-container .dt-buttons .btn { margin: 0 !important; }
                         </style>
                         <div class="card-body bg-light p-3">
                             <div id="month-view-container">
@@ -21120,13 +21182,16 @@ FF
                                                     <input type="radio" class="btn-check" name="viewmode" id="view-charts" autocomplete="off" onchange="toggleViewMode('charts')">
                                                     <label class="btn btn-outline-secondary btn-sm" for="view-charts"><i class="fas fa-chart-pie me-1"></i>Estadísticas</label>
                                                 </div>
-                                                <button class="btn btn-success btn-sm" onclick="exportCurrentTable()" aria-label="Exportar la tabla actual a formato Excel"><i class="fas fa-file-excel me-1" aria-hidden="true"></i>Exportar Excel</button>
+                                                <div class="d-flex gap-2 align-items-center">
+                                                    <span id="ops-colvis-container"></span>
+                                                    <button class="btn btn-success btn-sm" onclick="exportCurrentTable()" aria-label="Exportar la tabla actual a formato Excel"><i class="fas fa-file-excel me-1" aria-hidden="true"></i>Exportar Excel</button>
+                                                </div>
                                             </div>
 
                                             <!-- Data Table View -->
                                             <div id="ops-table-wrapper" class="bg-white p-3 rounded shadow-sm" style="min-height: 400px;">
                                                 <div class="table-responsive">
-                                                    <table id="ops-datatable" class="table table-striped table-hover table-bordered w-100" style="font-size: 0.85rem;">
+                                                    <table id="ops-datatable" class="table table-striped table-hover table-bordered" style="font-size: 0.85rem;">
                                                         <thead class="table-light">
                                                             <!-- Headers will be dynamic -->
                                                         </thead>
@@ -28451,7 +28516,7 @@ FF
     <script src="js/itinerario.js?v=3"></script>
     <script src="js/demoras.js"></script>
     <script src="js/aerolineas.js"></script>
-    <script src="js/analisis-operaciones.js?v=2"></script>
+    <script src="js/analisis-operaciones.js?v=31"></script>
     <script src="js/demoras-upload.js?v=1"></script>
     <script src="js/manifiestos-upload.js?v=1"></script>
     <script src="js/manifiestos-carga-upload.js?v=1"></script>
