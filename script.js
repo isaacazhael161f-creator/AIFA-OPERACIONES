@@ -18250,6 +18250,102 @@ async function _conciSaveBulkEdits() {
         { key: 'data-management',      label: 'Gestión de Datos',        icon: 'database',          group: 'Personal' },
     ];
 
+    // ── Modelo de subdirecciones (fuente única para asignar permisos) ────
+    // Cada subdirección agrupa las secciones (data-section) accesibles para
+    // sus usuarios. Asignar una subdirección = otorgar acceso a TODOS sus
+    // módulos. Mantener sincronizado con el menú real en index.html.
+    const AU_SUBDIRECCIONES = [
+        {
+            key: 'OP',
+            label: 'Dirección de Operación',
+            short: 'Operación',
+            desc: 'Coord. Auditoría · GPyC · Archivo',
+            icon: 'sitemap',
+            color: '#1e40af',
+            sections: ['colaboradores', 'coord-auditoria', 'agenda']
+        },
+        {
+            key: 'SSO',
+            label: 'Subdirección de Seguridad Operacional',
+            short: 'Sgd. Operacional',
+            desc: 'GOPA · GOET · GSO · GSM (operaciones aéreas)',
+            icon: 'plane-departure',
+            color: '#0d6efd',
+            sections: [
+                // Accesos directos / operaciones aéreas
+                'operaciones-totales', 'inicio', 'frecuencias-semana',
+                'itinerario-mensual', 'puntualidad-agosto', 'demoras',
+                'aerolineas', 'comparativa', 'parte-operaciones',
+                'analisis-operaciones', 'conciliacion', 'manifiestos',
+                'historia', 'email-analisis', 'fids', 'portal-digitalizacion',
+                // GOPA
+                'abordadores-mecanicos', 'biblioteca',
+                // GOET
+                'bhs',
+                // GSO
+                'fauna',
+                // GSM
+                'medicas'
+            ]
+        },
+        {
+            key: 'SSA',
+            label: 'Subdirección de Seguridad de la Aviación',
+            short: 'Sgd. de la Aviación',
+            desc: 'GSEG · GIA · GPS',
+            icon: 'user-shield',
+            color: '#6f42c1',
+            sections: []
+        },
+        {
+            key: 'SSC',
+            label: 'Subdirección de Servicios Conexos',
+            short: 'Servicios Conexos',
+            desc: 'GAG · GC · GCOMB',
+            icon: 'truck-loading',
+            color: '#fd7e14',
+            sections: ['combustibles']
+        },
+        {
+            key: 'SI',
+            label: 'Subdirección de Ingeniería',
+            short: 'Ingeniería',
+            desc: 'GOMIH · GIE · GIC',
+            icon: 'hard-hat',
+            color: '#198754',
+            sections: ['hidraulicas', 'hvac-reportes']
+        },
+        {
+            key: 'SGE',
+            label: 'Gestión Energética',
+            short: 'Gestión Energética',
+            desc: 'GGEN · GTRANS',
+            icon: 'bolt',
+            color: '#f59e0b',
+            sections: []
+        }
+    ];
+
+    // Expande las claves de subdirección seleccionadas a la lista plana de
+    // secciones (allowed_sections) que el resto del sistema entiende.
+    function auExpandSubsToSections(subKeys) {
+        const out = new Set();
+        (subKeys || []).forEach(k => {
+            const sd = AU_SUBDIRECCIONES.find(s => s.key === k);
+            (sd?.sections || []).forEach(sec => out.add(sec));
+        });
+        return Array.from(out);
+    }
+
+    // Dado un allowed_sections existente, devuelve las claves de subdirección
+    // que deben quedar marcadas (cualquier coincidencia parcial cuenta).
+    function auInferSubsFromSections(secList) {
+        const set = new Set(secList || []);
+        return AU_SUBDIRECCIONES
+            .filter(sd => sd.sections.length && sd.sections.some(sec => set.has(sec)))
+            .map(sd => sd.key);
+    }
+
     // ── Renderizar tarjetas de usuario ────────────────────────────────────
     window.auRenderRows = function () {
         const container = document.getElementById('au-tbody');
@@ -18388,35 +18484,40 @@ async function _conciSaveBulkEdits() {
         const currentSecs = Array.isArray(u?.permissions?.allowed_sections)
             ? u.permissions.allowed_sections : [];
 
-        // Agrupar secciones
-        const groups = {};
-        AU_SECTIONS.forEach(s => {
-            if (!groups[s.group]) groups[s.group] = [];
-            groups[s.group].push(s);
-        });
-        const groupColors = { 'Operaciones': '#0d6efd', 'Módulos': '#6f42c1', 'Personal': '#198754' };
-
         const isAllAccess = currentSecs.length === 0; // sin restricción = acceso total
-        const sectionsHtml = Object.entries(groups).map(([grp, secs]) => `
-            <div class="mb-2">
-                <div class="fw-semibold small mb-1" style="color:${groupColors[grp] || '#333'};text-transform:uppercase;letter-spacing:.05em;font-size:.7rem">
-                    <i class="fas fa-layer-group me-1"></i>${grp}
-                </div>
-                <div class="d-flex flex-wrap gap-2">
-                    ${secs.map(s => {
-                        const checked = isAllAccess || currentSecs.includes(s.key);
-                        return `<label class="d-flex align-items-center gap-1 px-2 py-1 rounded-pill border small" style="cursor:pointer;font-size:.75rem;background:${checked?'rgba(13,110,253,.07)':'#fff'}">
-                            <input type="checkbox" class="form-check-input m-0 me-1" id="auv-${shortId}-${s.key}" value="${s.key}" ${checked ? 'checked' : ''} style="cursor:pointer">
-                            <i class="fas fa-${s.icon} text-muted" style="font-size:.7rem"></i>${s.label}
-                        </label>`;
-                    }).join('')}
-                </div>
-            </div>`).join('');
+        const checkedSubs = isAllAccess
+            ? AU_SUBDIRECCIONES.filter(sd => sd.sections.length).map(sd => sd.key)
+            : auInferSubsFromSections(currentSecs);
+        const checkedSet = new Set(checkedSubs);
+
+        const sectionsHtml = `
+            <div class="d-flex flex-column gap-2">
+                ${AU_SUBDIRECCIONES.map(sd => {
+                    const checked   = checkedSet.has(sd.key);
+                    const disabled  = sd.sections.length === 0;
+                    const count     = sd.sections.length;
+                    const cardBg    = checked ? `${sd.color}14` : '#fff';
+                    const borderCol = checked ? sd.color : '#dee2e6';
+                    return `<label class="d-flex align-items-start gap-2 p-2 rounded-3 border" style="cursor:${disabled?'not-allowed':'pointer'};background:${cardBg};border-color:${borderCol} !important;${disabled?'opacity:.55':''}">
+                        <input type="checkbox" class="form-check-input mt-1" id="auv-${shortId}-${sd.key}" value="${sd.key}" ${checked?'checked':''} ${disabled?'disabled':''} style="cursor:${disabled?'not-allowed':'pointer'}">
+                        <span class="d-inline-flex align-items-center justify-content-center rounded-circle flex-shrink-0" style="width:30px;height:30px;background:${sd.color}1f;color:${sd.color}">
+                            <i class="fas fa-${sd.icon}" style="font-size:.85rem"></i>
+                        </span>
+                        <div class="flex-grow-1" style="min-width:0">
+                            <div class="d-flex align-items-center gap-2 flex-wrap">
+                                <span class="fw-semibold small" style="color:${sd.color}">${sd.short}</span>
+                                <span class="badge rounded-pill" style="background:${sd.color}26;color:${sd.color};font-weight:600;font-size:.62rem">${count?count+' mód.':'sin módulos'}</span>
+                            </div>
+                            <div class="text-muted" style="font-size:.68rem">${sd.desc}</div>
+                        </div>
+                    </label>`;
+                }).join('')}
+            </div>`;
 
         panel.style.display = 'block';
         panel.innerHTML = `<div class="border-top px-3 py-3" style="background:#f8f9ff">
             <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
-                <span class="fw-semibold small"><i class="fas fa-eye me-1 text-info"></i>Vistas accesibles</span>
+                <span class="fw-semibold small"><i class="fas fa-sitemap me-1 text-info"></i>Subdirecciones accesibles</span>
                 <div class="d-flex gap-2">
                     <button class="btn btn-outline-secondary btn-sm py-0 px-2" style="font-size:.72rem"
                         onclick="auSelectAllViews('${shortId}',true)"><i class="fas fa-check-double me-1"></i>Todas</button>
@@ -18429,19 +18530,22 @@ async function _conciSaveBulkEdits() {
                 </div>
             </div>
             <div class="small text-muted mb-2">
-                <i class="fas fa-info-circle me-1"></i>Sin selección = acceso total (roles Editor/Admin ignoran esta lista).
+                <i class="fas fa-info-circle me-1"></i>Marcar una subdirección otorga acceso a todos sus módulos. Sin selección = acceso total (Admin ignora esta lista).
             </div>
             ${sectionsHtml}
         </div>`;
     };
 
     window.auSelectAllViews = function (shortId, selectAll) {
-        document.querySelectorAll(`[id^="auv-${shortId}-"]`).forEach(cb => { cb.checked = selectAll; });
+        document.querySelectorAll(`[id^="auv-${shortId}-"]`).forEach(cb => {
+            if (!cb.disabled) cb.checked = selectAll;
+        });
     };
 
     window.auSaveViews = async function (userId, shortId) {
         const checkboxes = document.querySelectorAll(`[id^="auv-${shortId}-"]`);
-        const selected   = Array.from(checkboxes).filter(c => c.checked).map(c => c.value);
+        const checkedSubs = Array.from(checkboxes).filter(c => c.checked && !c.disabled).map(c => c.value);
+        const selected   = auExpandSubsToSections(checkedSubs);
         const st = document.getElementById('au-status');
         if (st) st.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Guardando vistas…';
         try {
@@ -18454,7 +18558,10 @@ async function _conciSaveBulkEdits() {
             // Actualizar caché local
             const u = _auRows.find(x => x.user_id === userId);
             if (u) u.permissions = perms;
-            if (st) st.innerHTML = `<span class="text-success"><i class="fas fa-check-circle me-1"></i>Vistas guardadas: <strong>${selected.length || 'todas'}</strong> secciones.</span>`;
+            const subLabel = checkedSubs.length
+                ? `${checkedSubs.length} subd. (${selected.length} mód.)`
+                : 'todas';
+            if (st) st.innerHTML = `<span class="text-success"><i class="fas fa-check-circle me-1"></i>Vistas guardadas: <strong>${subLabel}</strong>.</span>`;
             // Cerrar panel y refrescar tarjeta
             auToggleViews(userId, shortId);
             auRenderRows();
@@ -18641,18 +18748,25 @@ async function _conciSaveBulkEdits() {
             box.classList.remove('d-none');
             const grid = document.getElementById('au-reg-views-grid');
             if (grid && !grid.querySelector('input')) {
-                const groups = [...new Set(AU_SECTIONS.map(s => s.group))];
-                grid.innerHTML = groups.map(g => `
-                    <div class="col-12 col-md-4">
-                        <div class="small fw-bold text-uppercase text-muted mb-1" style="font-size:.68rem;letter-spacing:.06em">${g}</div>
-                        ${AU_SECTIONS.filter(s => s.group === g).map(s => `
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="au-reg-vc-${s.key}" value="${s.key}" checked>
-                            <label class="form-check-label small" for="au-reg-vc-${s.key}">
-                                <i class="fas fa-${s.icon} me-1 text-muted" style="width:14px"></i>${s.label}
-                            </label>
-                        </div>`).join('')}
-                    </div>`).join('');
+                grid.innerHTML = AU_SUBDIRECCIONES.map(sd => {
+                    const disabled = sd.sections.length === 0;
+                    const count    = sd.sections.length;
+                    return `<div class="col-12 col-md-6 col-lg-4">
+                        <label class="d-flex align-items-start gap-2 p-2 rounded-3 border h-100" style="cursor:${disabled?'not-allowed':'pointer'};background:#fff;${disabled?'opacity:.55':''}">
+                            <input class="form-check-input mt-1" type="checkbox" id="au-reg-vc-${sd.key}" value="${sd.key}" ${disabled?'disabled':'checked'}>
+                            <span class="d-inline-flex align-items-center justify-content-center rounded-circle flex-shrink-0" style="width:32px;height:32px;background:${sd.color}1f;color:${sd.color}">
+                                <i class="fas fa-${sd.icon}"></i>
+                            </span>
+                            <span class="flex-grow-1" style="min-width:0">
+                                <span class="d-flex align-items-center gap-2 flex-wrap">
+                                    <span class="fw-semibold small" style="color:${sd.color}">${sd.short}</span>
+                                    <span class="badge rounded-pill" style="background:${sd.color}26;color:${sd.color};font-weight:600;font-size:.62rem">${count?count+' mód.':'sin módulos'}</span>
+                                </span>
+                                <span class="text-muted d-block" style="font-size:.68rem">${sd.desc}</span>
+                            </span>
+                        </label>
+                    </div>`;
+                }).join('');
             }
         } else {
             box.classList.add('d-none');
@@ -18660,7 +18774,9 @@ async function _conciSaveBulkEdits() {
     };
 
     window.auRegViewsSelectAll = function (checked) {
-        document.querySelectorAll('#au-reg-views-grid input[type="checkbox"]').forEach(cb => cb.checked = checked);
+        document.querySelectorAll('#au-reg-views-grid input[type="checkbox"]').forEach(cb => {
+            if (!cb.disabled) cb.checked = checked;
+        });
     };
 
     // ── Lightbox de imagen en pantalla completa ──────────────────────────
@@ -18730,9 +18846,10 @@ async function _conciSaveBulkEdits() {
         const subdirId   = document.getElementById('au-reg-subdir')?.value || '';
         const gerenciaId = document.getElementById('au-reg-gerencia')?.value || '';
         const viewMode   = document.querySelector('input[name="au-reg-vmode"]:checked')?.value || 'all';
-        const allowedSections = viewMode === 'manual'
-            ? Array.from(document.querySelectorAll('#au-reg-views-grid input[type="checkbox"]:checked')).map(cb => cb.value)
+        const checkedSubs = viewMode === 'manual'
+            ? Array.from(document.querySelectorAll('#au-reg-views-grid input[type="checkbox"]:checked')).filter(cb => !cb.disabled).map(cb => cb.value)
             : [];
+        const allowedSections = auExpandSubsToSections(checkedSubs);
         const msgEl      = document.getElementById('au-reg-msg');
 
         if (!username || !password) {
