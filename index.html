@@ -1467,7 +1467,7 @@ FF
                                     <div class="collapse" id="sg-gomih">
                                         <div class="si-body si-body--ger">
                                             <a class="menu-item si-link si-link--l2" href="#" data-section="hidraulicas">
-                                                <i class="fas fa-water si-ico"></i><span class="si-txt">Extracción de Agua</span>
+                                                <i class="fas fa-water si-ico"></i><span class="si-txt">Aprovechamiento del Agua</span>
                                             </a>
                                         </div>
                                     </div>
@@ -19799,15 +19799,68 @@ FF
                     #hidraulicas-section .hidra-edit-table input{ font-size:.85rem; }
                     #hidraulicas-section .hidra-edit-table input.hidra-changed{ background:#fef3c7; }
                     #hidraulicas-section .hidra-edit-table tr.hidra-weekend td{ background:#fafafa; }
+                    /* ── Paneles estilo reporte (réplica dashboards GOMIH) ── */
+                    #hidraulicas-section .hidra-panel{ background:#fff; border:1px solid #e5e7eb; border-radius:14px; padding:18px 20px 22px; box-shadow:0 4px 18px rgba(15,23,42,.06); margin-bottom:22px; }
+                    #hidraulicas-section .hidra-panel-head{ display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap; margin-bottom:16px; }
+                    #hidraulicas-section .hidra-panel-title{ border:2px solid #1e3a8a; border-radius:6px; padding:6px 16px; font-size:1.35rem; font-weight:800; color:#1e3a8a; letter-spacing:.2px; }
+                    #hidraulicas-section .hidra-panel-period{ font-size:1.5rem; font-weight:800; color:#1e3a8a; display:flex; align-items:center; gap:14px; }
+                    #hidraulicas-section .hidra-statgrid{ display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:18px; }
+                    #hidraulicas-section .hidra-stat{ text-align:center; padding:6px 4px; }
+                    #hidraulicas-section .hidra-stat-label{ font-size:.82rem; font-weight:700; color:#374151; text-transform:uppercase; letter-spacing:.4px; }
+                    #hidraulicas-section .hidra-stat-value{ font-size:2.1rem; font-weight:800; color:#0f172a; line-height:1.15; margin-top:4px; }
+                    #hidraulicas-section .hidra-stat-unit{ font-size:.85rem; font-weight:600; color:#64748b; margin-left:4px; }
+                    #hidraulicas-section .hidra-scada{ background:linear-gradient(135deg,#0b1f4d,#13315c); border-radius:12px; padding:14px 18px; color:#e2e8f0; margin-bottom:18px; }
+                    #hidraulicas-section .hidra-scada-title{ font-size:.95rem; font-weight:800; color:#fff; margin-bottom:10px; display:flex; align-items:center; gap:10px; }
+                    #hidraulicas-section .hidra-scada-title .hidra-scada-ico{ width:34px; height:34px; border-radius:8px; background:rgba(96,165,250,.18); display:flex; align-items:center; justify-content:center; color:#60a5fa; font-size:1rem; }
+                    #hidraulicas-section .hidra-scada-grid{ display:grid; grid-template-columns:repeat(5,1fr); gap:14px; }
+                    #hidraulicas-section .hidra-scada-item{ font-size:.72rem; line-height:1.3; color:#cbd5e1; }
+                    #hidraulicas-section .hidra-scada-item b{ display:block; color:#fff; font-size:.78rem; margin-bottom:3px; }
+                    #hidraulicas-section .hidra-scada-item i{ color:#60a5fa; margin-right:5px; }
+                    #hidraulicas-section .hidra-report-block-title{ font-size:1rem; font-weight:800; color:#0f172a; }
+                    #hidraulicas-section .hidra-report-block-sub{ font-size:.82rem; color:#64748b; margin-bottom:6px; }
+                    #hidraulicas-section .hidra-collapse-toggle{ width:100%; text-align:left; border:1px dashed #93c5fd; background:#f0f9ff; color:#1e3a8a; font-weight:700; border-radius:12px; padding:14px 18px; display:flex; align-items:center; justify-content:space-between; }
+                    #hidraulicas-section .hidra-collapse-toggle:hover{ background:#dbeafe; }
+                    #hidraulicas-section .hidra-collapse-toggle .fa-chevron-down{ transition:transform .2s; }
+                    #hidraulicas-section .hidra-collapse-toggle[aria-expanded="true"] .fa-chevron-down{ transform:rotate(180deg); }
+                                        #hidraulicas-section .hidra-total-table{ width:100%; table-layout:fixed; }
+                                        #hidraulicas-section .hidra-total-table th{ background:#1e3a8a; color:#fff; font-size:.78rem; white-space:nowrap; }
+                    #hidraulicas-section .hidra-total-table td{ font-size:.82rem; text-align:right; }
+                    #hidraulicas-section .hidra-total-table td:first-child{ text-align:left; font-weight:600; }
+                    #hidraulicas-section .hidra-total-table tfoot td{ font-weight:800; background:#eff6ff; }
+                                        #hidraulicas-section #hidra-total-extraccion-head th,
+                                        #hidraulicas-section #hidra-total-extraccion-tbody td,
+                                        #hidraulicas-section #hidra-total-extraccion-foot td,
+                                        #hidraulicas-section #hidra-total-paap-head th,
+                                        #hidraulicas-section #hidra-total-paap-tbody td,
+                                        #hidraulicas-section #hidra-total-paap-tbody th,
+                                        #hidraulicas-section #hidra-total-paap-foot td{
+                                            width:calc(100% / 14);
+                                        }
+                    #hidraulicas-section .hidra-paap-table th{ text-align:right; white-space:nowrap; }
+                    #hidraulicas-section .hidra-paap-table tbody th{ background:#0f2f6b; color:#fff; text-align:left; position:sticky; left:0; }
+                    #hidraulicas-section .hidra-paap-table tbody th.hidra-paap-row-pri{ background:#bdd7ee; color:#1e293b; }
+                    #hidraulicas-section .hidra-paap-table tbody th.hidra-paap-row-sec{ background:#fbe2d5; color:#1e293b; }
+                    #hidraulicas-section .hidra-paap-table tbody tr.fw-bold th{ background:#1e3a8a; color:#fff; }
+                    #hidraulicas-section .hidra-paap-table tbody tr.fw-bold td{ background:#eef4ff; }
+                    #hidraulicas-section .hidra-paap-table tfoot td{ font-weight:800; background:#dbe7ff; text-align:right; }
+                    @media (max-width: 991px){
+                      #hidraulicas-section .hidra-statgrid{ grid-template-columns:repeat(2,1fr); }
+                      #hidraulicas-section .hidra-scada-grid{ grid-template-columns:repeat(2,1fr); }
+                    }
                   </style>
                   <div class="card border-0 shadow-sm">
-                    <div class="card-header bg-white border-bottom py-3 px-4">
-                      <h2 class="fw-bold mb-1" style="font-size:1.25rem;color:#1d4ed8;">
-                        <i class="fas fa-tint me-2"></i>Extracción de Agua — GOMIH
-                      </h2>
-                      <p class="text-muted mb-0" style="font-size:0.85rem;">
-                        Gerencia de Operación y Mantenimiento de Instalaciones Hidráulicas · Subdirección de Ingeniería
-                      </p>
+                    <div class="card-header bg-white border-bottom py-3 px-4 d-flex flex-wrap align-items-start justify-content-between gap-2">
+                      <div>
+                        <h2 class="fw-bold mb-1" style="font-size:1.25rem;color:#1d4ed8;">
+                          <i class="fas fa-tint me-2"></i>Aprovechamiento del Agua — GOMIH
+                        </h2>
+                        <p class="text-muted mb-0" style="font-size:0.85rem;">
+                          Gerencia de Operación y Mantenimiento de Instalaciones Hidráulicas · Subdirección de Ingeniería
+                        </p>
+                      </div>
+                      <button id="hidra-btn-export" class="btn btn-success btn-sm" type="button">
+                        <i class="fas fa-file-excel me-1"></i>Descargar Excel
+                      </button>
                     </div>
                     <div class="card-body px-3 px-md-4 pt-3">
                       <ul class="nav nav-tabs hidra-tabs mb-3" role="tablist">
@@ -19818,7 +19871,7 @@ FF
                         </li>
                         <li class="nav-item" role="presentation">
                           <button class="nav-link" id="hidra-tabbtn-edit" data-bs-toggle="tab" data-bs-target="#hidra-tab-editor" type="button" role="tab">
-                            <i class="fas fa-edit me-2"></i>Editor diario
+                            <i class="fas fa-edit me-2"></i>Captura de datos
                           </button>
                         </li>
                       </ul>
@@ -19830,6 +19883,10 @@ FF
                             <div class="col-auto">
                               <label class="form-label small mb-1 fw-bold">Año</label>
                               <select id="hidra-filter-year" class="form-select form-select-sm"></select>
+                            </div>
+                            <div class="col-auto">
+                              <label class="form-label small mb-1 fw-bold">Mes</label>
+                              <select id="hidra-filter-month" class="form-select form-select-sm" style="min-width:130px;"></select>
                             </div>
                             <div class="col-auto">
                               <label class="form-label small mb-1 fw-bold">Pozo</label>
@@ -19847,257 +19904,293 @@ FF
                             </div>
                           </div>
 
-                          <div class="row g-3 mb-4">
-                            <div class="col-12 col-md-3">
-                              <div class="hidra-kpi-card hidra-kpi--blue">
-                                <div class="hidra-kpi-label">Acumulado del año</div>
-                                <div class="hidra-kpi-value" id="hidra-kpi-anio">—</div>
-                                <div class="hidra-kpi-unit">m³</div>
+                          <!-- ░░ PANEL MENSUAL (imagen 2) ░░ -->
+                          <div class="hidra-panel">
+                            <div class="hidra-panel-head">
+                              <div class="hidra-panel-title">Datos del Aprovechamiento del Agua Mensual</div>
+                              <div class="hidra-panel-period">
+                                <span id="hidra-m-period-mes">—</span>
+                                <span id="hidra-m-period-anio">—</span>
                               </div>
                             </div>
-                            <div class="col-12 col-md-3">
-                              <div class="hidra-kpi-card hidra-kpi--cyan">
-                                <div class="hidra-kpi-label">Mes con más extracción</div>
-                                <div class="hidra-kpi-value" id="hidra-kpi-mes-top">—</div>
-                                <div class="hidra-kpi-unit"><span id="hidra-kpi-mes-top-name">—</span></div>
+                            <div class="hidra-statgrid">
+                              <div class="hidra-stat">
+                                <div class="hidra-stat-label">Extracción mensual</div>
+                                <div><span class="hidra-stat-value" id="hidra-m-extraccion">—</span><span class="hidra-stat-unit">m³</span></div>
+                              </div>
+                              <div class="hidra-stat">
+                                <div class="hidra-stat-label">Distribución mensual</div>
+                                <div><span class="hidra-stat-value" id="hidra-m-distribucion">—</span><span class="hidra-stat-unit">m³</span></div>
+                              </div>
+                              <div class="hidra-stat">
+                                <div class="hidra-stat-label">Demanda AIFA mensual</div>
+                                <div><span class="hidra-stat-value" id="hidra-m-aifa">—</span><span class="hidra-stat-unit">m³</span></div>
+                              </div>
+                              <div class="hidra-stat">
+                                <div class="hidra-stat-label">Demanda Cd. Militar mensual</div>
+                                <div><span class="hidra-stat-value" id="hidra-m-cdmilitar">—</span><span class="hidra-stat-unit">m³</span></div>
                               </div>
                             </div>
-                            <div class="col-12 col-md-3">
-                              <div class="hidra-kpi-card hidra-kpi--teal">
-                                <div class="hidra-kpi-label">Promedio mensual</div>
-                                <div class="hidra-kpi-value" id="hidra-kpi-prom">—</div>
-                                <div class="hidra-kpi-unit">m³ / mes</div>
+                            <!-- banner SCADA -->
+                            <div class="hidra-scada">
+                              <div class="hidra-scada-title"><span class="hidra-scada-ico"><i class="fas fa-chart-line"></i></span>SISTEMA SCADA: Beneficios del monitoreo en tiempo real</div>
+                              <div class="hidra-scada-grid">
+                                <div class="hidra-scada-item"><b><i class="fas fa-eye"></i>Visibilidad 24/7</b>Monitoreo continuo de pozos, potabilizadoras y macro mediciones.</div>
+                                <div class="hidra-scada-item"><b><i class="fas fa-exclamation-triangle"></i>Detección temprana</b>Identificación inmediata de fugas, anomalías y comportamientos atípicos.</div>
+                                <div class="hidra-scada-item"><b><i class="fas fa-check-circle"></i>Decisiones informadas</b>Datos en tiempo real para optimizar operación y asignación de recursos.</div>
+                                <div class="hidra-scada-item"><b><i class="fas fa-tint"></i>Eficiencia operativa</b>Mejora en rendimientos y reducción de pérdidas de agua no registrada.</div>
+                                <div class="hidra-scada-item"><b><i class="fas fa-file-alt"></i>Trazabilidad y reportes</b>Historial detallado y reportes automatizados para cumplimiento y análisis.</div>
                               </div>
                             </div>
-                            <div class="col-12 col-md-3">
-                              <div class="hidra-kpi-card hidra-kpi--violet">
-                                <div class="hidra-kpi-label">Pozo con más extracción</div>
-                                <div class="hidra-kpi-value" id="hidra-kpi-max">—</div>
-                                <div class="hidra-kpi-unit"><span id="hidra-kpi-max-day">—</span></div>
+                            <div class="row g-3">
+                              <div class="col-12 col-lg-6">
+                                <div class="hidra-report-block-title">DISTRIBUCIÓN DE LA EXTRACCIÓN MENSUAL DE AGUA POR POZO</div>
+                                <div class="hidra-report-block-sub">Volumen proporcionado al total por cada pozo (%)</div>
+                                <div class="hidra-chart-host" style="height:320px;"><canvas id="hidra-chart-pozo-month"></canvas></div>
+                              </div>
+                              <div class="col-12 col-lg-6">
+                                <div class="hidra-report-block-title">DISTRIBUCIÓN DE LA DEMANDA DESDE LAS PAAPs (RED GENERAL)</div>
+                                <div class="hidra-report-block-sub">Volumen proporcionado del total a cada conjunto (%)</div>
+                                <div class="hidra-chart-host" style="height:320px;"><canvas id="hidra-chart-demanda-month"></canvas></div>
                               </div>
                             </div>
                           </div>
 
-                          <div class="row g-3">
-                            <div class="col-12">
-                              <div class="hidra-chart-card hidra-chart-card--main">
-                                <div class="d-flex align-items-center justify-content-between mb-1">
-                                  <h5 class="hidra-chart-title mb-0">
-                                    <i class="fas fa-layer-group me-1 text-primary"></i>
-                                    Mensual por pozo (apilado · % de aporte)
-                                  </h5>
-                                  <span class="badge bg-light text-secondary border">% sobre el total mensual</span>
-                                </div>
-                                <div class="hidra-chart-host" style="height:440px;"><canvas id="hidra-chart-per-pozo"></canvas></div>
+                          <!-- ░░ PANEL ANUAL / ACUMULADO (imagen 1) ░░ -->
+                          <div class="hidra-panel">
+                            <div class="hidra-panel-head">
+                              <div class="hidra-panel-title">Resumen Anual del Aprovechamiento del Agua</div>
+                              <div class="hidra-panel-period"><span id="hidra-a-period-anio">—</span></div>
+                            </div>
+                            <div class="hidra-statgrid">
+                              <div class="hidra-stat">
+                                <div class="hidra-stat-label">Extracción anual</div>
+                                <div><span class="hidra-stat-value" id="hidra-a-extraccion">—</span><span class="hidra-stat-unit">m³</span></div>
+                              </div>
+                              <div class="hidra-stat">
+                                <div class="hidra-stat-label">Distribución anual</div>
+                                <div><span class="hidra-stat-value" id="hidra-a-distribucion">—</span><span class="hidra-stat-unit">m³</span></div>
+                              </div>
+                              <div class="hidra-stat">
+                                <div class="hidra-stat-label">Demanda AIFA anual</div>
+                                <div><span class="hidra-stat-value" id="hidra-a-aifa">—</span><span class="hidra-stat-unit">m³</span></div>
+                              </div>
+                              <div class="hidra-stat">
+                                <div class="hidra-stat-label">Demanda Cd. Militar anual</div>
+                                <div><span class="hidra-stat-value" id="hidra-a-cdmilitar">—</span><span class="hidra-stat-unit">m³</span></div>
+                              </div>
+                            </div>
+                            <div class="hidra-scada">
+                              <div class="hidra-scada-title"><span class="hidra-scada-ico"><i class="fas fa-chart-line"></i></span>SISTEMA SCADA: Beneficios del monitoreo en tiempo real</div>
+                              <div class="hidra-scada-grid">
+                                <div class="hidra-scada-item"><b><i class="fas fa-eye"></i>Visibilidad 24/7</b>Monitoreo continuo de pozos, potabilizadoras y macro mediciones.</div>
+                                <div class="hidra-scada-item"><b><i class="fas fa-exclamation-triangle"></i>Detección temprana</b>Identificación inmediata de fugas, anomalías y comportamientos atípicos.</div>
+                                <div class="hidra-scada-item"><b><i class="fas fa-check-circle"></i>Decisiones informadas</b>Datos en tiempo real para optimizar operación y asignación de recursos.</div>
+                                <div class="hidra-scada-item"><b><i class="fas fa-tint"></i>Eficiencia operativa</b>Mejora en rendimientos y reducción de pérdidas de agua no registrada.</div>
+                                <div class="hidra-scada-item"><b><i class="fas fa-file-alt"></i>Trazabilidad y reportes</b>Historial detallado y reportes automatizados para cumplimiento y análisis.</div>
+                              </div>
+                            </div>
+                            <div class="row g-3">
+                              <div class="col-12 col-lg-6">
+                                <div class="hidra-report-block-title">EXTRACCIÓN TOTAL DE AGUA (POZOS)</div>
+                                <div class="hidra-report-block-sub">Volumen mensual (m³) · Comparativa Año vs Año Anterior</div>
+                                <div class="hidra-chart-host" style="height:320px;"><canvas id="hidra-chart-extraccion-anual"></canvas></div>
+                              </div>
+                              <div class="col-12 col-lg-6">
+                                <div class="hidra-report-block-title">DISTRIBUCIÓN TOTAL DESDE PAAPs (RED GENERAL)</div>
+                                <div class="hidra-report-block-sub">Volumen mensual (m³) · Comparativa Año vs Año Anterior</div>
+                                <div class="hidra-chart-host" style="height:320px;"><canvas id="hidra-chart-distribucion-anual"></canvas></div>
+                              </div>
+                            </div>
+                          </div>
+
+                          <!-- ░░ TOTALES / DETALLE (siempre visible) ░░ -->
+                          <div class="mt-4" id="hidra-totales">
+                            <h4 class="hidra-section-heading mb-3"><i class="fas fa-table me-2"></i>Totales y detalle de los datos</h4>
+                            <!-- KPIs trimestrales (trimestre calculado en automático) -->
+                            <div class="hidra-quarter-strip d-flex flex-wrap gap-2 mb-3">
+                              <div class="hidra-quarter-card flex-grow-1" data-q="1">
+                                <div class="hidra-quarter-label">Q1 · Ene–Mar</div>
+                                <div class="hidra-quarter-value" id="hidra-q-1">—</div>
+                                <div class="hidra-quarter-pct"><span id="hidra-q-1-pct">—</span> del año</div>
+                              </div>
+                              <div class="hidra-quarter-card flex-grow-1" data-q="2">
+                                <div class="hidra-quarter-label">Q2 · Abr–Jun</div>
+                                <div class="hidra-quarter-value" id="hidra-q-2">—</div>
+                                <div class="hidra-quarter-pct"><span id="hidra-q-2-pct">—</span> del año</div>
+                              </div>
+                              <div class="hidra-quarter-card flex-grow-1" data-q="3">
+                                <div class="hidra-quarter-label">Q3 · Jul–Sep</div>
+                                <div class="hidra-quarter-value" id="hidra-q-3">—</div>
+                                <div class="hidra-quarter-pct"><span id="hidra-q-3-pct">—</span> del año</div>
+                              </div>
+                              <div class="hidra-quarter-card flex-grow-1" data-q="4">
+                                <div class="hidra-quarter-label">Q4 · Oct–Dic</div>
+                                <div class="hidra-quarter-value" id="hidra-q-4">—</div>
+                                <div class="hidra-quarter-pct"><span id="hidra-q-4-pct">—</span> del año</div>
+                              </div>
+                              <div class="hidra-quarter-card hidra-quarter-card--total flex-grow-1">
+                                <div class="hidra-quarter-label">Total año</div>
+                                <div class="hidra-quarter-value" id="hidra-q-total">—</div>
+                                <div class="hidra-quarter-pct">m³ acumulados</div>
                               </div>
                             </div>
 
-                            <!-- KPIs trimestrales -->
-                            <div class="col-12">
-                              <div class="hidra-quarter-strip d-flex flex-wrap gap-2">
-                                <div class="hidra-quarter-card flex-grow-1" data-q="1">
-                                  <div class="hidra-quarter-label">Q1 · Ene–Mar</div>
-                                  <div class="hidra-quarter-value" id="hidra-q-1">—</div>
-                                  <div class="hidra-quarter-pct"><span id="hidra-q-1-pct">—</span> del año</div>
-                                </div>
-                                <div class="hidra-quarter-card flex-grow-1" data-q="2">
-                                  <div class="hidra-quarter-label">Q2 · Abr–Jun</div>
-                                  <div class="hidra-quarter-value" id="hidra-q-2">—</div>
-                                  <div class="hidra-quarter-pct"><span id="hidra-q-2-pct">—</span> del año</div>
-                                </div>
-                                <div class="hidra-quarter-card flex-grow-1" data-q="3">
-                                  <div class="hidra-quarter-label">Q3 · Jul–Sep</div>
-                                  <div class="hidra-quarter-value" id="hidra-q-3">—</div>
-                                  <div class="hidra-quarter-pct"><span id="hidra-q-3-pct">—</span> del año</div>
-                                </div>
-                                <div class="hidra-quarter-card flex-grow-1" data-q="4">
-                                  <div class="hidra-quarter-label">Q4 · Oct–Dic</div>
-                                  <div class="hidra-quarter-value" id="hidra-q-4">—</div>
-                                  <div class="hidra-quarter-pct"><span id="hidra-q-4-pct">—</span> del año</div>
-                                </div>
-                                <div class="hidra-quarter-card hidra-quarter-card--total flex-grow-1">
-                                  <div class="hidra-quarter-label">Total año</div>
-                                  <div class="hidra-quarter-value" id="hidra-q-total">—</div>
-                                  <div class="hidra-quarter-pct">m³ acumulados</div>
+                            <div class="row g-3">
+                              <div class="col-12">
+                                <div class="hidra-chart-card hidra-chart-card--main">
+                                  <h5 class="hidra-chart-title mb-1"><i class="fas fa-layer-group me-1 text-primary"></i>Extracción mensual por pozo (apilado · % de aporte)</h5>
+                                  <div class="hidra-chart-host" style="height:420px;"><canvas id="hidra-chart-per-pozo"></canvas></div>
                                 </div>
                               </div>
-                            </div>
+                              <div class="col-12 col-lg-7">
+                                <div class="hidra-chart-card">
+                                  <h5 class="hidra-chart-title">Acumulado año vs año anterior (extracción)</h5>
+                                  <div class="hidra-chart-host" style="height:300px;"><canvas id="hidra-chart-cumulative"></canvas></div>
+                                </div>
+                              </div>
+                              <div class="col-12 col-lg-5">
+                                <div class="hidra-chart-card">
+                                  <h5 class="hidra-chart-title">Distribución por pozo (año)</h5>
+                                  <div class="hidra-chart-host" style="height:300px;"><canvas id="hidra-chart-pozos"></canvas></div>
+                                </div>
+                              </div>
+                              <div class="col-12">
+                                <div class="hidra-chart-card">
+                                  <h5 class="hidra-chart-title">Comparativo anual de extracción (m³ por mes)</h5>
+                                  <div class="hidra-chart-host" style="height:320px;"><canvas id="hidra-chart-yoy"></canvas></div>
+                                </div>
+                              </div>
 
-                            <div class="col-12 col-lg-7">
-                              <div class="hidra-chart-card">
-                                <h5 class="hidra-chart-title">Trimestres · año actual vs anterior</h5>
-                                <div class="hidra-chart-host" style="height:300px;"><canvas id="hidra-chart-quarter"></canvas></div>
-                              </div>
-                            </div>
-                            <div class="col-12 col-lg-5">
-                              <div class="hidra-chart-card">
-                                <h5 class="hidra-chart-title">Extracción mensual del año seleccionado</h5>
-                                <div class="hidra-chart-host" style="height:300px;"><canvas id="hidra-chart-monthly"></canvas></div>
-                              </div>
-                            </div>
-
-                            <!-- Destinos -->
-                            <div class="col-12 col-lg-8">
-                              <div class="hidra-chart-card">
-                                <div class="d-flex align-items-center justify-content-between mb-1">
-                                  <h5 class="hidra-chart-title mb-0">
-                                    <i class="fas fa-share-alt me-1 text-primary"></i>
-                                    Destinos por trimestre (AIFA · Ciudad Militar · otros)
-                                  </h5>
-                                  <span class="badge bg-light text-secondary border">m³ y % por trimestre</span>
-                                </div>
-                                <div class="hidra-chart-host" style="height:340px;"><canvas id="hidra-chart-destinos"></canvas></div>
-                              </div>
-                            </div>
-                            <div class="col-12 col-lg-4">
-                              <div class="hidra-chart-card">
-                                <h5 class="hidra-chart-title">% por destino (año)</h5>
-                                <div class="hidra-chart-host" style="height:230px;"><canvas id="hidra-chart-destinos-pie"></canvas></div>
-                                <div class="mt-2 small">
-                                  <div class="text-muted">Total entregado:</div>
-                                  <div class="fw-bold mb-2" id="hidra-dest-total">0 m³</div>
-                                  <div id="hidra-dest-list"></div>
+                              <!-- Tabla: extracción mensual por pozo -->
+                              <div class="col-12">
+                                <div class="hidra-chart-card">
+                                  <h5 class="hidra-chart-title">Extracción mensual por pozo (m³) · año seleccionado</h5>
+                                  <div class="table-responsive">
+                                    <table class="table table-bordered table-sm hidra-total-table align-middle mb-0">
+                                      <thead><tr id="hidra-total-extraccion-head"></tr></thead>
+                                      <tbody id="hidra-total-extraccion-tbody"></tbody>
+                                      <tfoot><tr id="hidra-total-extraccion-foot"></tr></tfoot>
+                                    </table>
+                                  </div>
                                 </div>
                               </div>
-                            </div>
 
-                            <div class="col-12 col-lg-7">
-                              <div class="hidra-chart-card">
-                                <h5 class="hidra-chart-title">Distribución por pozo (año seleccionado)</h5>
-                                <div class="hidra-chart-host" style="height:300px;"><canvas id="hidra-chart-pozos"></canvas></div>
-                              </div>
-                            </div>
-                            <div class="col-12 col-lg-5">
-                              <div class="hidra-chart-card">
-                                <h5 class="hidra-chart-title">Acumulado año vs año anterior</h5>
-                                <div class="hidra-chart-host" style="height:300px;"><canvas id="hidra-chart-cumulative"></canvas></div>
-                              </div>
-                            </div>
-
-                            <div class="col-12">
-                              <div class="hidra-chart-card">
-                                <h5 class="hidra-chart-title">Comparativo anual (m³ por mes)</h5>
-                                <div class="hidra-chart-host" style="height:320px;"><canvas id="hidra-chart-yoy"></canvas></div>
+                              <!-- Tabla: suministro PAAP (Polígono Aeroportuario) -->
+                              <div class="col-12">
+                                <div class="hidra-chart-card">
+                                  <h5 class="hidra-chart-title">Suministro de agua potable Polígono Aeroportuario (m³) · <span id="hidra-total-paap-anio"></span></h5>
+                                  <div class="table-responsive">
+                                    <table class="table table-bordered table-sm hidra-total-table hidra-paap-table align-middle mb-0">
+                                      <thead><tr id="hidra-total-paap-head"></tr></thead>
+                                      <tbody id="hidra-total-paap-tbody"></tbody>
+                                      <tfoot id="hidra-total-paap-foot"></tfoot>
+                                    </table>
+                                  </div>
+                                </div>
                               </div>
                             </div>
                           </div>
                         </div>
 
-                        <!-- EDITOR -->
+                        <!-- EDITOR · CAPTURA POR DÍA -->
                         <div class="tab-pane fade" id="hidra-tab-editor" role="tabpanel">
+                          <p class="text-muted small mb-3">Selecciona el <strong>día</strong> a capturar. Para cada pozo registra el volumen entregado a <strong>Cd. Militar</strong> y a <strong>AIFA</strong>; el total por pozo y por día se calcula en automático. Captura también el <strong>PAAP</strong> (Primaria + Secundaria) y la <strong>PTAR</strong> (A1, A2, A3) del día.</p>
+
                           <div class="row g-2 align-items-end mb-3">
                             <div class="col-auto">
                               <label class="form-label small mb-1 fw-bold">Año</label>
-                              <select id="hidra-edit-year" class="form-select form-select-sm"></select>
+                              <select id="hidra-cap-year" class="form-select form-select-sm"></select>
                             </div>
                             <div class="col-auto">
                               <label class="form-label small mb-1 fw-bold">Mes</label>
-                              <select id="hidra-edit-month" class="form-select form-select-sm"></select>
+                              <select id="hidra-cap-month" class="form-select form-select-sm" style="min-width:140px;"></select>
                             </div>
                             <div class="col-auto">
-                              <label class="form-label small mb-1 fw-bold">Pozo</label>
-                              <select id="hidra-edit-pozo" class="form-select form-select-sm" style="min-width:140px;">
-                                <option value="">— elige pozo —</option>
-                              </select>
+                              <label class="form-label small mb-1 fw-bold">Día</label>
+                              <select id="hidra-cap-day" class="form-select form-select-sm" style="min-width:90px;"></select>
                             </div>
                             <div class="col-auto">
-                              <button id="hidra-edit-load" class="btn btn-outline-primary btn-sm" type="button">
+                              <label class="form-label small mb-1 fw-bold d-block">Trimestre</label>
+                              <span id="hidra-cap-quarter-badge" class="badge bg-primary" style="font-size:.85rem;padding:.5rem .8rem;">—</span>
+                            </div>
+                            <div class="col-auto">
+                              <button id="hidra-cap-load" class="btn btn-outline-primary btn-sm" type="button">
                                 <i class="fas fa-arrow-down me-1"></i>Cargar
                               </button>
                             </div>
                             <div class="col-auto">
-                              <button id="hidra-edit-save" class="btn btn-success btn-sm" type="button">
+                              <button id="hidra-cap-save" class="btn btn-success btn-sm" type="button">
                                 <i class="fas fa-save me-1"></i>Guardar cambios
                               </button>
                             </div>
                             <div class="col text-end">
-                              <span id="hidra-edit-status" class="small text-muted"></span>
+                              <span id="hidra-cap-status" class="small text-muted"></span>
                             </div>
                           </div>
 
-                          <div class="hidra-edit-summary mb-3 d-flex flex-wrap gap-4">
-                            <div><strong>Total mes:</strong> <span id="hidra-edit-total-mes">0</span> m³</div>
-                            <div><strong>Acumulado año:</strong> <span id="hidra-edit-total-anio">0</span> m³</div>
-                            <div><strong>Días con dato:</strong> <span id="hidra-edit-dias-llenos">0</span> / <span id="hidra-edit-dias-mes">—</span></div>
-                          </div>
-
-                          <div class="table-responsive">
-                            <table class="table table-bordered table-sm hidra-edit-table align-middle mb-0">
-                              <thead class="table-primary">
-                                <tr>
-                                  <th style="width:60px;">Día</th>
-                                  <th style="width:140px;">Fecha</th>
-                                  <th style="width:160px;">m³ extraídos</th>
-                                  <th>Observaciones</th>
-                                </tr>
-                              </thead>
-                              <tbody id="hidra-edit-tbody">
-                                <tr><td colspan="4" class="text-center text-muted py-4">Selecciona año y mes y haz clic en <strong>Cargar</strong>.</td></tr>
-                              </tbody>
-                            </table>
-                          </div>
-
-                          <!-- DESTINOS · Editor trimestral -->
-                          <div class="mt-5 pt-3 border-top">
-                            <h5 class="fw-bold mb-1" style="color:#1d4ed8;">
-                              <i class="fas fa-share-alt me-2"></i>Distribución por destino (trimestral)
-                            </h5>
-                            <p class="text-muted small mb-3">Por cada pozo y trimestre, captura cuánto se entregó a <strong>AIFA</strong>, <strong>Ciudad Militar</strong> u otros destinos.</p>
-
-                            <div class="row g-2 align-items-end mb-3">
-                              <div class="col-auto">
-                                <label class="form-label small mb-1 fw-bold">Año</label>
-                                <select id="hidra-dest-edit-year" class="form-select form-select-sm"></select>
+                          <div class="row g-4">
+                            <!-- Extracción por pozo (doble medición) -->
+                            <div class="col-12 col-xl-7">
+                              <h6 class="fw-bold mb-2" style="color:#0e7490;"><i class="fas fa-faucet me-2"></i>Extracción por pozo — Cd. Militar / AIFA</h6>
+                              <div class="hidra-edit-summary mb-2 d-flex flex-wrap gap-4">
+                                <div><strong>Total Cd. Militar:</strong> <span id="hidra-cap-total-cdmilitar">0</span> m³</div>
+                                <div><strong>Total AIFA:</strong> <span id="hidra-cap-total-aifa">0</span> m³</div>
+                                <div><strong>Total del día:</strong> <span id="hidra-cap-total-dia">0</span> m³</div>
+                                <div><strong>Pozos con dato:</strong> <span id="hidra-cap-pozos-con-dato">0</span> / 10</div>
                               </div>
-                              <div class="col-auto">
-                                <label class="form-label small mb-1 fw-bold">Trimestre</label>
-                                <select id="hidra-dest-edit-quarter" class="form-select form-select-sm" style="min-width:160px;"></select>
-                              </div>
-                              <div class="col-auto">
-                                <label class="form-label small mb-1 fw-bold">Pozo</label>
-                                <select id="hidra-dest-edit-pozo" class="form-select form-select-sm" style="min-width:140px;">
-                                  <option value="">— elige pozo —</option>
-                                </select>
-                              </div>
-                              <div class="col-auto">
-                                <button id="hidra-dest-edit-load" class="btn btn-outline-primary btn-sm" type="button">
-                                  <i class="fas fa-arrow-down me-1"></i>Cargar
-                                </button>
-                              </div>
-                              <div class="col-auto">
-                                <button id="hidra-dest-edit-add" class="btn btn-outline-secondary btn-sm" type="button">
-                                  <i class="fas fa-plus me-1"></i>Otro destino
-                                </button>
-                              </div>
-                              <div class="col-auto">
-                                <button id="hidra-dest-edit-save" class="btn btn-success btn-sm" type="button">
-                                  <i class="fas fa-save me-1"></i>Guardar
-                                </button>
-                              </div>
-                              <div class="col text-end">
-                                <span id="hidra-dest-edit-status" class="small text-muted"></span>
+                              <div class="table-responsive">
+                                <table class="table table-bordered table-sm hidra-edit-table align-middle mb-0">
+                                  <thead class="table-primary">
+                                    <tr>
+                                      <th style="width:90px;">Pozo</th>
+                                      <th>Cd. Militar (m³)</th>
+                                      <th>AIFA (m³)</th>
+                                      <th class="text-end" style="width:120px;">Total (m³)</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody id="hidra-cap-pozos-tbody">
+                                    <tr><td colspan="4" class="text-center text-muted py-4">Selecciona el día y haz clic en <strong>Cargar</strong>.</td></tr>
+                                  </tbody>
+                                </table>
                               </div>
                             </div>
 
-                            <div class="hidra-edit-summary mb-3">
-                              <strong>Total del trimestre (pozo seleccionado):</strong>
-                              <span id="hidra-dest-edit-total">0</span> m³
-                            </div>
+                            <!-- PAAP + PTAR -->
+                            <div class="col-12 col-xl-5">
+                              <div class="hidra-chart-card mb-3">
+                                <h6 class="fw-bold mb-2" style="color:#1d4ed8;"><i class="fas fa-water me-2"></i>Suministro PAAP del día</h6>
+                                <div class="row g-2">
+                                  <div class="col-6">
+                                    <label class="form-label small fw-bold mb-1">PAAP Primaria (m³)</label>
+                                    <input type="number" step="0.01" min="0" id="hidra-cap-paap-primaria" class="form-control form-control-sm" placeholder="0">
+                                  </div>
+                                  <div class="col-6">
+                                    <label class="form-label small fw-bold mb-1">PAAP Secundaria (m³)</label>
+                                    <input type="number" step="0.01" min="0" id="hidra-cap-paap-secundaria" class="form-control form-control-sm" placeholder="0">
+                                  </div>
+                                </div>
+                                <div class="mt-2 small"><strong>Total PAAP:</strong> <span id="hidra-cap-paap-total">0</span> m³</div>
+                              </div>
 
-                            <div class="table-responsive">
-                              <table class="table table-bordered table-sm hidra-edit-table align-middle mb-0">
-                                <thead class="table-primary">
-                                  <tr>
-                                    <th style="width:30%;">Destino</th>
-                                    <th style="width:20%;">Volumen (m³)</th>
-                                    <th>Observaciones</th>
-                                    <th style="width:60px;"></th>
-                                  </tr>
-                                </thead>
-                                <tbody id="hidra-dest-edit-tbody">
-                                  <tr><td colspan="4" class="text-center text-muted py-4">Selecciona año, trimestre y pozo, y haz clic en <strong>Cargar</strong>.</td></tr>
-                                </tbody>
-                              </table>
+                              <div class="hidra-chart-card">
+                                <h6 class="fw-bold mb-2" style="color:#059669;"><i class="fas fa-recycle me-2"></i>Tratamiento PTAR del día</h6>
+                                <div class="row g-2">
+                                  <div class="col-4">
+                                    <label class="form-label small fw-bold mb-1">PTAR A1 (m³)</label>
+                                    <input type="number" step="0.01" min="0" id="hidra-cap-ptar-a1" class="form-control form-control-sm" placeholder="0">
+                                  </div>
+                                  <div class="col-4">
+                                    <label class="form-label small fw-bold mb-1">PTAR A2 (m³)</label>
+                                    <input type="number" step="0.01" min="0" id="hidra-cap-ptar-a2" class="form-control form-control-sm" placeholder="0">
+                                  </div>
+                                  <div class="col-4">
+                                    <label class="form-label small fw-bold mb-1">PTAR A3 (m³)</label>
+                                    <input type="number" step="0.01" min="0" id="hidra-cap-ptar-a3" class="form-control form-control-sm" placeholder="0">
+                                  </div>
+                                </div>
+                                <div class="mt-2 small"><strong>Total PTAR:</strong> <span id="hidra-cap-ptar-total">0</span> m³</div>
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -28147,7 +28240,7 @@ FF
     <script src="js/portal-admin.js"></script>
     <script src="js/medicas.js?v=2"></script>
     <script src="js/fauna.js"></script>
-    <script src="js/hidraulicas.js?v=5"></script>
+    <script src="js/hidraulicas.js?v=13"></script>
     <link rel="stylesheet" href="js/combustibles/combustibles.css?v=1">
     <script src="js/combustibles/combustibles.js?v=1"></script>
     <script src="js/vehiculos.js"></script>

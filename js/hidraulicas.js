@@ -1,67 +1,78 @@
 /* ============================================================
- *  GOMIH · Extracción de Agua
+ *  GOMIH · Aprovechamiento del Agua
  *  Subdirección de Ingeniería · Gerencia de Op. y Mtto.
  *  Instalaciones Hidráulicas
  *
- *  Lee la tabla ancha existente public."Extracción_agua"
- *  (POZO + Enero..Diciembre + Año) para el dashboard.
- *  Editor diario opera contra public."Extracción_agua_diaria"
- *  y, al guardar, recalcula la celda mensual correspondiente
- *  en la tabla ancha.
+ *  Fuentes de datos (TODO se captura por DÍA y se agrega en vivo):
+ *   - Extracción por pozo (doble medición): diaria "Extracción_agua_diaria"
+ *     (pozo, cd_militar_m3, aifa_m3, volumen_m3=total). Los totales
+ *     mensuales / trimestrales / anuales se calculan sumando los días;
+ *     ya NO se usa la tabla ancha public."Extracción_agua".
+ *   - Demanda AIFA / Cd. Militar = suma por pozo de aifa_m3 / cd_militar_m3.
+ *   - Distribución (PAAP) diaria: "Suministro_paap_diario"
+ *     (primaria_m3, secundaria_m3).
+ *   - Tratamiento PTAR diario: "Tratamiento_ptar_diario" (a1_m3, a2_m3, a3_m3).
+ *
+ *  Dashboard: panel MENSUAL (imagen 2) → panel ANUAL/acumulado
+ *  (imagen 1) → totales/detalle colapsable. Trimestre calculado
+ *  en automático. Export a Excel con SheetJS.
  * ============================================================ */
 ;(function () {
     'use strict';
 
-    const TBL_MENSUAL  = 'Extracción_agua';
-    const TBL_DIARIA   = 'Extracción_agua_diaria';
-    const TBL_DESTINOS = 'Extracción_agua_destinos';
-    const DESTINOS_PRESET = ['AIFA', 'Ciudad Militar'];
-    const DESTINO_COLORS  = {
-        'AIFA':           '#1d4ed8',
-        'Ciudad Militar': '#0ea5e9',
-        'Otros':          '#64748b',
-    };
-    const TRIMESTRES = ['Q1', 'Q2', 'Q3', 'Q4'];
+    const TBL_DIARIA  = 'Extracción_agua_diaria';
+    const TBL_PAAP    = 'Suministro_paap_diario';
+    const TBL_PTAR    = 'Tratamiento_ptar_diario';
+
+    const POZOS_FIJOS = ['Pozo 1', 'Pozo 2', 'Pozo 3', 'Pozo 4', 'Pozo 5',
+                         'Pozo 6', 'Pozo 7', 'Pozo 8', 'Pozo 9', 'Pozo 10'];
+    const TRIMESTRES  = ['Q1', 'Q2', 'Q3', 'Q4'];
+    const QUARTER_LABELS = ['Ene-Mar', 'Abr-Jun', 'Jul-Sep', 'Oct-Dic'];
+    const DEMANDA_COLORS = { aifa: '#e07a3c', cdmilitar: '#1d4ed8' };
 
     const MES_NOMBRES_CORTOS = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
     const MES_NOMBRES_LARGOS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
                                 'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
     const state = {
-        rows: [],          // tabla ancha cruda
-        loaded: false,
-        loading: false,
-        years: [],
-        pozos: [],
-        selectedYear: null,
-        selectedPozo: '',  // '' = todos
+        rows: [], loaded: false, loading: false,
+        years: [], pozos: [],
+        selectedYear: null, selectedMonth: null, selectedPozo: '',
 
-        // editor diario
-        editYear: null,
-        editMonth: null,
-        editPozo: '',
-        editRows: [],      // [{ day, volumen_m3, observaciones, _id, _origVol, _origObs, _dirty }]
+        // detalle diario por pozo (para demanda AIFA / Cd. Militar)
+        daily: [], dailyLoaded: false,
+        // distribución PAAP diaria
+        paap: [], paapLoaded: false,
+        // tratamiento PTAR diario
+        ptar: [], ptarLoaded: false,
 
-        // destinos (trimestrales)
-        destinos: [],          // filas crudas de Extracción_agua_destinos
-        destinosLoaded: false,
-        editDestYear: null,
-        editDestQuarter: null,
-        editDestPozo: '',
-        editDestRows: [],      // [{ id, destino, volumen_m3, observaciones, _orig, _dirty, _new, _del }]
+        // editor de captura por DÍA
+        capYear: null, capMonth: null, capDay: null,
+        capPozos: [],            // [{pozo, cd, aifa, _id, _orig...}]
+        capPaap: null,           // {primaria, secundaria, _id, _orig...}
+        capPtar: null,           // {a1, a2, a3, _id, _orig...}
     };
 
     const charts = {
-        monthly: null, yoy: null, pozos: null, perPozo: null, cumulative: null,
-        quarter: null, destStacked: null, destDoughnut: null,
+        pozoMonth: null, demandaMonth: null,
+        extraccionAnual: null, distribucionAnual: null,
+        perPozo: null, cumulative: null, pozos: null, yoy: null,
     };
     let initDone = false;
+    let bound = false;
 
     // ─── Helpers ───────────────────────────────────────────────
     const $ = (id) => document.getElementById(id);
+    const sum = (arr) => arr.reduce((a, b) => a + (Number(b) || 0), 0);
+    const setText = (id, v) => { const el = $(id); if (el) el.textContent = v; };
+
     const fmt = (n) => {
         if (n === null || n === undefined || isNaN(n)) return '0';
-        return Number(n).toLocaleString('es-MX', { maximumFractionDigits: 2 });
+        return Number(n).toLocaleString('es-MX', { maximumFractionDigits: 0 });
+    };
+    const fmt2 = (n) => {
+        if (n === null || n === undefined || isNaN(n)) return '0.00';
+        return Number(n).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     };
     const fmtCompact = (n) => {
         if (n === null || n === undefined || isNaN(n)) return '0';
@@ -72,6 +83,7 @@
         return Math.round(v).toString();
     };
     const fmtPct = (n) => `${(Number(n) || 0).toFixed(1)}%`;
+
     /** Convierte "9,759.94" / "9759.94" / 12.3 en number */
     function toNum(v) {
         if (v === null || v === undefined || v === '') return 0;
@@ -81,6 +93,16 @@
         return isFinite(n) ? n : 0;
     }
     function daysInMonth(year, month) { return new Date(year, month, 0).getDate(); }
+    function quarterOfMonth(m) { return Math.ceil(Number(m) / 3); }
+    function escapeHtml(s) {
+        return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+    function pozoSort(a, b) {
+        const na = parseInt(String(a).match(/\d+/) || [0], 10);
+        const nb = parseInt(String(b).match(/\d+/) || [0], 10);
+        if (na !== nb) return na - nb;
+        return String(a).localeCompare(String(b));
+    }
 
     async function getClient() {
         if (window.supabaseClient) return window.supabaseClient;
@@ -96,7 +118,7 @@
         el.className = 'badge ' + cls;
     }
 
-    // ─── Carga ─────────────────────────────────────────────────
+    // ─── Carga principal (todo proviene del detalle diario) ────
     async function loadAll(force) {
         if (state.loading) return;
         if (state.loaded && !force) return;
@@ -105,12 +127,10 @@
         try {
             const client = await getClient();
             if (!client) throw new Error('Supabase no disponible');
-            const { data, error } = await client.from(TBL_MENSUAL).select('*');
-            if (error) throw error;
-            state.rows = data || [];
+            await loadAux(force);
             state.loaded = true;
             indexRows();
-            setStatus(`${state.rows.length} registros · ${state.pozos.length} pozos`, 'ok');
+            setStatus(`${state.daily.length} registros diarios · ${state.pozos.length} pozos`, 'ok');
         } catch (err) {
             console.error('[hidraulicas] loadAll error:', err);
             setStatus('Error al cargar', 'err');
@@ -121,51 +141,166 @@
 
     function indexRows() {
         const ySet = new Set(), pSet = new Set();
-        for (const r of state.rows) {
-            const y = Number(r['Año'] ?? r['Anio'] ?? r['anio']);
+        for (const a of state.daily) {
+            const y = Number(a.anio);
             if (Number.isFinite(y)) ySet.add(y);
-            const p = String(r['POZO'] ?? r['pozo'] ?? '').trim();
+            const p = String(a.pozo || '').trim();
             if (p) pSet.add(p);
         }
+        for (const a of state.paap) {
+            const y = Number(a.anio);
+            if (Number.isFinite(y)) ySet.add(y);
+        }
+        for (const a of state.ptar) {
+            const y = Number(a.anio);
+            if (Number.isFinite(y)) ySet.add(y);
+        }
         state.years = [...ySet].sort((a, b) => b - a);
-        // ordenar pozos numéricamente "Pozo 1", "Pozo 2", ..., "Pozo 10"
-        state.pozos = [...pSet].sort((a, b) => {
-            const na = parseInt(String(a).match(/\d+/) || [0], 10);
-            const nb = parseInt(String(b).match(/\d+/) || [0], 10);
-            if (na !== nb) return na - nb;
-            return String(a).localeCompare(String(b));
-        });
+        // pozos fijos 1..10 + cualquier pozo extra presente en el diario
+        const extra = [...pSet].filter(p => !POZOS_FIJOS.includes(p)).sort(pozoSort);
+        state.pozos = [...POZOS_FIJOS, ...extra];
         if (!state.years.length) state.years.push(new Date().getFullYear());
         if (!state.years.includes(state.selectedYear)) state.selectedYear = state.years[0];
     }
 
-    // ─── Agregaciones ──────────────────────────────────────────
-    function getRowsByYear(year) {
-        return state.rows.filter(r => Number(r['Año']) === year);
+    // ─── Carga: detalle diario por pozo + PAAP + PTAR ─────────
+    async function loadDaily(force) {
+        if (state.dailyLoaded && !force) return;
+        try {
+            const client = await getClient();
+            if (!client) throw new Error('Supabase no disponible');
+            const { data, error } = await client
+                .from(TBL_DIARIA)
+                .select('id,anio,mes,dia,pozo,cd_militar_m3,aifa_m3,volumen_m3,observaciones');
+            if (error) throw error;
+            state.daily = data || [];
+            state.dailyLoaded = true;
+        } catch (err) {
+            console.error('[hidraulicas] loadDaily error:', err);
+            state.daily = [];
+            state.dailyLoaded = true;
+        }
     }
-    function rowMonths(r) {
-        // Devuelve un array de 12 elementos numéricos a partir de la fila ancha.
-        return MES_NOMBRES_LARGOS.map(name => toNum(r[name]));
+    async function loadPaap(force) {
+        if (state.paapLoaded && !force) return;
+        try {
+            const client = await getClient();
+            if (!client) throw new Error('Supabase no disponible');
+            const { data, error } = await client
+                .from(TBL_PAAP)
+                .select('id,anio,mes,dia,primaria_m3,secundaria_m3,observaciones');
+            if (error) throw error;
+            state.paap = data || [];
+            state.paapLoaded = true;
+        } catch (err) {
+            console.error('[hidraulicas] loadPaap error:', err);
+            state.paap = [];
+            state.paapLoaded = true;
+        }
     }
-    function rowPozo(r) { return String(r['POZO'] ?? '').trim(); }
+    async function loadPtar(force) {
+        if (state.ptarLoaded && !force) return;
+        try {
+            const client = await getClient();
+            if (!client) throw new Error('Supabase no disponible');
+            const { data, error } = await client
+                .from(TBL_PTAR)
+                .select('id,anio,mes,dia,a1_m3,a2_m3,a3_m3,observaciones');
+            if (error) throw error;
+            state.ptar = data || [];
+            state.ptarLoaded = true;
+        } catch (err) {
+            console.error('[hidraulicas] loadPtar error:', err);
+            state.ptar = [];
+            state.ptarLoaded = true;
+        }
+    }
+    async function loadAux(force) {
+        await Promise.all([loadDaily(force), loadPaap(force), loadPtar(force)]);
+    }
+
+    // ─── Demanda (AIFA / Cd. Militar) desde el detalle por pozo ──
+    /** Totales del mes para demanda AIFA / Cd. Militar (suma por pozo). */
+    function demandMonthTotals(year, month) {
+        const out = { aifa: 0, cdmil: 0 };
+        for (const r of state.daily) {
+            if (Number(r.anio) !== Number(year) || Number(r.mes) !== Number(month)) continue;
+            out.aifa  += Number(r.aifa_m3) || 0;
+            out.cdmil += Number(r.cd_militar_m3) || 0;
+        }
+        return out;
+    }
+    function dailyMonthlyField(year, field) {
+        const arr = new Array(12).fill(0);
+        for (const r of state.daily) {
+            if (Number(r.anio) !== Number(year)) continue;
+            const m = Number(r.mes);
+            if (m >= 1 && m <= 12) arr[m - 1] += Number(r[field]) || 0;
+        }
+        return arr;
+    }
+    const aifaMonthly  = (y) => dailyMonthlyField(y, 'aifa_m3');
+    const cdmilMonthly = (y) => dailyMonthlyField(y, 'cd_militar_m3');
+
+    // ─── Distribución (PAAP = primaria + secundaria) ──────────
+    function distribMonthly(year) {
+        const arr = new Array(12).fill(0);
+        for (const r of state.paap) {
+            if (Number(r.anio) !== Number(year)) continue;
+            const m = Number(r.mes);
+            if (m >= 1 && m <= 12) arr[m - 1] += (Number(r.primaria_m3) || 0) + (Number(r.secundaria_m3) || 0);
+        }
+        return arr;
+    }
+    function paapMonthlyField(year, field) {
+        const arr = new Array(12).fill(0);
+        for (const r of state.paap) {
+            if (Number(r.anio) !== Number(year)) continue;
+            const m = Number(r.mes);
+            if (m >= 1 && m <= 12) arr[m - 1] += Number(r[field]) || 0;
+        }
+        return arr;
+    }
+    // ─── PTAR (tratamiento) ────────────────────────────
+    function ptarMonthlyField(year, field) {
+        const arr = new Array(12).fill(0);
+        for (const r of state.ptar) {
+            if (Number(r.anio) !== Number(year)) continue;
+            const m = Number(r.mes);
+            if (m >= 1 && m <= 12) arr[m - 1] += Number(r[field]) || 0;
+        }
+        return arr;
+    }
+
+    // ─── Agregaciones de extracción (desde el detalle diario) ──
+    function dailyByYear(year) { return state.daily.filter(r => Number(r.anio) === Number(year)); }
 
     function aggregateMonthlyForYear(year, pozo) {
         const arr = new Array(12).fill(0);
-        for (const r of getRowsByYear(year)) {
-            if (pozo && rowPozo(r) !== pozo) continue;
-            const m = rowMonths(r);
-            for (let i = 0; i < 12; i++) arr[i] += m[i];
+        for (const r of dailyByYear(year)) {
+            if (pozo && String(r.pozo || '').trim() !== pozo) continue;
+            const m = Number(r.mes);
+            if (m >= 1 && m <= 12) arr[m - 1] += Number(r.volumen_m3) || 0;
         }
         return arr;
     }
     function aggregateByPozoForYear(year) {
         const map = new Map();
-        for (const r of getRowsByYear(year)) {
-            const p = rowPozo(r) || 'Sin pozo';
-            const total = rowMonths(r).reduce((a, b) => a + b, 0);
-            map.set(p, (map.get(p) || 0) + total);
+        for (const r of dailyByYear(year)) {
+            const p = String(r.pozo || '').trim() || 'Sin pozo';
+            map.set(p, (map.get(p) || 0) + (Number(r.volumen_m3) || 0));
         }
-        return [...map.entries()].sort((a, b) => b[1] - a[1]);
+        return [...map.entries()].filter(e => e[1] > 0).sort((a, b) => b[1] - a[1]);
+    }
+    /** Extracción por pozo en un mes (monthIndex 0-based). */
+    function aggregateByPozoForMonth(year, monthIndex) {
+        const map = new Map();
+        for (const r of dailyByYear(year)) {
+            if (Number(r.mes) !== monthIndex + 1) continue;
+            const p = String(r.pozo || '').trim() || 'Sin pozo';
+            map.set(p, (map.get(p) || 0) + (Number(r.volumen_m3) || 0));
+        }
+        return [...map.entries()].filter(e => e[1] > 0).sort((a, b) => b[1] - a[1]);
     }
     function cumulative(monthlyArr) {
         const out = new Array(12).fill(0);
@@ -173,8 +308,6 @@
         for (let i = 0; i < 12; i++) { acc += monthlyArr[i] || 0; out[i] = acc; }
         return out;
     }
-
-    /** [Q1,Q2,Q3,Q4] a partir de un arreglo mensual de 12 elementos. */
     function quarterlyFromMonthly(arr) {
         return [
             (arr[0] || 0) + (arr[1] || 0) + (arr[2]  || 0),
@@ -183,55 +316,28 @@
             (arr[9] || 0) + (arr[10]|| 0) + (arr[11] || 0),
         ];
     }
-    function quarterlyForYear(year, pozo) {
-        return quarterlyFromMonthly(aggregateMonthlyForYear(year, pozo));
+    const quarterlyForYear = (year, pozo) => quarterlyFromMonthly(aggregateMonthlyForYear(year, pozo));
+
+    /** Índice (0-based) del último mes con algún dato en cualquiera de las tres tablas.
+     *  Devuelve -1 si no hay nada, o 11 si hay datos en diciembre. */
+    function lastDataMonthIndex(year) {
+        const extr = aggregateMonthlyForYear(year, '');
+        const paap = distribMonthly(year);
+        const ptar = ptarMonthlyField(year, 'a1_m3');
+        for (let i = 11; i >= 0; i--) {
+            if (extr[i] > 0 || paap[i] > 0 || ptar[i] > 0) return i;
+        }
+        return -1;
+    }
+    /** Recibe un array de 12 valores y pone null en los meses sin dato
+     *  (a partir del mes siguiente al último con dato del año). */
+    function nullifyFutureMonths(arr, year) {
+        const last = lastDataMonthIndex(year);
+        if (last === 11) return arr; // año completo, nada que nullificar
+        return arr.map((v, i) => i > last ? null : v);
     }
 
-    // ─── Carga / agregaci\u00f3n DESTINOS ─────────────────────────
-    async function loadDestinos(force) {
-        if (state.destinosLoaded && !force) return;
-        try {
-            const client = await getClient();
-            if (!client) throw new Error('Supabase no disponible');
-            const { data, error } = await client
-                .from(TBL_DESTINOS)
-                .select('id,anio,trimestre,pozo,destino,volumen_m3,observaciones');
-            if (error) throw error;
-            state.destinos = data || [];
-            state.destinosLoaded = true;
-        } catch (err) {
-            console.error('[hidraulicas] loadDestinos error:', err);
-            state.destinos = [];
-            state.destinosLoaded = true; // evita loops; usuario ver\u00e1 0
-        }
-    }
-    function destinosForYear(year, pozo) {
-        return state.destinos.filter(r =>
-            Number(r.anio) === Number(year) &&
-            (!pozo || String(r.pozo).trim() === pozo)
-        );
-    }
-    /** {byDestino:Map, byQuarterDestino:Map(`${Q}|${dest}`)} */
-    function aggregateDestinos(year, pozo) {
-        const byDestino = new Map();
-        const byQ = new Map();
-        for (const r of destinosForYear(year, pozo)) {
-            const dest = String(r.destino || '').trim() || 'Sin destino';
-            const v = Number(r.volumen_m3) || 0;
-            byDestino.set(dest, (byDestino.get(dest) || 0) + v);
-            const q = Number(r.trimestre);
-            if (q >= 1 && q <= 4) {
-                const k = `Q${q}|${dest}`;
-                byQ.set(k, (byQ.get(k) || 0) + v);
-            }
-        }
-        return { byDestino, byQ };
-    }
-    function destinoColor(name, idx) {
-        return DESTINO_COLORS[name] || PALETTE[idx % PALETTE.length];
-    }
-
-    // ─── Filtros UI ────────────────────────────────────────────
+    // ─── Selects ───────────────────────────────────────────────
     function populateYearSelect(id, value) {
         const sel = $(id); if (!sel) return;
         const years = state.years.length ? state.years : [new Date().getFullYear()];
@@ -247,74 +353,165 @@
         sel.innerHTML = html;
         if (prev && [...sel.options].some(o => o.value === prev)) sel.value = prev;
     }
-    function populateMonthSelect(id) {
+    function populateMonthSelect(id, value) {
         const sel = $(id); if (!sel) return;
-        const prev = sel.value || state.editMonth || (new Date().getMonth() + 1);
+        const prev = value !== undefined ? value : (sel.value || state.selectedMonth || (new Date().getMonth() + 1));
         sel.innerHTML = MES_NOMBRES_LARGOS.map((n, i) => `<option value="${i + 1}">${n}</option>`).join('');
         sel.value = String(prev);
     }
-
-    // ─── KPIs ──────────────────────────────────────────────────
-    function renderKpis() {
-        const monthly = aggregateMonthlyForYear(state.selectedYear, state.selectedPozo);
-        const total = monthly.reduce((a, b) => a + b, 0);
-
-        let topMes = -1, topVal = -Infinity;
-        for (let i = 0; i < 12; i++) if (monthly[i] > topVal) { topVal = monthly[i]; topMes = i; }
-
-        const mesesConDato = monthly.filter(v => v > 0).length || 1;
-        const promMensual = total / mesesConDato;
-
-        const byPozo = aggregateByPozoForYear(state.selectedYear);
-        const topPozo = byPozo.length ? byPozo[0] : null;
-
-        $('hidra-kpi-anio').textContent = fmt(total);
-        $('hidra-kpi-mes-top').textContent = topVal > 0 ? fmt(topVal) : '—';
-        $('hidra-kpi-mes-top-name').textContent = topMes >= 0 && topVal > 0 ? MES_NOMBRES_LARGOS[topMes] : '—';
-        $('hidra-kpi-prom').textContent = fmt(promMensual);
-        $('hidra-kpi-max').textContent = topPozo ? fmt(topPozo[1]) : '—';
-        $('hidra-kpi-max-day').textContent = topPozo ? topPozo[0] : '—';
+    function populateDaySelect(id, year, month, value) {
+        const sel = $(id); if (!sel) return;
+        const dim = daysInMonth(year || new Date().getFullYear(), month || (new Date().getMonth() + 1));
+        const prev = value !== undefined ? value : (Number(sel.value) || state.capDay || new Date().getDate());
+        let html = '';
+        for (let d = 1; d <= dim; d++) html += `<option value="${d}">${d}</option>`;
+        sel.innerHTML = html;
+        sel.value = String(Math.min(Number(prev) || 1, dim));
     }
 
-    // ─── Charts ────────────────────────────────────────────────
-    function destroyChart(k) { if (charts[k]) { charts[k].destroy(); charts[k] = null; } }
+    function refreshSelects() {
+        populateYearSelect('hidra-filter-year', state.selectedYear);
+        populateMonthSelect('hidra-filter-month', state.selectedMonth);
+        populatePozoSelect('hidra-filter-pozo', true);
+        populateYearSelect('hidra-cap-year', state.capYear);
+        populateMonthSelect('hidra-cap-month', state.capMonth);
+        populateDaySelect('hidra-cap-day', state.capYear, state.capMonth, state.capDay);
+    }
 
-    // Paleta cohesiva tipo dashboard profesional
-    const PALETTE = [
-        '#1e3a8a', '#0ea5e9', '#10b981', '#7c3aed', '#f59e0b',
-        '#ef4444', '#0891b2', '#a855f7', '#059669',
-    ];
+    // ─── Charts: utilidades ────────────────────────────────────
+    function destroyChart(k) { if (charts[k]) { charts[k].destroy(); charts[k] = null; } }
+    const PALETTE = ['#1e3a8a', '#0ea5e9', '#10b981', '#7c3aed', '#f59e0b',
+                     '#ef4444', '#0891b2', '#a855f7', '#059669', '#64748b'];
     const hasDL = () => typeof window !== 'undefined' && !!window.ChartDataLabels;
 
-    function renderMonthlyChart() {
-        const ctx = $('hidra-chart-monthly'); if (!ctx || typeof Chart === 'undefined') return;
-        const data = aggregateMonthlyForYear(state.selectedYear, state.selectedPozo);
-        destroyChart('monthly');
-        charts.monthly = new Chart(ctx.getContext('2d'), {
-            type: 'bar',
+    function emptyDoughnut(ctx) {
+        return new Chart(ctx.getContext('2d'), {
+            type: 'doughnut',
+            data: { labels: ['Sin datos'], datasets: [{ data: [1], backgroundColor: ['#e2e8f0'], borderWidth: 0 }] },
+            options: { responsive: true, maintainAspectRatio: false, cutout: '55%', plugins: { legend: { display: false }, tooltip: { enabled: false } } },
+        });
+    }
+
+    // ─── Panel MENSUAL (imagen 2) ──────────────────────────────
+    function renderMonthlyPanel() {
+        const y = state.selectedYear, mIdx = (state.selectedMonth || 1) - 1;
+        setText('hidra-m-period-mes', MES_NOMBRES_LARGOS[mIdx]);
+        setText('hidra-m-period-anio', y);
+
+        const extr = aggregateMonthlyForYear(y, state.selectedPozo)[mIdx] || 0;
+        const dem  = demandMonthTotals(y, mIdx + 1);
+        const dist = distribMonthly(y)[mIdx] || 0;
+        const aifa = dem.aifa;
+        const cdm  = dem.cdmil;
+
+        setText('hidra-m-extraccion',  fmt(extr));
+        setText('hidra-m-distribucion', fmt(dist));
+        setText('hidra-m-aifa',        fmt(aifa));
+        setText('hidra-m-cdmilitar',   fmt(cdm));
+
+        renderPozoMonthChart(y, mIdx);
+        renderDemandaMonthChart(aifa, cdm);
+    }
+
+    function renderPozoMonthChart(year, mIdx) {
+        const ctx = $('hidra-chart-pozo-month'); if (!ctx || typeof Chart === 'undefined') return;
+        const data = aggregateByPozoForMonth(year, mIdx);
+        destroyChart('pozoMonth');
+        if (!data.length) { charts.pozoMonth = emptyDoughnut(ctx); return; }
+        const total = data.reduce((s, d) => s + d[1], 0) || 1;
+        charts.pozoMonth = new Chart(ctx.getContext('2d'), {
+            type: 'doughnut',
             data: {
-                labels: MES_NOMBRES_CORTOS,
+                labels: data.map(d => d[0]),
                 datasets: [{
-                    label: `${state.selectedYear} · m³` + (state.selectedPozo ? ` · ${state.selectedPozo}` : ''),
-                    data,
-                    backgroundColor: ctxRef => {
-                        const c = ctxRef.chart.canvas.getContext('2d');
-                        const g = c.createLinearGradient(0, 0, 0, 280);
-                        g.addColorStop(0, '#3b82f6'); g.addColorStop(1, '#0ea5e9');
-                        return g;
-                    },
-                    borderRadius: 6, maxBarThickness: 56,
+                    data: data.map(d => d[1]),
+                    backgroundColor: data.map((_, i) => PALETTE[i % PALETTE.length]),
+                    borderColor: '#fff', borderWidth: 2, hoverOffset: 8,
+                }],
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false, cutout: '52%',
+                plugins: {
+                    legend: { position: 'right', labels: { boxWidth: 12, font: { size: 11 }, padding: 8 } },
+                    tooltip: { callbacks: { label: c => ` ${c.label}: ${fmt(c.parsed)} m³ (${fmtPct(c.parsed / total * 100)})` } },
+                    datalabels: hasDL() ? {
+                        color: '#fff', font: { weight: '700', size: 11 },
+                        textStrokeColor: 'rgba(0,0,0,.4)', textStrokeWidth: 2,
+                        formatter: v => { const p = v / total * 100; return p >= 5 ? fmtPct(p) : ''; },
+                    } : undefined,
+                },
+            },
+            plugins: hasDL() ? [window.ChartDataLabels] : [],
+        });
+    }
+
+    function renderDemandaMonthChart(aifa, cdm) {
+        const ctx = $('hidra-chart-demanda-month'); if (!ctx || typeof Chart === 'undefined') return;
+        destroyChart('demandaMonth');
+        const total = (aifa + cdm) || 0;
+        if (!total) { charts.demandaMonth = emptyDoughnut(ctx); return; }
+        charts.demandaMonth = new Chart(ctx.getContext('2d'), {
+            type: 'pie',
+            data: {
+                labels: ['AIFA', 'Cd. Militar'],
+                datasets: [{
+                    data: [aifa, cdm],
+                    backgroundColor: [DEMANDA_COLORS.aifa, DEMANDA_COLORS.cdmilitar],
+                    borderColor: '#fff', borderWidth: 2,
                 }],
             },
             options: {
                 responsive: true, maintainAspectRatio: false,
-                layout: { padding: { top: 20 } },
                 plugins: {
-                    legend: { display: false },
-                    tooltip: { callbacks: { label: c => ` ${fmt(c.parsed.y)} m³` } },
+                    legend: { position: 'right', labels: { boxWidth: 12, font: { size: 12 } } },
+                    tooltip: { callbacks: { label: c => ` ${c.label}: ${fmt(c.parsed)} m³ (${fmtPct(c.parsed / total * 100)})` } },
                     datalabels: hasDL() ? {
-                        anchor: 'end', align: 'end', offset: 2,
-                        color: '#1e293b', font: { size: 11, weight: '700' },
+                        color: '#fff', font: { weight: '700', size: 14 },
+                        formatter: v => fmtPct(v / total * 100),
+                    } : undefined,
+                },
+            },
+            plugins: hasDL() ? [window.ChartDataLabels] : [],
+        });
+    }
+
+    // ─── Panel ANUAL / acumulado (imagen 1) ────────────────────
+    function renderAnnualPanel() {
+        const y = state.selectedYear;
+        setText('hidra-a-period-anio', y);
+        const extrM = aggregateMonthlyForYear(y, state.selectedPozo);
+        setText('hidra-a-extraccion',  fmt(sum(extrM)));
+        setText('hidra-a-distribucion', fmt(sum(distribMonthly(y))));
+        setText('hidra-a-aifa',        fmt(sum(aifaMonthly(y))));
+        setText('hidra-a-cdmilitar',   fmt(sum(cdmilMonthly(y))));
+        renderExtraccionAnualChart(y);
+        renderDistribucionAnualChart(y);
+    }
+
+    function makeYoYBar(ctxId, chartKey, prevArr, curArr, yPrev, yCurr) {
+        const ctx = $(ctxId); if (!ctx || typeof Chart === 'undefined') return;
+        // Nullificar meses sin dato del año actual para no graficar barras vacías
+        const cSlice = nullifyFutureMonths(curArr, yCurr);
+        const pSlice = nullifyFutureMonths(prevArr, yPrev);
+        destroyChart(chartKey);
+        charts[chartKey] = new Chart(ctx.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: MES_NOMBRES_CORTOS,
+                datasets: [
+                    { label: String(yPrev), data: pSlice, backgroundColor: '#2f6fb5', borderRadius: 3, categoryPercentage: 0.8, barPercentage: 0.9 },
+                    { label: String(yCurr), data: cSlice, backgroundColor: '#e07a3c', borderRadius: 3, categoryPercentage: 0.8, barPercentage: 0.9 },
+                ],
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                layout: { padding: { top: 22 } },
+                plugins: {
+                    legend: { position: 'bottom', labels: { boxWidth: 14, font: { size: 12 } } },
+                    tooltip: { callbacks: { label: c => ` ${c.dataset.label}: ${fmt(c.parsed.y)} m³` } },
+                    datalabels: hasDL() ? {
+                        anchor: 'end', align: 'end', offset: 1, rotation: -90,
+                        font: { size: 9, weight: '600' }, color: '#475569',
                         formatter: v => v ? fmtCompact(v) : '',
                     } : undefined,
                 },
@@ -326,37 +523,127 @@
             plugins: hasDL() ? [window.ChartDataLabels] : [],
         });
     }
+    function renderExtraccionAnualChart(y) {
+        makeYoYBar('hidra-chart-extraccion-anual', 'extraccionAnual',
+            aggregateMonthlyForYear(y - 1, state.selectedPozo),
+            aggregateMonthlyForYear(y, state.selectedPozo), y - 1, y);
+    }
+    function renderDistribucionAnualChart(y) {
+        makeYoYBar('hidra-chart-distribucion-anual', 'distribucionAnual',
+            distribMonthly(y - 1), distribMonthly(y), y - 1, y);
+    }
 
-    function renderYoyChart() {
-        const ctx = $('hidra-chart-yoy'); if (!ctx || typeof Chart === 'undefined') return;
-        const yoyPalette = ['#2f6fb5', '#e07a3c', '#10b981', '#8b5cf6', '#f59e0b', '#ef4444'];
-        const years = state.years.slice(0, 6);
-        const ds = years.map((y, i) => ({
-            label: String(y),
-            data: aggregateMonthlyForYear(y, state.selectedPozo),
-            backgroundColor: yoyPalette[i % yoyPalette.length],
-            borderColor: yoyPalette[i % yoyPalette.length],
-            borderWidth: 0,
-            borderRadius: 3,
-            categoryPercentage: 0.78,
-            barPercentage: 0.92,
+    // ─── Totales / detalle ─────────────────────────────────────
+    function renderQuarterlyKpis() {
+        const q = quarterlyForYear(state.selectedYear, state.selectedPozo);
+        const total = sum(q);
+        for (let i = 0; i < 4; i++) {
+            setText(`hidra-q-${i + 1}`, fmt(q[i]));
+            setText(`hidra-q-${i + 1}-pct`, total > 0 ? fmtPct((q[i] / total) * 100) : '0%');
+        }
+        setText('hidra-q-total', fmt(total));
+    }
+
+    function renderPerPozoChart() {
+        const ctx = $('hidra-chart-per-pozo'); if (!ctx || typeof Chart === 'undefined') return;
+        const y = state.selectedYear;
+        const pozosConDato = state.pozos
+            .map(p => ({ pozo: p, months: nullifyFutureMonths(aggregateMonthlyForYear(y, p), y) }))
+            .filter(d => d.months.some(v => v !== null && v > 0));
+        const datasets = pozosConDato.map((d, i) => ({
+            label: d.pozo,
+            data: d.months,
+            backgroundColor: PALETTE[i % PALETTE.length],
+            borderColor: '#ffffff', borderWidth: 1.5, borderRadius: 2,
+            stack: 'stack0', maxBarThickness: 64,
         }));
-        destroyChart('yoy');
-        charts.yoy = new Chart(ctx.getContext('2d'), {
+        const monthTotals = MES_NOMBRES_CORTOS.map((_, mIdx) =>
+            datasets.reduce((s, d) => s + (Number(d.data[mIdx]) || 0), 0));
+        const totalsDs = {
+            label: '__totals__', data: monthTotals.map(() => 0),
+            backgroundColor: 'rgba(0,0,0,0)', borderWidth: 0, stack: 'stack0',
+            datalabels: hasDL() ? {
+                display: ctx => monthTotals[ctx.dataIndex] > 0,
+                anchor: 'end', align: 'end', offset: 4,
+                color: '#0f172a', font: { weight: '700', size: 12 },
+                formatter: (_, ctx) => fmtCompact(monthTotals[ctx.dataIndex]),
+            } : undefined,
+        };
+        destroyChart('perPozo');
+        charts.perPozo = new Chart(ctx.getContext('2d'), {
             type: 'bar',
-            data: { labels: MES_NOMBRES_CORTOS, datasets: ds },
+            data: { labels: MES_NOMBRES_CORTOS, datasets: [...datasets, totalsDs] },
             options: {
                 responsive: true, maintainAspectRatio: false,
-                layout: { padding: { top: 22 } },
+                layout: { padding: { top: 24 } },
                 plugins: {
-                    legend: { position: 'bottom', labels: { boxWidth: 14, font: { size: 12 } } },
+                    legend: { position: 'bottom', labels: { boxWidth: 12, padding: 10, font: { size: 11 }, filter: item => item.text !== '__totals__' } },
+                    tooltip: {
+                        filter: item => item.dataset.label !== '__totals__',
+                        callbacks: {
+                            label: (c) => {
+                                const v = c.parsed.y || 0, tot = monthTotals[c.dataIndex] || 1;
+                                return ` ${c.dataset.label}: ${fmt(v)} m³ (${fmtPct((v / tot) * 100)})`;
+                            },
+                        },
+                    },
+                    datalabels: hasDL() ? {
+                        color: '#fff', font: { weight: '700', size: 11 },
+                        textStrokeColor: 'rgba(0,0,0,.45)', textStrokeWidth: 2,
+                        display: (ctx) => {
+                            if (ctx.dataset.label === '__totals__') return true;
+                            const v = ctx.dataset.data[ctx.dataIndex] || 0;
+                            return (v / (monthTotals[ctx.dataIndex] || 1)) * 100 >= 6;
+                        },
+                        formatter: (v, ctx) => {
+                            if (ctx.dataset.label === '__totals__') return monthTotals[ctx.dataIndex] > 0 ? fmtCompact(monthTotals[ctx.dataIndex]) : '';
+                            const pct = (v / (monthTotals[ctx.dataIndex] || 1)) * 100;
+                            return pct >= 6 ? fmtPct(pct) : '';
+                        },
+                    } : undefined,
+                },
+                scales: {
+                    x: { stacked: true, grid: { display: false } },
+                    y: { stacked: true, beginAtZero: true, ticks: { callback: v => fmtCompact(v) }, grid: { color: '#eef2f7' } },
+                },
+            },
+            plugins: hasDL() ? [window.ChartDataLabels] : [],
+        });
+    }
+
+    function lastNonZeroIndex(arr) {
+        for (let i = arr.length - 1; i >= 0; i--) if (arr[i] > 0) return i;
+        return -1;
+    }
+    function renderCumulativeChart() {
+        const ctx = $('hidra-chart-cumulative'); if (!ctx || typeof Chart === 'undefined') return;
+        const yCurr = state.selectedYear, yPrev = yCurr - 1;
+        const cur  = nullifyFutureMonths(cumulative(aggregateMonthlyForYear(yCurr, state.selectedPozo)), yCurr);
+        const prev = nullifyFutureMonths(cumulative(aggregateMonthlyForYear(yPrev, state.selectedPozo)), yPrev);
+        const lastIdxCur = lastNonZeroIndex(cur.map(v => v ?? 0));
+        const lastIdxPrev = lastNonZeroIndex(prev.map(v => v ?? 0));
+        destroyChart('cumulative');
+        charts.cumulative = new Chart(ctx.getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: MES_NOMBRES_CORTOS,
+                datasets: [
+                    { label: String(yPrev), data: prev, borderColor: '#94a3b8', backgroundColor: 'rgba(148,163,184,.18)', borderWidth: 2, tension: 0.3, fill: true, pointRadius: 0, pointHoverRadius: 5 },
+                    { label: String(yCurr), data: cur,  borderColor: '#1d4ed8', backgroundColor: 'rgba(29,78,216,.15)', borderWidth: 3, tension: 0.3, fill: true, pointRadius: 0, pointHoverRadius: 5 },
+                ],
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                layout: { padding: { top: 14, right: 32 } },
+                plugins: {
+                    legend: { position: 'bottom' },
                     tooltip: { callbacks: { label: c => ` ${c.dataset.label}: ${fmt(c.parsed.y)} m³` } },
                     datalabels: hasDL() ? {
-                        anchor: 'end', align: 'end', offset: 2,
-                        rotation: -90,
-                        font: { size: 10, weight: '600' },
-                        color: '#475569',
-                        formatter: v => v ? fmtCompact(v) : '',
+                        display: (ctx) => (ctx.datasetIndex === 0 && ctx.dataIndex === lastIdxPrev) || (ctx.datasetIndex === 1 && ctx.dataIndex === lastIdxCur),
+                        align: 'top', anchor: 'end', offset: 4,
+                        color: (ctx) => ctx.datasetIndex === 1 ? '#1d4ed8' : '#475569',
+                        font: { weight: '700', size: 11 }, formatter: (v) => fmtCompact(v),
                     } : undefined,
                 },
                 scales: {
@@ -372,7 +659,7 @@
         const ctx = $('hidra-chart-pozos'); if (!ctx || typeof Chart === 'undefined') return;
         const data = aggregateByPozoForYear(state.selectedYear);
         destroyChart('pozos');
-        if (!data.length) return;
+        if (!data.length) { charts.pozos = emptyDoughnut(ctx); return; }
         const total = data.reduce((s, d) => s + d[1], 0) || 1;
         charts.pozos = new Chart(ctx.getContext('2d'), {
             type: 'doughnut',
@@ -381,847 +668,413 @@
                 datasets: [{
                     data: data.map(d => d[1]),
                     backgroundColor: data.map((_, i) => PALETTE[i % PALETTE.length]),
-                    borderWidth: 2, borderColor: '#fff',
-                    hoverOffset: 8,
+                    borderWidth: 2, borderColor: '#fff', hoverOffset: 8,
                 }],
             },
             options: {
                 responsive: true, maintainAspectRatio: false, cutout: '62%',
                 plugins: {
                     legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 }, padding: 10 } },
-                    tooltip: {
-                        callbacks: {
-                            label: c => {
-                                const pct = (c.parsed / total * 100).toFixed(1);
-                                return ` ${c.label}: ${fmt(c.parsed)} m³ (${pct}%)`;
-                            },
-                        },
-                    },
-                    datalabels: hasDL() ? {
-                        color: '#fff',
-                        font: { weight: '700', size: 12 },
-                        textStrokeColor: 'rgba(0,0,0,.35)',
-                        textStrokeWidth: 2,
-                        formatter: (v) => {
-                            const pct = (v / total) * 100;
-                            return pct >= 4 ? fmtPct(pct) : '';
-                        },
-                    } : undefined,
-                },
-            },
-            plugins: hasDL() ? [window.ChartDataLabels] : [],
-        });
-    }
-
-    function renderPerPozoChart() {
-        const ctx = $('hidra-chart-per-pozo'); if (!ctx || typeof Chart === 'undefined') return;
-        const rows = getRowsByYear(state.selectedYear);
-        const datasets = rows.map((r, i) => ({
-            label: rowPozo(r) || `Fila ${i + 1}`,
-            data: rowMonths(r),
-            backgroundColor: PALETTE[i % PALETTE.length],
-            borderColor: '#ffffff',
-            borderWidth: 1.5,
-            borderRadius: 2,
-            stack: 'stack0',
-            maxBarThickness: 64,
-        }));
-
-        // Totales por mes (para mostrar % por segmento y total arriba)
-        const monthTotals = MES_NOMBRES_CORTOS.map((_, mIdx) =>
-            datasets.reduce((s, d) => s + (Number(d.data[mIdx]) || 0), 0)
-        );
-
-        // Dataset invisible solo para pintar el total encima de la barra
-        const totalsDs = {
-            label: '__totals__',
-            data: monthTotals.map(() => 0),
-            backgroundColor: 'rgba(0,0,0,0)',
-            borderWidth: 0,
-            stack: 'stack0',
-            datalabels: hasDL() ? {
-                display: ctx => monthTotals[ctx.dataIndex] > 0,
-                anchor: 'end', align: 'end', offset: 4,
-                color: '#0f172a', font: { weight: '700', size: 12 },
-                formatter: (_, ctx) => fmtCompact(monthTotals[ctx.dataIndex]),
-            } : undefined,
-        };
-
-        destroyChart('perPozo');
-        charts.perPozo = new Chart(ctx.getContext('2d'), {
-            type: 'bar',
-            data: { labels: MES_NOMBRES_CORTOS, datasets: [...datasets, totalsDs] },
-            options: {
-                responsive: true, maintainAspectRatio: false,
-                layout: { padding: { top: 24 } },
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: {
-                            boxWidth: 12, padding: 10, font: { size: 11 },
-                            filter: (item) => item.text !== '__totals__',
-                        },
-                    },
-                    tooltip: {
-                        filter: (item) => item.dataset.label !== '__totals__',
-                        callbacks: {
-                            label: (c) => {
-                                const v = c.parsed.y || 0;
-                                const tot = monthTotals[c.dataIndex] || 1;
-                                const pct = (v / tot) * 100;
-                                return ` ${c.dataset.label}: ${fmt(v)} m³ (${fmtPct(pct)})`;
-                            },
-                        },
-                    },
-                    datalabels: hasDL() ? {
-                        color: '#fff',
-                        font: { weight: '700', size: 11 },
-                        textStrokeColor: 'rgba(0,0,0,.45)',
-                        textStrokeWidth: 2,
-                        display: (ctx) => {
-                            if (ctx.dataset.label === '__totals__') return true;
-                            const v = ctx.dataset.data[ctx.dataIndex] || 0;
-                            const tot = monthTotals[ctx.dataIndex] || 1;
-                            return (v / tot) * 100 >= 6;
-                        },
-                        formatter: (v, ctx) => {
-                            if (ctx.dataset.label === '__totals__') {
-                                return monthTotals[ctx.dataIndex] > 0 ? fmtCompact(monthTotals[ctx.dataIndex]) : '';
-                            }
-                            const tot = monthTotals[ctx.dataIndex] || 1;
-                            const pct = (v / tot) * 100;
-                            return pct >= 6 ? fmtPct(pct) : '';
-                        },
-                    } : undefined,
-                },
-                scales: {
-                    x: { stacked: true, grid: { display: false } },
-                    y: { stacked: true, beginAtZero: true, ticks: { callback: v => fmtCompact(v) }, grid: { color: '#eef2f7' } },
-                },
-            },
-            plugins: hasDL() ? [window.ChartDataLabels] : [],
-        });
-    }
-
-    function renderCumulativeChart() {
-        const ctx = $('hidra-chart-cumulative'); if (!ctx || typeof Chart === 'undefined') return;
-        const yCurr = state.selectedYear, yPrev = yCurr - 1;
-        const cur  = cumulative(aggregateMonthlyForYear(yCurr, state.selectedPozo));
-        const prev = cumulative(aggregateMonthlyForYear(yPrev, state.selectedPozo));
-        const lastIdxCur  = lastNonZeroIndex(cur);
-        const lastIdxPrev = lastNonZeroIndex(prev);
-        destroyChart('cumulative');
-        charts.cumulative = new Chart(ctx.getContext('2d'), {
-            type: 'line',
-            data: {
-                labels: MES_NOMBRES_CORTOS,
-                datasets: [
-                    {
-                        label: String(yPrev), data: prev,
-                        borderColor: '#94a3b8', backgroundColor: 'rgba(148,163,184,.18)',
-                        borderWidth: 2, tension: 0.3, fill: true,
-                        pointRadius: 0, pointHoverRadius: 5,
-                    },
-                    {
-                        label: String(yCurr), data: cur,
-                        borderColor: '#1d4ed8', backgroundColor: 'rgba(29,78,216,.15)',
-                        borderWidth: 3, tension: 0.3, fill: true,
-                        pointRadius: 0, pointHoverRadius: 5,
-                    },
-                ],
-            },
-            options: {
-                responsive: true, maintainAspectRatio: false,
-                interaction: { mode: 'index', intersect: false },
-                layout: { padding: { top: 14, right: 32 } },
-                plugins: {
-                    legend: { position: 'bottom' },
-                    tooltip: { callbacks: { label: c => ` ${c.dataset.label}: ${fmt(c.parsed.y)} m³` } },
-                    datalabels: hasDL() ? {
-                        display: (ctx) => {
-                            const isPrev = ctx.datasetIndex === 0 && ctx.dataIndex === lastIdxPrev;
-                            const isCur  = ctx.datasetIndex === 1 && ctx.dataIndex === lastIdxCur;
-                            return isPrev || isCur;
-                        },
-                        align: 'top', anchor: 'end', offset: 4,
-                        color: (ctx) => ctx.datasetIndex === 1 ? '#1d4ed8' : '#475569',
-                        font: { weight: '700', size: 11 },
-                        formatter: (v) => fmtCompact(v),
-                    } : undefined,
-                },
-                scales: {
-                    y: { beginAtZero: true, ticks: { callback: v => fmtCompact(v) }, grid: { color: '#eef2f7' } },
-                    x: { grid: { display: false } },
-                },
-            },
-            plugins: hasDL() ? [window.ChartDataLabels] : [],
-        });
-    }
-
-    function lastNonZeroIndex(arr) {
-        for (let i = arr.length - 1; i >= 0; i--) if (arr[i] > 0) return i;
-        return -1;
-    }
-
-    // ─── Trimestres ────────────────────────────────────────────
-    function renderQuarterlyKpis() {
-        const q = quarterlyForYear(state.selectedYear, state.selectedPozo);
-        const total = q.reduce((a, b) => a + b, 0);
-        for (let i = 0; i < 4; i++) {
-            const el = $(`hidra-q-${i + 1}`); if (el) el.textContent = fmt(q[i]);
-            const pctEl = $(`hidra-q-${i + 1}-pct`);
-            if (pctEl) pctEl.textContent = total > 0 ? fmtPct((q[i] / total) * 100) : '0%';
-        }
-        const tot = $('hidra-q-total'); if (tot) tot.textContent = fmt(total);
-    }
-
-    function renderQuarterChart() {
-        const ctx = $('hidra-chart-quarter'); if (!ctx || typeof Chart === 'undefined') return;
-        const yCurr = state.selectedYear, yPrev = yCurr - 1;
-        const cur  = quarterlyForYear(yCurr, state.selectedPozo);
-        const prev = quarterlyForYear(yPrev, state.selectedPozo);
-        const totalCur = cur.reduce((a, b) => a + b, 0) || 1;
-        destroyChart('quarter');
-        charts.quarter = new Chart(ctx.getContext('2d'), {
-            type: 'bar',
-            data: {
-                labels: TRIMESTRES,
-                datasets: [
-                    {
-                        label: String(yPrev), data: prev,
-                        backgroundColor: '#cbd5e1', borderRadius: 4,
-                        categoryPercentage: 0.7, barPercentage: 0.95,
-                    },
-                    {
-                        label: String(yCurr), data: cur,
-                        backgroundColor: ctxRef => {
-                            const c = ctxRef.chart.canvas.getContext('2d');
-                            const g = c.createLinearGradient(0, 0, 0, 280);
-                            g.addColorStop(0, '#1d4ed8'); g.addColorStop(1, '#0ea5e9');
-                            return g;
-                        },
-                        borderRadius: 4,
-                        categoryPercentage: 0.7, barPercentage: 0.95,
-                    },
-                ],
-            },
-            options: {
-                responsive: true, maintainAspectRatio: false,
-                layout: { padding: { top: 24 } },
-                plugins: {
-                    legend: { position: 'bottom', labels: { boxWidth: 14, font: { size: 12 } } },
-                    tooltip: {
-                        callbacks: {
-                            label: c => {
-                                const pct = c.datasetIndex === 1 ? ` (${fmtPct((c.parsed.y / totalCur) * 100)})` : '';
-                                return ` ${c.dataset.label}: ${fmt(c.parsed.y)} m³${pct}`;
-                            },
-                        },
-                    },
-                    datalabels: hasDL() ? {
-                        anchor: 'end', align: 'end', offset: 2,
-                        font: { weight: '700', size: 11 },
-                        color: ctx => ctx.datasetIndex === 1 ? '#1d4ed8' : '#475569',
-                        formatter: (v, ctx) => {
-                            if (!v) return '';
-                            if (ctx.datasetIndex === 1) {
-                                return `${fmtCompact(v)}\n${fmtPct((v / totalCur) * 100)}`;
-                            }
-                            return fmtCompact(v);
-                        },
-                    } : undefined,
-                },
-                scales: {
-                    y: { beginAtZero: true, ticks: { callback: v => fmtCompact(v) }, grid: { color: '#eef2f7' } },
-                    x: { grid: { display: false } },
-                },
-            },
-            plugins: hasDL() ? [window.ChartDataLabels] : [],
-        });
-    }
-
-    // ─── Destinos charts ───────────────────────────────────────
-    function renderDestinosChart() {
-        const ctx = $('hidra-chart-destinos'); if (!ctx || typeof Chart === 'undefined') return;
-        const { byQ, byDestino } = aggregateDestinos(state.selectedYear, state.selectedPozo);
-        const destinos = [...byDestino.keys()].sort((a, b) => (byDestino.get(b) || 0) - (byDestino.get(a) || 0));
-
-        const quarterTotals = TRIMESTRES.map((_, qIdx) => {
-            const q = qIdx + 1;
-            return destinos.reduce((s, d) => s + (byQ.get(`Q${q}|${d}`) || 0), 0);
-        });
-
-        const datasets = destinos.map((d, i) => ({
-            label: d,
-            data: TRIMESTRES.map((_, qIdx) => byQ.get(`Q${qIdx + 1}|${d}`) || 0),
-            backgroundColor: destinoColor(d, i),
-            borderColor: '#fff', borderWidth: 1.5, borderRadius: 2,
-            stack: 'd0', maxBarThickness: 80,
-        }));
-
-        const totalsDs = {
-            label: '__totals__',
-            data: quarterTotals.map(() => 0),
-            backgroundColor: 'rgba(0,0,0,0)',
-            borderWidth: 0, stack: 'd0',
-            datalabels: hasDL() ? {
-                display: ctx => quarterTotals[ctx.dataIndex] > 0,
-                anchor: 'end', align: 'end', offset: 4,
-                color: '#0f172a', font: { weight: '700', size: 12 },
-                formatter: (_, ctx) => fmtCompact(quarterTotals[ctx.dataIndex]),
-            } : undefined,
-        };
-
-        destroyChart('destStacked');
-        charts.destStacked = new Chart(ctx.getContext('2d'), {
-            type: 'bar',
-            data: { labels: TRIMESTRES, datasets: [...datasets, totalsDs] },
-            options: {
-                responsive: true, maintainAspectRatio: false,
-                layout: { padding: { top: 24 } },
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: {
-                            boxWidth: 14, padding: 10, font: { size: 12 },
-                            filter: item => item.text !== '__totals__',
-                        },
-                    },
-                    tooltip: {
-                        filter: item => item.dataset.label !== '__totals__',
-                        callbacks: {
-                            label: c => {
-                                const tot = quarterTotals[c.dataIndex] || 1;
-                                return ` ${c.dataset.label}: ${fmt(c.parsed.y)} m³ (${fmtPct((c.parsed.y / tot) * 100)})`;
-                            },
-                        },
-                    },
-                    datalabels: hasDL() ? {
-                        color: '#fff', font: { weight: '700', size: 11 },
-                        textStrokeColor: 'rgba(0,0,0,.45)', textStrokeWidth: 2,
-                        display: ctx => {
-                            if (ctx.dataset.label === '__totals__') return true;
-                            const v = ctx.dataset.data[ctx.dataIndex] || 0;
-                            const tot = quarterTotals[ctx.dataIndex] || 1;
-                            return (v / tot) * 100 >= 8;
-                        },
-                        formatter: (v, ctx) => {
-                            if (ctx.dataset.label === '__totals__') {
-                                return quarterTotals[ctx.dataIndex] > 0 ? fmtCompact(quarterTotals[ctx.dataIndex]) : '';
-                            }
-                            const tot = quarterTotals[ctx.dataIndex] || 1;
-                            return fmtPct((v / tot) * 100);
-                        },
-                    } : undefined,
-                },
-                scales: {
-                    x: { stacked: true, grid: { display: false } },
-                    y: { stacked: true, beginAtZero: true, ticks: { callback: v => fmtCompact(v) }, grid: { color: '#eef2f7' } },
-                },
-            },
-            plugins: hasDL() ? [window.ChartDataLabels] : [],
-        });
-    }
-
-    function renderDestinosDoughnut() {
-        const ctx = $('hidra-chart-destinos-pie'); if (!ctx || typeof Chart === 'undefined') return;
-        const { byDestino } = aggregateDestinos(state.selectedYear, state.selectedPozo);
-        const entries = [...byDestino.entries()].sort((a, b) => b[1] - a[1]);
-        destroyChart('destDoughnut');
-        if (!entries.length) {
-            // pinta vac\u00edo
-            charts.destDoughnut = new Chart(ctx.getContext('2d'), {
-                type: 'doughnut',
-                data: { labels: ['Sin datos'], datasets: [{ data: [1], backgroundColor: ['#e2e8f0'], borderWidth: 0 }] },
-                options: { responsive: true, maintainAspectRatio: false, cutout: '62%', plugins: { legend: { display: false }, tooltip: { enabled: false } } },
-            });
-            const totEl = $('hidra-dest-total'); if (totEl) totEl.textContent = '0 m³';
-            const listEl = $('hidra-dest-list'); if (listEl) listEl.innerHTML = '<div class="text-muted small">Sin registros para este año.</div>';
-            return;
-        }
-        const total = entries.reduce((s, [, v]) => s + v, 0) || 1;
-        charts.destDoughnut = new Chart(ctx.getContext('2d'), {
-            type: 'doughnut',
-            data: {
-                labels: entries.map(e => e[0]),
-                datasets: [{
-                    data: entries.map(e => e[1]),
-                    backgroundColor: entries.map((e, i) => destinoColor(e[0], i)),
-                    borderColor: '#fff', borderWidth: 2, hoverOffset: 8,
-                }],
-            },
-            options: {
-                responsive: true, maintainAspectRatio: false, cutout: '62%',
-                plugins: {
-                    legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 }, padding: 10 } },
-                    tooltip: {
-                        callbacks: {
-                            label: c => ` ${c.label}: ${fmt(c.parsed)} m³ (${fmtPct((c.parsed / total) * 100)})`,
-                        },
-                    },
+                    tooltip: { callbacks: { label: c => ` ${c.label}: ${fmt(c.parsed)} m³ (${fmtPct(c.parsed / total * 100)})` } },
                     datalabels: hasDL() ? {
                         color: '#fff', font: { weight: '700', size: 12 },
-                        textStrokeColor: 'rgba(0,0,0,.4)', textStrokeWidth: 2,
-                        formatter: v => {
-                            const pct = (v / total) * 100;
-                            return pct >= 4 ? fmtPct(pct) : '';
-                        },
+                        textStrokeColor: 'rgba(0,0,0,.35)', textStrokeWidth: 2,
+                        formatter: (v) => { const p = (v / total) * 100; return p >= 4 ? fmtPct(p) : ''; },
                     } : undefined,
                 },
             },
             plugins: hasDL() ? [window.ChartDataLabels] : [],
         });
+    }
 
-        // panel lateral con cifras totales
-        const totEl = $('hidra-dest-total');
-        if (totEl) totEl.textContent = `${fmt(total)} m³`;
-        const listEl = $('hidra-dest-list');
-        if (listEl) {
-            listEl.innerHTML = entries.map(([d, v], i) => {
-                const pct = (v / total) * 100;
-                const color = destinoColor(d, i);
-                return `<div class="d-flex justify-content-between align-items-center py-1 border-bottom">
-                    <span><span class="d-inline-block me-2" style="width:10px;height:10px;border-radius:2px;background:${color};"></span>${escapeHtml(d)}</span>
-                    <span class="fw-bold">${fmt(v)} <small class="text-muted">m³ · ${fmtPct(pct)}</small></span>
-                </div>`;
+    function renderYoyChart() {
+        const ctx = $('hidra-chart-yoy'); if (!ctx || typeof Chart === 'undefined') return;
+        const yoyPalette = ['#2f6fb5', '#e07a3c', '#10b981', '#8b5cf6', '#f59e0b', '#ef4444'];
+        const years = state.years.slice(0, 6);
+        const ds = years.map((y, i) => ({
+            label: String(y),
+            data: nullifyFutureMonths(aggregateMonthlyForYear(y, state.selectedPozo), y),
+            backgroundColor: yoyPalette[i % yoyPalette.length],
+            borderWidth: 0, borderRadius: 3, categoryPercentage: 0.78, barPercentage: 0.92,
+        }));
+        destroyChart('yoy');
+        charts.yoy = new Chart(ctx.getContext('2d'), {
+            type: 'bar',
+            data: { labels: MES_NOMBRES_CORTOS, datasets: ds },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                layout: { padding: { top: 22 } },
+                plugins: {
+                    legend: { position: 'bottom', labels: { boxWidth: 14, font: { size: 12 } } },
+                    tooltip: { callbacks: { label: c => ` ${c.dataset.label}: ${fmt(c.parsed.y)} m³` } },
+                    datalabels: hasDL() ? {
+                        anchor: 'end', align: 'end', offset: 2, rotation: -90,
+                        font: { size: 10, weight: '600' }, color: '#475569',
+                        formatter: v => v ? fmtCompact(v) : '',
+                    } : undefined,
+                },
+                scales: {
+                    y: { beginAtZero: true, ticks: { callback: v => fmtCompact(v) }, grid: { color: '#eef2f7' } },
+                    x: { grid: { display: false } },
+                },
+            },
+            plugins: hasDL() ? [window.ChartDataLabels] : [],
+        });
+    }
+
+    function renderTotalsTables() {
+        const y = state.selectedYear;
+        // Extracción por pozo (matriz)
+        const head = $('hidra-total-extraccion-head');
+        if (head) head.innerHTML = `<th>Pozo</th>${MES_NOMBRES_CORTOS.map(m => `<th>${m}</th>`).join('')}<th>Total</th>`;
+        const colTotals = new Array(12).fill(0); let grand = 0;
+        const tbody = $('hidra-total-extraccion-tbody');
+        if (tbody) {
+            const rowsHtml = state.pozos.map(p => {
+                const months = aggregateMonthlyForYear(y, p);
+                const tot = sum(months); grand += tot;
+                months.forEach((v, i) => colTotals[i] += v);
+                if (tot === 0) return '';
+                return `<tr><td>${escapeHtml(p)}</td>${months.map(v => `<td>${fmt2(v)}</td>`).join('')}<td>${fmt2(tot)}</td></tr>`;
             }).join('');
+            tbody.innerHTML = rowsHtml || `<tr><td colspan="14" class="text-center text-muted">Sin datos para ${y}.</td></tr>`;
         }
+        const foot = $('hidra-total-extraccion-foot');
+        if (foot) foot.innerHTML = `<td>Total</td>${colTotals.map(v => `<td>${fmt2(v)}</td>`).join('')}<td>${fmt2(grand)}</td>`;
+
+        // Suministro PAAP (matriz: meses en columnas, filas Primaria/Secundaria/Total)
+        const priM = paapMonthlyField(y, 'primaria_m3');
+        const secM = paapMonthlyField(y, 'secundaria_m3');
+        const totM = priM.map((v, i) => v + secM[i]);
+        const paapAnual = sum(totM);
+        setText('hidra-total-paap-anio', y);
+        const pHead = $('hidra-total-paap-head');
+        if (pHead) pHead.innerHTML = `<th>PAAP</th>${MES_NOMBRES_LARGOS.map(m => `<th>${m}</th>`).join('')}<th>Total</th>`;
+        const pBody = $('hidra-total-paap-tbody');
+        if (pBody) {
+            pBody.innerHTML =
+                `<tr><th class="hidra-paap-row-pri">PAAP Primaria</th>${priM.map(v => `<td>${fmt2(v)}</td>`).join('')}<td>${fmt2(sum(priM))}</td></tr>` +
+                `<tr><th class="hidra-paap-row-sec">PAAP Secundaria</th>${secM.map(v => `<td>${fmt2(v)}</td>`).join('')}<td>${fmt2(sum(secM))}</td></tr>` +
+                `<tr class="fw-bold"><th>Total mensual</th>${totM.map(v => `<td>${fmt2(v)}</td>`).join('')}<td>${fmt2(paapAnual)}</td></tr>`;
+        }
+        const pFoot = $('hidra-total-paap-foot');
+        if (pFoot) pFoot.innerHTML =
+            `<tr class="fw-bold"><td colspan="13" class="text-center">Volumen Total Anual de suministro de agua potable al Polígono Aeroportuario (m³)</td><td>${fmt2(paapAnual)}</td></tr>`;
     }
 
     function renderDashboard() {
-        renderKpis();
+        renderMonthlyPanel();
+        renderAnnualPanel();
         renderQuarterlyKpis();
-        renderMonthlyChart();
-        renderYoyChart();
-        renderPozosChart();
         renderPerPozoChart();
-        renderQuarterChart();
-        renderDestinosChart();
-        renderDestinosDoughnut();
         renderCumulativeChart();
+        renderPozosChart();
+        renderYoyChart();
+        renderTotalsTables();
     }
 
-    // ─── Editor diario ─────────────────────────────────────────
-    async function loadEditorRows() {
-        const tbody = $('hidra-edit-tbody'); if (!tbody) return;
-        const status = $('hidra-edit-status');
-        const y = state.editYear, m = state.editMonth, pozo = state.editPozo.trim();
+    // ─── Editor de captura por DÍA ─────────────────────────────
+    //   Un día → 10 pozos (Cd. Militar + AIFA c/u) + PAAP + PTAR.
+    function updateCapQuarterBadge() {
+        const m = Number(state.capMonth) || 1;
+        const q = quarterOfMonth(m);
+        setText('hidra-cap-quarter-badge', `Q${q} · ${QUARTER_LABELS[q - 1]}`);
+    }
 
-        if (!y || !m || !pozo) {
-            tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-4">Selecciona año, mes y pozo, y haz clic en <strong>Cargar</strong>.</td></tr>';
+    async function loadDayEditor() {
+        const tbody = $('hidra-cap-pozos-tbody'); if (!tbody) return;
+        const status = $('hidra-cap-status');
+        const y = state.capYear, m = state.capMonth, d = state.capDay;
+        updateCapQuarterBadge();
+        if (!y || !m || !d) {
+            tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-4">Selecciona año, mes y día, y haz clic en <strong>Cargar</strong>.</td></tr>';
             return;
         }
-
         if (status) status.textContent = 'Cargando…';
         tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3"><i class="fas fa-spinner fa-spin"></i> Cargando…</td></tr>';
-
         try {
             const client = await getClient();
             if (!client) throw new Error('Supabase no disponible');
-            const { data, error } = await client
-                .from(TBL_DIARIA)
-                .select('id,anio,mes,dia,pozo,volumen_m3,observaciones')
-                .eq('anio', y).eq('mes', m).eq('pozo', pozo);
-            if (error) throw error;
+            const [exRes, paapRes, ptarRes] = await Promise.all([
+                client.from(TBL_DIARIA).select('id,pozo,cd_militar_m3,aifa_m3,observaciones').eq('anio', y).eq('mes', m).eq('dia', d),
+                client.from(TBL_PAAP).select('id,primaria_m3,secundaria_m3,observaciones').eq('anio', y).eq('mes', m).eq('dia', d),
+                client.from(TBL_PTAR).select('id,a1_m3,a2_m3,a3_m3,observaciones').eq('anio', y).eq('mes', m).eq('dia', d),
+            ]);
+            if (exRes.error) throw exRes.error;
+            if (paapRes.error) throw paapRes.error;
+            if (ptarRes.error) throw ptarRes.error;
 
-            const map = new Map();
-            for (const r of (data || [])) map.set(r.dia, r);
-
-            const dim = daysInMonth(y, m);
-            const rows = [];
-            for (let d = 1; d <= dim; d++) {
-                const r = map.get(d);
-                rows.push({
-                    day: d,
-                    fecha: `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`,
-                    volumen_m3:    r ? Number(r.volumen_m3) : '',
-                    observaciones: r ? (r.observaciones || '') : '',
+            const exMap = new Map();
+            for (const r of (exRes.data || [])) exMap.set(String(r.pozo).trim(), r);
+            state.capPozos = POZOS_FIJOS.map(p => {
+                const r = exMap.get(p);
+                return {
+                    pozo: p,
+                    cd:   r ? Number(r.cd_militar_m3) : '',
+                    aifa: r ? Number(r.aifa_m3) : '',
+                    obs:  r ? (r.observaciones || '') : '',
                     _id:      r ? r.id : null,
-                    _origVol: r ? Number(r.volumen_m3) : '',
+                    _origCd:  r ? Number(r.cd_militar_m3) : '',
+                    _origAifa:r ? Number(r.aifa_m3) : '',
                     _origObs: r ? (r.observaciones || '') : '',
-                    _dirty: false,
-                });
-            }
-            state.editRows = rows;
-            renderEditor();
-            if (status) status.textContent = `${(data || []).length} días con dato.`;
-        } catch (err) {
-            console.error('[hidraulicas] loadEditorRows error:', err);
-            tbody.innerHTML = `<tr><td colspan="4" class="text-center text-danger py-3">Error: ${err.message || err}</td></tr>`;
-            if (status) status.textContent = '';
-        }
-    }
+                };
+            });
 
-    function renderEditor() {
-        const tbody = $('hidra-edit-tbody'); if (!tbody) return;
-        const dim = state.editRows.length;
-        $('hidra-edit-dias-mes').textContent = dim;
-        const html = state.editRows.map(r => {
-            const we = (() => {
-                const d = new Date(state.editYear, state.editMonth - 1, r.day).getDay();
-                return d === 0 || d === 6;
-            })();
-            return `<tr class="${we ? 'hidra-weekend' : ''}" data-day="${r.day}">
-                <td class="text-center fw-bold">${r.day}</td>
-                <td class="text-muted small">${r.fecha}</td>
-                <td>
-                    <input type="number" step="0.01" min="0" class="form-control form-control-sm hidra-input-vol"
-                           value="${r.volumen_m3 === '' ? '' : r.volumen_m3}" placeholder="0">
-                </td>
-                <td>
-                    <input type="text" class="form-control form-control-sm hidra-input-obs"
-                           value="${escapeHtml(r.observaciones)}" placeholder="—">
-                </td>
-            </tr>`;
-        }).join('');
-        tbody.innerHTML = html;
-        attachEditorInputs();
-        recalcEditorTotals();
-    }
-
-    function escapeHtml(s) {
-        return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-    }
-
-    function attachEditorInputs() {
-        const tbody = $('hidra-edit-tbody'); if (!tbody) return;
-        tbody.querySelectorAll('tr[data-day]').forEach(tr => {
-            const day = Number(tr.dataset.day);
-            const row = state.editRows.find(r => r.day === day); if (!row) return;
-            const vol = tr.querySelector('.hidra-input-vol');
-            const obs = tr.querySelector('.hidra-input-obs');
-            const markDirty = () => {
-                const newVol = vol.value === '' ? '' : Number(vol.value);
-                const newObs = obs.value;
-                row.volumen_m3   = newVol;
-                row.observaciones = newObs;
-                const dirty = (String(row._origVol) !== String(row.volumen_m3)) || (row._origObs !== row.observaciones);
-                row._dirty = dirty;
-                vol.classList.toggle('hidra-changed', dirty);
-                obs.classList.toggle('hidra-changed', dirty);
-                recalcEditorTotals();
+            const pr = (paapRes.data || [])[0] || null;
+            state.capPaap = {
+                primaria:   pr ? Number(pr.primaria_m3) : '',
+                secundaria: pr ? Number(pr.secundaria_m3) : '',
+                _id: pr ? pr.id : null,
+                _origPri: pr ? Number(pr.primaria_m3) : '',
+                _origSec: pr ? Number(pr.secundaria_m3) : '',
             };
-            vol.addEventListener('input', markDirty);
-            obs.addEventListener('input', markDirty);
-        });
-    }
+            const tr = (ptarRes.data || [])[0] || null;
+            state.capPtar = {
+                a1: tr ? Number(tr.a1_m3) : '',
+                a2: tr ? Number(tr.a2_m3) : '',
+                a3: tr ? Number(tr.a3_m3) : '',
+                _id: tr ? tr.id : null,
+                _origA1: tr ? Number(tr.a1_m3) : '',
+                _origA2: tr ? Number(tr.a2_m3) : '',
+                _origA3: tr ? Number(tr.a3_m3) : '',
+            };
 
-    function recalcEditorTotals() {
-        let totalMes = 0, dias = 0;
-        for (const r of state.editRows) {
-            if (r.volumen_m3 === '' || r.volumen_m3 === null) continue;
-            const v = Number(r.volumen_m3);
-            if (!isFinite(v) || v < 0) continue;
-            totalMes += v; dias++;
-        }
-        // acumulado del año = sum de las 12 columnas mensuales del pozo seleccionado,
-        // reemplazando el mes actual por el total del editor.
-        const pozo = state.editPozo.trim();
-        let savedYearForPozo = 0, savedMonthForPozo = 0;
-        for (const r of getRowsByYear(state.editYear)) {
-            if (rowPozo(r) !== pozo) continue;
-            const months = rowMonths(r);
-            for (let i = 0; i < 12; i++) savedYearForPozo += months[i];
-            savedMonthForPozo += months[state.editMonth - 1];
-        }
-        const acumAnio = savedYearForPozo - savedMonthForPozo + totalMes;
-        $('hidra-edit-total-mes').textContent = fmt(totalMes);
-        $('hidra-edit-total-anio').textContent = fmt(acumAnio);
-        $('hidra-edit-dias-llenos').textContent = dias;
-    }
-
-    /** Suma todos los días en la tabla diaria para (anio,mes,pozo) y escribe la celda mensual. */
-    async function syncMonthlyCell(client, year, month, pozo) {
-        // 1) suma desde diaria
-        const { data, error } = await client
-            .from(TBL_DIARIA)
-            .select('volumen_m3')
-            .eq('anio', year).eq('mes', month).eq('pozo', pozo);
-        if (error) throw error;
-        const total = (data || []).reduce((a, r) => a + (Number(r.volumen_m3) || 0), 0);
-        const monthCol = MES_NOMBRES_LARGOS[month - 1];
-        const valStr = total.toFixed(2); // guardamos como string sin comas
-
-        // 2) ¿existe la fila ancha (POZO, Año)?
-        const { data: existing, error: selErr } = await client
-            .from(TBL_MENSUAL)
-            .select('POZO,Año')
-            .eq('POZO', pozo).eq('Año', year);
-        if (selErr) throw selErr;
-
-        if (existing && existing.length) {
-            const upd = {}; upd[monthCol] = valStr;
-            const { error: upErr } = await client
-                .from(TBL_MENSUAL)
-                .update(upd)
-                .eq('POZO', pozo).eq('Año', year);
-            if (upErr) throw upErr;
-        } else {
-            const ins = { POZO: pozo, 'Año': year }; ins[monthCol] = valStr;
-            const { error: insErr } = await client.from(TBL_MENSUAL).insert(ins);
-            if (insErr) throw insErr;
-        }
-    }
-
-    async function saveEditor() {
-        const status = $('hidra-edit-status');
-        const dirty = state.editRows.filter(r => r._dirty);
-        if (!state.editYear || !state.editMonth || !state.editPozo.trim()) {
-            if (status) status.textContent = 'Selecciona año, mes y pozo.';
-            return;
-        }
-        if (!dirty.length) { if (status) status.textContent = 'Sin cambios.'; return; }
-
-        const client = await getClient();
-        if (!client) { if (status) status.textContent = 'Supabase no disponible'; return; }
-
-        const toUpsert = [];
-        const toDelete = [];
-        for (const r of dirty) {
-            const isEmpty = r.volumen_m3 === '' || r.volumen_m3 === null;
-            if (isEmpty && r._id) {
-                toDelete.push(r._id);
-            } else if (!isEmpty) {
-                toUpsert.push({
-                    anio: state.editYear,
-                    mes:  state.editMonth,
-                    dia:  r.day,
-                    pozo: state.editPozo.trim(),
-                    volumen_m3: Number(r.volumen_m3) || 0,
-                    observaciones: r.observaciones ? String(r.observaciones).trim() : null,
-                });
-            }
-        }
-
-        if (status) status.textContent = `Guardando ${dirty.length} cambios…`;
-        try {
-            if (toDelete.length) {
-                const { error } = await client.from(TBL_DIARIA).delete().in('id', toDelete);
-                if (error) throw error;
-            }
-            if (toUpsert.length) {
-                const { error } = await client
-                    .from(TBL_DIARIA)
-                    .upsert(toUpsert, { onConflict: 'anio,mes,dia,pozo' });
-                if (error) throw error;
-            }
-
-            // Recalcula la celda mensual en la tabla ancha
-            await syncMonthlyCell(client, state.editYear, state.editMonth, state.editPozo.trim());
-
-            if (status) status.textContent = `Guardado · ${dirty.length} cambios. Mensual recalculado.`;
-
-            // Refrescar dashboard con la fila ancha actualizada
-            state.loaded = false;
-            await loadAll(true);
-            populateYearSelect('hidra-filter-year', state.selectedYear);
-            populatePozoSelect('hidra-filter-pozo', true);
-            populateYearSelect('hidra-edit-year', state.editYear);
-            populatePozoSelect('hidra-edit-pozo', false);
-            renderDashboard();
-            await loadEditorRows();
+            renderDayEditor();
+            const conDato = state.capPozos.filter(p => p._id).length;
+            if (status) status.textContent = `${conDato} pozos con dato · ${pr ? 'PAAP ✔' : 'PAAP —'} · ${tr ? 'PTAR ✔' : 'PTAR —'}`;
         } catch (err) {
-            console.error('[hidraulicas] saveEditor error:', err);
-            if (status) status.textContent = 'Error al guardar: ' + (err.message || err);
-        }
-    }
-
-    // ─── Editor DESTINOS (trimestral) ──────────────────────────
-    function destinoRowKey(r) {
-        return `${r.destino}`.toLowerCase();
-    }
-
-    async function loadEditorDestinos() {
-        const tbody = $('hidra-dest-edit-tbody'); if (!tbody) return;
-        const status = $('hidra-dest-edit-status');
-        const y = state.editDestYear, q = state.editDestQuarter, pozo = state.editDestPozo.trim();
-
-        if (!y || !q || !pozo) {
-            tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-4">Selecciona año, trimestre y pozo, y haz clic en <strong>Cargar</strong>.</td></tr>';
-            return;
-        }
-        if (status) status.textContent = 'Cargando…';
-
-        try {
-            const client = await getClient();
-            if (!client) throw new Error('Supabase no disponible');
-            const { data, error } = await client
-                .from(TBL_DESTINOS)
-                .select('id,anio,trimestre,pozo,destino,volumen_m3,observaciones')
-                .eq('anio', y).eq('trimestre', q).eq('pozo', pozo);
-            if (error) throw error;
-
-            const map = new Map();
-            for (const r of (data || [])) map.set(String(r.destino).toLowerCase(), r);
-
-            const rows = [];
-            // Garantiza filas para los destinos preset
-            for (const dest of DESTINOS_PRESET) {
-                const r = map.get(dest.toLowerCase());
-                rows.push({
-                    id: r ? r.id : null,
-                    destino: dest,
-                    volumen_m3:    r ? Number(r.volumen_m3) : '',
-                    observaciones: r ? (r.observaciones || '') : '',
-                    _orig: { vol: r ? Number(r.volumen_m3) : '', obs: r ? (r.observaciones || '') : '', destino: dest },
-                    _dirty: false, _new: !r, _del: false, _preset: true,
-                });
-                map.delete(dest.toLowerCase());
-            }
-            // Otros destinos personalizados ya guardados
-            for (const r of map.values()) {
-                rows.push({
-                    id: r.id,
-                    destino: r.destino,
-                    volumen_m3: Number(r.volumen_m3),
-                    observaciones: r.observaciones || '',
-                    _orig: { vol: Number(r.volumen_m3), obs: r.observaciones || '', destino: r.destino },
-                    _dirty: false, _new: false, _del: false, _preset: false,
-                });
-            }
-            state.editDestRows = rows;
-            renderEditorDestinos();
-            if (status) status.textContent = `${(data || []).length} destinos con dato.`;
-        } catch (err) {
-            console.error('[hidraulicas] loadEditorDestinos error:', err);
+            console.error('[hidraulicas] loadDayEditor error:', err);
             tbody.innerHTML = `<tr><td colspan="4" class="text-center text-danger py-3">Error: ${err.message || err}</td></tr>`;
             if (status) status.textContent = '';
         }
     }
 
-    function renderEditorDestinos() {
-        const tbody = $('hidra-dest-edit-tbody'); if (!tbody) return;
-        const html = state.editDestRows.filter(r => !r._del).map((r, idx) => {
-            const destInput = r._preset
-                ? `<input type="text" class="form-control form-control-sm" value="${escapeHtml(r.destino)}" disabled>`
-                : `<input type="text" class="form-control form-control-sm hidra-dest-input-name" data-idx="${idx}" value="${escapeHtml(r.destino)}" placeholder="Otro destino">`;
-            const delBtn = r._preset
-                ? ''
-                : `<button type="button" class="btn btn-sm btn-outline-danger hidra-dest-row-del" data-idx="${idx}" title="Quitar"><i class="fas fa-times"></i></button>`;
-            return `<tr data-idx="${idx}">
-                <td>${destInput}</td>
-                <td>
-                    <input type="number" step="0.01" min="0" class="form-control form-control-sm hidra-dest-input-vol" data-idx="${idx}"
-                           value="${r.volumen_m3 === '' ? '' : r.volumen_m3}" placeholder="0">
-                </td>
-                <td>
-                    <input type="text" class="form-control form-control-sm hidra-dest-input-obs" data-idx="${idx}"
-                           value="${escapeHtml(r.observaciones)}" placeholder="—">
-                </td>
-                <td class="text-end">${delBtn}</td>
+    function renderDayEditor() {
+        const tbody = $('hidra-cap-pozos-tbody'); if (!tbody) return;
+        tbody.innerHTML = state.capPozos.map(r => {
+            const tot = (Number(r.cd) || 0) + (Number(r.aifa) || 0);
+            return `<tr data-pozo="${escapeHtml(r.pozo)}">
+                <td class="fw-bold">${escapeHtml(r.pozo)}</td>
+                <td><input type="number" step="0.01" min="0" class="form-control form-control-sm hidra-cap-cd" value="${r.cd === '' ? '' : r.cd}" placeholder="0"></td>
+                <td><input type="number" step="0.01" min="0" class="form-control form-control-sm hidra-cap-aifa" value="${r.aifa === '' ? '' : r.aifa}" placeholder="0"></td>
+                <td class="text-end fw-semibold hidra-cap-row-total">${fmt(tot)}</td>
             </tr>`;
         }).join('');
-        tbody.innerHTML = html;
-        attachEditorDestinosInputs();
-        recalcDestinosTotal();
+        // PAAP / PTAR inputs
+        if ($('hidra-cap-paap-primaria'))   $('hidra-cap-paap-primaria').value   = state.capPaap.primaria === '' ? '' : state.capPaap.primaria;
+        if ($('hidra-cap-paap-secundaria')) $('hidra-cap-paap-secundaria').value = state.capPaap.secundaria === '' ? '' : state.capPaap.secundaria;
+        if ($('hidra-cap-ptar-a1')) $('hidra-cap-ptar-a1').value = state.capPtar.a1 === '' ? '' : state.capPtar.a1;
+        if ($('hidra-cap-ptar-a2')) $('hidra-cap-ptar-a2').value = state.capPtar.a2 === '' ? '' : state.capPtar.a2;
+        if ($('hidra-cap-ptar-a3')) $('hidra-cap-ptar-a3').value = state.capPtar.a3 === '' ? '' : state.capPtar.a3;
+        attachCapInputs();
+        recalcCapTotals();
     }
 
-    function recalcDestinosTotal() {
-        const total = state.editDestRows
-            .filter(r => !r._del)
-            .reduce((s, r) => s + (Number(r.volumen_m3) || 0), 0);
-        const el = $('hidra-dest-edit-total'); if (el) el.textContent = fmt(total);
-    }
-
-    function attachEditorDestinosInputs() {
-        const tbody = $('hidra-dest-edit-tbody'); if (!tbody) return;
-        tbody.querySelectorAll('input').forEach(inp => {
-            inp.addEventListener('input', () => {
-                const idx = Number(inp.dataset.idx); if (Number.isNaN(idx)) return;
-                const row = state.editDestRows[idx]; if (!row) return;
-                if (inp.classList.contains('hidra-dest-input-vol')) row.volumen_m3 = inp.value === '' ? '' : Number(inp.value);
-                else if (inp.classList.contains('hidra-dest-input-obs')) row.observaciones = inp.value;
-                else if (inp.classList.contains('hidra-dest-input-name')) row.destino = inp.value.trim();
-                row._dirty = (
-                    String(row._orig.vol) !== String(row.volumen_m3) ||
-                    row._orig.obs !== row.observaciones ||
-                    row._orig.destino !== row.destino
-                );
-                inp.classList.toggle('hidra-changed', row._dirty);
-                recalcDestinosTotal();
+    function attachCapInputs() {
+        const tbody = $('hidra-cap-pozos-tbody'); if (!tbody) return;
+        tbody.querySelectorAll('tr[data-pozo]').forEach(tr => {
+            const pozo = tr.dataset.pozo;
+            const row = state.capPozos.find(r => r.pozo === pozo); if (!row) return;
+            const cd   = tr.querySelector('.hidra-cap-cd');
+            const aifa = tr.querySelector('.hidra-cap-aifa');
+            const onIn = () => {
+                row.cd   = cd.value   === '' ? '' : Number(cd.value);
+                row.aifa = aifa.value === '' ? '' : Number(aifa.value);
+                const dirty = (String(row._origCd) !== String(row.cd)) || (String(row._origAifa) !== String(row.aifa));
+                cd.classList.toggle('hidra-changed', dirty);
+                aifa.classList.toggle('hidra-changed', dirty);
+                tr.querySelector('.hidra-cap-row-total').textContent = fmt((Number(row.cd) || 0) + (Number(row.aifa) || 0));
+                recalcCapTotals();
+            };
+            cd.addEventListener('input', onIn);
+            aifa.addEventListener('input', onIn);
+        });
+        const bindNum = (id, obj, key, origKey) => {
+            const el = $(id); if (!el) return;
+            el.addEventListener('input', () => {
+                obj[key] = el.value === '' ? '' : Number(el.value);
+                el.classList.toggle('hidra-changed', String(obj[origKey]) !== String(obj[key]));
+                recalcCapTotals();
             });
-        });
-        tbody.querySelectorAll('.hidra-dest-row-del').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const idx = Number(btn.dataset.idx); if (Number.isNaN(idx)) return;
-                const row = state.editDestRows[idx]; if (!row) return;
-                if (row._new) {
-                    state.editDestRows.splice(idx, 1);
-                } else {
-                    row._del = true;
-                    row._dirty = true;
-                }
-                renderEditorDestinos();
-            });
-        });
+        };
+        bindNum('hidra-cap-paap-primaria',   state.capPaap, 'primaria',   '_origPri');
+        bindNum('hidra-cap-paap-secundaria', state.capPaap, 'secundaria', '_origSec');
+        bindNum('hidra-cap-ptar-a1', state.capPtar, 'a1', '_origA1');
+        bindNum('hidra-cap-ptar-a2', state.capPtar, 'a2', '_origA2');
+        bindNum('hidra-cap-ptar-a3', state.capPtar, 'a3', '_origA3');
     }
 
-    function addEditorDestinoRow() {
-        state.editDestRows.push({
-            id: null, destino: '', volumen_m3: '', observaciones: '',
-            _orig: { vol: '', obs: '', destino: '' },
-            _dirty: true, _new: true, _del: false, _preset: false,
-        });
-        renderEditorDestinos();
+    function recalcCapTotals() {
+        let cd = 0, aifa = 0, pozosConDato = 0;
+        for (const r of state.capPozos) {
+            const hasAny = (r.cd !== '' && r.cd !== null) || (r.aifa !== '' && r.aifa !== null);
+            cd += Number(r.cd) || 0; aifa += Number(r.aifa) || 0;
+            if (hasAny) pozosConDato++;
+        }
+        setText('hidra-cap-total-cdmilitar', fmt(cd));
+        setText('hidra-cap-total-aifa', fmt(aifa));
+        setText('hidra-cap-total-dia', fmt(cd + aifa));
+        setText('hidra-cap-pozos-con-dato', pozosConDato);
+
+        const paapTot = (Number(state.capPaap?.primaria) || 0) + (Number(state.capPaap?.secundaria) || 0);
+        setText('hidra-cap-paap-total', fmt(paapTot));
+        const ptarTot = (Number(state.capPtar?.a1) || 0) + (Number(state.capPtar?.a2) || 0) + (Number(state.capPtar?.a3) || 0);
+        setText('hidra-cap-ptar-total', fmt(ptarTot));
     }
 
-    async function saveEditorDestinos() {
-        const status = $('hidra-dest-edit-status');
-        const y = state.editDestYear, q = state.editDestQuarter, pozo = state.editDestPozo.trim();
-        if (!y || !q || !pozo) { if (status) status.textContent = 'Selecciona año, trimestre y pozo.'; return; }
-
-        const dirty = state.editDestRows.filter(r => r._dirty);
-        if (!dirty.length) { if (status) status.textContent = 'Sin cambios.'; return; }
-
+    async function saveDayEditor() {
+        const status = $('hidra-cap-status');
+        const y = state.capYear, m = state.capMonth, d = state.capDay;
+        if (!y || !m || !d) { if (status) status.textContent = 'Selecciona año, mes y día.'; return; }
         const client = await getClient();
         if (!client) { if (status) status.textContent = 'Supabase no disponible'; return; }
 
-        const toUpsert = [];
-        const toDelete = [];
-        for (const r of dirty) {
-            if (r._del && r.id) { toDelete.push(r.id); continue; }
-            if (!r.destino || !String(r.destino).trim()) continue;
-            const vol = Number(r.volumen_m3);
-            if (r.volumen_m3 === '' || r.volumen_m3 === null) {
-                if (r.id) { toDelete.push(r.id); }
-                continue;
+        // ── Extracción por pozo ──
+        const exUpsert = [], exDelete = [];
+        for (const r of state.capPozos) {
+            const cd = r.cd, aifa = r.aifa;
+            const changed = (String(r._origCd) !== String(cd)) || (String(r._origAifa) !== String(aifa));
+            const isEmpty = (cd === '' || cd === null) && (aifa === '' || aifa === null);
+            if (!changed) continue;
+            if (isEmpty && r._id) { exDelete.push(r._id); }
+            else if (!isEmpty) {
+                const vcd = Number(cd) || 0, vai = Number(aifa) || 0;
+                exUpsert.push({
+                    anio: y, mes: m, dia: d, pozo: r.pozo,
+                    cd_militar_m3: vcd, aifa_m3: vai, volumen_m3: vcd + vai,
+                    observaciones: r.obs ? String(r.obs).trim() : null,
+                });
             }
-            toUpsert.push({
-                anio: y, trimestre: q, pozo,
-                destino: String(r.destino).trim(),
-                volumen_m3: isFinite(vol) ? vol : 0,
-                observaciones: r.observaciones ? String(r.observaciones).trim() : null,
-            });
         }
 
-        if (status) status.textContent = `Guardando ${dirty.length} cambios…`;
+        // ── PAAP ──
+        const paap = state.capPaap || {};
+        const paapChanged = (String(paap._origPri) !== String(paap.primaria)) || (String(paap._origSec) !== String(paap.secundaria));
+        const paapEmpty = (paap.primaria === '' || paap.primaria === null) && (paap.secundaria === '' || paap.secundaria === null);
+
+        // ── PTAR ──
+        const ptar = state.capPtar || {};
+        const ptarChanged = (String(ptar._origA1) !== String(ptar.a1)) || (String(ptar._origA2) !== String(ptar.a2)) || (String(ptar._origA3) !== String(ptar.a3));
+        const ptarEmpty = (ptar.a1 === '' || ptar.a1 === null) && (ptar.a2 === '' || ptar.a2 === null) && (ptar.a3 === '' || ptar.a3 === null);
+
+        if (!exUpsert.length && !exDelete.length && !paapChanged && !ptarChanged) {
+            if (status) status.textContent = 'Sin cambios.'; return;
+        }
+        if (status) status.textContent = 'Guardando…';
         try {
-            if (toDelete.length) {
-                const { error } = await client.from(TBL_DESTINOS).delete().in('id', toDelete);
+            if (exDelete.length) {
+                const { error } = await client.from(TBL_DIARIA).delete().in('id', exDelete);
                 if (error) throw error;
             }
-            if (toUpsert.length) {
-                const { error } = await client.from(TBL_DESTINOS).upsert(toUpsert, { onConflict: 'anio,trimestre,pozo,destino' });
+            if (exUpsert.length) {
+                const { error } = await client.from(TBL_DIARIA).upsert(exUpsert, { onConflict: 'anio,mes,dia,pozo' });
                 if (error) throw error;
             }
-            if (status) status.textContent = `Guardado · ${dirty.length} cambios.`;
-            // Refrescar dashboard
-            await loadDestinos(true);
+            if (paapChanged) {
+                if (paapEmpty && paap._id) {
+                    const { error } = await client.from(TBL_PAAP).delete().eq('id', paap._id);
+                    if (error) throw error;
+                } else if (!paapEmpty) {
+                    const { error } = await client.from(TBL_PAAP).upsert({
+                        anio: y, mes: m, dia: d,
+                        primaria_m3:   Number(paap.primaria) || 0,
+                        secundaria_m3: Number(paap.secundaria) || 0,
+                    }, { onConflict: 'anio,mes,dia' });
+                    if (error) throw error;
+                }
+            }
+            if (ptarChanged) {
+                if (ptarEmpty && ptar._id) {
+                    const { error } = await client.from(TBL_PTAR).delete().eq('id', ptar._id);
+                    if (error) throw error;
+                } else if (!ptarEmpty) {
+                    const { error } = await client.from(TBL_PTAR).upsert({
+                        anio: y, mes: m, dia: d,
+                        a1_m3: Number(ptar.a1) || 0,
+                        a2_m3: Number(ptar.a2) || 0,
+                        a3_m3: Number(ptar.a3) || 0,
+                    }, { onConflict: 'anio,mes,dia' });
+                    if (error) throw error;
+                }
+            }
+            // Recargar todo desde el detalle diario y re-renderizar
+            if (status) status.textContent = `Guardado · ${MES_NOMBRES_LARGOS[m - 1]} ${d}, ${y}.`;
+            state.loaded = false; state.dailyLoaded = false; state.paapLoaded = false; state.ptarLoaded = false;
+            await loadAll(true);
+            refreshSelects();
             renderDashboard();
-            await loadEditorDestinos();
+            await loadDayEditor();
         } catch (err) {
-            console.error('[hidraulicas] saveEditorDestinos error:', err);
+            console.error('[hidraulicas] saveDayEditor error:', err);
             if (status) status.textContent = 'Error al guardar: ' + (err.message || err);
         }
     }
 
-    function populateQuarterSelect(id) {
-        const sel = $(id); if (!sel) return;
-        sel.innerHTML = TRIMESTRES.map((q, i) => `<option value="${i + 1}">${q} · ${['Ene-Mar','Abr-Jun','Jul-Sep','Oct-Dic'][i]}</option>`).join('');
+    // ─── Export Excel (SheetJS) ────────────────────────────────
+    function buildAndDownloadExcel() {
+        if (typeof XLSX === 'undefined') { setStatus('XLSX no disponible', 'err'); return; }
+        const y = state.selectedYear, mIdx = (state.selectedMonth || 1) - 1;
+        const extrM = aggregateMonthlyForYear(y, '');
+        const distM = distribMonthly(y), aifaM = aifaMonthly(y), cdmM = cdmilMonthly(y);
+        const wb = XLSX.utils.book_new();
+
+        // Hoja: Resumen anual
+        const aoaA = [
+            ['Resumen Anual del Aprovechamiento del Agua', y],
+            [],
+            ['', 'Extracción anual (m³)', 'Distribución anual (m³)', 'Demanda AIFA anual (m³)', 'Demanda Cd. Militar anual (m³)'],
+            ['Total', sum(extrM), sum(distM), sum(aifaM), sum(cdmM)],
+            [],
+            ['Mes', 'Trimestre', 'Extracción', 'Distribución', 'Demanda AIFA', 'Demanda Cd. Militar'],
+        ];
+        MES_NOMBRES_LARGOS.forEach((mn, i) => aoaA.push([mn, 'Q' + quarterOfMonth(i + 1), extrM[i], distM[i], aifaM[i], cdmM[i]]));
+        aoaA.push(['Total', '', sum(extrM), sum(distM), sum(aifaM), sum(cdmM)]);
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoaA), 'Resumen anual');
+
+        // Hoja: Mensual (mes seleccionado)
+        const aoaM = [
+            ['Datos del Aprovechamiento del Agua Mensual', MES_NOMBRES_LARGOS[mIdx], y],
+            [],
+            ['', 'Extracción mensual', 'Distribución mensual', 'Demanda AIFA mensual', 'Demanda Cd. Militar mensual'],
+            ['Total', extrM[mIdx], distM[mIdx], aifaM[mIdx], cdmM[mIdx]],
+            [],
+            ['Pozo', 'Extracción del mes (m³)', '% del total'],
+        ];
+        const pozoMonth = aggregateByPozoForMonth(y, mIdx);
+        const totMonth = pozoMonth.reduce((s, d) => s + d[1], 0) || 1;
+        pozoMonth.forEach(([p, v]) => aoaM.push([p, v, Number((v / totMonth * 100).toFixed(2))]));
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoaM), 'Mensual');
+
+        // Hoja: Extracción por pozo (matriz)
+        const aoaP = [['Pozo', ...MES_NOMBRES_CORTOS, 'Total']];
+        const colTot = new Array(12).fill(0); let grand = 0;
+        state.pozos.forEach(p => {
+            const months = aggregateMonthlyForYear(y, p);
+            const t = sum(months); grand += t;
+            months.forEach((v, i) => colTot[i] += v);
+            aoaP.push([p, ...months, t]);
+        });
+        aoaP.push(['Total', ...colTot, grand]);
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoaP), 'Extracción por pozo');
+
+        // Hoja: Distribución / demanda (PAAP + demanda por pozo)
+        const priM = paapMonthlyField(y, 'primaria_m3'), secM = paapMonthlyField(y, 'secundaria_m3');
+        const aoaD = [['Mes', 'Trimestre', 'PAAP Primaria', 'PAAP Secundaria', 'Distribución (PAAP)', 'Demanda AIFA', 'Demanda Cd. Militar']];
+        MES_NOMBRES_LARGOS.forEach((mn, i) => aoaD.push([mn, 'Q' + quarterOfMonth(i + 1), priM[i], secM[i], distM[i], aifaM[i], cdmM[i]]));
+        aoaD.push(['Total', '', sum(priM), sum(secM), sum(distM), sum(aifaM), sum(cdmM)]);
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoaD), 'Distribución');
+
+        // Hoja: Tratamiento PTAR
+        const a1M = ptarMonthlyField(y, 'a1_m3'), a2M = ptarMonthlyField(y, 'a2_m3'), a3M = ptarMonthlyField(y, 'a3_m3');
+        const aoaT = [['Mes', 'Trimestre', 'PTAR A1', 'PTAR A2', 'PTAR A3', 'Total PTAR']];
+        MES_NOMBRES_LARGOS.forEach((mn, i) => aoaT.push([mn, 'Q' + quarterOfMonth(i + 1), a1M[i], a2M[i], a3M[i], a1M[i] + a2M[i] + a3M[i]]));
+        aoaT.push(['Total', '', sum(a1M), sum(a2M), sum(a3M), sum(a1M) + sum(a2M) + sum(a3M)]);
+        XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoaT), 'Tratamiento PTAR');
+
+        XLSX.writeFile(wb, `Aprovechamiento_Agua_${y}.xlsx`);
     }
 
     // ─── Bindings ──────────────────────────────────────────────
-    let bound = false;
     function bind() {
         if (bound) return; bound = true;
 
@@ -1229,66 +1082,58 @@
             state.selectedYear = Number($('hidra-filter-year').value) || state.selectedYear;
             renderDashboard();
         });
+        $('hidra-filter-month')?.addEventListener('change', () => {
+            state.selectedMonth = Number($('hidra-filter-month').value) || state.selectedMonth;
+            renderMonthlyPanel();
+        });
         $('hidra-filter-pozo')?.addEventListener('change', () => {
             state.selectedPozo = $('hidra-filter-pozo').value || '';
             renderDashboard();
         });
         $('hidra-btn-refresh')?.addEventListener('click', async () => {
-            state.loaded = false;
-            state.destinosLoaded = false;
-            await Promise.all([loadAll(true), loadDestinos(true)]);
-            populateYearSelect('hidra-filter-year', state.selectedYear);
-            populatePozoSelect('hidra-filter-pozo', true);
-            populateYearSelect('hidra-edit-year', state.editYear);
-            populatePozoSelect('hidra-edit-pozo', false);
-            populateYearSelect('hidra-dest-edit-year', state.editDestYear);
-            populatePozoSelect('hidra-dest-edit-pozo', false);
+            state.loaded = false; state.dailyLoaded = false; state.paapLoaded = false; state.ptarLoaded = false;
+            await loadAll(true);
+            refreshSelects();
             renderDashboard();
         });
+        $('hidra-btn-export')?.addEventListener('click', buildAndDownloadExcel);
 
-        $('hidra-edit-load')?.addEventListener('click', () => {
-            state.editYear  = Number($('hidra-edit-year').value) || state.editYear;
-            state.editMonth = Number($('hidra-edit-month').value) || state.editMonth;
-            state.editPozo  = $('hidra-edit-pozo').value || '';
-            loadEditorRows();
+        // editor de captura por día
+        $('hidra-cap-month')?.addEventListener('change', () => {
+            state.capMonth = Number($('hidra-cap-month').value) || state.capMonth;
+            populateDaySelect('hidra-cap-day', state.capYear, state.capMonth, state.capDay);
+            updateCapQuarterBadge();
         });
-        $('hidra-edit-save')?.addEventListener('click', saveEditor);
-
-        // Destinos editor
-        $('hidra-dest-edit-load')?.addEventListener('click', () => {
-            state.editDestYear    = Number($('hidra-dest-edit-year').value) || state.editDestYear;
-            state.editDestQuarter = Number($('hidra-dest-edit-quarter').value) || state.editDestQuarter;
-            state.editDestPozo    = $('hidra-dest-edit-pozo').value || '';
-            loadEditorDestinos();
+        $('hidra-cap-year')?.addEventListener('change', () => {
+            state.capYear = Number($('hidra-cap-year').value) || state.capYear;
+            populateDaySelect('hidra-cap-day', state.capYear, state.capMonth, state.capDay);
         });
-        $('hidra-dest-edit-save')?.addEventListener('click', saveEditorDestinos);
-        $('hidra-dest-edit-add')?.addEventListener('click', addEditorDestinoRow);
+        $('hidra-cap-load')?.addEventListener('click', () => {
+            state.capYear  = Number($('hidra-cap-year').value) || state.capYear;
+            state.capMonth = Number($('hidra-cap-month').value) || state.capMonth;
+            state.capDay   = Number($('hidra-cap-day').value) || state.capDay;
+            loadDayEditor();
+        });
+        $('hidra-cap-save')?.addEventListener('click', saveDayEditor);
     }
 
     // ─── Init ──────────────────────────────────────────────────
     async function init() {
         if (!initDone) {
-            const now = new Date();
-            const curMonth = now.getMonth() + 1;
-            state.editYear  = now.getFullYear();
-            state.editMonth = curMonth;
-            state.selectedYear = now.getFullYear();
-            state.editDestYear    = now.getFullYear();
-            state.editDestQuarter = Math.ceil(curMonth / 3);
-            populateMonthSelect('hidra-edit-month');
-            populateQuarterSelect('hidra-dest-edit-quarter');
+            const now = new Date(); const curMonth = now.getMonth() + 1;
+            state.selectedYear  = now.getFullYear();
+            state.selectedMonth = curMonth;
+            state.capYear  = now.getFullYear();
+            state.capMonth = curMonth;
+            state.capDay   = now.getDate();
+            populateMonthSelect('hidra-cap-month', curMonth);
+            populateDaySelect('hidra-cap-day', state.capYear, state.capMonth, state.capDay);
             bind();
             initDone = true;
         }
-        await Promise.all([loadAll(false), loadDestinos(false)]);
-        populateYearSelect('hidra-filter-year', state.selectedYear);
-        populatePozoSelect('hidra-filter-pozo', true);
-        populateYearSelect('hidra-edit-year', state.editYear);
-        populatePozoSelect('hidra-edit-pozo', false);
-        populateYearSelect('hidra-dest-edit-year', state.editDestYear);
-        populatePozoSelect('hidra-dest-edit-pozo', false);
-        // valor por defecto del trimestre
-        const qSel = $('hidra-dest-edit-quarter'); if (qSel) qSel.value = String(state.editDestQuarter);
+        await loadAll(false);
+        refreshSelects();
+        updateCapQuarterBadge();
         renderDashboard();
     }
 
@@ -1296,5 +1141,5 @@
         init().catch(e => console.error('[hidraulicas] init error', e));
     });
 
-    window.hidraulicasModule = { init, loadAll, renderDashboard, state };
+    window.hidraulicasModule = { init, loadAll, loadAux, renderDashboard, state };
 })();
