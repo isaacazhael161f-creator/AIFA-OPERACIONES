@@ -158,6 +158,9 @@
 
         // ── Puntualidad ──────────────────────────────────────────
         rm.watch(['puntualidad', 'punctuality', 'punctuality_stats'], _lazy('puntualidadRefresh'));
+
+        // ── Reportes HVAC (sincronizados desde AppSheet) ─────────
+        rm.watch(['reportes_hvac'], _lazy('hvacReload'));
     }
 
     /* ─── Auto-refresh por intervalo (red de seguridad) ────────────

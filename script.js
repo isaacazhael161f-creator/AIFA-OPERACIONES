@@ -6600,6 +6600,15 @@ function showSection(sectionKey, linkEl) {
             }, 80);
         }
 
+        // Hook: Reportes HVAC (Ing. Electromecánica)
+        // 200 ms asegura que el layout del card/canvas ya tiene dimensiones
+        // reales antes de que Chart.js intente dibujar.
+        if (targetKey === 'hvac-reportes') {
+            setTimeout(() => {
+                if (typeof window.initHvac === 'function') window.initHvac();
+            }, 200);
+        }
+
         // Cerrar sidebar en móvil
         const sidebar = document.getElementById('sidebar');
         const overlay = document.getElementById('sidebar-overlay');

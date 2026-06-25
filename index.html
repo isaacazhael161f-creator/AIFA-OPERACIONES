@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 
 <head>
@@ -50,7 +50,7 @@
         href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Roboto+Mono:wght@400;700&family=Roboto+Condensed:wght@400;500;700&display=swap"
         rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
-    <link rel="stylesheet" href="style.css?v=20260619A">
+    <link rel="stylesheet" href="style.css?v=20260617O">
     <link rel="stylesheet" href="visual-cards.css?v=1"> <!-- Visual Cards Styles -->
     <link rel="stylesheet" href="admin.css?v=20260203">
     <link rel="icon" type="image/png" sizes="192x192" href="images/icons/aifa-app-icon-192.png?v=20251126">
@@ -74,7 +74,7 @@
     <!-- Preload de los 5 scripts mas pesados (descarga en paralelo desde el primer byte del HTML).
          No altera el orden de ejecución: los <script> tags más abajo siguen mandando.
          Los hrefs DEBEN coincidir EXACTAMENTE con el src del script para que el navegador reuse el preload. -->
-    <link rel="preload" as="script" href="script.js?v=20260618C" fetchpriority="high">
+    <link rel="preload" as="script" href="script.js?v=20260616n" fetchpriority="high">
     <link rel="preload" as="script" href="js/manifiestos.js">
     <link rel="preload" as="script" href="js/data-management.js">
     <link rel="preload" as="script" href="js/analisis-operaciones.js?v=2">
@@ -1433,11 +1433,7 @@ FF
                                         <i class="fas fa-chevron-down si-chev"></i>
                                     </button>
                                     <div class="collapse" id="sg-gcomb">
-                                        <div class="si-body si-body--ger">
-                                            <a class="menu-item si-link si-link--l2" href="#" data-section="combustibles">
-                                                <i class="fas fa-gas-pump si-ico"></i><span class="si-txt">Combustible de Aviación</span>
-                                            </a>
-                                        </div>
+                                        <div class="si-body si-body--ger"><span class="si-coming">Próximamente</span></div>
                                     </div>
                                 </div>
                             </div>
@@ -1472,7 +1468,7 @@ FF
                                         </div>
                                     </div>
                                 </div>
-                                <div class="si-group si-group--ger si-group--pend">
+                                <div class="si-group si-group--ger">
                                     <button class="si-grp-btn si-grp-btn--ger collapsed"
                                             data-bs-toggle="collapse" data-bs-target="#sg-gielec" aria-expanded="false">
                                         <i class="fas fa-microchip si-ger-ico"></i>
@@ -1481,7 +1477,11 @@ FF
                                         <i class="fas fa-chevron-down si-chev"></i>
                                     </button>
                                     <div class="collapse" id="sg-gielec">
-                                        <div class="si-body si-body--ger"><span class="si-coming">Próximamente</span></div>
+                                        <div class="si-body si-body--ger">
+                                            <a class="menu-item si-link si-link--l2" href="#" data-section="hvac-reportes">
+                                                <i class="fas fa-wind si-ico"></i><span class="si-txt">Reportes HVAC</span>
+                                            </a>
+                                        </div>
                                     </div>
                                 </div>
                                 <div class="si-group si-group--ger si-group--pend">
@@ -2192,16 +2192,7 @@ FF
                                     </div>
                                     <div class="col-12 col-md-4">
                                         <label class="form-label small fw-semibold mb-1">Contraseña *</label>
-                                        <div class="input-group input-group-sm">
-                                            <input type="password" class="form-control form-control-sm" id="au-reg-password" placeholder="Contraseña segura" autocomplete="new-password">
-                                            <button type="button" class="btn btn-outline-warning" onclick="auGenPassword()" title="Generar contraseña aleatoria segura">
-                                                <i class="fas fa-dice"></i>
-                                            </button>
-                                            <button type="button" class="btn btn-outline-secondary" onclick="auTogglePassword()" title="Mostrar / ocultar contraseña">
-                                                <i class="fas fa-eye" id="au-pwd-eye"></i>
-                                            </button>
-                                        </div>
-                                        <div id="au-pwd-hint" class="form-text small text-muted d-none mt-1" style="word-break:break-all"></div>
+                                        <input type="password" class="form-control form-control-sm" id="au-reg-password" placeholder="Contraseña segura">
                                     </div>
                                     <div class="col-12 col-md-4">
                                         <label class="form-label small fw-semibold mb-1">Email de contacto</label>
@@ -4489,20 +4480,6 @@ FF
 
                 /* Badge de fecha cargada */
                 #bhs-loaded-date{background:linear-gradient(135deg,#eef2ff 0%,#e0e7ff 100%) !important;color:#4338ca !important;border:1px solid #c7d2fe;padding:6px 12px !important;border-radius:999px;font-weight:600;letter-spacing:.02em;}
-                /* Delete button on date chips */
-                .bhs-del-btn:hover{background:#fee2e2 !important;color:#dc2626 !important;border-left-color:#fecaca !important;}
-                /* Banner de fecha por tab */
-                .bhs-date-banner{display:flex;align-items:center;gap:10px;background:linear-gradient(135deg,#f0f9ff 0%,#e0f2fe 100%);border:1px solid #bae6fd;border-left:4px solid #0ea5e9;border-radius:10px;padding:10px 16px;font-size:.85rem;color:#0c4a6e;font-weight:500;}
-                .bhs-date-banner .bhs-date-banner-label{font-size:.7rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;opacity:.7;}
-                .bhs-date-banner .bhs-date-banner-val{font-size:1.05rem;font-weight:700;color:#0369a1;}
-                .bhs-date-banner-arr{border-left-color:#3b82f6 !important;background:linear-gradient(135deg,#eff6ff 0%,#dbeafe 100%) !important;color:#1e3a5f !important;}
-                .bhs-date-banner-arr .bhs-date-banner-val{color:#1d4ed8 !important;}
-                .bhs-date-banner-dep{border-left-color:#ea580c !important;background:linear-gradient(135deg,#fff7ed 0%,#fed7aa 100%) !important;color:#431407 !important;}
-                .bhs-date-banner-dep .bhs-date-banner-val{color:#c2410c !important;}
-                .bhs-date-banner-bwf{border-left-color:#16a34a !important;background:linear-gradient(135deg,#f0fdf4 0%,#dcfce7 100%) !important;color:#14532d !important;}
-                .bhs-date-banner-bwf .bhs-date-banner-val{color:#15803d !important;}
-                /* Panel de carga colapsable */
-                .bhs-upload-panel-hdr{background:linear-gradient(135deg,#f8fafc 0%,#f1f5f9 100%);border-bottom:1px solid #e2e8f0;padding:10px 16px;border-radius:12px 12px 0 0;}
                 </style>
 
                 <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
@@ -4511,8 +4488,10 @@ FF
                         <small class="text-muted">Gerencia de Operaciones · Edificio Terminal</small>
                     </div>
                     <div class="d-flex align-items-center gap-2">
-                        <button class="btn btn-sm btn-outline-secondary" onclick="bhsToggleDates()" title="Ver fechas disponibles"><i class="fas fa-calendar-alt me-1"></i>Fechas con datos</button>
-                        <button class="btn btn-sm btn-primary" onclick="bhsToggleUpload()"><i class="fas fa-upload me-1"></i>Subir archivos</button>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="bhsToggleDates()" title="Ver fechas con datos"><i class="fas fa-calendar-alt me-1"></i>Fechas con datos</button>
+                        <label for="bhs-date-filter" class="small fw-semibold text-secondary mb-0">Fecha:</label>
+                        <input type="date" id="bhs-date-filter" class="form-control form-control-sm" style="width:160px;">
+                        <button class="btn btn-sm btn-outline-primary" onclick="bhsLoadDate()"><i class="fas fa-sync-alt me-1"></i>Cargar</button>
                     </div>
                 </div>
 
@@ -4525,71 +4504,6 @@ FF
                         </div>
                         <div class="card-body p-3">
                             <div class="row g-2" id="bhs-dates-list"><div class="col-12 text-muted small">Cargando…</div></div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Panel de carga (colapsable) -->
-                <div id="bhs-upload-panel" class="d-none mb-4">
-                    <div class="card border-0 shadow-sm" style="border-radius:14px;overflow:hidden;">
-                        <div class="bhs-upload-panel-hdr d-flex align-items-center justify-content-between">
-                            <span class="fw-semibold" style="font-size:.85rem;color:#1e3a5f;"><i class="fas fa-upload me-2 text-primary"></i>Cargar archivos Excel</span>
-                            <button class="btn btn-sm btn-outline-secondary" onclick="bhsToggleUpload()"><i class="fas fa-times"></i></button>
-                        </div>
-                        <div class="card-body p-3">
-                            <div class="d-flex flex-wrap align-items-center gap-2 mb-3 pb-3" style="border-bottom:1px solid #e2e8f0;">
-                                <span class="small fw-semibold text-secondary">Cargar fecha desde BD:</span>
-                                <input type="date" id="bhs-date-filter" class="form-control form-control-sm" style="width:160px;">
-                                <button class="btn btn-sm btn-outline-primary" onclick="bhsLoadDate()"><i class="fas fa-sync-alt me-1"></i>Cargar</button>
-                                <span class="text-muted small ms-2">— o arrastra/sube archivos nuevos abajo —</span>
-                            </div>
-                            <div class="row g-3">
-                                <div class="col-12 col-md-4">
-                                    <div class="bhs-upload-card p-3 text-center h-100" id="bhs-arr-drop"
-                                         onclick="document.getElementById('bhs-arr-input').click()"
-                                         ondragover="event.preventDefault();this.classList.add('dragover')"
-                                         ondragleave="this.classList.remove('dragover')"
-                                         ondrop="bhsHandleDrop(event,'arrivals')">
-                                        <div class="rounded-circle mx-auto mb-2 d-flex align-items-center justify-content-center" style="width:48px;height:48px;background:#eff6ff;">
-                                            <i class="fas fa-plane-arrival" style="color:#2196f3;font-size:1.2rem;"></i>
-                                        </div>
-                                        <div class="fw-semibold mb-1" style="color:#1e3a5f;">Llegadas (Arrivals)</div>
-                                        <small class="text-muted d-block mb-2">Arrastra o haz click para cargar .xlsx</small>
-                                        <div id="bhs-arr-status" class="small text-muted"></div>
-                                        <input type="file" id="bhs-arr-input" accept=".xlsx,.xls" class="d-none" onchange="bhsHandleFile(this,'arrivals')">
-                                    </div>
-                                </div>
-                                <div class="col-12 col-md-4">
-                                    <div class="bhs-upload-card p-3 text-center h-100" id="bhs-dep-drop"
-                                         onclick="document.getElementById('bhs-dep-input').click()"
-                                         ondragover="event.preventDefault();this.classList.add('dragover')"
-                                         ondragleave="this.classList.remove('dragover')"
-                                         ondrop="bhsHandleDrop(event,'departures')">
-                                        <div class="rounded-circle mx-auto mb-2 d-flex align-items-center justify-content-center" style="width:48px;height:48px;background:#fff7ed;">
-                                            <i class="fas fa-plane-departure" style="color:#ea580c;font-size:1.2rem;"></i>
-                                        </div>
-                                        <div class="fw-semibold mb-1" style="color:#1e3a5f;">Salidas (Departures)</div>
-                                        <small class="text-muted d-block mb-2">Arrastra o haz click para cargar .xlsx</small>
-                                        <div id="bhs-dep-status" class="small text-muted"></div>
-                                        <input type="file" id="bhs-dep-input" accept=".xlsx,.xls" class="d-none" onchange="bhsHandleFile(this,'departures')">
-                                    </div>
-                                </div>
-                                <div class="col-12 col-md-4">
-                                    <div class="bhs-upload-card p-3 text-center h-100" id="bhs-bwf-drop"
-                                         onclick="document.getElementById('bhs-bwf-input').click()"
-                                         ondragover="event.preventDefault();this.classList.add('dragover')"
-                                         ondragleave="this.classList.remove('dragover')"
-                                         ondrop="bhsHandleDrop(event,'bwf')">
-                                        <div class="rounded-circle mx-auto mb-2 d-flex align-items-center justify-content-center" style="width:48px;height:48px;background:#f0fdf4;">
-                                            <i class="fas fa-tag" style="color:#16a34a;font-size:1.2rem;"></i>
-                                        </div>
-                                        <div class="fw-semibold mb-1" style="color:#1e3a5f;">Bags Without Flight</div>
-                                        <small class="text-muted d-block mb-2">Arrastra o haz click para cargar .xlsx</small>
-                                        <div id="bhs-bwf-status" class="small text-muted"></div>
-                                        <input type="file" id="bhs-bwf-input" accept=".xlsx,.xls" class="d-none" onchange="bhsHandleFile(this,'bwf')">
-                                    </div>
-                                </div>
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -4627,6 +4541,58 @@ FF
                     </div>
                 </div>
 
+                <!-- Upload cards -->
+                <div class="row g-3 mb-4">
+                    <!-- ARRIVALS -->
+                    <div class="col-12 col-md-4">
+                        <div class="bhs-upload-card p-3 text-center h-100" id="bhs-arr-drop"
+                             onclick="document.getElementById('bhs-arr-input').click()"
+                             ondragover="event.preventDefault();this.classList.add('dragover')"
+                             ondragleave="this.classList.remove('dragover')"
+                             ondrop="bhsHandleDrop(event,'arrivals')">
+                            <div class="rounded-circle mx-auto mb-2 d-flex align-items-center justify-content-center" style="width:48px;height:48px;background:#eff6ff;">
+                                <i class="fas fa-plane-arrival" style="color:#2196f3;font-size:1.2rem;"></i>
+                            </div>
+                            <div class="fw-semibold mb-1" style="color:#1e3a5f;">Llegadas (Arrivals)</div>
+                            <small class="text-muted d-block mb-2">Arrastra o haz click para cargar .xlsx</small>
+                            <div id="bhs-arr-status" class="small text-muted"></div>
+                            <input type="file" id="bhs-arr-input" accept=".xlsx,.xls" class="d-none" onchange="bhsHandleFile(this,'arrivals')">
+                        </div>
+                    </div>
+                    <!-- DEPARTURES -->
+                    <div class="col-12 col-md-4">
+                        <div class="bhs-upload-card p-3 text-center h-100" id="bhs-dep-drop"
+                             onclick="document.getElementById('bhs-dep-input').click()"
+                             ondragover="event.preventDefault();this.classList.add('dragover')"
+                             ondragleave="this.classList.remove('dragover')"
+                             ondrop="bhsHandleDrop(event,'departures')">
+                            <div class="rounded-circle mx-auto mb-2 d-flex align-items-center justify-content-center" style="width:48px;height:48px;background:#fff7ed;">
+                                <i class="fas fa-plane-departure" style="color:#ea580c;font-size:1.2rem;"></i>
+                            </div>
+                            <div class="fw-semibold mb-1" style="color:#1e3a5f;">Salidas (Departures)</div>
+                            <small class="text-muted d-block mb-2">Arrastra o haz click para cargar .xlsx</small>
+                            <div id="bhs-dep-status" class="small text-muted"></div>
+                            <input type="file" id="bhs-dep-input" accept=".xlsx,.xls" class="d-none" onchange="bhsHandleFile(this,'departures')">
+                        </div>
+                    </div>
+                    <!-- BAGS WITHOUT FLIGHT -->
+                    <div class="col-12 col-md-4">
+                        <div class="bhs-upload-card p-3 text-center h-100" id="bhs-bwf-drop"
+                             onclick="document.getElementById('bhs-bwf-input').click()"
+                             ondragover="event.preventDefault();this.classList.add('dragover')"
+                             ondragleave="this.classList.remove('dragover')"
+                             ondrop="bhsHandleDrop(event,'bwf')">
+                            <div class="rounded-circle mx-auto mb-2 d-flex align-items-center justify-content-center" style="width:48px;height:48px;background:#f0fdf4;">
+                                <i class="fas fa-tag" style="color:#16a34a;font-size:1.2rem;"></i>
+                            </div>
+                            <div class="fw-semibold mb-1" style="color:#1e3a5f;">Bags Without Flight</div>
+                            <small class="text-muted d-block mb-2">Arrastra o haz click para cargar .xlsx</small>
+                            <div id="bhs-bwf-status" class="small text-muted"></div>
+                            <input type="file" id="bhs-bwf-input" accept=".xlsx,.xls" class="d-none" onchange="bhsHandleFile(this,'bwf')">
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Tabs de resultados -->
                 <div class="card border-0 shadow-sm">
                     <div class="card-header bhs-tabs-bar bg-white d-flex flex-wrap gap-2 py-2">
@@ -4638,11 +4604,6 @@ FF
 
                     <!-- TAB ARRIVALS -->
                     <div id="bhs-tab-arr" class="p-3">
-                        <!-- Banner fecha -->
-                        <div id="bhs-arr-date-banner" class="bhs-date-banner bhs-date-banner-arr d-none mb-3">
-                            <i class="fas fa-plane-arrival fa-lg"></i>
-                            <div><div class="bhs-date-banner-label">Llegadas — datos del</div><div class="bhs-date-banner-val" id="bhs-arr-date-lbl">—</div></div>
-                        </div>
                         <!-- KPIs -->
                         <div class="row g-3 mb-3" id="bhs-arr-kpis">
                             <div class="col-6 col-md-3"><div class="card border-0 bg-light text-center p-3"><div class="bhs-stat text-primary" id="bhs-arr-total">—</div><small class="text-muted">Total maletas</small></div></div>
@@ -4698,11 +4659,6 @@ FF
 
                     <!-- TAB DEPARTURES -->
                     <div id="bhs-tab-dep" class="p-3 d-none">
-                        <!-- Banner fecha -->
-                        <div id="bhs-dep-date-banner" class="bhs-date-banner bhs-date-banner-dep d-none mb-3">
-                            <i class="fas fa-plane-departure fa-lg"></i>
-                            <div><div class="bhs-date-banner-label">Salidas — datos del</div><div class="bhs-date-banner-val" id="bhs-dep-date-lbl">—</div></div>
-                        </div>
                         <!-- KPI strip -->
                         <div class="row g-3 mb-3">
                             <div class="col-6 col-md-3"><div class="card border-0 bg-light text-center p-3"><div class="bhs-stat text-primary" id="bhs-dep-vuelos">—</div><small class="text-muted">Vuelos</small></div></div>
@@ -4771,11 +4727,6 @@ FF
 
                     <!-- TAB BWF -->
                     <div id="bhs-tab-bwf" class="p-3 d-none">
-                        <!-- Banner fecha -->
-                        <div id="bhs-bwf-date-banner" class="bhs-date-banner bhs-date-banner-bwf d-none mb-3">
-                            <i class="fas fa-tag fa-lg"></i>
-                            <div><div class="bhs-date-banner-label">Bags Without Flight — datos del</div><div class="bhs-date-banner-val" id="bhs-bwf-date-lbl">—</div></div>
-                        </div>
                         <!-- KPI strip -->
                         <div class="row g-3 mb-3">
                             <div class="col-6 col-md-4"><div class="card border-0 bg-light text-center p-3"><div class="bhs-stat text-primary" id="bhs-bwf-total">—</div><small class="text-muted">Maletas procesadas manual</small></div></div>
@@ -4893,70 +4844,30 @@ FF
                     if(!client) return;
                     var list=document.getElementById('bhs-dates-list');
                     if(list) list.innerHTML='<div class="col-12 text-muted small">Cargando…</div>';
-                    // Use RPC that returns DISTINCT dates from all 3 tables at DB level —
-                    // avoids fetching thousands of rows (one per flight) through the row limit.
-                    client.rpc('bhs_available_dates').then(function(res){
-                        if(res.error){ if(list) list.innerHTML='<div class="col-12 text-danger small">Error: '+res.error.message+'</div>'; return; }
-                        var rows=res.data||[];
-                        if(!rows.length){
+                    Promise.all([
+                        client.from('bhs_arrivals').select('fecha'),
+                        client.from('bhs_departures').select('fecha'),
+                        client.from('bhs_bags_without_flight').select('fecha')
+                    ]).then(function(res){
+                        var arrD=new Set((res[0].data||[]).map(function(r){return r.fecha;}));
+                        var depD=new Set((res[1].data||[]).map(function(r){return r.fecha;}));
+                        var bwfD=new Set((res[2].data||[]).map(function(r){return r.fecha;}));
+                        var all=[...new Set([...arrD,...depD,...bwfD])].sort().reverse();
+                        if(!all.length){
                             if(list) list.innerHTML='<div class="col-12 text-muted small">No hay datos cargados aún</div>';
                             return;
                         }
-                        if(list) list.innerHTML=rows.map(function(row){
-                            var d=row.fecha;
+                        if(list) list.innerHTML=all.map(function(d){
                             var icons='';
-                            if(row.has_arrivals)   icons+=' <span class="badge" style="background:#eff6ff;color:#2196f3;font-size:.65rem;" title="Llegadas"><i class="fas fa-plane-arrival"></i></span>';
-                            if(row.has_departures) icons+=' <span class="badge" style="background:#fff7ed;color:#ea580c;font-size:.65rem;" title="Salidas"><i class="fas fa-plane-departure"></i></span>';
-                            if(row.has_bwf)        icons+=' <span class="badge" style="background:#f0fdf4;color:#16a34a;font-size:.65rem;" title="Sin vuelo"><i class="fas fa-tag"></i></span>';
-                            return '<div class="col-auto mb-1">'
-                              +'<div class="d-inline-flex align-items-center border rounded" style="border-color:#dee2e6;overflow:hidden;">'
-                              +'<button class="btn btn-sm" style="border:none;border-radius:0;font-size:.78rem;padding:4px 9px;color:#374151;background:#fff;" '
-                              +'onclick="document.getElementById(\'bhs-date-filter\').value=\''+d+'\';document.getElementById(\'bhs-dates-panel\').classList.add(\'d-none\');bhsLoadDate();">'
-                              +fmtDate(d)+icons+'</button>'
-                              +'<button class="btn btn-sm bhs-del-btn" style="border:none;border-left:1px solid #f0f0f0;border-radius:0;padding:4px 8px;color:#9ca3af;background:#fff;" '
-                              +'onclick="bhsDeleteDate(\''+d+'\')" title="Eliminar datos del '+fmtDate(d)+'">'
-                              +'<i class="fas fa-trash-alt" style="font-size:.6rem;pointer-events:none;"></i></button>'
-                              +'</div>'
-                              +'</div>';
+                            if(arrD.has(d)) icons+=' <span class="badge" style="background:#eff6ff;color:#2196f3;font-size:.65rem;" title="Llegadas"><i class="fas fa-plane-arrival"></i></span>';
+                            if(depD.has(d)) icons+=' <span class="badge" style="background:#fff7ed;color:#ea580c;font-size:.65rem;" title="Salidas"><i class="fas fa-plane-departure"></i></span>';
+                            if(bwfD.has(d)) icons+=' <span class="badge" style="background:#f0fdf4;color:#16a34a;font-size:.65rem;" title="Sin vuelo"><i class="fas fa-tag"></i></span>';
+                            return '<div class="col-auto mb-1"><button class="btn btn-sm btn-outline-secondary" style="font-size:.78rem;" onclick="document.getElementById(\'bhs-date-filter\').value=\''+d+'\';document.getElementById(\'bhs-dates-panel\').classList.add(\'d-none\');bhsLoadDate();">'+fmtDate(d)+icons+'</button></div>';
                         }).join('');
                     }).catch(function(e){ if(list) list.innerHTML='<div class="col-12 text-danger small">Error: '+e.message+'</div>'; });
                 }
 
-                window.bhsDeleteDate=function(fecha){
-                    var label=fmtDate(fecha);
-                    if(!confirm('¿Eliminar todos los datos de BHS del '+label+'?\n\nEsta acción borrará Llegadas, Salidas y Maletas sin vuelo de esa fecha y no se puede deshacer.')) return;
-                    var client=window.supabaseClient;
-                    if(!client){ alert('Sin conexión a base de datos'); return; }
-                    var list=document.getElementById('bhs-dates-list');
-                    if(list) list.innerHTML='<div class="col-12 text-muted small"><i class="fas fa-spinner fa-spin me-1"></i>Eliminando '+label+'…</div>';
-                    Promise.all([
-                        client.from('bhs_arrivals').delete().eq('fecha',fecha),
-                        client.from('bhs_departures').delete().eq('fecha',fecha),
-                        client.from('bhs_bags_without_flight').delete().eq('fecha',fecha)
-                    ]).then(function(results){
-                        var errs=results.filter(function(r){return r.error;}).map(function(r){return r.error.message;});
-                        if(errs.length){ alert('Error al eliminar:\n'+errs.join('\n')); }
-                        else {
-                            // Clear the current view if the deleted date was loaded
-                            var df=document.getElementById('bhs-date-filter');
-                            if(df && df.value===fecha){
-                                ['arr','dep','bwf'].forEach(function(t){
-                                    var el=document.getElementById('bhs-tab-'+t);
-                                    if(el) el.innerHTML='';
-                                    var banner=document.getElementById('bhs-'+t+'-date-banner');
-                                    if(banner) banner.classList.add('d-none');
-                                });
-                                var lbl=document.getElementById('bhs-loaded-date');
-                                if(lbl) lbl.textContent='';
-                            }
-                        }
-                        bhsLoadAvailableDates();
-                    }).catch(function(e){ alert('Error: '+e.message); bhsLoadAvailableDates(); });
-                };
-                window.bhsToggleUpload=function(){
-                    document.getElementById('bhs-upload-panel').classList.toggle('d-none');
-                };
-
+                // ── tab switching ─────────────────────────────────────────────
                 window.bhsShowTab=function(tab,btn){
                     ['arr','dep','bwf'].forEach(function(t){
                         var el=document.getElementById('bhs-tab-'+t);
@@ -5020,17 +4931,6 @@ FF
                     bhsLoadFromDB(d);
                 };
 
-                function bhsSetDateBanners(fecha){
-                    var fmt=fmtDate(fecha);
-                    ['arr','dep','bwf'].forEach(function(t){
-                        var b=document.getElementById('bhs-'+t+'-date-banner');
-                        var l=document.getElementById('bhs-'+t+'-date-lbl');
-                        if(b&&l){l.textContent=fmt;b.classList.remove('d-none');}
-                    });
-                    var ld=document.getElementById('bhs-loaded-date');
-                    if(ld) ld.textContent='📅 '+fmt;
-                }
-
                 function bhsLoadFromDB(fecha){
                     var client=window.supabaseClient;
                     if(!client) return;
@@ -5044,9 +4944,7 @@ FF
                         if(!results[0].error) bhsRenderArrivals(results[0].data||[]);
                         if(!results[1].error) bhsRenderDepartures(results[1].data||[]);
                         if(!results[2].error) bhsRenderBWF(results[2].data||[]);
-                        bhsSetDateBanners(fecha);
-                        // Auto-close upload panel once data is loaded from DB
-                        document.getElementById('bhs-upload-panel').classList.add('d-none');
+                        document.getElementById('bhs-loaded-date').textContent='📅 '+fmtDate(fecha);
                     }).catch(function(err){
                         console.error('BHS load error',err);
                     });
@@ -5101,8 +4999,7 @@ FF
                                 if(err){if(card)card.classList.remove('ok');if(status)status.innerHTML='<span style="color:#dc2626">Error: '+(err.message||JSON.stringify(err))+'</span>';console.error('[BHS] Save error:',err);}
                                 else{if(card)card.classList.add('ok');if(status)status.innerHTML='<span style="color:#16a34a">&#x2713; '+records.length+' registros guardados</span>';
                                     if(type==='arrivals')bhsRenderArrivals(records);else if(type==='departures')bhsRenderDepartures(records);else bhsRenderBWF(records);
-                                    bhsSetDateBanners(fecha);
-                                    document.getElementById('bhs-upload-panel').classList.add('d-none');}
+                                    document.getElementById('bhs-loaded-date').textContent='&#x1F4C5; '+fmtDate(fecha);}
                             });
                         }catch(err2){
                             if(card) card.classList.remove('loading');
@@ -19418,14 +19315,7 @@ FF
                                                 class="fas fa-arrow-left me-2"></i>Regresar al menú GSO</button>
                                     </div>
                                     <div class="text-center mb-3">
-                                        <h3 class="fw-bold mb-1"><i class="fas fa-dove me-2"></i>Impactos de Ave
-                                            <span id="fauna-impactos-year-label"></span>
-                                        </h3>
-                                        <div class="btn-group btn-group-sm fauna-rescate-year-switch"
-                                            id="fauna-impactos-year-switch" role="group"
-                                            aria-label="Selecciona año">
-                                            <!-- botones dinámicos -->
-                                        </div>
+                                        <h3 class="fw-bold mb-0"><i class="fas fa-dove me-2"></i>Impactos de Ave</h3>
                                     </div>
                                     <div class="card">
                                         <div
@@ -19442,7 +19332,7 @@ FF
                                                     <input type="date" id="fauna-date-to"
                                                         class="form-control form-control-sm" aria-label="Fecha fin" />
                                                 </div>
-                                                <div class="chip" style="display:none;">
+                                                <div class="chip">
                                                     <label class="me-1" for="fauna-year"><i
                                                             class="fas fa-calendar-alt me-1"></i>Año</label>
                                                     <select id="fauna-year" class="form-select form-select-sm"
@@ -20796,6 +20686,344 @@ FF
                                         <div class="chart-container"><canvas id="delaysPieChart"></canvas></div>
                                         <div class="demoras-chart-legend" id="demoras-chart-legend" aria-live="polite">
                                         </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
+
+                <!-- Reportes HVAC (Ing. Electromecánica) Section -->
+                <div id="hvac-reportes-section" class="content-section">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+                            <h2 class="section-title mb-0">
+                                <i class="fas fa-wind me-2" style="color:#0d6efd;"></i>Reportes de Mantenimiento HVAC
+                            </h2>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge bg-light text-dark border" id="hvac-last-sync">Sincronizado con AppSheet</span>
+                                <button type="button" class="btn btn-sm btn-outline-primary" id="hvac-refresh-btn">
+                                    <i class="fas fa-sync-alt me-1"></i>Actualizar
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <!-- Estado de carga / vacío -->
+                            <div id="hvac-status" class="alert alert-info d-none" role="status"></div>
+
+                            <!-- Estilos locales HVAC -->
+                            <style>
+                                .hvac-kpi-card {
+                                    border-radius: 20px;
+                                    padding: 1.5rem 1.6rem 1.4rem;
+                                    position: relative;
+                                    overflow: hidden;
+                                    color: #fff;
+                                    box-shadow: 0 10px 30px -8px rgba(0,0,0,.25);
+                                    transition: transform .22s ease, box-shadow .22s ease;
+                                    min-height: 240px;
+                                    display: flex;
+                                    flex-direction: column;
+                                }
+                                .hvac-kpi-card:hover {
+                                    transform: translateY(-4px);
+                                    box-shadow: 0 18px 40px -10px rgba(0,0,0,.32);
+                                }
+                                .hvac-kpi-card::before {
+                                    content: '';
+                                    position: absolute;
+                                    top: -50px; right: -50px;
+                                    width: 180px; height: 180px;
+                                    border-radius: 50%;
+                                    background: rgba(255,255,255,.12);
+                                }
+                                .hvac-kpi-card::after {
+                                    content: '';
+                                    position: absolute;
+                                    bottom: -40px; right: 30px;
+                                    width: 110px; height: 110px;
+                                    border-radius: 50%;
+                                    background: rgba(255,255,255,.07);
+                                }
+                                .hvac-kpi-header {
+                                    display: flex;
+                                    align-items: center;
+                                    gap: .85rem;
+                                    margin-bottom: 1rem;
+                                    position: relative;
+                                    z-index: 2;
+                                }
+                                .hvac-kpi-icon {
+                                    width: 54px;
+                                    height: 54px;
+                                    border-radius: 14px;
+                                    background: rgba(255,255,255,.22);
+                                    display: flex;
+                                    align-items: center;
+                                    justify-content: center;
+                                    font-size: 1.55rem;
+                                    backdrop-filter: blur(8px);
+                                    -webkit-backdrop-filter: blur(8px);
+                                    box-shadow: inset 0 0 0 1px rgba(255,255,255,.18);
+                                }
+                                .hvac-kpi-label {
+                                    font-size: .72rem;
+                                    font-weight: 700;
+                                    letter-spacing: .1em;
+                                    text-transform: uppercase;
+                                    opacity: .92;
+                                    line-height: 1.3;
+                                }
+                                .hvac-kpi-value {
+                                    font-size: 3.6rem;
+                                    font-weight: 900;
+                                    line-height: 1;
+                                    margin: .35rem 0 .15rem;
+                                    letter-spacing: -.02em;
+                                    text-shadow: 0 2px 12px rgba(0,0,0,.18);
+                                    position: relative;
+                                    z-index: 2;
+                                }
+                                .hvac-kpi-sub {
+                                    font-size: .82rem;
+                                    opacity: .9;
+                                    line-height: 1.4;
+                                    position: relative;
+                                    z-index: 2;
+                                }
+                                .hvac-kpi-mes-badge {
+                                    display: inline-flex;
+                                    align-items: center;
+                                    gap: .35rem;
+                                    background: rgba(255,255,255,.2);
+                                    padding: .35rem .75rem;
+                                    border-radius: 999px;
+                                    font-weight: 700;
+                                    font-size: .85rem;
+                                    margin-top: .9rem;
+                                    backdrop-filter: blur(6px);
+                                    -webkit-backdrop-filter: blur(6px);
+                                }
+                                .hvac-kpi-mes-badge .num { font-size: 1.05rem; }
+                                /* Lista de estadísticas dinámicas dentro de la tarjeta */
+                                .hvac-kpi-stats {
+                                    display: flex;
+                                    flex-direction: column;
+                                    gap: .55rem;
+                                    position: relative;
+                                    z-index: 2;
+                                    margin-top: .25rem;
+                                }
+                                .hvac-kpi-stat {
+                                    display: flex;
+                                    align-items: center;
+                                    justify-content: space-between;
+                                    gap: .75rem;
+                                    padding: .6rem .9rem;
+                                    background: rgba(255,255,255,.16);
+                                    border-radius: 12px;
+                                    border: 1px solid rgba(255,255,255,.14);
+                                    backdrop-filter: blur(6px);
+                                    -webkit-backdrop-filter: blur(6px);
+                                    transition: background .15s ease, transform .15s ease;
+                                    position: relative;
+                                    overflow: hidden;
+                                }
+                                .hvac-kpi-stat::before {
+                                    content: '';
+                                    position: absolute;
+                                    left: 0; top: 0; bottom: 0;
+                                    width: var(--stat-pct, 0%);
+                                    background: rgba(255,255,255,.12);
+                                    transition: width .6s cubic-bezier(.2,.8,.2,1);
+                                    z-index: 0;
+                                }
+                                .hvac-kpi-stat:hover {
+                                    background: rgba(255,255,255,.24);
+                                    transform: translateX(2px);
+                                }
+                                .hvac-kpi-stat-label {
+                                    display: flex;
+                                    align-items: center;
+                                    gap: .55rem;
+                                    font-size: .88rem;
+                                    font-weight: 600;
+                                    line-height: 1.15;
+                                    position: relative;
+                                    z-index: 1;
+                                }
+                                .hvac-kpi-stat-label .dot {
+                                    width: 10px;
+                                    height: 10px;
+                                    border-radius: 50%;
+                                    flex-shrink: 0;
+                                    box-shadow: 0 0 0 2px rgba(255,255,255,.18);
+                                }
+                                .hvac-kpi-stat-value {
+                                    font-size: 1.75rem;
+                                    font-weight: 800;
+                                    line-height: 1;
+                                    letter-spacing: -.01em;
+                                    position: relative;
+                                    z-index: 1;
+                                }
+                                .hvac-kpi-stat-pct {
+                                    font-size: .7rem;
+                                    font-weight: 700;
+                                    opacity: .75;
+                                    margin-left: .35rem;
+                                }
+                                /* Compatibilidad: filas antiguas (no se usan, por si quedan en otro lado) */
+                                .hvac-kpi-row {
+                                    display: flex;
+                                    align-items: center;
+                                    gap: .5rem;
+                                    margin-top: .5rem;
+                                }
+                                .hvac-kpi-pill {
+                                    font-size: .7rem;
+                                    font-weight: 700;
+                                    padding: .15em .6em;
+                                    border-radius: 20px;
+                                    background: rgba(255,255,255,.22);
+                                }
+                                .hvac-chart-card {
+                                    border-radius: 16px;
+                                    border: none;
+                                    box-shadow: 0 2px 16px rgba(0,0,0,.07);
+                                    background: #fff;
+                                    overflow: hidden;
+                                }
+                                .hvac-chart-header {
+                                    padding: 1rem 1.25rem .25rem;
+                                    font-size: .78rem;
+                                    font-weight: 700;
+                                    letter-spacing: .05em;
+                                    text-transform: uppercase;
+                                    color: #6b7280;
+                                    border-bottom: 1px solid #f3f4f6;
+                                    display: flex;
+                                    align-items: center;
+                                    gap: .5rem;
+                                }
+                                .hvac-chart-header i { font-size: .9rem; }
+                            </style>
+
+                            <!-- KPIs (3 tarjetas) -->
+                            <div class="row g-3 mb-4" id="hvac-kpis">
+                                <!-- Tarjeta 1: Total + Este mes -->
+                                <div class="col-12 col-md-4">
+                                    <div class="hvac-kpi-card" style="background:linear-gradient(135deg,#1e3a8a 0%,#1d4ed8 55%,#3b82f6 100%);">
+                                        <div class="hvac-kpi-header">
+                                            <div class="hvac-kpi-icon"><i class="fas fa-clipboard-list"></i></div>
+                                            <div class="hvac-kpi-label">Total de<br>Reportes</div>
+                                        </div>
+                                        <div class="hvac-kpi-value" id="hvac-kpi-total">0</div>
+                                        <div class="hvac-kpi-sub">Registros sincronizados desde AppSheet</div>
+                                        <div class="hvac-kpi-mes-badge">
+                                            <i class="fas fa-calendar-alt"></i>
+                                            <span class="num" id="hvac-kpi-mes">0</span> este mes
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Tarjeta 2: Estado de equipos (dinámico) -->
+                                <div class="col-12 col-md-4">
+                                    <div class="hvac-kpi-card" style="background:linear-gradient(135deg,#064e3b 0%,#047857 55%,#10b981 100%);">
+                                        <div class="hvac-kpi-header">
+                                            <div class="hvac-kpi-icon"><i class="fas fa-server"></i></div>
+                                            <div class="hvac-kpi-label">Estado de<br>Equipos</div>
+                                        </div>
+                                        <div id="hvac-kpi-estado-list" class="hvac-kpi-stats"></div>
+                                    </div>
+                                </div>
+                                <!-- Tarjeta 3: Tipos de mantenimiento (dinámico) -->
+                                <div class="col-12 col-md-4">
+                                    <div class="hvac-kpi-card" style="background:linear-gradient(135deg,#7c2d12 0%,#c2410c 55%,#f97316 100%);">
+                                        <div class="hvac-kpi-header">
+                                            <div class="hvac-kpi-icon"><i class="fas fa-tools"></i></div>
+                                            <div class="hvac-kpi-label">Tipos de<br>Mantenimiento</div>
+                                        </div>
+                                        <div id="hvac-kpi-mant-list" class="hvac-kpi-stats"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Gráficas -->
+                            <div class="row g-4">
+                                <div class="col-12 col-xl-6">
+                                    <div class="hvac-chart-card h-100">
+                                        <div class="hvac-chart-header">
+                                            <i class="fas fa-chart-pie" style="color:#3b82f6"></i>
+                                            Distribución por Estado
+                                        </div>
+                                        <div class="p-3">
+                                            <div style="position:relative;height:340px;">
+                                                <canvas id="hvacEstadoChart"></canvas>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-xl-6">
+                                    <div class="hvac-chart-card h-100">
+                                        <div class="hvac-chart-header">
+                                            <i class="fas fa-tools" style="color:#f97316"></i>
+                                            Tipos de Mantenimiento
+                                        </div>
+                                        <div class="p-3">
+                                            <div style="position:relative;height:340px;">
+                                                <canvas id="hvacMantenimientoChart"></canvas>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-xl-7">
+                                    <div class="hvac-chart-card h-100">
+                                        <div class="hvac-chart-header">
+                                            <i class="fas fa-chart-area" style="color:#10b981"></i>
+                                            Tendencia Mensual de Reportes
+                                        </div>
+                                        <div class="p-3">
+                                            <div style="position:relative;height:340px;">
+                                                <canvas id="hvacMesChart"></canvas>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-xl-5">
+                                    <div class="hvac-chart-card h-100">
+                                        <div class="hvac-chart-header">
+                                            <i class="fas fa-wind" style="color:#6366f1"></i>
+                                            Top 8 Equipos con más Reportes
+                                        </div>
+                                        <div class="p-3">
+                                            <div style="position:relative;height:380px;">
+                                                <canvas id="hvacEquipoChart"></canvas>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Tabla de últimos reportes -->
+                            <div class="card border-0 shadow-sm mt-4">
+                                <div class="card-body">
+                                    <h3 class="h6 mb-3">Últimos reportes</h3>
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-hover align-middle">
+                                            <thead class="table-dark">
+                                                <tr>
+                                                    <th>Reporte ID</th>
+                                                    <th>Fecha</th>
+                                                    <th>Equipo</th>
+                                                    <th>Motivo</th>
+                                                    <th>Mantenimiento</th>
+                                                    <th>Estado</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="hvac-tbody"></tbody>
+                                        </table>
                                     </div>
                                 </div>
                             </div>
@@ -28395,9 +28623,10 @@ FF
     })();
     </script>
     <script src="js/frecuencias_upload_test.js" defer></script>
-    <script src="script.js?v=20260618C" defer></script>
+    <script src="script.js?v=20260616n" defer></script>
     <script src="js/manifiestos_pax.js?v=9999999999993" defer></script>
     <script src="js/puntualidad.js" defer></script>
+    <script src="js/hvac.js?v=20260624f" defer></script>
     <script>
         // Modo DEV: bloquear por completo el registro de Service Workers en localhost/127.0.0.1 o con bandera noSW
         (function noSWDevGuard() {
