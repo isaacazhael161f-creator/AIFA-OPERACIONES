@@ -190,7 +190,10 @@
       const label = document.createElement('label');
       label.className = 'form-check-label small fw-semibold';
       label.htmlFor = checkboxId;
-      label.textContent = year;
+      const yearMonths = compByYear.get(year) || {};
+      const yearTotal = Object.values(yearMonths)
+        .reduce((acc, val) => acc + (Number.isFinite(val) ? val : 0), 0);
+      label.textContent = `${year} (${yearTotal.toLocaleString('es-MX')})`;
 
       wrapper.appendChild(input);
       wrapper.appendChild(label);
@@ -770,6 +773,10 @@
       return;
     }
     if (!pane.classList.contains('active')){
+      pendingComp = true;
+      return;
+    }
+    if (!pane.offsetParent && pane.offsetWidth === 0 && pane.offsetHeight === 0){
       pendingComp = true;
       return;
     }

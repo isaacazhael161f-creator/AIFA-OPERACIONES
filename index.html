@@ -19804,6 +19804,10 @@ FF
                               <select id="hidra-filter-month" class="form-select form-select-sm" style="min-width:130px;"></select>
                             </div>
                             <div class="col-auto">
+                              <label class="form-label small mb-1 fw-bold">Día</label>
+                              <select id="hidra-filter-day" class="form-select form-select-sm" style="min-width:120px;"></select>
+                            </div>
+                            <div class="col-auto">
                               <label class="form-label small mb-1 fw-bold">Pozo</label>
                               <select id="hidra-filter-pozo" class="form-select form-select-sm">
                                 <option value="">Todos</option>
@@ -19822,7 +19826,7 @@ FF
                           <!-- ░░ PANEL MENSUAL (imagen 2) ░░ -->
                           <div class="hidra-panel">
                             <div class="hidra-panel-head">
-                              <div class="hidra-panel-title">Datos del Aprovechamiento del Agua Mensual</div>
+                              <div class="hidra-panel-title" id="hidra-m-panel-title">Datos del Aprovechamiento del Agua Mensual</div>
                               <div class="hidra-panel-period">
                                 <span id="hidra-m-period-mes">—</span>
                                 <span id="hidra-m-period-anio">—</span>
@@ -19830,19 +19834,19 @@ FF
                             </div>
                             <div class="hidra-statgrid">
                               <div class="hidra-stat">
-                                <div class="hidra-stat-label">Extracción mensual</div>
+                                <div class="hidra-stat-label">Extracción <span class="hidra-period-word">mensual</span></div>
                                 <div><span class="hidra-stat-value" id="hidra-m-extraccion">—</span><span class="hidra-stat-unit">m³</span></div>
                               </div>
                               <div class="hidra-stat">
-                                <div class="hidra-stat-label">Distribución mensual</div>
+                                <div class="hidra-stat-label">Distribución <span class="hidra-period-word">mensual</span></div>
                                 <div><span class="hidra-stat-value" id="hidra-m-distribucion">—</span><span class="hidra-stat-unit">m³</span></div>
                               </div>
                               <div class="hidra-stat">
-                                <div class="hidra-stat-label">Demanda AIFA mensual</div>
+                                <div class="hidra-stat-label">Demanda AIFA <span class="hidra-period-word">mensual</span></div>
                                 <div><span class="hidra-stat-value" id="hidra-m-aifa">—</span><span class="hidra-stat-unit">m³</span></div>
                               </div>
                               <div class="hidra-stat">
-                                <div class="hidra-stat-label">Demanda Cd. Militar mensual</div>
+                                <div class="hidra-stat-label">Demanda Cd. Militar <span class="hidra-period-word">mensual</span></div>
                                 <div><span class="hidra-stat-value" id="hidra-m-cdmilitar">—</span><span class="hidra-stat-unit">m³</span></div>
                               </div>
                             </div>
@@ -20010,7 +20014,7 @@ FF
 
                         <!-- EDITOR · CAPTURA POR DÍA -->
                         <div class="tab-pane fade" id="hidra-tab-editor" role="tabpanel">
-                          <p class="text-muted small mb-3">Selecciona el <strong>día</strong> a capturar. Para cada pozo registra el volumen entregado a <strong>Cd. Militar</strong> y a <strong>AIFA</strong>; el total por pozo y por día se calcula en automático. Captura también el <strong>PAAP</strong> (Primaria + Secundaria) y la <strong>PTAR</strong> (A1, A2, A3) del día.</p>
+                          <p class="text-muted small mb-3">Selecciona el <strong>día</strong> a capturar. Para cada pozo registra el <strong>total extraído</strong> (m³); el total del día se calcula en automático. Captura también el <strong>PAAP</strong> (Primaria + Secundaria) y la <strong>PTAR</strong> (A1, A2, A3) del día.</p>
 
                           <div class="row g-2 align-items-end mb-3">
                             <div class="col-auto">
@@ -20045,12 +20049,10 @@ FF
                           </div>
 
                           <div class="row g-4">
-                            <!-- Extracción por pozo (doble medición) -->
+                            <!-- Extracción por pozo (total) -->
                             <div class="col-12 col-xl-7">
-                              <h6 class="fw-bold mb-2" style="color:#0e7490;"><i class="fas fa-faucet me-2"></i>Extracción por pozo — Cd. Militar / AIFA</h6>
+                              <h6 class="fw-bold mb-2" style="color:#0e7490;"><i class="fas fa-faucet me-2"></i>Extracción por pozo</h6>
                               <div class="hidra-edit-summary mb-2 d-flex flex-wrap gap-4">
-                                <div><strong>Total Cd. Militar:</strong> <span id="hidra-cap-total-cdmilitar">0</span> m³</div>
-                                <div><strong>Total AIFA:</strong> <span id="hidra-cap-total-aifa">0</span> m³</div>
                                 <div><strong>Total del día:</strong> <span id="hidra-cap-total-dia">0</span> m³</div>
                                 <div><strong>Pozos con dato:</strong> <span id="hidra-cap-pozos-con-dato">0</span> / 10</div>
                               </div>
@@ -20059,13 +20061,11 @@ FF
                                   <thead class="table-primary">
                                     <tr>
                                       <th style="width:90px;">Pozo</th>
-                                      <th>Cd. Militar (m³)</th>
-                                      <th>AIFA (m³)</th>
-                                      <th class="text-end" style="width:120px;">Total (m³)</th>
+                                      <th>Total (m³)</th>
                                     </tr>
                                   </thead>
                                   <tbody id="hidra-cap-pozos-tbody">
-                                    <tr><td colspan="4" class="text-center text-muted py-4">Selecciona el día y haz clic en <strong>Cargar</strong>.</td></tr>
+                                    <tr><td colspan="2" class="text-center text-muted py-4">Selecciona el día y haz clic en <strong>Cargar</strong>.</td></tr>
                                   </tbody>
                                 </table>
                               </div>
@@ -20434,17 +20434,17 @@ FF
                         <div class="card-body">
                             <ul class="nav nav-tabs mb-3" id="medicasTabs" role="tablist">
                                 <li class="nav-item" role="presentation">
-                                    <button class="nav-link active" id="medicas-directorio-tab" data-bs-toggle="tab"
-                                        data-bs-target="#medicas-directorio-pane" type="button" role="tab"
-                                        aria-controls="medicas-directorio-pane" aria-selected="true"><i
-                                            class="fas fa-address-book me-2"></i>Directorio</button>
-                                </li>
-                                <li class="nav-item" role="presentation">
-                                    <button class="nav-link" id="medicas-comp-tab" data-bs-toggle="tab"
+                                    <button class="nav-link active" id="medicas-comp-tab" data-bs-toggle="tab"
                                         data-bs-target="#medicas-comp-pane" type="button" role="tab"
-                                        aria-controls="medicas-comp-pane" aria-selected="false"><i
+                                        aria-controls="medicas-comp-pane" aria-selected="true"><i
                                             class="fas fa-chart-area me-2"></i>Atenciones Médicas (Comparación
                                         Mensual)</button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="medicas-directorio-tab" data-bs-toggle="tab"
+                                        data-bs-target="#medicas-directorio-pane" type="button" role="tab"
+                                        aria-controls="medicas-directorio-pane" aria-selected="false"><i
+                                            class="fas fa-address-book me-2"></i>Directorio</button>
                                 </li>
                                 <li class="nav-item" role="presentation">
                                     <button class="nav-link" id="medicas-tipo-tab" data-bs-toggle="tab"
@@ -20460,7 +20460,7 @@ FF
                                 </li>
                             </ul>
                             <div class="tab-content" id="medicasTabsContent">
-                                <div id="medicas-directorio-pane" class="tab-pane fade show active" role="tabpanel"
+                                <div id="medicas-directorio-pane" class="tab-pane fade" role="tabpanel"
                                     aria-labelledby="medicas-directorio-tab" tabindex="0">
                                     <div class="card border-0 shadow-sm medicas-directorio-card">
                                         <div class="card-body">
@@ -20572,7 +20572,7 @@ FF
                                         </div>
                                     </div>
                                 </div>
-                                <div id="medicas-comp-pane" class="tab-pane fade" role="tabpanel"
+                                <div id="medicas-comp-pane" class="tab-pane fade show active" role="tabpanel"
                                     aria-labelledby="medicas-comp-tab" tabindex="0">
                                     <div class="card border-0 shadow-sm">
                                         <div class="card-body">
