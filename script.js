@@ -6609,6 +6609,27 @@ function showSection(sectionKey, linkEl) {
             }, 200);
         }
 
+        // Hook: Gerencia de Generación (SGE)
+        if (targetKey === 'ggen-energia') {
+            setTimeout(() => {
+                if (typeof window.initGgenEnergia === 'function') window.initGgenEnergia();
+            }, 200);
+        }
+
+        // Hook: Gerencia de Transformación (SGE)
+        if (targetKey === 'gtrans-energia') {
+            setTimeout(() => {
+                if (typeof window.initGtransEnergia === 'function') window.initGtransEnergia();
+            }, 200);
+        }
+
+        // Hook: GTRANS · Preventivos Programados
+        if (targetKey === 'gtrans-preventivos') {
+            setTimeout(() => {
+                if (typeof window.initGtransPreventivos === 'function') window.initGtransPreventivos();
+            }, 200);
+        }
+
         // Cerrar sidebar en móvil
         const sidebar = document.getElementById('sidebar');
         const overlay = document.getElementById('sidebar-overlay');
@@ -6720,6 +6741,14 @@ function handleNavigation(e) {
                 if (window.opsFlights && typeof window.opsFlights.loadFlights === 'function') {
                     // Cargar vuelos al entrar a la sección
                     setTimeout(() => window.opsFlights.loadFlights(), 50);
+                }
+            } catch (_) { }
+            try {
+                // Si el usuario llega a Conciliación con la pestaña Manifiestos ya activa,
+                // shown.bs.tab no vuelve a disparar → forzar carga con fecha de hoy.
+                const mTab = document.getElementById('tab-conci-comercial');
+                if (mTab && mTab.classList.contains('active')) {
+                    setTimeout(() => { _conciApplyTodayFilters(); loadConciliacionManifiestos({ autoLatestDate: true }); }, 80);
                 }
             } catch (_) { }
         }
@@ -10499,10 +10528,22 @@ function ndwGetMonthlyVal(cat, metric, yearStr, monthIdx) {
     if (!AVIATION_ANALYTICS_DATA) return 0;
     const metricKey = metric === 'toneladas' ? 'tons_transportadas' : metric;
     const monthKey = AVIATION_ANALYTICS_MONTH_KEYS[monthIdx];
-    const val = AVIATION_ANALYTICS_DATA[cat]?.[metricKey]?.years?.[yearStr]?.months?.[monthKey];
-    if (val != null && Number.isFinite(Number(val))) return Number(val);
-    // Fallback: derive from captured daily data (for current in-progress month)
-    return ndwComputeMonthFromDailyData(cat, metric, yearStr, monthIdx);
+    const raw = AVIATION_ANALYTICS_DATA[cat]?.[metricKey]?.years?.[yearStr]?.months?.[monthKey];
+    let result;
+    if (raw != null && Number.isFinite(Number(raw))) {
+        result = Number(raw);
+    } else {
+        // Fallback: derive from captured daily data (for current in-progress month)
+        result = ndwComputeMonthFromDailyData(cat, metric, yearStr, monthIdx);
+    }
+    // Ajustes permanentes Junio 2026
+    if (yearStr === '2026' && monthIdx === 5) {
+        if (cat === 'comercial' && metric === 'operaciones') result -= 196;
+        if (cat === 'comercial' && metric === 'pasajeros')   result -= 11080;
+        if (cat === 'carga'     && metric === 'operaciones') result += 16;
+        if (cat === 'carga'     && (metric === 'toneladas' || metricKey === 'tons_transportadas')) result -= 578;
+    }
+    return result;
 }
 
 /* Sum captured daily operations for a given year/month from weekly datasets. */
@@ -10598,6 +10639,52 @@ function renderNavdeckWeeklyBanner() {
         const MONTH_SHORT = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
         const MONTH_FULL  = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
+        /* ── compute preliminary / latest-data note (shared across all modes) ── */
+        const _now = new Date();
+        const _MONTH_NAMES_ES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+        const _DOW_ES = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+        const _allCapDays = [];
+        const _seenCapFechas = new Set();
+        const _weekSrcsShared = [
+            ...(Array.isArray(WEEKLY_OPERATIONS_DATASETS) ? WEEKLY_OPERATIONS_DATASETS : []),
+            staticData?.operacionesSemanaActual
+        ].filter(Boolean);
+        _weekSrcsShared.forEach((wk) => {
+            if (!Array.isArray(wk?.dias)) return;
+            wk.dias.forEach((d) => {
+                if (!d?.fecha || _seenCapFechas.has(d.fecha)) return;
+                const _hasVal = [d?.comercial?.operaciones, d?.comercial?.pasajeros,
+                                 d?.general?.operaciones, d?.general?.pasajeros,
+                                 d?.carga?.operaciones, d?.carga?.toneladas]
+                    .some((v) => { const n = Number(v); return Number.isFinite(n) && n > 0; });
+                if (!_hasVal) return;
+                _seenCapFechas.add(d.fecha);
+                _allCapDays.push(d.fecha);
+            });
+        });
+        _allCapDays.sort();
+        const _lastCapFecha = _allCapDays.length ? _allCapDays[_allCapDays.length - 1] : null;
+        const _lastCapDate  = _lastCapFecha ? parseIsoDay(_lastCapFecha) : null;
+        const _lastCapDateStr = _lastCapDate
+            ? `${_DOW_ES[_lastCapDate.getDay()]} ${_lastCapDate.getDate()} de ${_MONTH_NAMES_ES[_lastCapDate.getMonth()]}`
+            : null;
+        const _showPrelim = _lastCapDate
+            && _lastCapDate.getMonth() === _now.getMonth()
+            && _lastCapDate.getFullYear() === _now.getFullYear();
+        const _prelimHtml = _showPrelim ? `
+            <div class="ndw-prelim-banner-group">
+                <p class="ndw-prelim-banner-note" aria-live="polite">
+                    <span class="ndw-prelim-banner-dot" aria-hidden="true"></span>
+                    <i class="fas fa-clock-rotate-left" aria-hidden="true"></i>
+                    <span>Cifras preliminares &mdash; <strong>${MONTH_FULL[_now.getMonth()]} ${_now.getFullYear()}</strong> en curso</span>
+                </p>
+                ${_lastCapDateStr ? `
+                <p class="ndw-prelim-last-date" aria-live="polite">
+                    <i class="fas fa-calendar-check" aria-hidden="true"></i>
+                    <span>Datos al <strong>${_lastCapDateStr}</strong></span>
+                </p>` : ''}
+            </div>` : '';
+
         /* ── hero content per mode ── */
         let heroIcon, heroKicker, heroTitle, periodPickerHtml = '';
 
@@ -10609,57 +10696,13 @@ function renderNavdeckWeeklyBanner() {
             heroKicker = 'Periodo activo';
             heroTitle  = rangeLabel;
 
-            /* Preliminary banner note when the active week is in the current month */
+            /* Show preliminary note when the active week is in the current month */
             const _wkStartFecha = weekly?.rango?.inicio || days[0]?.fecha;
             const _wkStartDate  = _wkStartFecha ? parseIsoDay(_wkStartFecha) : null;
-            const _now = new Date();
             if (_wkStartDate
                 && _wkStartDate.getMonth()    === _now.getMonth()
                 && _wkStartDate.getFullYear() === _now.getFullYear()) {
-                const _mName = MONTH_FULL[_now.getMonth()];
-
-                /* Last day with any captured data across all available weeks */
-                const _MONTH_NAMES_ES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
-                const _DOW_ES = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
-                const _allDays = [];
-                const _seenFechas = new Set();
-                const _weekSrcs = [
-                    ...(Array.isArray(WEEKLY_OPERATIONS_DATASETS) ? WEEKLY_OPERATIONS_DATASETS : []),
-                    staticData?.operacionesSemanaActual
-                ].filter(Boolean);
-                _weekSrcs.forEach((wk) => {
-                    if (!Array.isArray(wk?.dias)) return;
-                    wk.dias.forEach((d) => {
-                        if (!d?.fecha || _seenFechas.has(d.fecha)) return;
-                        const _hasVal = [d?.comercial?.operaciones, d?.comercial?.pasajeros,
-                                         d?.general?.operaciones, d?.general?.pasajeros,
-                                         d?.carga?.operaciones, d?.carga?.toneladas]
-                            .some((v) => { const n = Number(v); return Number.isFinite(n) && n > 0; });
-                        if (!_hasVal) return;
-                        _seenFechas.add(d.fecha);
-                        _allDays.push(d.fecha);
-                    });
-                });
-                _allDays.sort();
-                const _lastFecha = _allDays.length ? _allDays[_allDays.length - 1] : null;
-                const _lastDate  = _lastFecha ? parseIsoDay(_lastFecha) : null;
-                const _lastDateStr = _lastDate
-                    ? `${_DOW_ES[_lastDate.getDay()]} ${_lastDate.getDate()} de ${_MONTH_NAMES_ES[_lastDate.getMonth()]}`
-                    : null;
-
-                periodPickerHtml = `
-                    <div class="ndw-prelim-banner-group">
-                        <p class="ndw-prelim-banner-note" aria-live="polite">
-                            <span class="ndw-prelim-banner-dot" aria-hidden="true"></span>
-                            <i class="fas fa-clock-rotate-left" aria-hidden="true"></i>
-                            <span>Cifras preliminares &mdash; <strong>${_mName} ${_now.getFullYear()}</strong> en curso</span>
-                        </p>
-                        ${_lastDateStr ? `
-                        <p class="ndw-prelim-last-date" aria-live="polite">
-                            <i class="fas fa-calendar-check" aria-hidden="true"></i>
-                            <span>Datos al <strong>${_lastDateStr}</strong></span>
-                        </p>` : ''}
-                    </div>`;
+                periodPickerHtml = _prelimHtml;
             }
 
         } else if (mode === 'monthly') {
@@ -10687,9 +10730,10 @@ function renderNavdeckWeeklyBanner() {
                         <button type="button" class="ndw-month-step" data-ndw-step="1" aria-label="Mes siguiente" ${canNext ? '' : 'disabled'}>›</button>
                     </div>
                 </div>
-                <p class="ndw-tap-hint" aria-label="Las tarjetas son interactivas"><i class="fas fa-hand-pointer" aria-hidden="true"></i><span>Toca una tarjeta para ver el análisis completo</span></p>`;
+                <p class="ndw-tap-hint" aria-label="Las tarjetas son interactivas"><i class="fas fa-hand-pointer" aria-hidden="true"></i><span>Toca una tarjeta para ver el análisis completo</span></p>
+                ${_prelimHtml}`;
 
-        } else { /* annual */
+        } else if (mode === 'annual') {
             heroIcon   = 'fas fa-calendar';
             heroKicker = 'Año activo';
             heroTitle  = selYear;
@@ -10699,7 +10743,18 @@ function renderNavdeckWeeklyBanner() {
             ).join('');
             periodPickerHtml = `
                 <div class="ndw-period-picker ndw-period-picker--compact"><div class="ndw-period-group">${yearChipsHtml}</div></div>
-                <p class="ndw-tap-hint" aria-label="Las tarjetas son interactivas"><i class="fas fa-hand-pointer" aria-hidden="true"></i><span>Toca una tarjeta para ver el histórico anual</span></p>`;
+                <p class="ndw-tap-hint" aria-label="Las tarjetas son interactivas"><i class="fas fa-hand-pointer" aria-hidden="true"></i><span>Toca una tarjeta para ver el histórico anual</span></p>
+                ${_prelimHtml}`;
+
+        } else { /* historic */
+            heroIcon   = 'fas fa-history';
+            heroKicker = 'Acumulado histórico';
+            heroTitle  = availableYears.length > 1
+                ? `${availableYears[0]}–${availableYears[availableYears.length - 1]}`
+                : (availableYears[0] || currentYear);
+            periodPickerHtml = `
+                <p class="ndw-tap-hint" aria-label="Las tarjetas son interactivas"><i class="fas fa-hand-pointer" aria-hidden="true"></i><span>Suma de todos los años disponibles</span></p>
+                ${_prelimHtml}`;
         }
 
         /* ── view toggle ── */
@@ -10714,14 +10769,19 @@ function renderNavdeckWeeklyBanner() {
                 <button type="button" class="ndw-view-btn${mode === 'annual'  ? ' is-active' : ''}" data-ndw-mode="annual"  aria-pressed="${mode === 'annual'}">
                     <i class="fas fa-calendar" aria-hidden="true"></i>Anual
                 </button>
+                <button type="button" class="ndw-view-btn${mode === 'historic' ? ' is-active' : ''}" data-ndw-mode="historic" aria-pressed="${mode === 'historic'}">
+                    <i class="fas fa-history" aria-hidden="true"></i>Histórico
+                </button>
             </div>`;
 
         /* ── card values per mode ── */
-        const subSuffix = { weekly: 'semana', monthly: 'mes', annual: 'año' }[mode];
+        const subSuffix = { weekly: 'semana', monthly: 'mes', annual: 'año', historic: 'histórico' }[mode] || 'histórico';
         const getCardVal = (def) => {
             if (mode === 'weekly')  return days.reduce((acc, d) => acc + getWeeklyValue(d, def.cat, def.metric), 0);
             if (mode === 'monthly') return ndwGetMonthlyVal(def.cat, def.metric, selYear, selMonthIdx);
-            return ndwGetAnnualVal(def.cat, def.metric, selYear);
+            if (mode === 'annual')  return ndwGetAnnualVal(def.cat, def.metric, selYear);
+            /* historic: sum all available years */
+            return availableYears.reduce((acc, y) => acc + ndwGetAnnualVal(def.cat, def.metric, y), 0);
         };
 
         const cardsHtml = NDW_CARD_DEFS.map((def, idx) => {
@@ -16293,7 +16353,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const tabConciComercial = document.getElementById('tab-conci-comercial');
     if (tabConciComercial) {
         tabConciComercial.addEventListener('shown.bs.tab', () => {
-            loadConciliacionManifiestos();
+            _conciApplyTodayFilters();
+            loadConciliacionManifiestos({ autoLatestDate: true });
         });
         // Also hook filter changes
         ['filter-conci-manifiestos-year', 'filter-conci-manifiestos-month', 'filter-conci-manifiestos-day'].forEach(id => {
@@ -16332,6 +16393,13 @@ let _conciRenderedKey = '';
 // every time the user changes year/month/day. Only the slicing is re-applied.
 const _CONCI_RAW_TTL_MS = 5 * 60 * 1000; // 5 minutes
 let _conciRawCache = null; // { manifestRows, vuelosRows, ts }
+
+// Separate cache for the vuelos table (longer TTL — changes rarely during a session)
+const _CONCI_VUELOS_TTL_MS = 15 * 60 * 1000; // 15 minutes
+let _conciVuelosCache = null; // { rows, ts }
+
+// Manifest column key detection — cached after first probe so we pay this cost once.
+let _conciManifestColInfo = null; // { yKey, mKey, dKey, fKey }
 
 function _conciNormalizeAirlineName(value) {
     return String(value || '')
@@ -16603,6 +16671,74 @@ async function _concifetchAllRows(client, tableName, options = {}) {
     }
     return { data: allRows, error: null };
 }
+
+// ── Manifest column key detection ────────────────────────────────────────────
+// Probes 1 row to find the actual (case-sensitive) DB column names for año/mes/día/fecha.
+// Result is cached in _conciManifestColInfo for the session.
+async function _conciGetManifestColInfo(client) {
+    if (_conciManifestColInfo) return _conciManifestColInfo;
+    const { data: probe } = await client
+        .from('Conciliación Manifiestos')
+        .select('*')
+        .order('id', { ascending: false })
+        .limit(1);
+    if (!probe || probe.length === 0) return null;
+    const keys = Object.keys(probe[0]);
+    const yKey = keys.find(k => /^a[ñn]o$/i.test(k) || /year/i.test(k));
+    const mKey = keys.find(k => /^mes$/i.test(k) || /month/i.test(k));
+    const dKey = keys.find(k => /^d[ií]a$/i.test(k) || /\bday\b/i.test(k));
+    const fKey = keys.find(k => /(^|\b)fecha(\b|$)/i.test(k));
+    _conciManifestColInfo = { yKey, mKey, dKey, fKey };
+    return _conciManifestColInfo;
+}
+
+// Fast DB query: returns { month, day } for the most recent manifest record in `year`.
+// Avoids scanning every row in JS by ordering & limiting server-side.
+async function _conciFetchLatestManifestDate(client, year) {
+    const info = await _conciGetManifestColInfo(client);
+    if (!info || !info.mKey || !info.dKey) return null;
+    const selectCols = [info.yKey, info.mKey, info.dKey].filter(Boolean).join(',');
+    let q = client
+        .from('Conciliación Manifiestos')
+        .select(selectCols)
+        .order(info.mKey, { ascending: false })
+        .order(info.dKey, { ascending: false })
+        .limit(100);
+    if (info.yKey) q = q.eq(info.yKey, year);
+    const { data } = await q;
+    if (!data || data.length === 0) return null;
+    for (const r of data) {
+        if (info.yKey) {
+            let ry = String(r[info.yKey]);
+            if (ry.length === 2 && !isNaN(ry)) ry = '20' + ry;
+            if (ry !== String(year)) continue;
+        }
+        const m = parseInt(r[info.mKey], 10);
+        const d = parseInt(r[info.dKey], 10);
+        if (Number.isFinite(m) && Number.isFinite(d)) return { month: m, day: d };
+    }
+    return null;
+}
+
+// Filtered server-side manifest fetch — only downloads rows for the selected date.
+// Falls back to full fetch if column keys can't be detected.
+async function _conciFetchManifestsForDate(client, year, month, day) {
+    const info = await _conciGetManifestColInfo(client);
+    if (!info || !info.mKey || !info.dKey) {
+        return _concifetchAllRows(client, 'Conciliación Manifiestos', {
+            batchSize: 5000,
+            orderBy: [{ column: 'id', ascending: true }],
+        });
+    }
+    let q = client.from('Conciliación Manifiestos').select('*');
+    if (info.yKey) q = q.eq(info.yKey, year);
+    if (month)     q = q.eq(info.mKey, month);
+    if (day)       q = q.eq(info.dKey, day);
+    q = q.order('id', { ascending: true });
+    const { data, error } = await q;
+    return { data: data || [], error };
+}
+// ─────────────────────────────────────────────────────────────────────────────
 
 // Month abbreviation → number (1-based)
 const _CONCI_MONTHS = { JAN:1,FEB:2,MAR:3,APR:4,MAY:5,JUN:6,JUL:7,AUG:8,SEP:9,OCT:10,NOV:11,DEC:12 };
@@ -17043,6 +17179,18 @@ function _conciBuildEnriched(manifestRows, vuelosRows, schemaRows) {
     return { rows: enrichedRows, columns: outputCols };
 }
 
+// Resets the Año/Mes/Día filter dropdowns to the current year with no
+// month/day filter so that loadConciliacionManifiestos({ autoLatestDate:true })
+// can detect and display the most recent day that has records.
+function _conciApplyTodayFilters() {
+    const yearEl  = document.getElementById('filter-conci-manifiestos-year');
+    const monthEl = document.getElementById('filter-conci-manifiestos-month');
+    const dayEl   = document.getElementById('filter-conci-manifiestos-day');
+    if (yearEl)  yearEl.value  = new Date().getFullYear();
+    if (monthEl) monthEl.value = '';   // cleared — autoLatestDate will find the right month
+    if (dayEl)   dayEl.value   = '';   // cleared — autoLatestDate will find the right day
+}
+
 async function loadConciliacionManifiestos(options = {}) {
     const yearEl  = document.getElementById('filter-conci-manifiestos-year');
     const monthEl = document.getElementById('filter-conci-manifiestos-month');
@@ -17053,30 +17201,34 @@ async function loadConciliacionManifiestos(options = {}) {
     const config = (typeof Event !== 'undefined' && options instanceof Event) ? {} : (options || {});
     const requestSeq = ++_conciLoadRequestSeq;
 
-    const year  = yearEl  ? parseInt(yearEl.value, 10)  : new Date().getFullYear();
-    const month = monthEl && monthEl.value ? parseInt(monthEl.value, 10) : null; // 1-12 or null
-    const day   = dayEl && dayEl.value ? parseInt(dayEl.value, 10) : null; // 1-31 or null
-    const cacheKey = `${year}|${month || 0}|${day || 0}`;
+    let year  = yearEl  ? parseInt(yearEl.value, 10)  : new Date().getFullYear();
+    let month = monthEl && monthEl.value ? parseInt(monthEl.value, 10) : null; // 1-12 or null
+    let day   = dayEl && dayEl.value ? parseInt(dayEl.value, 10) : null; // 1-31 or null
+    let cacheKey = `${year}|${month || 0}|${day || 0}`;
 
-    if (!config.forceRefresh && _conciRenderedKey === cacheKey) {
-        const table = document.getElementById('table-conci-manifiestos');
-        const tbody = table ? table.querySelector('tbody') : null;
-        if (tbody && tbody.childElementCount > 0) {
-            return;
-        }
-    }
-
-    // Reuse already-built rows for the same filter to make tab navigation instant.
-    if (!config.forceRefresh && _conciRenderCache.has(cacheKey)) {
-        const cached = _conciRenderCache.get(cacheKey);
-        if (cached) {
-            if (badge) {
-                badge.textContent = `${cached.rows.length} registros · Caché`;
-                badge.style.display = '';
+    // When auto-detecting the latest date we skip the render-cache short-circuit
+    // because we don’t know the effective key until we scan the raw data.
+    if (!config.autoLatestDate) {
+        if (!config.forceRefresh && _conciRenderedKey === cacheKey) {
+            const table = document.getElementById('table-conci-manifiestos');
+            const tbody = table ? table.querySelector('tbody') : null;
+            if (tbody && tbody.childElementCount > 0) {
+                return;
             }
-            _conciRenderedKey = cacheKey;
-            _renderConciManifiestosTable(cached.rows, cached.columns, cached.year);
-            return;
+        }
+
+        // Reuse already-built rows for the same filter to make tab navigation instant.
+        if (!config.forceRefresh && _conciRenderCache.has(cacheKey)) {
+            const cached = _conciRenderCache.get(cacheKey);
+            if (cached) {
+                if (badge) {
+                    badge.textContent = `${cached.rows.length} registros · Caché`;
+                    badge.style.display = '';
+                }
+                _conciRenderedKey = cacheKey;
+                _renderConciManifiestosTable(cached.rows, cached.columns, cached.year);
+                return;
+            }
         }
     }
 
@@ -17092,63 +17244,59 @@ async function loadConciliacionManifiestos(options = {}) {
         let manifestRows;
         let vuelosRows;
 
-        const rawFresh = _conciRawCache && (Date.now() - _conciRawCache.ts) < _CONCI_RAW_TTL_MS;
-        if (!config.forceRefresh && rawFresh) {
-            manifestRows = _conciRawCache.manifestRows;
-            vuelosRows   = _conciRawCache.vuelosRows;
+        // ── Step 1: get vuelos from long-lived cache or fetch once ──────────────
+        const vueolosFresh = _conciVuelosCache && (Date.now() - _conciVuelosCache.ts) < _CONCI_VUELOS_TTL_MS;
+        if (!config.forceRefresh && vueolosFresh) {
+            vuelosRows = _conciVuelosCache.rows;
         } else {
-            // Fetch both tables in parallel
-            const [manifestResult, vuelosResult] = await Promise.all([
-                _concifetchAllRows(client, 'Conciliación Manifiestos', {
-                    batchSize: 5000,
-                    orderBy: [{ column: 'id', ascending: true }],
-                }),
-                _concifetchAllRows(client, 'vuelos_parte_operaciones_csv', {
-                    batchSize: 5000,
-                }),
-            ]);
-
+            const vResult = await _concifetchAllRows(client, 'vuelos_parte_operaciones_csv', { batchSize: 5000 });
             if (requestSeq !== _conciLoadRequestSeq) return;
-
-            manifestRows = manifestResult.data || [];
-            vuelosRows   = vuelosResult.data   || [];
-            if (vuelosResult.error && manifestResult.error) throw vuelosResult.error;
-
-            _conciRawCache = { manifestRows, vuelosRows, ts: Date.now() };
-            // Filter-level cache becomes stale when raw data is refreshed
-            _conciRenderCache.clear();
+            if (vResult.error) throw vResult.error;
+            vuelosRows = vResult.data || [];
+            _conciVuelosCache = { rows: vuelosRows, ts: Date.now() };
         }
 
-        // Filter vuelos by selected month (year is implicit — dates have no year in storage)
+        // ── Step 2: auto-detect the latest manifest date via a fast DB query ────
+        if (config.autoLatestDate && !month && !day) {
+            const latest = await _conciFetchLatestManifestDate(client, year);
+            if (requestSeq !== _conciLoadRequestSeq) return;
+            if (latest) {
+                month = latest.month;
+                day   = latest.day;
+                if (monthEl) monthEl.value = month;
+                if (dayEl)   dayEl.value   = day;
+                cacheKey = `${year}|${month}|${day}`;
+            }
+        }
+
+        // ── Step 3: fetch only the manifests for the selected date (server-side) ─
+        const renderCacheFresh = !config.forceRefresh && _conciRenderCache.has(cacheKey);
+        if (renderCacheFresh) {
+            const cached = _conciRenderCache.get(cacheKey);
+            _conciSetRefreshLoading(false);
+            if (loading) loading.classList.add('d-none');
+            if (badge) { badge.textContent = `${cached.rows.length} registros · Caché`; badge.style.display = ''; }
+            _conciRenderedKey = cacheKey;
+            _renderConciManifiestosTable(cached.rows, cached.columns, cached.year);
+            return;
+        }
+
+        const mResult = await _conciFetchManifestsForDate(client, year, month, day);
+        if (requestSeq !== _conciLoadRequestSeq) return;
+        if (mResult.error) throw mResult.error;
+        manifestRows = mResult.data || [];
+
+        if (config.forceRefresh) _conciRenderCache.clear();
+
+        // Filter vuelos by selected month/day in JS (vuelos dates are embedded strings, no server-side filter)
         const filteredVuelos = vuelosRows.filter(r => {
             if (month && _conciParseVueloMonth(r) !== month) return false;
             if (day && _conciParseVueloDay(r) !== day) return false;
             return true;
         });
 
-        // Filter manifest rows by year/month if columns exist
-        let filteredManifest = manifestRows;
-        if (manifestRows.length > 0) {
-            const keys = Object.keys(manifestRows[0]);
-            const yearKey  = keys.find(k => /^a[ñn]o$/i.test(k) || /year/i.test(k));
-            const monthKey = keys.find(k => /^mes$/i.test(k) || /month/i.test(k));
-            const dayKey   = keys.find(k => /^d[ií]a$/i.test(k) || /\bday\b/i.test(k));
-            const fechaKey = keys.find(k => /(^|\b)fecha(\b|$)/i.test(k));
-            if (yearKey) filteredManifest = filteredManifest.filter(r => { let ry = String(r[yearKey]); if(ry.length === 2 && !isNaN(ry)) ry = '20' + ry; return ry === String(year); });
-            if (month) filteredManifest = filteredManifest.filter(r => { let rm = r[monthKey]; if(!rm && r[fechaKey]) { const parts = _conciParseDateTimeParts(r[fechaKey], year); if(parts && parts.month) rm = parts.month; } return String(rm) === String(month); });
-            if (day) {
-                if (dayKey) {
-                    filteredManifest = filteredManifest.filter(r => String(r[dayKey]) === String(day));
-                } else if (fechaKey) {
-                    filteredManifest = filteredManifest.filter(r => {
-                        const parts = _conciParseDateTimeParts(r[fechaKey], year);
-                        if (!parts || !Number.isFinite(parts.day)) return false;
-                        if (month && Number.isFinite(parts.month) && parts.month !== month) return false;
-                        return parts.day === day;
-                    });
-                }
-            }
-        }
+        // manifestRows is already filtered server-side; use directly
+        const filteredManifest = manifestRows;
 
         // Build enriched merged dataset
         // Pass full manifestRows as schema source so columns are always the original manifest columns
@@ -18322,7 +18470,7 @@ async function _conciSaveBulkEdits() {
             desc: 'GGEN · GTRANS',
             icon: 'bolt',
             color: '#f59e0b',
-            sections: []
+            sections: ['ggen-energia', 'gtrans-energia', 'gtrans-preventivos']
         }
     ];
 

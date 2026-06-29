@@ -257,7 +257,13 @@
     function getVal(yr, month) {
         const match = opsDataCache.find(d => d.year === yr && d.month === month);
         if (!match) return null;
-        return currentMetric === 'operaciones' ? (match.comercial_ops || 0) : (match.comercial_pax || 0);
+        let val = currentMetric === 'operaciones' ? (match.comercial_ops || 0) : (match.comercial_pax || 0);
+        // Ajustes permanentes Junio 2026
+        if (yr === 2026 && month === 6) {
+            if (currentMetric === 'pasajeros')    val -= 11080;
+            if (currentMetric === 'operaciones')  val -= 196;
+        }
+        return val;
     }
 
     /** Sum values for a year across a group of months; null if no data */

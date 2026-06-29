@@ -41,7 +41,13 @@
     function getVal(yr, month) {
         const row = cache.find(function(d){ return d.year === yr && d.month === month; });
         if (!row) return null;
-        return currentMetric === 'toneladas' ? (row.carga_tons ?? null) : (row.carga_ops || 0);
+        let val = currentMetric === 'toneladas' ? (row.carga_tons ?? null) : (row.carga_ops || 0);
+        // Ajustes permanentes Junio 2026
+        if (yr === 2026 && month === 6 && val !== null) {
+            if (currentMetric === 'toneladas')    val -= 578;
+            if (currentMetric === 'operaciones')  val += 16;
+        }
+        return val;
     }
     function sumGroup(yr, months) {
         let t = 0, has = false;

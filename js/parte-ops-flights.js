@@ -81,7 +81,16 @@
     let dateMode = 'relative';
     let relStart = -4;
     let relEnd = 0;
+    // When false (default), the date window is NOT applied and ALL imported rows are shown.
+    // Set to true only when the user explicitly interacts with the date filter controls.
+    let _dateWindowUserActivated = false;
     let _renderDebounceTimer = null;
+
+    // Lightweight probe cache: stores id→date mapping for all rows so we only
+    // download 3 columns once per session instead of all 24 columns every time.
+    let _flightProbeCache = null; // { dayIdMap: Map<dateKey, id[]>, totalCount, ts }
+    const _FLIGHT_PROBE_TTL_MS = 15 * 60 * 1000; // 15 minutes
+    let _flightTotalCount = 0; // total rows across all days (shown in badge)
     let _stickySyncRaf = 0;
 
     // Schedule a debounced applyAndRender. Labels update instantly; the heavy
@@ -118,12 +127,15 @@
     let absStart = '';
     let absEnd = '';
     let lastImportYear = new Date().getFullYear();
+    let latestDataDate = null;
     let peakChart = null;
 
     document.addEventListener('DOMContentLoaded', () => {
         init();
         window.opsFlights = { 
             loadFlights, 
+            // Force-refresh clears the probe cache so the next loadFlights re-probes Supabase.
+            refreshFlights: () => { _flightProbeCache = null; return loadFlights(); },
             importCsvFromFile, 
             toggleColumn, 
             toggleValidacion,
@@ -146,6 +158,13 @@
 
         initColumnVisibility();
         
+        // Listen on the Conciliación → Itinerario tab so switching back reloads data
+        const conciTabEl = document.getElementById('tab-conci-itinerario');
+        if (conciTabEl) {
+            conciTabEl.addEventListener('shown.bs.tab', () => loadFlights());
+        }
+
+        // Legacy hook (element may not exist, kept for safety)
         const tabEl = document.getElementById('tab-vuelos-ops');
         if (tabEl) {
             tabEl.addEventListener('shown.bs.tab', () => loadFlights());
@@ -158,11 +177,6 @@
         if (dateInput) dateInput.addEventListener('change', () => {
             updateRelativeLabels();
             loadFlights();
-        });
-        const mainDateInput = document.getElementById('operations-summary-date');
-        if (mainDateInput) mainDateInput.addEventListener('change', () => {
-            updateRelativeLabels();
-            applyAndRender();
         });
 
         const btnRel = document.getElementById('btn-date-mode-relative');
@@ -189,10 +203,11 @@
             applyAndRender();
         };
 
-        if (btnRel) btnRel.addEventListener('click', () => toggleDateMode('relative'));
-        if (btnAbs) btnAbs.addEventListener('click', () => toggleDateMode('absolute'));
+        if (btnRel) btnRel.addEventListener('click', () => { _dateWindowUserActivated = true; toggleDateMode('relative'); });
+        if (btnAbs) btnAbs.addEventListener('click', () => { _dateWindowUserActivated = true; toggleDateMode('absolute'); });
 
         const syncRelative = () => {
+            _dateWindowUserActivated = true;
             relStart = parseInt(relStartInput ? relStartInput.value : relStart, 10);
             relEnd = parseInt(relEndInput ? relEndInput.value : relEnd, 10);
             if (isNaN(relStart)) relStart = -4;
@@ -211,6 +226,7 @@
 
         // +/- buttons: update value immediately but debounce the heavy re-render
         const stepRel = (inputEl, delta) => {
+            _dateWindowUserActivated = true;
             inputEl.value = parseInt(inputEl.value || 0, 10) + delta;
             relStart = parseInt(relStartInput ? relStartInput.value : relStart, 10);
             relEnd   = parseInt(relEndInput   ? relEndInput.value   : relEnd,   10);
@@ -225,6 +241,7 @@
         if (relEndInc)   relEndInc.addEventListener('click',   () => stepRel(relEndInput,    1));
 
         const syncAbsolute = () => {
+            _dateWindowUserActivated = true;
             absStart = absStartInput ? absStartInput.value : '';
             absEnd = absEndInput ? absEndInput.value : '';
             applyAndRender();
@@ -267,6 +284,44 @@
         window.addEventListener('resize', scheduleStickySync);
     }
 
+    // Format 'YYYY-MM-DD' → 'DDMMM' (e.g. '2026-06-29' → '29JUN')
+    function _formatDateKey(key) {
+        if (!key) return '';
+        const ABBR = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+        const p = key.split('-');
+        if (p.length !== 3) return key;
+        return `${parseInt(p[2], 10)}${ABBR[parseInt(p[1], 10) - 1] || ''}`;
+    }
+
+    async function _buildFlightProbeCache(supabase) {
+        const probeFresh = _flightProbeCache && (Date.now() - _flightProbeCache.ts) < _FLIGHT_PROBE_TTL_MS;
+        if (probeFresh) return _flightProbeCache;
+
+        const year = lastImportYear || new Date().getFullYear();
+        const todayKey = (() => {
+            const t = new Date();
+            return `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
+        })();
+
+        // Fetch only id + 2 date columns (much smaller than all 24 columns)
+        const { data: probe, error } = await supabase
+            .from(TABLE_NAME)
+            .select('id,"[Arr] SIBT","[Dep] SOBT"');
+        if (error) throw error;
+
+        const dayIdMap = new Map(); // 'YYYY-MM-DD' → [id, ...]
+        (probe || []).forEach(row => {
+            const key = deriveDateKeyFromValue(row['[Arr] SIBT'], year)
+                     || deriveDateKeyFromValue(row['[Dep] SOBT'], year);
+            if (!key || key > todayKey) return;
+            if (!dayIdMap.has(key)) dayIdMap.set(key, []);
+            dayIdMap.get(key).push(row.id);
+        });
+
+        _flightProbeCache = { dayIdMap, totalCount: (probe || []).length, ts: Date.now() };
+        return _flightProbeCache;
+    }
+
     async function loadFlights() {
         const tbody = document.getElementById('tbody-ops-flights-csv');
         if (tbody) {
@@ -277,12 +332,36 @@
             const supabase = window.supabaseClient;
             if (!supabase) throw new Error('Cliente Supabase no disponible');
 
-            const { data, error } = await supabase.from(TABLE_NAME).select('*');
+            // Phase 1: lightweight probe (3 cols) to find latest date & per-day IDs
+            const probe = await _buildFlightProbeCache(supabase);
+            _flightTotalCount = probe.totalCount;
+
+            const sortedKeys = [...probe.dayIdMap.keys()].sort();
+            const latestKey  = sortedKeys.length ? sortedKeys[sortedKeys.length - 1] : null;
+
+            if (!latestKey) {
+                currentData = [];
+                _dateWindowUserActivated = false;
+                computeLatestDataDate();
+                initCsvExcelFilterButtons();
+                applyAndRender();
+                return;
+            }
+
+            const latestIds = probe.dayIdMap.get(latestKey) || [];
+
+            // Phase 2: fetch full rows only for the latest day
+            const { data, error } = await supabase
+                .from(TABLE_NAME)
+                .select('*')
+                .in('id', latestIds);
             if (error) throw error;
 
             let rows = Array.isArray(data) ? data.map(normalizeRow) : [];
             currentData = rows;
-            initCsvExcelFilterButtons(); // Ensure buttons exist before render
+            _dateWindowUserActivated = false; // show all currentData (= latest day)
+            latestDataDate = latestKey;       // skip full scan — we know the answer
+            initCsvExcelFilterButtons();
             applyAndRender();
         } catch (err) {
             console.error(err);
@@ -395,6 +474,7 @@
                 if (modal) modal.hide();
             }
 
+            _flightProbeCache = null; // new rows were inserted — invalidate probe cache
             await loadFlights();
         } catch (err) {
             console.error(err);
@@ -541,7 +621,9 @@
             badge.style.display = 'none';
         } else {
             badge.style.display = '';
-            badge.textContent = count === 1 ? '1 vuelo' : `${count} vuelos`;
+            const dayLabel = latestDataDate ? ` (${_formatDateKey(latestDataDate)})` : '';
+            const totalSuffix = _flightTotalCount > count ? ` · ${_flightTotalCount} total` : '';
+            badge.textContent = count === 1 ? `1 vuelo${dayLabel}${totalSuffix}` : `${count} vuelos${dayLabel}${totalSuffix}`;
         }
     }
 
@@ -823,11 +905,35 @@
         updateCsvExcelFilterIcons();
     }
 
+    function computeLatestDataDate() {
+        const year = lastImportYear || new Date().getFullYear();
+        // Cap at today: dates parsed as future (e.g. "31DEC" read back from Supabase
+        // without a year gets stamped with the current year, making Dec 2025 data appear
+        // as Dec 2026). We only want the most recent date that is today or in the past.
+        const todayKey = (() => {
+            const t = new Date();
+            const y = t.getFullYear();
+            const m = String(t.getMonth() + 1).padStart(2, '0');
+            const d = String(t.getDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        })();
+        let maxKey = '';
+        currentData.forEach(row => {
+            DATE_FIELDS.forEach(field => {
+                const key = deriveDateKeyFromValue(row[field], year);
+                if (key && key > maxKey && key <= todayKey) maxKey = key;
+            });
+        });
+        latestDataDate = maxKey || null;
+    }
+
     function getReferenceDate() {
         const dateInput = document.getElementById('vuelos-ops-date');
         if (dateInput && dateInput.value) return dateInput.value;
-        const mainDateInput = document.getElementById('operations-summary-date');
-        if (mainDateInput && mainDateInput.value) return mainDateInput.value;
+        // NOTE: operations-summary-date belongs to a different section (Parte Diario) and
+        // must NOT be used here — it would make the date window point to a stale date and
+        // hide all Conciliación data.
+        if (latestDataDate) return latestDataDate;
         const today = new Date();
         return today.toISOString().slice(0, 10);
     }
@@ -1225,6 +1331,12 @@
     }
 
     function applyDateWindow(rows, dateRef) {
+        // Date window only applies when the user has explicitly activated it via
+        // the filter controls. By default ALL imported rows are shown.
+        if (!_dateWindowUserActivated) return rows;
+
+        // If we have data but couldn't determine any date from it, show everything.
+        if (currentData.length > 0 && !latestDataDate && dateMode === 'relative') return rows;
         if (!dateRef && dateMode === 'absolute' && !absStart && !absEnd) return rows;
 
         // Use LOCAL date getters to avoid UTC offset shifting the boundary date
