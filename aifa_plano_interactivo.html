@@ -534,11 +534,11 @@ button{font-family:inherit;cursor:pointer}
     Editar datos
   </button>
   <span class="sep"></span>
-  <button class="ebtn green" id="eb-export" title="Descargar JSON interno (para el propio mapa)">
+  <button class="ebtn green" id="eb-export" title="Descargar JSON interno (para el propio mapa)" disabled>
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>
     JSON
   </button>
-  <button class="ebtn green" id="eb-geojson" title="Descargar GeoJSON (para Supabase / PostGIS)">
+  <button class="ebtn green" id="eb-geojson" title="Descargar GeoJSON (para Supabase / PostGIS)" disabled>
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.4"/></svg>
     GeoJSON
   </button>
@@ -546,10 +546,10 @@ button{font-family:inherit;cursor:pointer}
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M17 8l-5-5-5 5M5 21h14"/></svg>
     Subir a DB
   </button>
-  <label class="ebtn" style="cursor:pointer" title="Importar JSON o GeoJSON">
+  <label class="ebtn" style="cursor:not-allowed;pointer-events:none;opacity:0.45" title="Importar JSON o GeoJSON" aria-disabled="true">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M12 21V9M7 14l5-5 5 5M5 3h14"/></svg>
     Importar
-    <input type="file" id="eb-import" accept="application/json,.json,.geojson" style="display:none">
+    <input type="file" id="eb-import" accept="application/json,.json,.geojson" style="display:none" disabled>
   </label>
 </div>
 

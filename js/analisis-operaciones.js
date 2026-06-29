@@ -352,7 +352,7 @@ async function loadOpsMonthData(month, force = false) {
     const cached = force ? null : getFromCache(cacheKey);
 
     if (cached) {
-        opsRawData = cached;
+        opsRawData = _applyEstatusLogic(cached);
         try { await _loadOpsMasterCatalogs(); } catch (_) { }
         populateOpsAirlineFilter(cached);
         applyOpsFiltersAndRender();
@@ -437,8 +437,8 @@ async function loadOpsMonthData(month, force = false) {
             return;
         }
 
-        opsRawData = allData;
         saveToCache(cacheKey, allData);
+        opsRawData = _applyEstatusLogic(allData);
 
         try { await _loadOpsMasterCatalogs(); } catch (_) { }
         populateOpsAirlineFilter(allData);
@@ -501,6 +501,114 @@ function _fmtIsoTime(val) {
     const m = String(val).match(_ISO_RE);
     if (!m) return val;
     return `${m[4]}:${m[5]}`;
+}
+/** Combina una fecha base (ISO YYYY-MM-DD o DD/MM/YYYY) con una hora parcial ("HH:MM").
+ *  Si timeVal ya contiene fecha completa la retorna tal cual.
+ *  Usado para reconstruir fechahora cuando la BD almacena sólo la hora en algunas columnas. */
+function _joinDateAndTime(dateVal, timeVal) {
+    const t = String(timeVal || '').trim();
+    if (!t) return String(dateVal || '').trim();
+    // Ya es fecha-hora completa
+    if (/\d{4}-\d{2}-\d{2}T/.test(t)) return t;
+    const tMatch = t.match(/(\d{1,2}):(\d{2})/);
+    if (!tMatch) return t;
+    const hh = tMatch[1].padStart(2, '0'), mm = tMatch[2];
+    const d = String(dateVal || '').trim();
+    const isoDate = d.match(/^(\d{4}-\d{2}-\d{2})/);
+    if (isoDate) return `${isoDate[1]}T${hh}:${mm}:00`;
+    const slashDate = d.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+    if (slashDate) return `${slashDate[3]}-${slashDate[2]}-${slashDate[1]}T${hh}:${mm}:00`;
+    return t;
+}
+
+/**
+ * Deriva el campo Estatus de un registro según las reglas de negocio:
+ *   Ruta MMSM / NLU-NLU  → "Regreso a posición"
+ *   Tiempo_Demora ausente → "Cancelado"
+ *   −15 ≤ demora ≤ 15 min  → "A Tiempo"
+ *   Resto               → "Demora"
+ * Se aplica client-side en cada carga para que la tabla refleje siempre
+ * la lógica actual, independientemente de lo que esté almacenado en la BD.
+ */
+// ── Lógica de Estatus ──────────────────────────────────────────────────────
+// Derivación client-side aplicada en cada carga de datos para que la tabla
+// refleje las reglas de negocio sin depender de lo que esté almacenado en DB.
+
+/** Calcula el Estatus de una fila usando las claves ya resueltas. */
+function _calcEstatusWithKeys(row, rutaKey, tiempoKey) {
+    const ruta = String(rutaKey ? row[rutaKey] : '').trim().toUpperCase();
+    if (ruta === 'MMSM' || ruta === 'NLU-NLU') return 'Regreso a posición';
+
+    const raw = tiempoKey !== undefined ? row[tiempoKey] : undefined;
+    if (raw === null || raw === undefined || raw === '') return 'Cancelado';
+
+    // Forzar número: puede llegar como number, "15", "-5", "3,5"
+    const min = typeof raw === 'number'
+        ? raw
+        : parseFloat(String(raw).replace(',', '.').trim());
+
+    if (!isFinite(min)) return 'Cancelado';
+    if (min >= -15 && min <= 15) return 'A Tiempo';
+    return 'Demora';
+}
+
+/** Deriva Llegada/Salida a partir del campo Ruta y el Estatus ya calculado:
+ *  — Regreso a posición: Ruta='MMSM'   → 'Salida'
+ *                         Ruta termina '-NLU' → 'Llegada'
+ *  — Demás casos:        Ruta empieza 'MMSM' o 'NLU-' → 'Salida'
+ *                         Ruta termina '-NLU'           → 'Llegada'
+ *                         Otro caso                     → valor original */
+function _calcLlegadaSalidaWithKeys(row, rutaKey, llegadaSalidaKey, estatus) {
+    const ruta    = String(rutaKey ? row[rutaKey] : '').trim().toUpperCase();
+    const original = llegadaSalidaKey ? String(row[llegadaSalidaKey] ?? '') : '';
+
+    if (estatus === 'Regreso a posición') {
+        if (ruta === 'MMSM')          return 'Salida';
+        if (ruta.endsWith('-NLU'))    return 'Llegada';
+        return original;
+    }
+    // Casos normales
+    if (ruta.startsWith('MMSM') || ruta.startsWith('NLU-')) return 'Salida';
+    if (ruta.endsWith('-NLU'))                               return 'Llegada';
+    return original;
+}
+
+/** Detecta las columnas Ruta y Tiempo-de-Demora con regex (agnóstico al casing
+ *  y a si el nombre tiene espacios, guiones o underscores), luego aplica
+ *  _calcEstatusWithKeys a cada fila. Resuelve las claves UNA sola vez. */
+function _applyEstatusLogic(rows) {
+    if (!rows || !rows.length) return rows;
+
+    const keys = Object.keys(rows[0]);
+
+    // /^ruta$/ — coincidencia exacta, case-insensitive
+    const rutaKey = keys.find(k => /^ruta$/i.test(k));
+
+    // Busca cualquier columna cuyo nombre contenga "tiempo" Y "demora"
+    const tiempoKey = keys.find(k => /tiempo.{0,10}demora/i.test(k));
+
+    // Busca la columna Llegada/Salida (variantes: llegada_salida, LlegadaSalida, etc.)
+    const llegadaSalidaKey = keys.find(k => /llegada.{0,5}salida|salida.{0,5}llegada/i.test(k));
+
+    console.log(
+        '[Estatus] Columnas detectadas →',
+        'Ruta:', rutaKey  ?? 'NO ENCONTRADO',
+        '| Tiempo demora:', tiempoKey ?? 'NO ENCONTRADO',
+        '| Valor muestra:', tiempoKey ? rows[0][tiempoKey] : '–',
+        '| Tipo:', tiempoKey ? typeof rows[0][tiempoKey] : '–',
+        '| Llegada/Salida:', llegadaSalidaKey ?? 'NO ENCONTRADO'
+    );
+
+    return rows.map(r => {
+        const estatus = _calcEstatusWithKeys(r, rutaKey, tiempoKey);
+        return {
+            ...r,
+            Estatus: estatus,
+            ...(llegadaSalidaKey
+                ? { [llegadaSalidaKey]: _calcLlegadaSalidaWithKeys(r, rutaKey, llegadaSalidaKey, estatus) }
+                : { Llegada_Salida:    _calcLlegadaSalidaWithKeys(r, rutaKey, null, estatus) })
+        };
+    });
 }
 
 function _puntualidadBadge(horaProg, horaActual) {
@@ -1375,6 +1483,8 @@ async function renderOpsCharts() {
         // kHoraActual: dedicated column for the ACTUAL hour shown in the heatmap and hoursMap
         // This is separate so it can point to "Hora actual" (time-only) without breaking date parsing
         const kHoraActual = getKey('hora_actual', 'hora_real_local', 'hora_aterrizaje', 'hora_despegue');
+        // kHoraProg: scheduled time column — used to show full datetime in drilldowns
+        const kHoraProg = getKey('hora_programada', 'hora_prog', 'std', 'sobt');
         // If it turned out the same column as kFecha or kHora, ignore it (avoid duplicate use)
         // We want it to be a truly separate column
 
@@ -1588,9 +1698,12 @@ async function renderOpsCharts() {
                     aeronave:   kMatricula   ? String(r[kMatricula]   || '').trim() :
                                 (kTipoAc    ? String(r[kTipoAc]      || '').trim() : ''),
                     fecha:      kFecha       ? String(r[kFecha]       || '').trim() : '',
-                    hora:       kHoraActual  ? String(r[kHoraActual]  || '').trim() :
-                                (kHora       ? String(r[kHora]        || '').trim() : ''),
-                    horaProg:   kFecha       ? String(r[kFecha]       || '').trim() : '',
+                    hora:       _joinDateAndTime(kFecha ? String(r[kFecha] || '').trim() : '',
+                                    kHoraActual ? String(r[kHoraActual] || '').trim() :
+                                    (kHora      ? String(r[kHora]       || '').trim() : '')),
+                    horaProg:   _joinDateAndTime(kFecha ? String(r[kFecha] || '').trim() : '',
+                                    kHoraProg ? String(r[kHoraProg] || '').trim() :
+                                    (kFecha   ? String(r[kFecha]    || '').trim() : '')),
                     pax
                 };
                 heatmapDetails[hourKey][dayIndex].push(_hmRec);
@@ -1661,9 +1774,12 @@ async function renderOpsCharts() {
                     aeronave:   kTipoAc      ? String(r[kTipoAc]     || '').trim() :
                                 (kMatricula  ? String(r[kMatricula]   || '').trim() : ''),
                     fecha:      kFecha       ? String(r[kFecha]       || '').trim() : '',
-                    hora:       kHoraActual  ? String(r[kHoraActual]  || '').trim() :
-                                (kHora       ? String(r[kHora]        || '').trim() : ''),
-                    horaProg:   kFecha       ? String(r[kFecha]       || '').trim() : '',
+                    hora:       _joinDateAndTime(kFecha ? String(r[kFecha] || '').trim() : '',
+                                    kHoraActual ? String(r[kHoraActual] || '').trim() :
+                                    (kHora      ? String(r[kHora]       || '').trim() : '')),
+                    horaProg:   _joinDateAndTime(kFecha ? String(r[kFecha] || '').trim() : '',
+                                    kHoraProg ? String(r[kHoraProg] || '').trim() :
+                                    (kFecha   ? String(r[kFecha]    || '').trim() : '')),
                     pax:        kPasajeros   ? parsePassengers(r[kPasajeros]) : 0,
                     estatus:    kEstatus     ? String(r[kEstatus]     || '').trim() : ''
                 });
@@ -1763,9 +1879,12 @@ async function renderOpsCharts() {
                     aeronave:   kMatricula   ? String(r[kMatricula]   || '').trim() : acTypeLabel,
                     posicion:   kPos         ? String(r[kPos]         || '').trim() : '',
                     fecha:      kFecha       ? String(r[kFecha]       || '').trim() : '',
-                    hora:       kHoraActual  ? String(r[kHoraActual]  || '').trim() :
-                                (kHora       ? String(r[kHora]        || '').trim() : ''),
-                    horaProg:   kFecha       ? String(r[kFecha]       || '').trim() : '',
+                    hora:       _joinDateAndTime(kFecha ? String(r[kFecha] || '').trim() : '',
+                                    kHoraActual ? String(r[kHoraActual] || '').trim() :
+                                    (kHora      ? String(r[kHora]       || '').trim() : '')),
+                    horaProg:   _joinDateAndTime(kFecha ? String(r[kFecha] || '').trim() : '',
+                                    kHoraProg ? String(r[kHoraProg] || '').trim() :
+                                    (kFecha   ? String(r[kFecha]    || '').trim() : '')),
                     pax:        kPasajeros   ? parsePassengers(r[kPasajeros]) : 0,
                     estatus:    kEstatus     ? String(r[kEstatus]     || '').trim() : ''
                 });
@@ -1868,8 +1987,9 @@ async function renderOpsCharts() {
                 aeronave:   kMatricula   ? String(r[kMatricula]   || '').trim() :
                             (kTipoAc    ? String(r[kTipoAc]      || '').trim() : ''),
                 fecha:      kFecha       ? String(r[kFecha]       || '').trim() : '',
-                hora:       kHoraActual  ? String(r[kHoraActual]  || '').trim() :
-                            (kHora       ? String(r[kHora]        || '').trim() : ''),
+                hora:       _joinDateAndTime(kFecha ? String(r[kFecha] || '').trim() : '',
+                                kHoraActual ? String(r[kHoraActual] || '').trim() :
+                                (kHora      ? String(r[kHora]       || '').trim() : '')),
                 estatus:    kEstatus     ? String(r[kEstatus]     || '').trim() : ''
             };
             heatmapOpsHourDetails[hourKey][dayIndex].push(_ohRec);
@@ -2506,8 +2626,8 @@ function _showBarDrilldown(title, records) {
             if (hasServicio)     html += `<td>${r.servicio   || '—'}</td>`;
             if (hasAeronave)     html += `<td>${r.aeronave   || '—'}</td>`;
             if (hasPosicion)     html += `<td class="fw-semibold">${r.posicion   || '—'}</td>`;
-            if (hasFecha)        html += `<td class="text-nowrap">${_fmtIsoTime(r.horaProg)}</td>`;
-            if (hasHora)         html += `<td class="text-nowrap fw-semibold text-primary">${_fmtIsoTime(r.hora)}</td>`;
+            if (hasFecha)        html += `<td class="text-nowrap">${_fmtIsoDateTime(r.horaProg)}</td>`;
+            if (hasHora)         html += `<td class="text-nowrap fw-semibold text-primary">${_fmtIsoDateTime(r.hora)}</td>`;
             if (hasPuntualidad)  html += `<td class="text-center">${_puntualidadBadge(r.horaProg, r.hora) || '—'}</td>`;
             if (hasPax)          html += `<td class="text-end fw-bold">${(r.pax || 0) > 0 ? r.pax.toLocaleString() : '—'}</td>`;
             html += '</tr>';
@@ -2845,22 +2965,37 @@ function applyExcelFilters(api) {
 
                 // List Container
                 const list = $('<div class="overflow-auto border rounded p-1 mb-2 bg-light custom-scrollbar" style="max-height: 200px;"></div>').appendTo(menu);
-                
+
+                // Obtener el filtro activo de esta columna para restaurar el estado
+                const currentSearch = column.search();
+                let activeRegex = null;
+                if (currentSearch) {
+                    try { activeRegex = new RegExp(currentSearch); } catch (_) {}
+                }
+
                 unique.forEach(val => {
                         const safeVal = val === null || val === undefined ? '' : String(val);
                         const labelText = safeVal === '' ? '(Vacías)' : safeVal;
-                        
+
+                        // Pre-marcar según el filtro actual de la columna
+                        let isChecked = true;
+                        if (activeRegex) {
+                            // El valor está "seleccionado" si pasa el regex actual
+                            isChecked = activeRegex.test(safeVal);
+                        }
+
                         const row = $('<div class="form-check form-check-sm ms-1 mb-1 item-row"></div>').appendTo(list); // Added item-row class
-                        const chk = $('<input class="form-check-input item-chk" type="checkbox" checked>')
+                        const chk = $('<input class="form-check-input item-chk" type="checkbox">')
+                        .prop('checked', isChecked)
                         .val(safeVal)
                         .appendTo(row);
-                        
+
                         $('<label class="form-check-label text-truncate w-100" style="cursor:pointer; padding-left: 4px;">')
                         .text(labelText)
                         .attr('title', labelText)
-                        .on('click', (e) => { 
+                        .on('click', (e) => {
                                 e.stopPropagation();
-                                chk.prop('checked', !chk.prop('checked')); 
+                                chk.prop('checked', !chk.prop('checked'));
                         })
                         .appendTo(row);
                 });
@@ -2966,8 +3101,8 @@ function _showHeatmapDrilldown(hour, dayIdx) {
             if (hasDestino)      html += `<td>${r.destino    || '—'}</td>`;
             if (hasServicio)     html += `<td>${r.servicio   || '—'}</td>`;
             if (hasAeronave)     html += `<td>${r.aeronave   || '—'}</td>`;
-            if (hasFecha)        html += `<td class="text-nowrap">${_fmtIsoTime(r.horaProg)}</td>`;
-            if (hasHora)         html += `<td class="text-nowrap fw-semibold text-primary">${_fmtIsoTime(r.hora)}</td>`;
+            if (hasFecha)        html += `<td class="text-nowrap">${_fmtIsoDateTime(r.horaProg)}</td>`;
+            if (hasHora)         html += `<td class="text-nowrap fw-semibold text-primary">${_fmtIsoDateTime(r.hora)}</td>`;
             if (hasPuntualidad)  html += `<td class="text-center">${_puntualidadBadge(r.horaProg, r.hora) || '—'}</td>`;
             if (hasPax)          html += `<td class="text-end fw-bold">${r.pax > 0 ? r.pax.toLocaleString() : '—'}</td>`;
             html += '</tr>';
@@ -3196,8 +3331,8 @@ function _showOpsHourDrilldown(hour, dayIdx) {
             if (hasDestino)      html += `<td>${r.destino    || '—'}</td>`;
             if (hasServicio)     html += `<td>${r.servicio   || '—'}</td>`;
             if (hasAeronave)     html += `<td>${r.aeronave   || '—'}</td>`;
-            if (hasFecha)        html += `<td class="text-nowrap">${_fmtIsoTime(r.horaProg)}</td>`;
-            if (hasHora)         html += `<td class="text-nowrap fw-semibold text-warning">${_fmtIsoTime(r.hora)}</td>`;
+            if (hasFecha)        html += `<td class="text-nowrap">${_fmtIsoDateTime(r.horaProg)}</td>`;
+            if (hasHora)         html += `<td class="text-nowrap fw-semibold text-warning">${_fmtIsoDateTime(r.hora)}</td>`;
             if (hasPuntualidad)  html += `<td class="text-center">${_puntualidadBadge(r.horaProg, r.hora) || '—'}</td>`;
             html += '</tr>';
         });
@@ -3236,6 +3371,13 @@ window.AnalisisOperacionesModule = {
             initialized: _moduleInitDone
         };
     }
+};
+
+// Punto de entrada para el sistema Realtime — invocado desde realtime.js
+// cuando cambia la tabla Demoras en Supabase.
+window.renderDemoras = function () {
+    // Forzar recarga vaciando la caché del mes activo
+    loadOpsMonthData(currentMonthOps, true);
 };
 
 })();

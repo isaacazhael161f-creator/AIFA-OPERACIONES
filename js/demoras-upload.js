@@ -14,6 +14,47 @@
     // Columnas que contienen seriales de fecha Excel
     const DATE_COL_NORMS = new Set(['aterrizaje_despegue', 'hora_programada', 'hora_actual']);
 
+    // Alias explícitos: nombre normalizado del Excel → nombre normalizado de la columna en DB.
+    // Necesarios cuando el Excel usa preposiciones ("de") o idioma diferente al esquema.
+    const EXCEL_TO_DB_ALIASES = {
+        'tiempo_de_demora':        'tiempo_demora',          // "Tiempo de Demora" → Tiempo_Demora
+        'codigo_de_demora':        'codigo_demora',          // "Código de Demora" → Codigo_Demora
+        'domestico_internacional': 'domestic_international', // "Doméstico/Internacional" → Domestic_International
+        'tipo_de_servicio':        'tipo_servicio',          // "Tipo de Servicio" → Tipo_Servicio
+        'codigo_de_afac_aifa':     'codigo_afac_aifa',       // "Código de AFAC/AIFA" → Codigo_AFAC_AIFA
+        'demoras':                 'demoras_col',            // "Demoras" → Demoras_col (evita conflicto con nombre de tabla)
+        'no_de_av':                'tipo_avion',             // "No. de Av." → Tipo_Avion
+    };
+
+    // Nombres exactos de las columnas en la tabla Demoras (mayúsculas/minúsculas como en Supabase).
+    // Se usa como fallback cuando la tabla está vacía y getDbColNames() retorna null.
+    const DB_COL_EXACT = {
+        'aterrizaje_despegue':     'Aterrizaje_Despegue',
+        'aerolinea':               'Aerolinea',
+        'tipo_avion':              'Tipo_Avion',
+        'matricula':               'Matricula',
+        'no_vuelo':                'No_Vuelo',
+        'ruta':                    'Ruta',
+        'hora_programada':         'Hora_Programada',
+        'hora_actual':             'Hora_Actual',
+        'tiempo_demora':           'Tiempo_Demora',
+        'codigo_demora':           'Codigo_Demora',
+        'pasajeros':               'Pasajeros',
+        'domestic_international':  'Domestic_International',
+        'tipo_servicio':           'Tipo_Servicio',
+        'motivo':                  'Motivo',
+        'estatus':                 'Estatus',
+        'llegada_salida':          'Llegada_Salida',
+        'codigo_afac_aifa':        'Codigo_AFAC_AIFA',
+        'totales_servicio':        'Totales_Servicio',
+        'demoras_col':             'Demoras_col',
+        'puntualidad':             'Puntualidad',
+        'puntualidad_compania':    'Puntualidad_Compania',
+        'posicion':                'Posicion',
+        'mes':                     'MES',
+        'anio':                    'ANIO',
+    };
+
     // Abreviaturas de mes en español → número (1-12)
     const MES_ABREV_MAP = {
         'ene':1,'feb':2,'mar':3,'abr':4,'may':5,'jun':6,
@@ -64,9 +105,21 @@
         return new Date((serial - 25569) * 86400000).toISOString();
     }
 
-    /** Encuentra la hoja con datos de operaciones */
+    /** Encuentra la hoja con datos de operaciones.
+     *  Prioridad:
+     *  1. Hojas cuyo nombre coincide con el patrón "MES YYYY" (ej. "MAY 2026", "ABR 2026")
+     *  2. Cualquier hoja cuyas cabeceras contengan al menos 2 firmas de SHEET_SIGNATURE
+     */
     function findDataSheet(wb) {
+        // Separar hojas con nombre de periodo de las demás
+        const namedSheets   = [];
+        const genericSheets = [];
         for (const name of wb.SheetNames) {
+            if (mesAnioFromSheetName(name)) namedSheets.push(name);
+            else genericSheets.push(name);
+        }
+
+        for (const name of [...namedSheets, ...genericSheets]) {
             const sh = wb.Sheets[name];
             if (!sh) continue;
             const rows = XLSX.utils.sheet_to_json(sh, { header: 1, defval: null });
@@ -93,8 +146,11 @@
 
     /**
      * Construye el mapa: índice Excel → { dbCol, isDate }
-     * Primero intenta emparejar contra columnas reales de Supabase.
-     * Si no hay datos en la tabla, usa nombres normalizados directamente.
+     * Prioridad:
+     *   1. Columna real de Supabase con mismo nombre normalizado (más precisa)
+     *   2. Columna real de Supabase vía alias explícito (maneja variantes del Excel)
+     *   3. Nombre exacto hardcodeado (fallback cuando la tabla está vacía)
+     *   4. Alias normalizado como último recurso
      */
     async function buildMapping(excelHeaders, dbColNames) {
         const dbNormToReal = {};
@@ -103,9 +159,13 @@
         }
 
         return excelHeaders.map((h, idx) => {
-            const norm  = normCol(h);
-            // Busca coincidencia exacta normalizada en columnas DB
-            const dbCol = dbNormToReal[norm] || norm;
+            const norm      = normCol(h);
+            const normAlias = EXCEL_TO_DB_ALIASES[norm] || norm;
+            const dbCol = dbNormToReal[norm]
+                       || dbNormToReal[normAlias]
+                       || DB_COL_EXACT[normAlias]
+                       || DB_COL_EXACT[norm]
+                       || normAlias;
             return { idx, excelHeader: h, dbCol, isDate: DATE_COL_NORMS.has(norm) };
         });
     }
@@ -311,12 +371,70 @@
                         const anioEntry = mapping.find(m => normCol(m.excelHeader) === 'anio');
                         const mesDbCol  = mesEntry  ? mesEntry.dbCol  : 'MES';
                         const anioDbCol = anioEntry ? anioEntry.dbCol : 'ANIO';
+
+                        // Resolver nombres de columnas para lógica de Estatus
+                        const rutaEntry   = mapping.find(m => normCol(m.excelHeader) === 'ruta');
+                        const tiempoEntry = mapping.find(m =>
+                            normCol(m.excelHeader) === 'tiempo_de_demora' ||
+                            normCol(m.excelHeader) === 'tiempo_demora');
+                        const estatusEntry = mapping.find(m => normCol(m.excelHeader) === 'estatus');
+                        const llegadaSalidaEntry = mapping.find(m =>
+                            normCol(m.excelHeader) === 'llegada_salida' ||
+                            normCol(m.excelHeader) === 'llegada_salida');
+                        const rutaDbCol         = rutaEntry         ? rutaEntry.dbCol         : 'Ruta';
+                        const tiempoDbCol       = tiempoEntry       ? tiempoEntry.dbCol       : 'Tiempo_Demora';
+                        const estatusDbCol      = estatusEntry      ? estatusEntry.dbCol      : 'Estatus';
+                        const llegadaSalidaDbCol = llegadaSalidaEntry ? llegadaSalidaEntry.dbCol : 'Llegada_Salida';
+
+                        /** Deriva el Estatus de un vuelo según reglas de negocio. */
+                        function calcEstatus(row) {
+                            const ruta = String(row[rutaDbCol] || '').trim().toUpperCase();
+                            if (ruta === 'MMSM' || ruta === 'NLU-NLU') return 'Regreso a posición';
+                            const rawTiempo = row[tiempoDbCol];
+                            if (rawTiempo === null || rawTiempo === undefined || rawTiempo === '')
+                                return 'Cancelado';
+                            const minutos = parseFloat(String(rawTiempo).replace(',', '.'));
+                            if (isNaN(minutos)) return 'Cancelado';
+                            if (minutos >= -15 && minutos <= 15) return 'A Tiempo';
+                            return 'Demora';
+                        }
+
+                        /** Deriva Llegada/Salida a partir del campo Ruta y el Estatus derivado:
+                         *  Regreso a posición: Ruta='MMSM'      → 'Salida'
+                         *                      Ruta termina '-NLU' → 'Llegada'
+                         *  Demás casos:        Ruta empieza 'MMSM'/'NLU-' → 'Salida'
+                         *                      Ruta termina '-NLU'         → 'Llegada'
+                         *                      Otro caso                   → valor original */
+                        function calcLlegadaSalida(row, estatusDerived) {
+                            const ruta = String(row[rutaDbCol] || '').trim().toUpperCase();
+                            const original = row[llegadaSalidaDbCol] ?? '';
+                            if (estatusDerived === 'Regreso a posición') {
+                                if (ruta === 'MMSM')        return 'Salida';
+                                if (ruta.endsWith('-NLU'))  return 'Llegada';
+                                return original;
+                            }
+                            if (ruta.startsWith('MMSM') || ruta.startsWith('NLU-')) return 'Salida';
+                            if (ruta.endsWith('-NLU'))                               return 'Llegada';
+                            return original;
+                        }
+
                         const dbRows   = dataRows
                             .map(r => transformRow(r, mapping))
                             .filter(r => Object.values(r).some(v => v !== null && v !== undefined && v !== ''))
                             // Sobreescribir MES/ANIO con el valor detectado del nombre de hoja
                             // (evita que datos copiados de otro mes queden con el mes incorrecto)
-                            .map((r, i) => ({ ...r, [mesDbCol]: mesDato, [anioDbCol]: anioDato, [noDbCol]: i + 1 }));
+                            // Sobreescribir Estatus con la lógica derivada
+                            .map((r, i) => {
+                                const estatusDerived = calcEstatus(r);
+                                return {
+                                    ...r,
+                                    [mesDbCol]:           mesDato,
+                                    [anioDbCol]:          anioDato,
+                                    [noDbCol]:            i + 1,
+                                    [estatusDbCol]:       estatusDerived,
+                                    [llegadaSalidaDbCol]: calcLlegadaSalida(r, estatusDerived)
+                                };
+                            });
                         await uploadInBatches(dbRows, (done, total) => {
                             setProgress(done, total);
                             setStatus(`<i class="fas fa-spinner fa-spin me-1"></i>Subiendo… <strong>${done.toLocaleString()}</strong> / ${total.toLocaleString()} registros`);
