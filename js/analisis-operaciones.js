@@ -22,6 +22,15 @@ let _opsFilters = { airline: '', traffic: '' };
 let _opsSortCol = '';
 let _opsSortDir = 'asc';
 
+// Si el usuario no ha elegido orden, ordenar por Hora Programada asc por defecto.
+function _ensureDefaultSort() {
+    if (_opsSortCol || !opsRawData || !opsRawData.length) return;
+    const k = Object.keys(opsRawData[0]).find(
+        k => /hora.{0,10}programada|hora.{0,5}prog\b|\bstd\b|\bsobt\b/i.test(k)
+    );
+    if (k) { _opsSortCol = k; _opsSortDir = 'asc'; }
+}
+
 // Cache key prefix
 const OPS_CACHE_KEY = 'aifa_ops_cache_';
 
@@ -397,6 +406,7 @@ async function loadOpsMonthData(month, force = false) {
 
     if (cached) {
         opsRawData = _applyEstatusLogic(cached);
+        _ensureDefaultSort();
         try { await _loadOpsMasterCatalogs(); } catch (_) { }
         populateOpsAirlineFilter(cached);
         applyOpsFiltersAndRender();
@@ -483,6 +493,7 @@ async function loadOpsMonthData(month, force = false) {
 
         saveToCache(cacheKey, allData);
         opsRawData = _applyEstatusLogic(allData);
+        _ensureDefaultSort();
 
         try { await _loadOpsMasterCatalogs(); } catch (_) { }
         populateOpsAirlineFilter(allData);
@@ -682,7 +693,9 @@ function renderOpsTable(data) {
         const idNorm = columnKey.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '');
 
         if (idNorm === 'no' || idNorm === 'n' || idNorm === 'num' || idNorm === '') return '52px';
-        if (/fecha|hora|aterrizaje|despegue/.test(columnKey)) return '170px';
+        // Hora Programada / Hora Actual muestran fecha+hora completa → ancho mayor
+        if (/hora.{0,10}programada|hora.{0,10}actual|hora.{0,10}real/i.test(columnKey)) return '180px';
+        if (/fecha|hora|aterrizaje|despegue/.test(columnKey)) return '145px';
         if (/codigo|motivo|observacion|descripcion/.test(columnKey)) return '240px';
         if (/ruta|matricula|vuelo|aerolinea|equipo|avion/.test(columnKey)) return '150px';
         if (/pasajeros|tiempo|demora|minimo|maximo|monto/.test(columnKey)) return '140px';
@@ -909,6 +922,21 @@ function _opsInitScrollTable(api) {
             if (dirSel) dirSel.addEventListener('change', onSortChange);
         }
     } catch (e) { console.warn('Sort controls init', e); }
+
+    // ── Ancho mínimo garantizado para columnas de fecha+hora completa ────────
+    // Se aplica directo sobre el <th> para que table-layout:fixed lo respete.
+    try {
+        const _HORA_FULL_RE = /hora.{0,10}programada|hora.{0,10}actual|hora.{0,10}real/i;
+        document.querySelectorAll('#ops-datatable thead th').forEach(th => {
+            const txt = th.textContent.trim()
+                .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+                .toLowerCase().replace(/[^a-z\s]/g, '').trim();
+            if (_HORA_FULL_RE.test(txt.replace(/\s+/g, '_'))) {
+                th.style.minWidth = '180px';
+                th.style.width    = '180px';
+            }
+        });
+    } catch (e) { console.warn('Hora col width', e); }
 
     // Manijas para ajustar manualmente el ancho de las columnas
     _opsAttachResizers();
