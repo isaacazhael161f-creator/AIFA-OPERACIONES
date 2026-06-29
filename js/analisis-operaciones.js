@@ -18,6 +18,10 @@ let opsRawData = [];
 // Filtros activos del pane Slots (aerolínea + tipo de tráfico carga/pasajeros)
 let _opsFilters = { airline: '', traffic: '' };
 
+// Orden personalizado de la tabla
+let _opsSortCol = '';
+let _opsSortDir = 'asc';
+
 // Cache key prefix
 const OPS_CACHE_KEY = 'aifa_ops_cache_';
 
@@ -202,11 +206,10 @@ function getFilteredOpsData() {
     const data = opsRawData || [];
     if (!data.length) return data;
     const { airline, traffic } = _opsFilters;
-    if (!airline && !traffic) return data;
     const sample = data[0];
     const kAir = airline ? _opsDetectKey(sample, _OPS_AIRLINE_TERMS) : null;
     const kSvc = traffic ? _opsDetectKey(sample, _OPS_SERVICE_TERMS) : null;
-    return data.filter(r => {
+    let result = (!airline && !traffic) ? [...data] : data.filter(r => {
         if (airline && kAir && String(r[kAir] || '').trim().toUpperCase() !== airline) return false;
         if (traffic && kSvc) {
             const t = _classifyOpsTraffic(r[kSvc]);
@@ -215,6 +218,47 @@ function getFilteredOpsData() {
         }
         return true;
     });
+
+    // Orden personalizado
+    if (_opsSortCol) {
+        const _ISO_DATE = /^\d{4}-\d{2}-\d{2}/;
+        const _FMT_DATE = /^(\d{2})\/(\d{2})\/(\d{4})\s*(.*)/;
+        result = result.slice().sort((a, b) => {
+            const va = a[_opsSortCol], vb = b[_opsSortCol];
+            let cmp;
+            // 1. Números nativos (ej. Tiempo_Demora INTEGER)
+            if (typeof va === 'number' && typeof vb === 'number') {
+                cmp = va - vb;
+            } else {
+                const sa = va == null ? '' : String(va);
+                const sb = vb == null ? '' : String(vb);
+                // 2. Timestamps ISO — ordenables lexicográficamente tal cual
+                if (_ISO_DATE.test(sa) && _ISO_DATE.test(sb)) {
+                    cmp = sa < sb ? -1 : sa > sb ? 1 : 0;
+                } else {
+                    // 3. Fechas formateadas DD/MM/YYYY HH:MM
+                    const ma = sa.match(_FMT_DATE), mb = sb.match(_FMT_DATE);
+                    if (ma && mb) {
+                        const da = `${ma[3]}${ma[2]}${ma[1]} ${ma[4]}`;
+                        const db = `${mb[3]}${mb[2]}${mb[1]} ${mb[4]}`;
+                        cmp = da < db ? -1 : da > db ? 1 : 0;
+                    } else {
+                        // 4. Números como string
+                        const na = parseFloat(sa), nb = parseFloat(sb);
+                        if (!isNaN(na) && !isNaN(nb) && String(na) === sa.trim() && String(nb) === sb.trim()) {
+                            cmp = na - nb;
+                        } else {
+                            // 5. Texto general
+                            cmp = sa.localeCompare(sb, undefined, { numeric: true, sensitivity: 'base' });
+                        }
+                    }
+                }
+            }
+            return _opsSortDir === 'desc' ? -cmp : cmp;
+        });
+    }
+
+    return result;
 }
 
 // Rellena el select de aerolíneas con los códigos presentes en los datos del mes
@@ -645,9 +689,9 @@ function renderOpsTable(data) {
         return '140px';
     };
 
-    // Format ISO timestamps into readable date/time strings
+    // Format ISO timestamps into readable date/time strings.
+    // Todos los campos datetime en Demoras son TIMESTAMPTZ: siempre DD/MM/YYYY HH:MM.
     const ISO_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/;
-    const isTimeOnlyKey = (k) => /^hora/.test(String(k || '').toLowerCase().replace(/[^a-z_]/g, ''));
 
     function formatOpsValue(key, value) {
         if (value === null || value === undefined || value === '') return '';
@@ -657,8 +701,7 @@ function renderOpsTable(data) {
         const [datePart, timePart] = str.split('T');
         const [y, m, d] = datePart.split('-');
         const hhmm = timePart ? timePart.substring(0, 5) : '';
-        if (isTimeOnlyKey(key)) return hhmm;          // hora_* columns → HH:MM
-        return `${d}/${m}/${y} ${hhmm}`;               // other date/time columns → DD/MM/YYYY HH:MM
+        return `${d}/${m}/${y} ${hhmm}`;
     }
 
     // 1. Dynamic Headers — se omite la columna índice del origen ("No." / "N°" / "#")
@@ -749,7 +792,22 @@ function renderOpsTable(data) {
              "<'ops-scroll't>" +
              "<'row mt-2'<'col-sm-5'i><'col-sm-7'p>>",
         language: {
-             url: "//cdn.datatables.net/plug-ins/1.13.7/i18n/es-ES.json"
+            search: 'Buscar:',
+            searchPlaceholder: 'Filtrar...',
+            lengthMenu: 'Mostrar _MENU_ registros',
+            info: 'Mostrando _START_ a _END_ de _TOTAL_ registros',
+            infoEmpty: 'Sin registros disponibles',
+            infoFiltered: '(filtrado de _MAX_ registros totales)',
+            zeroRecords: 'No se encontraron registros',
+            emptyTable: 'No hay datos disponibles',
+            processing: 'Procesando...',
+            loadingRecords: 'Cargando...',
+            paginate: {
+                first: 'Primero',
+                last: 'Último',
+                next: 'Siguiente',
+                previous: 'Anterior'
+            }
         },
         initComplete: function () {
             const api = this.api();
@@ -808,6 +866,49 @@ function _opsInitScrollTable(api) {
 
     // Filtros tipo Excel en cada encabezado (embudo)
     try { applyExcelFilters(api); } catch (e) { console.warn('Excel filters', e); }
+
+    // ── Controles "Ordenar por" ──────────────────────────────────────────────
+    try {
+        const wrapper = api.table().container();
+        const lengthDiv = wrapper ? wrapper.querySelector('.dataTables_length') : null;
+        if (lengthDiv && !wrapper.querySelector('.ops-sort-controls')) {
+            // Opciones de columna a partir de las keys del primer registro
+            const keys = opsRawData && opsRawData.length ? Object.keys(opsRawData[0]) : [];
+            const _normKey = k => String(k || '').normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+            const skipIndex = new Set(['no', 'n', 'num', '']);
+            const colOptions = keys
+                .filter(k => !skipIndex.has(_normKey(k)))
+                .map(k => `<option value="${k}">${typeof formatHeader === 'function' ? formatHeader(k) : k}</option>`)
+                .join('');
+
+            const sortCtrl = document.createElement('div');
+            sortCtrl.className = 'ops-sort-controls d-inline-flex align-items-center ms-3 gap-2 flex-wrap';
+            sortCtrl.innerHTML =
+                `<label class="text-muted small mb-0 me-1">Ordenar por:</label>` +
+                `<select id="ops-sort-col" class="form-select form-select-sm" style="width:auto">` +
+                `<option value="">— Sin orden —</option>${colOptions}</select>` +
+                `<select id="ops-sort-dir" class="form-select form-select-sm" style="width:auto">` +
+                `<option value="asc">Ascendente</option>` +
+                `<option value="desc">Descendente</option></select>`;
+
+            lengthDiv.appendChild(sortCtrl);
+
+            // Restaurar selección previa si existe
+            const colSel = document.getElementById('ops-sort-col');
+            const dirSel = document.getElementById('ops-sort-dir');
+            if (colSel && _opsSortCol) colSel.value = _opsSortCol;
+            if (dirSel) dirSel.value = _opsSortDir;
+
+            const onSortChange = () => {
+                _opsSortCol = colSel ? colSel.value : '';
+                _opsSortDir = dirSel ? dirSel.value : 'asc';
+                try { applyOpsFiltersAndRender(); } catch (e) { console.warn('Sort error', e); }
+            };
+            if (colSel) colSel.addEventListener('change', onSortChange);
+            if (dirSel) dirSel.addEventListener('change', onSortChange);
+        }
+    } catch (e) { console.warn('Sort controls init', e); }
 
     // Manijas para ajustar manualmente el ancho de las columnas
     _opsAttachResizers();
@@ -2849,6 +2950,14 @@ function applyExcelFilters(api) {
 
         // Omitir columnas no buscables (p.ej. el consecutivo "No.")
         if (column.settings()[0].aoColumns[column.index()].bSearchable === false) {
+            return;
+        }
+
+        // Omitir filtro en columnas de hora (Hora Programada / Hora Actual)
+        const headerNorm = header.text().trim()
+            .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase().replace(/[^a-z]/g, '');
+        if (headerNorm === 'horaprogramada' || headerNorm === 'horaactual') {
             return;
         }
 
