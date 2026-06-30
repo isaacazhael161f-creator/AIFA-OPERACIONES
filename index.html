@@ -455,6 +455,11 @@ FF
                separate para que los encabezados queden fijos al hacer scroll. */
             border-collapse: separate;
             border-spacing: 0;
+            /* Bootstrap/.table aplica `overflow:hidden` (para el border-radius),
+               lo que convierte la tabla en el contenedor de scroll del sticky y
+               anula los encabezados fijos. Forzamos visible para que el <th>
+               sticky se ancle al contenedor con scroll real. */
+            overflow: visible;
         }
         /* Con border-collapse:separate los bordes de .table-bordered se
            duplican; dejamos solo borde derecho/inferior por celda y el marco
@@ -618,6 +623,8 @@ FF
         #table-board-departures {
             border-collapse: separate;
             border-spacing: 0;
+            /* Override .table { overflow:hidden } para no romper los <th> sticky. */
+            overflow: visible;
         }
         #table-board-arrivals > :not(caption) > * > *,
         #table-board-departures > :not(caption) > * > * {
