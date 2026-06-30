@@ -134,10 +134,10 @@
         const ops = new Set(rows.map(r => (r.operador || '').trim()).filter(Boolean)).size;
 
         const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
-        set('em-kpi-total',       String(total));
-        set('em-kpi-accidentes',  String(acc));
-        set('em-kpi-incidentes',  String(inc));
-        set('em-kpi-operadores',  String(ops));
+        set('empista-kpi-total',       String(total));
+        set('empista-kpi-accidentes',  String(acc));
+        set('empista-kpi-incidentes',  String(inc));
+        set('empista-kpi-operadores',  String(ops));
     }
 
     // ─── TABLA + GALERÍA ─────────────────────────────────────────────
