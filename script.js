@@ -6737,6 +6737,13 @@ function handleNavigation(e) {
                 }, 200);
             } catch (_) { }
         }
+        if (section === 'ingenieria-civil') {
+            try {
+                setTimeout(() => {
+                    if (typeof window.initIngenieriaCivil === 'function') window.initIngenieriaCivil();
+                }, 200);
+            } catch (_) { }
+        }
         if (section === 'analisis-operaciones') {
             try {
                 setTimeout(() => {
@@ -18609,6 +18616,8 @@ async function _conciSaveBulkEdits() {
                 'bhs',
                 // GSO
                 'fauna', 'ssei-derrames', 'ssei-emergencias',
+                // GIC
+                'ingenieria-civil',
                 // GSM
                 'medicas'
             ]

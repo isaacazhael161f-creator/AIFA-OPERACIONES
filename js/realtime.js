@@ -167,6 +167,9 @@
 
         // ── SSEI · Emergencias en Pista ───────────────────────────
         rm.watch(['emergencias_pista'], _lazy('sseiEmergenciasReload'));
+
+        // ── Ingeniería Civil · ETP (vidrios y filtraciones) ───────
+        rm.watch(['vidrios_etp', 'filtraciones_etp'], _lazy('ingenieriaCivilReload'));
     }
 
     /* ─── Auto-refresh por intervalo (red de seguridad) ────────────
