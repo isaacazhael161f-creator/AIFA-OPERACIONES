@@ -164,6 +164,9 @@
 
         // ── SSEI · Atención a Derrames ────────────────────────────
         rm.watch(['atencion_derrames'], _lazy('sseiDerramesReload'));
+
+        // ── SSEI · Emergencias en Pista ───────────────────────────
+        rm.watch(['emergencias_pista'], _lazy('sseiEmergenciasReload'));
     }
 
     /* ─── Auto-refresh por intervalo (red de seguridad) ────────────

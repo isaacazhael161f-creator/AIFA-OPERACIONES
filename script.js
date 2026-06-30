@@ -6730,6 +6730,13 @@ function handleNavigation(e) {
                 }, 200);
             } catch (_) { }
         }
+        if (section === 'ssei-emergencias') {
+            try {
+                setTimeout(() => {
+                    if (typeof window.initSseiEmergencias === 'function') window.initSseiEmergencias();
+                }, 200);
+            } catch (_) { }
+        }
         if (section === 'analisis-operaciones') {
             try {
                 setTimeout(() => {
@@ -18601,7 +18608,7 @@ async function _conciSaveBulkEdits() {
                 // GOET
                 'bhs',
                 // GSO
-                'fauna', 'ssei-derrames',
+                'fauna', 'ssei-derrames', 'ssei-emergencias',
                 // GSM
                 'medicas'
             ]
