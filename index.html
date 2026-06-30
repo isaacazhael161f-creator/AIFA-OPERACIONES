@@ -450,12 +450,28 @@ FF
         /* Conciliacion principal: mantener encabezados visibles durante scroll */
         #table-ops-flights-csv {
             --csv-head-row1-height: 34px;
+            /* Chrome ignora position:sticky en <th> cuando la tabla usa
+               border-collapse:collapse (default de Bootstrap). Cambiamos a
+               separate para que los encabezados queden fijos al hacer scroll. */
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+        /* Con border-collapse:separate los bordes de .table-bordered se
+           duplican; dejamos solo borde derecho/inferior por celda y el marco
+           superior/izquierdo lo da la propia tabla. */
+        #table-ops-flights-csv > :not(caption) > * > * {
+            border-top-width: 0;
+            border-left-width: 0;
+        }
+        #table-ops-flights-csv > :not(caption) > * > *:first-child {
+            border-left-width: 1px;
         }
         #table-ops-flights-csv thead tr:first-child th {
             position: sticky;
             top: 0;
             z-index: 6;
             background: #f8f9fa;
+            border-top-width: 1px;
             box-shadow: 0 1px 2px rgba(0,0,0,.08);
         }
         #table-ops-flights-csv thead tr.csv-filter-row th {
@@ -598,12 +614,27 @@ FF
         #table-board-departures tbody tr {
             line-height: 1.6;
         }
+        #table-board-arrivals,
+        #table-board-departures {
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+        #table-board-arrivals > :not(caption) > * > *,
+        #table-board-departures > :not(caption) > * > * {
+            border-top-width: 0;
+            border-left-width: 0;
+        }
+        #table-board-arrivals > :not(caption) > * > *:first-child,
+        #table-board-departures > :not(caption) > * > *:first-child {
+            border-left-width: 1px;
+        }
         #table-board-arrivals thead tr:first-child th,
         #table-board-departures thead tr:first-child th {
             position: sticky;
             top: 0;
             z-index: 4;
             background: #f8f9fa;
+            border-top-width: 1px;
         }
         #table-board-arrivals thead tr.board-filter-row td,
         #table-board-departures thead tr.board-filter-row td {
