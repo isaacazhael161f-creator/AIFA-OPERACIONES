@@ -18,6 +18,32 @@
         'Suparna Airlines', 'Ukraine', 'Auniworld Air Cargo', 'USA Jet'
     ];
 
+    // 15 empresas que operan los 18 recintos fiscalizados (carga internacional)
+    var RECINTOS = [
+        'Insumos Comerciales Especializados', 'Grupo Camili de México', 'World Express Cargo',
+        'CCO Almacén Fiscal', 'Azale del Mar de Cortés', 'Uni-Trade Performance',
+        'JC & JF Cargo', 'Talma México Servicios Aeroportuarios', 'Terminal Logistics',
+        'Admerce', 'MRM Servicios Operativos', 'TMM Almacenadora',
+        'ASIMEX', 'AMSLI', 'Interpuerto Multimodal de México'
+    ];
+
+    // 13 handlers (servicios en tierra) en la terminal de carga
+    var HANDLERS = [
+        'AGN Aviation Services, S.A. de C.V.',
+        'A&P International Services, S.A.P.I. de C.V.',
+        'Eagle Aviation Services, S.A. de C.V.',
+        'Formación Personalizada en Vigilancia, S.A. de C.V.',
+        'Gate Gourmet & MAASA México, S.A.P.I. de C.V.',
+        'Menzies Aviation (México), S.A. de C.V.',
+        'Prime Flight Aviation Services, S.A. de C.V.',
+        'Private Real Security, S.A. de C.V.',
+        'Saltillo Aircraft Maintenance, S.A. de C.V.',
+        'Securitas Transport Aviation México, S.A. de C.V.',
+        'Servicios Complementarios Aéreos, S.A. de C.V.',
+        'Sky Chefs de México, S.A. de C.V.',
+        'Teams Aircraft Services, S.A. de C.V.'
+    ];
+
     var charts = {};
 
     function destroy(id) {
@@ -29,6 +55,28 @@
         if (!box || box.dataset.rendered === '1') return;
         box.innerHTML = AIRLINES.map(function (name) {
             return '<span class="cc-chip"><i class="fas fa-plane"></i>' + name + '</span>';
+        }).join('');
+        box.dataset.rendered = '1';
+    }
+
+    function renderRecintos() {
+        var box = document.getElementById('cc-recintos');
+        if (!box || box.dataset.rendered === '1') return;
+        box.innerHTML = RECINTOS.map(function (name) {
+            return '<span class="cc-chip"><i class="fas fa-building-shield"></i>' + name + '</span>';
+        }).join('');
+        box.dataset.rendered = '1';
+    }
+
+    function renderHandlers() {
+        var box = document.getElementById('cc-handlers');
+        if (!box || box.dataset.rendered === '1') return;
+        box.innerHTML = HANDLERS.map(function (name, i) {
+            return '<div class="col-md-6 col-lg-4">' +
+                '<div class="cc-handler">' +
+                '<span class="cc-handler-num">' + (i + 1) + '</span>' +
+                '<span class="cc-handler-name">' + name + '</span>' +
+                '</div></div>';
         }).join('');
         box.dataset.rendered = '1';
     }
@@ -124,6 +172,8 @@
 
     function renderAll() {
         renderAirlines();
+        renderRecintos();
+        renderHandlers();
         // Charts need a non-zero canvas; defer for layout then force a resize
         // so the doughnut/bar fill their containers when the section becomes visible.
         requestAnimationFrame(function () {
