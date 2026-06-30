@@ -16695,7 +16695,9 @@ async function _conciGetManifestColInfo(client) {
     const mKey = keys.find(k => /^mes$/i.test(k) || /month/i.test(k));
     const dKey = keys.find(k => /^d[ií]a$/i.test(k) || /\bday\b/i.test(k));
     const fKey = keys.find(k => /(^|\b)fecha(\b|$)/i.test(k));
-    _conciManifestColInfo = { yKey, mKey, dKey, fKey };
+    // Keep a sample row so the table schema (column set) is available even when the
+    // selected day has vuelos but no manifests.
+    _conciManifestColInfo = { yKey, mKey, dKey, fKey, sampleRow: probe[0] };
     return _conciManifestColInfo;
 }
 
@@ -17465,7 +17467,16 @@ async function loadConciliacionManifiestos(options = {}) {
 
         if (requestSeq !== _conciLoadRequestSeq) return;
 
-        const { rows, columns } = _conciBuildEnriched(filteredManifest, filteredVuelos, manifestRows);
+        // Schema source: prefer the day's manifests; if that day has none, fall back
+        // to a cached sample manifest row so the column set is always the real one
+        // (otherwise vuelo-only days render with mismatched/blank columns).
+        let schemaRows = manifestRows;
+        if (!schemaRows || schemaRows.length === 0) {
+            const colInfo = await _conciGetManifestColInfo(client);
+            if (colInfo && colInfo.sampleRow) schemaRows = [colInfo.sampleRow];
+        }
+
+        const { rows, columns } = _conciBuildEnriched(filteredManifest, filteredVuelos, schemaRows);
 
         // Decorate-sort-undecorate: compute sort key once per row instead of n·log(n) times.
         const decorated = rows.map((r) => {
