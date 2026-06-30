@@ -227,6 +227,7 @@
             } else {
                 inner.innerHTML = fotos.map((u, i) =>
                     `<div class="carousel-item${i === 0 ? ' active' : ''}">
+                        <div class="em-bg" style="background-image:url('${esc(u)}')"></div>
                         <img src="${esc(u)}" alt="evidencia ${i + 1}">
                      </div>`).join('');
             }

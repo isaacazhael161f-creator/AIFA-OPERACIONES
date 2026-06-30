@@ -22400,11 +22400,20 @@ FF
                 #em-detail .carousel, #em-detail .carousel-inner, #em-detail .carousel-item { height:100%; }
                 #em-detail .carousel-inner { height:100%; min-height:62vh; }
                 #em-detail .carousel-item {
-                    display:none; height:62vh;
+                    display:none; height:62vh; position:relative; overflow:hidden;
                 }
                 #em-detail .carousel-item.active { display:block; }
+                /* Fondo desenfocado que rellena el recuadro */
+                #em-detail .carousel-item .em-bg {
+                    position:absolute; inset:0;
+                    background-size:cover; background-position:center;
+                    filter:blur(22px) brightness(.55); transform:scale(1.15);
+                }
+                /* Imagen principal nitida y completa */
                 #em-detail .carousel-item img {
-                    width:100%; height:100%; object-fit:cover; object-position:center; display:block;
+                    position:relative; z-index:1;
+                    width:100%; height:100%; object-fit:contain; object-position:center;
+                    display:block; image-rendering:auto;
                 }
                 #em-detail .em-detail-noimg {
                     height:62vh; display:flex; flex-direction:column; align-items:center; justify-content:center;
@@ -30225,7 +30234,7 @@ FF
     <script src="js/agenda-assistant.js?v=1"></script>
     <script src="js/coyh-asistencia.js?v=1"></script>
     <script src="js/ssei-derrames.js?v=2"></script>
-    <script src="js/ssei-emergencias.js?v=2"></script>
+    <script src="js/ssei-emergencias.js?v=3"></script>
 
     <script src="js/data-manager.js"></script>
     <script src="js/permissions.js"></script>
