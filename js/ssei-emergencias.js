@@ -26,6 +26,9 @@
     let _allData = [];
     let _currentAnio = null;
     let _uploadFiles = [];   // File[] pendientes de subir
+    let _editingId = null;   // id del registro en edición (null = nuevo)
+    let _keptFotos = [];     // URLs de fotos existentes conservadas
+    let _detailId = null;    // id del registro mostrado en la vista de detalle
 
     // ─── helpers ────────────────────────────────────────────────────
     async function getClient() {
@@ -144,7 +147,7 @@
         if (!tbody) return;
         if (countEl) countEl.textContent = `${rows.length} registro${rows.length === 1 ? '' : 's'}`;
         if (!rows.length) {
-            tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">Sin registros para el período seleccionado.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-4">Sin registros para el período seleccionado.</td></tr>';
             return;
         }
         const sorted = [...rows].sort((a, b) => String(b.fecha_evento || '').localeCompare(String(a.fecha_evento || '')));
@@ -155,9 +158,9 @@
                 thumbs = '<span class="em-nofoto" title="Sin evidencia"><i class="fas fa-image"></i></span>';
             } else {
                 const shown = fotos.slice(0, 2).map(u =>
-                    `<img class="em-thumb" src="${esc(u)}" alt="evidencia" loading="lazy" data-em-photos="${esc(r.id)}">`).join('');
+                    `<img class="em-thumb" src="${esc(u)}" alt="evidencia" loading="lazy">`).join('');
                 const extra = fotos.length > 2
-                    ? `<div class="em-thumb-more" data-em-photos="${esc(r.id)}">+${fotos.length - 2}</div>` : '';
+                    ? `<div class="em-thumb-more">+${fotos.length - 2}</div>` : '';
                 thumbs = `<div class="em-thumbs">${shown}${extra}</div>`;
             }
             const cls = (r.clasificacion || '').toLowerCase() === 'accidente'
@@ -166,7 +169,7 @@
                     ? '<span class="em-clasif em-clasif--inc">Incidente</span>'
                     : '—');
             return `
-            <tr>
+            <tr data-em-row="${esc(r.id)}">
                 <td class="text-center fw-semibold">${r.no_consecutivo != null ? r.no_consecutivo : '—'}</td>
                 <td class="text-nowrap">${fmtDate(r.fecha_evento)}</td>
                 <td class="text-center"><span class="badge bg-light text-dark border">${esc(r.pista || '—')}</span></td>
@@ -175,38 +178,88 @@
                 <td class="text-center">${cls}</td>
                 <td class="em-desc-cell">${esc(r.descripcion || '—')}</td>
                 <td class="text-center">${thumbs}</td>
+                <td class="text-center em-row-actions">
+                    <button type="button" class="btn btn-sm btn-outline-danger" data-em-view="${esc(r.id)}" title="Ver detalle">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </td>
             </tr>`;
         }).join('');
 
-        // Click handlers para abrir lightbox
-        tbody.querySelectorAll('[data-em-photos]').forEach(el => {
-            el.addEventListener('click', () => {
-                const id = el.getAttribute('data-em-photos');
+        // Click en fila o botón → abrir detalle
+        tbody.querySelectorAll('[data-em-row]').forEach(tr => {
+            tr.addEventListener('click', () => {
+                const id = tr.getAttribute('data-em-row');
                 const row = _allData.find(x => String(x.id) === String(id));
-                if (row) openLightbox(row);
+                if (row) openDetail(row);
             });
         });
     }
 
-    // ─── LIGHTBOX ────────────────────────────────────────────────────
-    function openLightbox(row) {
+    // ─── VISTA DE DETALLE ────────────────────────────────────────────
+    function openDetail(row) {
+        _detailId = row.id;
         const fotos = fotosOf(row);
-        if (!fotos.length) return;
-        const inner = document.getElementById('em-lightbox-inner');
-        const title = document.getElementById('em-lightbox-title');
-        if (title) {
-            title.innerHTML = `<i class="fas fa-images me-1"></i>${esc(row.tipo_aeronave || '')} · ${esc(row.operador || '')} · ${fmtDate(row.fecha_evento)}`;
-        }
+        const isAcc = (row.clasificacion || '').toLowerCase() === 'accidente';
+
+        const set = (id, html) => { const el = document.getElementById(id); if (el) el.innerHTML = html; };
+        const setTxt = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
+
+        set('em-detail-clasif', (row.clasificacion
+            ? `<span class="em-clasif ${isAcc ? 'em-clasif--acc' : 'em-clasif--inc'}">${esc(row.clasificacion)}</span>`
+            : ''));
+        setTxt('em-detail-title', `${row.tipo_aeronave || 'Aeronave N/D'} · ${row.operador || 'Operador N/D'}`);
+        setTxt('em-detail-sub', `${fmtDate(row.fecha_evento)} · Pista ${row.pista || 'N/D'}${row.no_consecutivo != null ? ' · Evento #' + row.no_consecutivo : ''}`);
+        setTxt('em-detail-fecha', fmtDate(row.fecha_evento));
+        setTxt('em-detail-pista', row.pista || '—');
+        setTxt('em-detail-tipo', row.tipo_aeronave || '—');
+        setTxt('em-detail-operador', row.operador || '—');
+        setTxt('em-detail-desc', row.descripcion || 'Sin descripción registrada.');
+
+        // Galería grande
+        const inner = document.getElementById('em-detail-inner');
+        const thumbs = document.getElementById('em-detail-thumbs');
+        const indic = document.getElementById('em-detail-indicators');
         if (inner) {
-            inner.innerHTML = fotos.map((u, i) =>
-                `<div class="carousel-item${i === 0 ? ' active' : ''}">
-                    <img src="${esc(u)}" class="d-block mx-auto" alt="evidencia ${i + 1}">
-                 </div>`).join('');
+            if (!fotos.length) {
+                inner.innerHTML = `<div class="carousel-item active"><div class="em-detail-noimg">
+                    <i class="fas fa-image"></i><span>Sin evidencia fotográfica</span></div></div>`;
+            } else {
+                inner.innerHTML = fotos.map((u, i) =>
+                    `<div class="carousel-item${i === 0 ? ' active' : ''}">
+                        <img src="${esc(u)}" alt="evidencia ${i + 1}">
+                     </div>`).join('');
+            }
         }
-        const modalEl = document.getElementById('em-lightbox');
-        if (modalEl && window.bootstrap) {
-            bootstrap.Modal.getOrCreateInstance(modalEl).show();
+        if (indic) {
+            indic.innerHTML = fotos.length > 1 ? fotos.map((_, i) =>
+                `<button type="button" data-bs-target="#em-detail-carousel" data-bs-slide-to="${i}"${i === 0 ? ' class="active"' : ''} aria-label="Foto ${i + 1}"></button>`
+            ).join('') : '';
         }
+        if (thumbs) {
+            thumbs.innerHTML = fotos.length > 1 ? fotos.map((u, i) =>
+                `<img src="${esc(u)}" class="${i === 0 ? 'active' : ''}" data-em-goto="${i}" alt="mini ${i + 1}">`
+            ).join('') : '';
+            thumbs.querySelectorAll('[data-em-goto]').forEach(img => {
+                img.addEventListener('click', () => {
+                    const idx = Number(img.getAttribute('data-em-goto'));
+                    const carEl = document.getElementById('em-detail-carousel');
+                    if (carEl && window.bootstrap) bootstrap.Carousel.getOrCreateInstance(carEl).to(idx);
+                    thumbs.querySelectorAll('img').forEach(t => t.classList.remove('active'));
+                    img.classList.add('active');
+                });
+            });
+        }
+
+        // Acciones (solo con permiso)
+        const editBtn = document.getElementById('em-detail-edit');
+        const delBtn = document.getElementById('em-detail-delete');
+        const allow = canEdit();
+        if (editBtn) editBtn.classList.toggle('d-none', !allow);
+        if (delBtn) delBtn.classList.toggle('d-none', !allow);
+
+        const modalEl = document.getElementById('em-detail');
+        if (modalEl && window.bootstrap) bootstrap.Modal.getOrCreateInstance(modalEl).show();
     }
 
     // ─── CHARTS ──────────────────────────────────────────────────────
@@ -437,19 +490,43 @@
         else sel.value = 'all';
     }
 
-    // ─── MODAL CAPTURA ───────────────────────────────────────────────
-    function openModal() {
+    // ─── MODAL CAPTURA / EDICIÓN ─────────────────────────────────────
+    function openModal(id) {
         const modal = document.getElementById('em-modal');
         if (!modal) return;
-        ['em-f-fecha', 'em-f-pista', 'em-f-tipo', 'em-f-operador', 'em-f-desc'].forEach(id => {
-            const el = document.getElementById(id); if (el) el.value = '';
-        });
-        const clasif = document.getElementById('em-f-clasif'); if (clasif) clasif.value = 'Incidente';
-        const fotosInput = document.getElementById('em-f-fotos'); if (fotosInput) fotosInput.value = '';
+        _editingId = id || null;
         _uploadFiles = [];
+        _keptFotos = [];
+
+        const row = id ? _allData.find(x => String(x.id) === String(id)) : null;
+
+        const titleEl = document.getElementById('em-modal-title-txt');
+        const saveBtn = document.getElementById('em-modal-save');
+
+        const setVal = (elId, v) => { const el = document.getElementById(elId); if (el) el.value = v; };
+
+        if (row) {
+            if (titleEl) titleEl.textContent = 'Editar Emergencia — SSEI';
+            if (saveBtn) saveBtn.innerHTML = '<i class="fas fa-save me-1"></i>Actualizar';
+            setVal('em-f-fecha', row.fecha_evento || '');
+            setVal('em-f-pista', row.pista || '');
+            setVal('em-f-tipo', row.tipo_aeronave || '');
+            setVal('em-f-operador', row.operador || '');
+            setVal('em-f-clasif', row.clasificacion || 'Incidente');
+            setVal('em-f-desc', row.descripcion || '');
+            _keptFotos = fotosOf(row).slice();
+        } else {
+            if (titleEl) titleEl.textContent = 'Nueva Emergencia — SSEI';
+            if (saveBtn) saveBtn.innerHTML = '<i class="fas fa-save me-1"></i>Guardar';
+            ['em-f-fecha', 'em-f-pista', 'em-f-tipo', 'em-f-operador', 'em-f-desc'].forEach(eid => setVal(eid, ''));
+            setVal('em-f-clasif', 'Incidente');
+            setVal('em-f-fecha', new Date().toISOString().slice(0, 10));
+        }
+
+        const fotosInput = document.getElementById('em-f-fotos'); if (fotosInput) fotosInput.value = '';
+        renderExisting();
         renderPreview();
-        const fechaEl = document.getElementById('em-f-fecha');
-        if (fechaEl) fechaEl.value = new Date().toISOString().slice(0, 10);
+
         const msgEl = document.getElementById('em-modal-msg');
         if (msgEl) { msgEl.innerHTML = ''; msgEl.className = ''; }
         bootstrap.Modal.getOrCreateInstance(modal).show();
@@ -461,6 +538,23 @@
         renderPreview();
     }
 
+    function renderExisting() {
+        const wrap = document.getElementById('em-f-existing');
+        const block = document.getElementById('em-f-existing-wrap');
+        if (!wrap || !block) return;
+        if (!_keptFotos.length) { block.classList.add('d-none'); wrap.innerHTML = ''; return; }
+        block.classList.remove('d-none');
+        wrap.innerHTML = _keptFotos.map((u, i) =>
+            `<div class="pv"><img src="${esc(u)}" alt="foto ${i + 1}"><button type="button" data-rmx="${i}" title="Quitar">&times;</button></div>`
+        ).join('');
+        wrap.querySelectorAll('[data-rmx]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                _keptFotos.splice(Number(btn.getAttribute('data-rmx')), 1);
+                renderExisting();
+            });
+        });
+    }
+
     function renderPreview() {
         const wrap = document.getElementById('em-f-preview');
         if (!wrap) return;
@@ -469,8 +563,7 @@
         ).join('');
         wrap.querySelectorAll('[data-rm]').forEach(btn => {
             btn.addEventListener('click', () => {
-                const idx = Number(btn.getAttribute('data-rm'));
-                _uploadFiles.splice(idx, 1);
+                _uploadFiles.splice(Number(btn.getAttribute('data-rm')), 1);
                 renderPreview();
             });
         });
@@ -523,23 +616,33 @@
             }
 
             const sb = await getClient();
-            const fotos = _uploadFiles.length ? await uploadFotos(sb) : [];
+            const nuevas = _uploadFiles.length ? await uploadFotos(sb) : [];
+            const fotos = _keptFotos.concat(nuevas);
 
-            // siguiente número consecutivo
-            const maxNo = _allData.reduce((m, r) => Math.max(m, Number(r.no_consecutivo) || 0), 0);
-
-            const payload = {
-                no_consecutivo: maxNo + 1,
-                fecha_evento:   fecha,
-                pista, tipo_aeronave: tipo, operador,
-                clasificacion:  clasif,
-                descripcion:    desc,
-                fotos:          fotos,
-                uploaded_by:    sessionStorage.getItem('user_email') || null
-            };
-
-            const { error } = await sb.from(TABLE).insert(payload);
-            if (error) throw error;
+            if (_editingId) {
+                const payload = {
+                    fecha_evento:  fecha,
+                    pista, tipo_aeronave: tipo, operador,
+                    clasificacion: clasif,
+                    descripcion:   desc,
+                    fotos:         fotos
+                };
+                const { error } = await sb.from(TABLE).update(payload).eq('id', _editingId);
+                if (error) throw error;
+            } else {
+                const maxNo = _allData.reduce((m, r) => Math.max(m, Number(r.no_consecutivo) || 0), 0);
+                const payload = {
+                    no_consecutivo: maxNo + 1,
+                    fecha_evento:   fecha,
+                    pista, tipo_aeronave: tipo, operador,
+                    clasificacion:  clasif,
+                    descripcion:    desc,
+                    fotos:          fotos,
+                    uploaded_by:    sessionStorage.getItem('user_email') || null
+                };
+                const { error } = await sb.from(TABLE).insert(payload);
+                if (error) throw error;
+            }
 
             if (msgEl) {
                 msgEl.className = 'alert alert-success mt-2 py-2';
@@ -551,9 +654,11 @@
                     if (bsModal) bsModal.hide();
                 } catch (_) {}
                 _uploadFiles = [];
+                _keptFotos = [];
+                _editingId = null;
                 await populateAnios();
                 await renderAll();
-            }, 1200);
+            }, 1100);
         } catch (err) {
             console.error('[ssei-emerg] save error', err);
             if (msgEl) {
@@ -562,6 +667,29 @@
             }
         } finally {
             if (btn) btn.disabled = false;
+        }
+    }
+
+    async function deleteRecord() {
+        if (!_detailId) return;
+        if (!canEdit()) return;
+        const row = _allData.find(x => String(x.id) === String(_detailId));
+        const label = row ? `${row.tipo_aeronave || ''} · ${fmtDate(row.fecha_evento)}` : 'este registro';
+        if (!window.confirm(`¿Eliminar ${label}?\n\nEsta acción no se puede deshacer.`)) return;
+        try {
+            const sb = await getClient();
+            const { error } = await sb.from(TABLE).delete().eq('id', _detailId);
+            if (error) throw error;
+            try {
+                const bsModal = bootstrap.Modal.getInstance(document.getElementById('em-detail'));
+                if (bsModal) bsModal.hide();
+            } catch (_) {}
+            _detailId = null;
+            await populateAnios();
+            await renderAll();
+        } catch (err) {
+            console.error('[ssei-emerg] delete error', err);
+            alert('No se pudo eliminar: ' + (err.message || err));
         }
     }
 
@@ -579,7 +707,7 @@
         const btnAdd = document.getElementById('em-add-btn');
         if (btnAdd) {
             btnAdd.classList.toggle('d-none', !canEdit());
-            btnAdd.addEventListener('click', openModal);
+            btnAdd.addEventListener('click', () => openModal());
         }
 
         const btnSave = document.getElementById('em-modal-save');
@@ -587,6 +715,20 @@
 
         const fotosInput = document.getElementById('em-f-fotos');
         if (fotosInput) fotosInput.addEventListener('change', onFilesSelected);
+
+        // Vista de detalle: editar / eliminar
+        const btnDetEdit = document.getElementById('em-detail-edit');
+        if (btnDetEdit) btnDetEdit.addEventListener('click', () => {
+            const id = _detailId;
+            try {
+                const bsModal = bootstrap.Modal.getInstance(document.getElementById('em-detail'));
+                if (bsModal) bsModal.hide();
+            } catch (_) {}
+            setTimeout(() => openModal(id), 250);
+        });
+
+        const btnDetDel = document.getElementById('em-detail-delete');
+        if (btnDetDel) btnDetDel.addEventListener('click', deleteRecord);
     }
 
     // ─── API PÚBLICA ─────────────────────────────────────────────────
