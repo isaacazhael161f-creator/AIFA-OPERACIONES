@@ -6744,6 +6744,13 @@ function handleNavigation(e) {
                 }, 200);
             } catch (_) { }
         }
+        if (section === 'capacidad-carga') {
+            try {
+                setTimeout(() => {
+                    if (typeof window.initCapacidadCarga === 'function') window.initCapacidadCarga();
+                }, 200);
+            } catch (_) { }
+        }
         if (section === 'analisis-operaciones') {
             try {
                 setTimeout(() => {
@@ -18638,7 +18645,7 @@ async function _conciSaveBulkEdits() {
             desc: 'GAG · GC · GCOMB',
             icon: 'truck-loading',
             color: '#fd7e14',
-            sections: ['combustibles']
+            sections: ['combustibles', 'capacidad-carga']
         },
         {
             key: 'SI',
