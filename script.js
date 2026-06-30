@@ -16699,51 +16699,110 @@ async function _conciGetManifestColInfo(client) {
     return _conciManifestColInfo;
 }
 
-// Fast DB query: returns { month, day } for the most recent manifest record in `year`.
-// Avoids scanning every row in JS by ordering & limiting server-side.
-async function _conciFetchLatestManifestDate(client, year) {
-    const info = await _conciGetManifestColInfo(client);
-    if (!info || !info.mKey || !info.dKey) return null;
-    const selectCols = [info.yKey, info.mKey, info.dKey].filter(Boolean).join(',');
-    let q = client
-        .from('Conciliación Manifiestos')
-        .select(selectCols)
-        .order(info.mKey, { ascending: false })
-        .order(info.dKey, { ascending: false })
-        .limit(100);
-    if (info.yKey) q = q.eq(info.yKey, year);
-    const { data } = await q;
-    if (!data || data.length === 0) return null;
-    for (const r of data) {
-        if (info.yKey) {
-            let ry = String(r[info.yKey]);
-            if (ry.length === 2 && !isNaN(ry)) ry = '20' + ry;
-            if (ry !== String(year)) continue;
-        }
-        const m = parseInt(r[info.mKey], 10);
-        const d = parseInt(r[info.dKey], 10);
-        if (Number.isFinite(m) && Number.isFinite(d)) return { month: m, day: d };
-    }
-    return null;
+// Cap value (month*100+day) for "today" — used to ignore future-dated records when
+// detecting the most recent day, but only within the current calendar year.
+function _conciTodayMonthDayCap(year) {
+    const now = new Date();
+    if (year !== now.getFullYear()) return null; // past/future years: no cap
+    return (now.getMonth() + 1) * 100 + now.getDate();
 }
 
-// Filtered server-side manifest fetch — only downloads rows for the selected date.
-// Falls back to full fetch if column keys can't be detected.
+// Returns { month, day } for the most recent manifest record in `year`.
+// Works whether the table has a numeric "Día" column or only a "Fecha" (DD/MM/YYYY)
+// column — in the latter case the day is parsed from Fecha, mirroring how the
+// Itinerario tab derives its latest day from the date fields.
+async function _conciFetchLatestManifestDate(client, year) {
+    const info = await _conciGetManifestColInfo(client);
+    if (!info) return null;
+
+    const cap = _conciTodayMonthDayCap(year);
+    const yearMatches = (r) => {
+        if (!info.yKey) return true;
+        let ry = String(r[info.yKey]);
+        if (ry.length === 2 && !isNaN(ry)) ry = '20' + ry;
+        return ry === String(year);
+    };
+
+    // ── Fast path: dedicated numeric Mes + Día columns ──────────────────────
+    if (info.mKey && info.dKey) {
+        const selectCols = [info.yKey, info.mKey, info.dKey].filter(Boolean).join(',');
+        let q = client
+            .from('Conciliación Manifiestos')
+            .select(selectCols)
+            .order(info.mKey, { ascending: false })
+            .order(info.dKey, { ascending: false })
+            .limit(200);
+        if (info.yKey) q = q.eq(info.yKey, year);
+        const { data } = await q;
+        if (data && data.length) {
+            for (const r of data) {
+                if (!yearMatches(r)) continue;
+                const m = parseInt(r[info.mKey], 10);
+                const d = parseInt(r[info.dKey], 10);
+                if (!Number.isFinite(m) || !Number.isFinite(d)) continue;
+                if (cap !== null && (m * 100 + d) > cap) continue;
+                return { month: m, day: d };
+            }
+        }
+        // fall through to Fecha-based detection if nothing usable was found
+    }
+
+    // ── Fallback: derive the latest day by parsing the Fecha column ──────────
+    if (!info.fKey) return null;
+    const selectCols = [info.yKey, info.mKey, info.fKey].filter(Boolean).join(',');
+    let q = client.from('Conciliación Manifiestos').select(selectCols);
+    if (info.yKey) q = q.eq(info.yKey, year);
+    const { data } = await q;
+    if (!data || !data.length) return null;
+
+    let best = null; // { md, month, day }
+    for (const r of data) {
+        if (!yearMatches(r)) continue;
+        const parts = _conciParseDateTimeParts(r[info.fKey], year);
+        if (!parts || !Number.isFinite(parts.month) || !Number.isFinite(parts.day)) continue;
+        const md = parts.month * 100 + parts.day;
+        if (cap !== null && md > cap) continue;
+        if (!best || md > best.md) best = { md, month: parts.month, day: parts.day };
+    }
+    return best ? { month: best.month, day: best.day } : null;
+}
+
+// Filtered server-side manifest fetch — downloads only the rows for the selected
+// date. When the table has no numeric "Día" column the day is filtered in JS by
+// parsing the Fecha column. Falls back to a full fetch only when no date columns
+// can be detected at all.
 async function _conciFetchManifestsForDate(client, year, month, day) {
     const info = await _conciGetManifestColInfo(client);
-    if (!info || !info.mKey || !info.dKey) {
+    if (!info || (!info.mKey && !info.dKey && !info.fKey)) {
         return _concifetchAllRows(client, 'Conciliación Manifiestos', {
             batchSize: 5000,
             orderBy: [{ column: 'id', ascending: true }],
         });
     }
+
     let q = client.from('Conciliación Manifiestos').select('*');
-    if (info.yKey) q = q.eq(info.yKey, year);
-    if (month)     q = q.eq(info.mKey, month);
-    if (day)       q = q.eq(info.dKey, day);
+    if (info.yKey)            q = q.eq(info.yKey, year);
+    if (month && info.mKey)   q = q.eq(info.mKey, month);
+    if (day && info.dKey)     q = q.eq(info.dKey, day);
     q = q.order('id', { ascending: true });
-    const { data, error } = await q;
-    return { data: data || [], error };
+
+    let { data, error } = await q;
+    if (error) return { data: [], error };
+    data = data || [];
+
+    // If a day is requested but the table lacks a numeric Día column, filter the
+    // result in JS by parsing the Fecha column (e.g. "DD/MM/YYYY").
+    if (day && !info.dKey && info.fKey) {
+        data = data.filter((r) => {
+            const parts = _conciParseDateTimeParts(r[info.fKey], year);
+            if (!parts || !Number.isFinite(parts.day)) return false;
+            if (parts.day !== day) return false;
+            if (month && Number.isFinite(parts.month) && parts.month !== month) return false;
+            return true;
+        });
+    }
+
+    return { data, error: null };
 }
 // ─────────────────────────────────────────────────────────────────────────────
 
