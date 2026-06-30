@@ -98,7 +98,7 @@
     function debouncedRender(delay) {
         clearTimeout(_renderDebounceTimer);
         updateRelativeLabels();          // instant feedback in the panel
-        _renderDebounceTimer = setTimeout(applyAndRender, delay || 220);
+        _renderDebounceTimer = setTimeout(applyWindowAndRender, delay || 220);
     }
 
     function scheduleStickySync() {
@@ -213,7 +213,7 @@
             if (isNaN(relStart)) relStart = -4;
             if (isNaN(relEnd)) relEnd = 0;
             updateRelativeLabels();
-            applyAndRender();
+            applyWindowAndRender();
         };
 
         if (relStartInput) relStartInput.addEventListener('input', syncRelative);
@@ -244,7 +244,7 @@
             _dateWindowUserActivated = true;
             absStart = absStartInput ? absStartInput.value : '';
             absEnd = absEndInput ? absEndInput.value : '';
-            applyAndRender();
+            applyWindowAndRender();
         };
 
         if (absStartInput) absStartInput.addEventListener('change', syncAbsolute);
@@ -903,6 +903,106 @@
         // Guard: ensure filter buttons are on all columns (handles caching / timing edge cases)
         initCsvExcelFilterButtons();
         updateCsvExcelFilterIcons();
+    }
+
+    // Compute the [startKey, endKey] (YYYY-MM-DD) covered by the active date window.
+    // Mirrors the range logic in applyDateWindow but returns the keys so we can
+    // decide WHICH days need to be fetched from Supabase.
+    function computeWindowRange() {
+        const dateRef = getReferenceDate();
+        const toLocalKey = d => {
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${y}-${m}-${day}`;
+        };
+
+        if (dateMode === 'absolute') {
+            let start = absStart || dateRef;
+            let end = absEnd || dateRef;
+            if (!start && !end) return null;
+            if (!start) start = end;
+            if (!end) end = start;
+            if (start > end) { const t = start; start = end; end = t; }
+            return { startKey: start, endKey: end };
+        }
+
+        if (!dateRef) return null;
+        const base = new Date(dateRef + 'T12:00:00');
+        if (Number.isNaN(base.getTime())) return null;
+        const start = new Date(base);
+        const end = new Date(base);
+        start.setDate(start.getDate() + relStart);
+        end.setDate(end.getDate() + relEnd);
+        if (start > end) {
+            const temp = new Date(start);
+            start.setTime(end.getTime());
+            end.setTime(temp.getTime());
+        }
+        return { startKey: toLocalKey(start), endKey: toLocalKey(end) };
+    }
+
+    // Fetch full rows by id in batches to avoid exceeding PostgREST URL length
+    // limits when a window spans several days (hundreds of ids).
+    async function _fetchRowsByIds(supabase, ids) {
+        const CHUNK = 100;
+        const out = [];
+        for (let i = 0; i < ids.length; i += CHUNK) {
+            const slice = ids.slice(i, i + CHUNK);
+            const { data, error } = await supabase
+                .from(TABLE_NAME)
+                .select('*')
+                .in('id', slice);
+            if (error) throw error;
+            if (Array.isArray(data)) out.push(...data);
+        }
+        return out;
+    }
+
+    // When the date window is active, the requested day(s) may not be the latest
+    // day that loadFlights() preloaded. Use the probe cache's day→id map to fetch
+    // the full rows for the days inside the active window so they actually show.
+    async function ensureWindowDataLoaded() {
+        if (!_dateWindowUserActivated) return;
+        const supabase = window.supabaseClient;
+        if (!supabase || !_flightProbeCache) return;
+
+        const range = computeWindowRange();
+        if (!range) return;
+        const { startKey, endKey } = range;
+
+        const ids = [];
+        _flightProbeCache.dayIdMap.forEach((idList, key) => {
+            if (key >= startKey && key <= endKey) {
+                for (const id of idList) ids.push(id);
+            }
+        });
+
+        if (ids.length === 0) { currentData = []; return; }
+
+        // Skip the network round-trip if currentData already holds exactly these ids.
+        const loaded = new Set(currentData.map(r => r._id));
+        const needsFetch = ids.length !== loaded.size || ids.some(id => !loaded.has(id));
+        if (!needsFetch) return;
+
+        const tbody = document.getElementById('tbody-ops-flights-csv');
+        if (tbody) {
+            tbody.innerHTML = '<tr><td colspan="24" class="text-center py-4">Cargando...</td></tr>';
+        }
+
+        const data = await _fetchRowsByIds(supabase, ids);
+        currentData = data.map(normalizeRow);
+    }
+
+    // Async render entry used by the date-window controls: load the rows for the
+    // selected window first, then render. Falls back to a plain render on error.
+    async function applyWindowAndRender() {
+        try {
+            await ensureWindowDataLoaded();
+        } catch (err) {
+            console.error('Error cargando la ventana de fecha:', err);
+        }
+        applyAndRender();
     }
 
     function computeLatestDataDate() {
