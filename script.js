@@ -16707,6 +16707,37 @@ function _conciTodayMonthDayCap(year) {
     return (now.getMonth() + 1) * 100 + now.getDate();
 }
 
+// Returns the more recent of two { month, day } objects (ignores null inputs).
+function _conciMaxMonthDay(a, b) {
+    const md = (o) => (o && Number.isFinite(o.month) && Number.isFinite(o.day)) ? o.month * 100 + o.day : null;
+    const ma = md(a);
+    const mb = md(b);
+    if (ma === null) return mb === null ? null : b;
+    if (mb === null) return a;
+    return mb > ma ? b : a;
+}
+
+// Returns { month, day } for the most recent vuelo in the already-fetched
+// vuelos_parte_operaciones_csv rows, capped to today within the current year.
+function _conciLatestVueloDate(vuelosRows, year) {
+    if (!Array.isArray(vuelosRows) || !vuelosRows.length) return null;
+    const cap = _conciTodayMonthDayCap(year);
+    let best = null; // { md, month, day }
+    for (const r of vuelosRows) {
+        for (const preferArr of [true, false]) {
+            const dp = _conciExtractVueloDateParts(r, preferArr);
+            if (!dp) continue;
+            const m = parseInt(dp.month, 10);
+            const d = parseInt(dp.day, 10);
+            if (!Number.isFinite(m) || !Number.isFinite(d)) continue;
+            const md = m * 100 + d;
+            if (cap !== null && md > cap) continue;
+            if (!best || md > best.md) best = { md, month: m, day: d };
+        }
+    }
+    return best ? { month: best.month, day: best.day } : null;
+}
+
 // Returns { month, day } for the most recent manifest record in `year`.
 // Works whether the table has a numeric "Día" column or only a "Fecha" (DD/MM/YYYY)
 // column — in the latter case the day is parsed from Fecha, mirroring how the
@@ -17137,23 +17168,48 @@ function _conciBuildEnriched(manifestRows, vuelosRows, schemaRows) {
         ];
     }
 
-    // Build vuelos index: normalized flight number → { arrRow, depRow }
-    const vIndex = new Map();
+    // Identity index for vuelos rows (used to track which were matched, without
+    // relying on a DB id being present).
+    const vueloId = new Map();
+    vuelosRows.forEach((r, i) => vueloId.set(r, i));
+
+    // month*100+day for a vuelos row in a given direction (null if no parseable date).
+    const _vueloMd = (r, isArr) => {
+        const dp = _conciExtractVueloDateParts(r, isArr);
+        if (!dp) return null;
+        const mm = parseInt(dp.month, 10);
+        const dd = parseInt(dp.day, 10);
+        return (Number.isFinite(mm) && Number.isFinite(dd)) ? (mm * 100 + dd) : null;
+    };
+
+    // Build vuelos indexes keyed by flight number + direction:
+    //  • vByKeyDate: "DESIG|dir|md" → row   (exact same-day match — the correct cross)
+    //  • vByKey:     "DESIG|dir"    → [rows] (date-agnostic fallback when a date can't
+    //                                         be parsed; never crosses a known other day)
+    // Cruzar incluyendo la fecha evita que un manifiesto se empareje con el mismo
+    // número de vuelo de un día distinto.
+    const vByKeyDate = new Map();
+    const vByKey = new Map();
     for (const r of vuelosRows) {
         const arr = (r['[Arr] Flight Designator'] || '').trim().toUpperCase();
         const dep = (r['[Dep] Flight Designator'] || '').trim().toUpperCase();
         if (arr) {
-            if (!vIndex.has(arr)) vIndex.set(arr, { arrRow: null, depRow: null });
-            vIndex.get(arr).arrRow = r;
+            const md = _vueloMd(r, true);
+            if (md !== null) vByKeyDate.set(`${arr}|arr|${md}`, r);
+            if (!vByKey.has(`${arr}|arr`)) vByKey.set(`${arr}|arr`, []);
+            vByKey.get(`${arr}|arr`).push(r);
         }
         if (dep) {
-            if (!vIndex.has(dep)) vIndex.set(dep, { arrRow: null, depRow: null });
-            vIndex.get(dep).depRow = r;
+            const md = _vueloMd(r, false);
+            if (md !== null) vByKeyDate.set(`${dep}|dep|${md}`, r);
+            if (!vByKey.has(`${dep}|dep`)) vByKey.set(`${dep}|dep`, []);
+            vByKey.get(`${dep}|dep`).push(r);
         }
     }
 
     const enrichedRows = [];
-    const usedKeys = new Set(); // track matched vuelo keys
+    const usedKeys = new Set();   // dedupe of exact/fallback match keys
+    const usedVuelo = new Set();  // "<vueloIdx>|<dir>" of vuelos consumed by a manifest
 
     // Step 1: Enrich existing manifest rows
     for (const mRow of manifestRows) {
@@ -17164,13 +17220,42 @@ function _conciBuildEnriched(manifestRows, vuelosRows, schemaRows) {
         const isSalida  = /sal|dep/i.test(tipoRaw);
         const flightNum = colm.vuelo ? String(mRow[colm.vuelo] || '').trim().toUpperCase() : '';
 
+        // month*100+day of THIS manifest from its FECHA column (null if absent).
+        let mMd = null;
+        if (colm.fecha) {
+            const fp = _conciParseDateTimeParts(mRow[colm.fecha]);
+            if (fp && Number.isFinite(fp.month) && Number.isFinite(fp.day)) mMd = fp.month * 100 + fp.day;
+        }
+
         let vRow = null;
-        if (flightNum && vIndex.has(flightNum)) {
-            const entry = vIndex.get(flightNum);
-            vRow = isLlegada ? (entry.arrRow || entry.depRow)
-                 : isSalida  ? (entry.depRow || entry.arrRow)
-                 : (entry.arrRow || entry.depRow);
-            if (vRow) usedKeys.add(flightNum + (isLlegada ? '_arr' : '_dep'));
+        if (flightNum) {
+            const dirs = isLlegada ? ['arr'] : isSalida ? ['dep'] : ['arr', 'dep'];
+            // 1) exact same-day match
+            if (mMd !== null) {
+                for (const d of dirs) {
+                    const ek = `${flightNum}|${d}|${mMd}`;
+                    const hit = vByKeyDate.get(ek);
+                    if (hit && !usedKeys.has(ek)) { vRow = hit; usedKeys.add(ek); usedVuelo.add(`${vueloId.get(hit)}|${d}`); break; }
+                }
+            }
+            // 2) fallback: only vuelos with unknown date (never cross a known other day)
+            if (!vRow) {
+                for (const d of dirs) {
+                    const list = vByKey.get(`${flightNum}|${d}`);
+                    if (!list) continue;
+                    for (let i = 0; i < list.length; i++) {
+                        const fk = `${flightNum}|${d}#${i}`;
+                        if (usedKeys.has(fk)) continue;
+                        const r = list[i];
+                        if (mMd !== null) {
+                            const rmd = _vueloMd(r, d === 'arr');
+                            if (rmd !== null && rmd !== mMd) continue;
+                        }
+                        vRow = r; usedKeys.add(fk); usedVuelo.add(`${vueloId.get(r)}|${d}`); break;
+                    }
+                    if (vRow) break;
+                }
+            }
         }
 
         if (vRow) {
@@ -17231,13 +17316,14 @@ function _conciBuildEnriched(manifestRows, vuelosRows, schemaRows) {
 
     // Step 2: Add unmatched vuelos as virtual manifest rows
     for (const vRow of vuelosRows) {
+        const idx = vueloId.get(vRow);
         const arrFlight = (vRow['[Arr] Flight Designator'] || '').trim().toUpperCase();
         const depFlight = (vRow['[Dep] Flight Designator'] || '').trim().toUpperCase();
 
-        if (arrFlight && !usedKeys.has(arrFlight + '_arr')) {
+        if (arrFlight && !usedVuelo.has(`${idx}|arr`)) {
             enrichedRows.push(_conciVueloToRow(vRow, 'LLEGADA', outputCols, colm, hasManifest));
         }
-        if (depFlight && !usedKeys.has(depFlight + '_dep')) {
+        if (depFlight && !usedVuelo.has(`${idx}|dep`)) {
             enrichedRows.push(_conciVueloToRow(vRow, 'SALIDA', outputCols, colm, hasManifest));
         }
     }
@@ -17322,10 +17408,15 @@ async function loadConciliacionManifiestos(options = {}) {
             _conciVuelosCache = { rows: vuelosRows, ts: Date.now() };
         }
 
-        // ── Step 2: auto-detect the latest manifest date via a fast DB query ────
+        // ── Step 2: auto-detect the latest date considering BOTH tables ─────────
+        // El feed de vuelos suele estar más actualizado que la captura de
+        // manifiestos, así que el día más reciente se toma como el máximo entre
+        // ambas fuentes para no ocultar los vuelos más nuevos.
         if (config.autoLatestDate && !month && !day) {
-            const latest = await _conciFetchLatestManifestDate(client, year);
+            const latestManifest = await _conciFetchLatestManifestDate(client, year);
             if (requestSeq !== _conciLoadRequestSeq) return;
+            const latestVuelo = _conciLatestVueloDate(vuelosRows, year);
+            const latest = _conciMaxMonthDay(latestManifest, latestVuelo);
             if (latest) {
                 month = latest.month;
                 day   = latest.day;
@@ -17415,8 +17506,24 @@ async function loadConciliacionManifiestos(options = {}) {
     }
 }
 
+function _conciUpdateResumen(data) {
+    let empate = 0, soloManifiesto = 0, soloVuelos = 0;
+    for (const r of (data || [])) {
+        const f = String(r && r._fuente || '');
+        if (f === 'Manifiestos + Vuelos') empate++;
+        else if (f === 'Solo Manifiestos') soloManifiesto++;
+        else if (f === 'Solo Vuelos') soloVuelos++;
+    }
+    const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = String(val); };
+    set('conci-resumen-empate', empate);
+    set('conci-resumen-solo-manifiesto', soloManifiesto);
+    set('conci-resumen-solo-vuelos', soloVuelos);
+}
+
 function _renderConciManifiestosTable(data, columns, fallbackYear) {
     const tableId = 'table-conci-manifiestos';
+
+    _conciUpdateResumen(data);
 
     if (_conciManifiestosDataTable) {
         try { _conciManifiestosDataTable.destroy(); } catch(_) {}
