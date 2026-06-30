@@ -23230,25 +23230,41 @@ FF
             #capacidad-carga-section .cc-mars .key { width:46px; height:46px; flex:none; border-radius:.7rem; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:1.15rem; color:#fff; }
             #capacidad-carga-section .cc-mars .n  { font-size:1.5rem; font-weight:800; line-height:1; color:#0f172a; }
             #capacidad-carga-section .cc-mars .t  { font-size:.72rem; color:#64748b; }
-            /* chips */
+            /* chips (aerolíneas) */
             #capacidad-carga-section .cc-chip {
-                display:inline-flex; align-items:center; gap:.4rem; font-size:.74rem; font-weight:600; color:#0f172a;
-                background:#fff; border:1px solid #e2e8f0; border-radius:2rem; padding:.34rem .8rem; box-shadow:0 2px 5px -3px rgba(0,0,0,.15);
+                display:inline-flex; align-items:center; gap:.45rem; font-size:.74rem; font-weight:600; color:#0f172a;
+                background:#fff; border:1px solid #e2e8f0; border-radius:2rem; padding:.4rem .85rem; box-shadow:0 2px 5px -3px rgba(0,0,0,.15);
+                transition:transform .16s ease, box-shadow .16s ease, border-color .16s ease;
             }
+            #capacidad-carga-section .cc-chip:hover { transform:translateY(-2px); box-shadow:0 8px 16px -8px rgba(0,0,0,.25); border-color:#fbbf24; }
             #capacidad-carga-section .cc-chip i { color:#f97316; font-size:.72rem; }
-            #capacidad-carga-section .cc-handler { display:flex; align-items:center; gap:.6rem; padding:.55rem .7rem; border-radius:.7rem; background:#f8fafc; border:1px solid #eef2f7; height:100%; }
-            #capacidad-carga-section .cc-handler-num { flex:none; width:26px; height:26px; border-radius:.5rem; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:.72rem; color:#fff; background:linear-gradient(135deg,#7c3aed,#5b21b6); }
-            #capacidad-carga-section .cc-handler-name { font-size:.76rem; font-weight:600; color:#0f172a; line-height:1.2; }
+            /* recintos (entity tiles) */
+            #capacidad-carga-section .cc-tile {
+                display:flex; align-items:center; gap:.7rem; padding:.7rem .85rem; border-radius:.85rem; height:100%;
+                background:#fff; border:1px solid #e7ecf3; box-shadow:0 6px 18px -14px rgba(15,23,42,.35);
+                transition:transform .16s ease, box-shadow .16s ease, border-color .16s ease;
+            }
+            #capacidad-carga-section .cc-tile:hover { transform:translateY(-3px); box-shadow:0 16px 30px -16px rgba(15,23,42,.4); border-color:#fbbf24; }
+            #capacidad-carga-section .cc-tile-ico {
+                flex:none; width:38px; height:38px; border-radius:.6rem; display:flex; align-items:center; justify-content:center;
+                font-size:.95rem; color:#b45309; background:linear-gradient(135deg,#fef3c7,#fde68a);
+            }
+            #capacidad-carga-section .cc-tile-name { font-size:.78rem; font-weight:700; color:#0f172a; line-height:1.22; }
+            /* handlers */
+            #capacidad-carga-section .cc-handler {
+                position:relative; display:flex; align-items:center; gap:.7rem; padding:.7rem .85rem .7rem 1rem; border-radius:.85rem; height:100%;
+                background:#fff; border:1px solid #ece7f6; box-shadow:0 6px 18px -14px rgba(76,29,149,.4); overflow:hidden;
+                transition:transform .16s ease, box-shadow .16s ease, border-color .16s ease;
+            }
+            #capacidad-carga-section .cc-handler::before { content:""; position:absolute; left:0; top:0; bottom:0; width:4px; background:linear-gradient(180deg,#7c3aed,#5b21b6); }
+            #capacidad-carga-section .cc-handler:hover { transform:translateY(-3px); box-shadow:0 16px 30px -16px rgba(76,29,149,.45); border-color:#c4b5fd; }
+            #capacidad-carga-section .cc-handler-num { flex:none; width:30px; height:30px; border-radius:.55rem; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:.76rem; color:#fff; background:linear-gradient(135deg,#7c3aed,#5b21b6); box-shadow:0 4px 10px -4px rgba(91,33,182,.6); }
+            #capacidad-carga-section .cc-handler-name { font-size:.78rem; font-weight:700; color:#0f172a; line-height:1.2; }
+            #capacidad-carga-section .cc-handler-sub { font-size:.66rem; font-weight:600; color:#94a3b8; letter-spacing:.02em; margin-top:.05rem; }
             /* infra mini-cards */
             #capacidad-carga-section .cc-infra { border-radius:1rem; padding:1.1rem; height:100%; border:1px solid #eef2f7; background:#fff; box-shadow:0 8px 22px -16px rgba(0,0,0,.3); }
             #capacidad-carga-section .cc-infra .big { font-size:2.1rem; font-weight:800; line-height:1; }
             #capacidad-carga-section .cc-infra .cap { font-size:.7rem; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:#64748b; margin-top:.2rem; }
-            /* positions table */
-            #capacidad-carga-section .cc-pos-tbl { width:100%; border-collapse:separate; border-spacing:0 6px; }
-            #capacidad-carga-section .cc-pos-tbl td { padding:.55rem .8rem; background:#f8fafc; vertical-align:middle; }
-            #capacidad-carga-section .cc-pos-tbl tr td:first-child { border-radius:.6rem 0 0 .6rem; }
-            #capacidad-carga-section .cc-pos-tbl tr td:last-child  { border-radius:0 .6rem .6rem 0; }
-            #capacidad-carga-section .cc-pos-num { display:inline-flex; align-items:center; justify-content:center; min-width:38px; height:30px; padding:0 .4rem; border-radius:.5rem; font-weight:800; font-size:.78rem; color:#fff; }
             #capacidad-carga-section .cc-sec-title { font-weight:800; font-size:1rem; color:#0f172a; display:flex; align-items:center; gap:.55rem; }
             #capacidad-carga-section .cc-sec-title i { color:#f97316; }
         </style>
@@ -23434,7 +23450,7 @@ FF
                     <div class="card-body">
                         <div class="cc-sec-title mb-1"><i class="fas fa-building-shield"></i> Empresas operadoras de recintos fiscalizados <span class="badge text-bg-warning ms-1">15</span></div>
                         <p class="text-muted mb-3" style="font-size:.76rem;">Empresas que operan los 18 recintos fiscalizados de carga internacional.</p>
-                        <div id="cc-recintos" class="d-flex flex-wrap gap-2"></div>
+                        <div id="cc-recintos" class="row g-2"></div>
                     </div>
                 </div>
 
@@ -23456,70 +23472,7 @@ FF
                     </div>
                 </div>
 
-                <!-- ===================== POSICIONES / HANDLERS ===================== -->
-                <div class="cc-sec-title mb-3"><i class="fas fa-map-location-dot"></i> Operadores por posición de andén</div>
-                <div class="row g-3">
-                    <div class="col-lg-4">
-                        <div class="card border-0 shadow-sm h-100">
-                            <div class="card-body">
-                                <div class="cc-card-title mb-3"><i class="fas fa-flag text-primary me-1"></i> Nacionales <span class="text-muted">· 3 posiciones</span></div>
-                                <table class="cc-pos-tbl">
-                                    <tbody>
-                                        <tr><td style="width:54px;"><span class="cc-pos-num" style="background:#2563eb;">1</span></td><td class="fw-semibold">Asale del Mar</td></tr>
-                                        <tr><td><span class="cc-pos-num" style="background:#2563eb;">2</span></td><td class="fw-semibold">Estafeta</td></tr>
-                                        <tr><td><span class="cc-pos-num" style="background:#2563eb;">3</span></td><td class="fw-semibold">TAP-TMM</td></tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-lg-8">
-                        <div class="card border-0 shadow-sm h-100">
-                            <div class="card-body">
-                                <div class="cc-card-title mb-3"><i class="fas fa-globe-americas text-warning me-1"></i> Internacionales <span class="text-muted">· 18 posiciones</span></div>
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <table class="cc-pos-tbl">
-                                            <tbody>
-                                                <tr><td style="width:64px;"><span class="cc-pos-num" style="background:#f97316;">1·2</span></td><td class="fw-semibold">Uni-Trade</td></tr>
-                                                <tr><td><span class="cc-pos-num" style="background:#f97316;">3-6</span></td><td class="fw-semibold">AAACESA</td></tr>
-                                                <tr><td><span class="cc-pos-num" style="background:#f97316;">7</span></td><td class="fw-semibold">IMM</td></tr>
-                                                <tr><td><span class="cc-pos-num" style="background:#f97316;">8</span></td><td class="fw-semibold">WEC</td></tr>
-                                                <tr><td><span class="cc-pos-num" style="background:#f97316;">9</span></td><td class="fw-semibold">MAS y CCO</td></tr>
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <table class="cc-pos-tbl">
-                                            <tbody>
-                                                <tr><td style="width:64px;"><span class="cc-pos-num" style="background:#f97316;">10</span></td><td class="fw-semibold">JC&amp;JF y DHL</td></tr>
-                                                <tr><td><span class="cc-pos-num" style="background:#f97316;">11</span></td><td class="fw-semibold">TAP-TMM</td></tr>
-                                                <tr><td><span class="cc-pos-num" style="background:#f97316;">12</span></td><td class="fw-semibold">Income y TME</td></tr>
-                                                <tr><td><span class="cc-pos-num" style="background:#f97316;">13</span></td><td class="fw-semibold">CAMILI y Cathay Cargo</td></tr>
-                                                <tr><td><span class="cc-pos-num" style="background:#f97316;">14</span></td><td class="fw-semibold">TALMA</td></tr>
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <table class="cc-pos-tbl">
-                                            <tbody>
-                                                <tr><td style="width:64px;"><span class="cc-pos-num" style="background:#f97316;">15</span></td><td class="fw-semibold">NEXEN</td></tr>
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <table class="cc-pos-tbl">
-                                            <tbody>
-                                                <tr><td style="width:64px;"><span class="cc-pos-num" style="background:#f97316;">16-18</span></td><td class="fw-semibold">Terminal Logistics</td></tr>
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
+                <!-- ===================== FUENTE ===================== -->
                 <p class="text-muted text-center mt-4 mb-0" style="font-size:.7rem;">
                     <i class="fas fa-circle-info me-1"></i>Fuente: Capacidad de la Terminal de Carga AIFA · Gerencia de Carga (GC).
                 </p>
@@ -31023,7 +30976,7 @@ FF
     <script src="js/ssei-derrames.js?v=2"></script>
     <script src="js/ssei-emergencias.js?v=4"></script>
     <script src="js/ingenieria-civil.js?v=1"></script>
-    <script src="js/capacidad-carga.js?v=3"></script>
+    <script src="js/capacidad-carga.js?v=4"></script>
 
     <script src="js/data-manager.js"></script>
     <script src="js/permissions.js"></script>

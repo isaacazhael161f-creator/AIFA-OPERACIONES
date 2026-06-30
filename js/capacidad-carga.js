@@ -63,7 +63,11 @@
         var box = document.getElementById('cc-recintos');
         if (!box || box.dataset.rendered === '1') return;
         box.innerHTML = RECINTOS.map(function (name) {
-            return '<span class="cc-chip"><i class="fas fa-building-shield"></i>' + name + '</span>';
+            return '<div class="col-md-6 col-lg-4">' +
+                '<div class="cc-tile">' +
+                '<span class="cc-tile-ico"><i class="fas fa-building-shield"></i></span>' +
+                '<span class="cc-tile-name">' + name + '</span>' +
+                '</div></div>';
         }).join('');
         box.dataset.rendered = '1';
     }
@@ -72,10 +76,15 @@
         var box = document.getElementById('cc-handlers');
         if (!box || box.dataset.rendered === '1') return;
         box.innerHTML = HANDLERS.map(function (name, i) {
+            var idx = name.indexOf(',');
+            var main = idx > -1 ? name.slice(0, idx) : name;
+            var sub = idx > -1 ? name.slice(idx + 1).trim() : '';
             return '<div class="col-md-6 col-lg-4">' +
                 '<div class="cc-handler">' +
                 '<span class="cc-handler-num">' + (i + 1) + '</span>' +
-                '<span class="cc-handler-name">' + name + '</span>' +
+                '<span><span class="cc-handler-name">' + main + '</span>' +
+                (sub ? '<span class="cc-handler-sub d-block">' + sub + '</span>' : '') +
+                '</span>' +
                 '</div></div>';
         }).join('');
         box.dataset.rendered = '1';
