@@ -17405,7 +17405,7 @@ body.dark-mode #table-conci-manifiestos tbody tr.conci-row-selected > td { backg
 
 /* Fast cell styles for conciliacion table (replaces per-cell inline cssText for performance) */
 #table-conci-manifiestos thead th.conci-th {
-    position: relative;
+    position: sticky;
     top: 0;
     z-index: 6;
     background: #343a40;

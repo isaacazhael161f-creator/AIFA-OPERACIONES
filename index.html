@@ -660,9 +660,12 @@ FF
         #table-conci-manifiestos {
             border-collapse: separate;
             border-spacing: 0;
+            /* Override .table { overflow:hidden } para que los <th> sticky se
+               anclen al contenedor con scroll real (#conci-manifiestos-scroll). */
+            overflow: visible;
         }
         #table-conci-manifiestos thead th {
-            position: relative;
+            position: sticky;
             top: 0;
             z-index: 6;
             background: #343a40;

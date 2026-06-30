@@ -17399,10 +17399,8 @@ function _renderConciManifiestosTable(data, columns, fallbackYear) {
         trHead.appendChild(th);
     });
     thead.appendChild(trHead);
-    thead.style.position = 'relative';
-    thead.style.zIndex = '7';
-    thead.style.transform = 'translateY(0px)';
-    thead.style.willChange = 'transform';
+    // Encabezado fijo vía CSS (position:sticky). Sin manipulación de transform
+    // por JS para evitar el parpadeo al hacer scroll.
 
     const rowToneCount = 2;
 
@@ -17566,19 +17564,8 @@ function _renderConciManifiestosTable(data, columns, fallbackYear) {
         window.requestAnimationFrame(appendBatch);
     };
 
-    let headerSyncRaf = 0;
-    const scheduleHeaderSync = () => {
-        if (headerSyncRaf || renderSeq !== _conciRenderSeq || !scrollWrap) return;
-        headerSyncRaf = window.requestAnimationFrame(() => {
-            headerSyncRaf = 0;
-            if (renderSeq !== _conciRenderSeq || !scrollWrap) return;
-            thead.style.transform = `translateY(${scrollWrap.scrollTop || 0}px)`;
-        });
-    };
-
     const onLazyScroll = () => {
         if (renderSeq !== _conciRenderSeq || !scrollWrap) return;
-        scheduleHeaderSync();
         if (idx >= data.length) return;
         const nearBottom = (scrollWrap.scrollTop + scrollWrap.clientHeight) >= (scrollWrap.scrollHeight - 240);
         if (nearBottom) scheduleAppend();
@@ -17590,7 +17577,6 @@ function _renderConciManifiestosTable(data, columns, fallbackYear) {
         }
         scrollWrap._conciLazyHandler = onLazyScroll;
         scrollWrap.addEventListener('scroll', onLazyScroll, { passive: true });
-        scheduleHeaderSync();
     }
 
     _conciRefreshEditToolbar();
