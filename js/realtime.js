@@ -161,6 +161,9 @@
 
         // ── Reportes HVAC (sincronizados desde AppSheet) ─────────
         rm.watch(['reportes_hvac'], _lazy('hvacReload'));
+
+        // ── SSEI · Atención a Derrames ────────────────────────────
+        rm.watch(['atencion_derrames'], _lazy('sseiDerramesReload'));
     }
 
     /* ─── Auto-refresh por intervalo (red de seguridad) ────────────
