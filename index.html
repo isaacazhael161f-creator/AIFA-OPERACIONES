@@ -23658,6 +23658,9 @@ FF
                 position:absolute; z-index:3; left:0; right:0; bottom:0; padding:.9rem 1rem; color:#fff; font-weight:700; font-size:.82rem;
             }
             #aviacion-general-fbo-section .agf-clip-cap small{display:block; font-weight:600; font-size:.7rem; opacity:.8; margin-top:.1rem}
+            #aviacion-general-fbo-section .agf-clip-wide{aspect-ratio:21/7; min-height:180px}
+            #aviacion-general-fbo-section .agf-clip-wide .agf-clip-cap{font-size:1rem; padding:1.1rem 1.3rem}
+            #aviacion-general-fbo-section .agf-clip-wide .agf-clip-cap small{font-size:.78rem}
             /* ── SHOWCASE (video destacado con slogan) ── */
             #aviacion-general-fbo-section .agf-showcase{
                 position:relative; border-radius:1.4rem; overflow:hidden; cursor:pointer; margin-bottom:1.25rem;
@@ -23708,6 +23711,29 @@ FF
                 #aviacion-general-fbo-section .agf-showcase-video{position:relative; height:220px}
                 #aviacion-general-fbo-section .agf-showcase-overlay{display:none}
                 #aviacion-general-fbo-section .agf-showcase-content{position:relative; max-width:100%; padding:1.5rem 1.4rem 1.75rem; background:#06101f}
+            }
+            /* variante invertida (contenido a la derecha) */
+            #aviacion-general-fbo-section .agf-showcase.reverse .agf-showcase-overlay{
+                background:linear-gradient(270deg,rgba(4,12,26,.95) 0%,rgba(4,12,26,.74) 38%,rgba(4,12,26,.25) 70%,rgba(4,12,26,.55) 100%);
+            }
+            #aviacion-general-fbo-section .agf-showcase.reverse .agf-showcase-content{
+                left:auto; right:0; align-items:flex-end; text-align:right;
+            }
+            #aviacion-general-fbo-section .agf-showcase.reverse .agf-showcase-chips{justify-content:flex-end}
+            /* chips de amenidades dentro del showcase */
+            #aviacion-general-fbo-section .agf-showcase-chips{
+                display:flex; flex-wrap:wrap; gap:.5rem; margin:0 0 1.4rem;
+            }
+            #aviacion-general-fbo-section .agf-showcase-chip{
+                display:inline-flex; align-items:center; gap:.45rem; padding:.5rem .9rem; border-radius:.8rem;
+                background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.16); backdrop-filter:blur(6px);
+                color:#e0f2fe; font-size:.82rem; font-weight:700;
+            }
+            #aviacion-general-fbo-section .agf-showcase-chip b{color:#7dd3fc; font-weight:900; font-size:.95rem}
+            #aviacion-general-fbo-section .agf-showcase-chip i{color:#7dd3fc}
+            @media (max-width: 767.98px){
+                #aviacion-general-fbo-section .agf-showcase.reverse .agf-showcase-content{align-items:flex-start; text-align:left}
+                #aviacion-general-fbo-section .agf-showcase.reverse .agf-showcase-chips{justify-content:flex-start}
             }
             /* ── MODAL ── */
             #agfVideoModal .modal-content{background:#06101f; border:none; border-radius:1rem; overflow:hidden}
@@ -23920,6 +23946,38 @@ FF
                             <div class="agf-clip-cap">Hangares &amp; resguardo<small>2 mantenimiento · 1 resguardo</small></div>
                         </div>
                     </div>
+                </div>
+
+                <!-- ── Segundo showcase: interiores y salas (5:09–5:47) ── -->
+                <div class="agf-showcase reverse mt-3" data-bs-toggle="modal" data-bs-target="#agfVideoModal" data-modal-start="309">
+                    <video class="agf-showcase-video agf-clip-seg" data-start="309" data-end="347" autoplay muted loop playsinline preload="metadata" poster="images/Pasajero%20FBO.jpg"
+                           onerror="this.style.display='none'">
+                        <source src="videos/FBO%20AIFA%20-%20Trim.mp4#t=309,347" type="video/mp4">
+                    </video>
+                    <div class="agf-showcase-overlay"></div>
+                    <div class="agf-showcase-content">
+                        <span class="agf-showcase-kicker"><i class="fas fa-couch"></i>Espacios de primer nivel</span>
+                        <h3 class="agf-showcase-title">Confort y privacidad<br><b>a la altura de su vuelo</b></h3>
+                        <p class="agf-showcase-sub">Ambientes diseñados para el descanso, la productividad y la exclusividad de cada tripulación y pasajero.</p>
+                        <div class="agf-showcase-chips">
+                            <span class="agf-showcase-chip"><i class="fas fa-champagne-glasses"></i><b>4</b> Salas VIP</span>
+                            <span class="agf-showcase-chip"><i class="fas fa-handshake"></i><b>5</b> Salas de juntas</span>
+                            <span class="agf-showcase-chip"><i class="fas fa-bed"></i><b>1</b> Sala de descanso para pilotos</span>
+                        </div>
+                        <span class="agf-showcase-cta"><i class="fas fa-play"></i>Ver el recorrido</span>
+                    </div>
+                </div>
+
+                <!-- ── Clip adicional: experiencia FBO (2:05–3:15) ── -->
+                <div class="agf-clip agf-clip-wide mt-3" data-bs-toggle="modal" data-bs-target="#agfVideoModal" data-modal-start="125">
+                    <img src="images/Aviones%20FBO.png" alt="Experiencia integral en el FBO" loading="lazy">
+                    <video class="agf-clip-seg" data-start="125" data-end="195" muted loop playsinline preload="metadata" poster="images/Aviones%20FBO.png"
+                           onerror="this.style.display='none'">
+                        <source src="videos/FBO%20AIFA%20-%20Trim.mp4#t=125,195" type="video/mp4">
+                    </video>
+                    <div class="agf-clip-shade"></div>
+                    <div class="agf-clip-play"><i class="fas fa-play"></i></div>
+                    <div class="agf-clip-cap">Experiencia FBO de principio a fin<small>Recepción, salas y atención personalizada</small></div>
                 </div>
 
                 <p class="text-muted mt-4 mb-0" style="font-size:.72rem;">
