@@ -23615,6 +23615,10 @@ FF
             }
             #aviacion-general-fbo-section .agf-map-btn:hover{ transform:translateY(-2px); box-shadow:0 18px 34px -12px rgba(14,165,233,.85); color:#fff }
             #aviacion-general-fbo-section .agf-map-btn i{ font-size:.85rem }
+            #agfMapModal .modal-content{ background:#0b1b34; border:1px solid rgba(255,255,255,.12); border-radius:1rem; overflow:hidden }
+            #agfMapModal .agf-map-frame{ position:relative; width:100%; aspect-ratio:16/9; border-radius:.75rem; overflow:hidden; background:#06101f }
+            #agfMapModal .agf-map-frame iframe{ position:absolute; inset:0; width:100%; height:100%; border:0 }
+            #agfMapModal .agf-map-btn{ font-size:.75rem; padding:.45rem .8rem }
             @media (max-width: 575.98px){
                 #aviacion-general-fbo-section .agf-map-btn{ top:auto; bottom:1rem; right:1rem; font-size:.72rem; padding:.5rem .8rem }
             }
@@ -23871,7 +23875,7 @@ FF
                 <!-- ── Plano / imagen de plataforma y posiciones ── -->
                 <div class="agf-plan">
                     <span class="agf-plan-badge"><i class="fas fa-map-location-dot"></i>Plataforma &amp; posiciones</span>
-                    <a class="agf-map-btn" href="https://earth.google.com/web/@19.7425,-99.0157,2235a,3500d,35y,0h,0t,0r" target="_blank" rel="noopener" title="Abrir el mapa satelital del AIFA en Google Earth">
+                    <a class="agf-map-btn" href="https://earth.google.com/web/@19.7425,-99.0157,2235a,3500d,35y,0h,0t,0r" data-bs-toggle="modal" data-bs-target="#agfMapModal" title="Ver el mapa satelital del AIFA">
                         <i class="fas fa-earth-americas"></i> Ver mapa satelital del AIFA
                     </a>
                     <img src="images/FBO.png" alt="Plano de la Terminal de Aviación General y FBO: plataforma, posiciones y hangares" loading="lazy">
@@ -23994,6 +23998,28 @@ FF
             </div>
         </div>
 
+        <!-- ═════════ MODAL: MAPA SATELITAL DEL AIFA ═════════ -->
+        <div class="modal fade" id="agfMapModal" tabindex="-1" aria-hidden="true" aria-labelledby="agfMapModalLabel">
+            <div class="modal-dialog modal-xl modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header border-0 pb-0">
+                        <h5 class="modal-title text-white fw-bold" id="agfMapModalLabel"><i class="fas fa-satellite me-2" style="color:#38bdf8"></i>Vista satelital del AIFA</h5>
+                        <div class="ms-auto d-flex align-items-center gap-2">
+                            <a class="agf-map-btn" href="https://earth.google.com/web/@19.7425,-99.0157,2235a,3500d,35y,0h,0t,0r" target="_blank" rel="noopener" style="position:static">
+                                <i class="fas fa-earth-americas"></i> Abrir en Google Earth
+                            </a>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                        </div>
+                    </div>
+                    <div class="modal-body">
+                        <div class="agf-map-frame">
+                            <iframe title="Mapa satelital del AIFA" loading="lazy" allowfullscreen referrerpolicy="no-referrer-when-downgrade"></iframe>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- ═════════ MODAL: VIDEO COMPLETO ═════════ -->
         <div class="modal fade" id="agfVideoModal" tabindex="-1" aria-hidden="true" aria-labelledby="agfVideoModalLabel">
             <div class="modal-dialog modal-lg modal-dialog-centered">
@@ -24035,6 +24061,16 @@ FF
                     } catch(_){ kick(); }
                 });
                 modal.addEventListener('hidden.bs.modal', function(){ try { full.pause(); full.currentTime = 0; } catch(_){} pendingStart = 0; });
+            }
+
+            // Mapa satelital: carga diferida del iframe al abrir el modal
+            var mapModal = document.getElementById('agfMapModal');
+            if (mapModal) {
+                var mapFrame = mapModal.querySelector('iframe');
+                var mapSrc = 'https://www.google.com/maps?q=19.7425,-99.0157&t=k&z=16&hl=es&output=embed';
+                mapModal.addEventListener('shown.bs.modal', function(){
+                    if (mapFrame && !mapFrame.src) { mapFrame.src = mapSrc; }
+                });
             }
 
             // Al pulsar un clip con inicio definido, el modal arranca en ese punto
