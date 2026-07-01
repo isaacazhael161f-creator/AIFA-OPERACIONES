@@ -191,6 +191,12 @@ app.use((req, res) => {
   res.sendFile(path.join(ROOT, 'index.html'));
 });
 
-app.listen(PORT, () => {
-  console.log(`AIFA-OPERACIONES dev server running at http://localhost:${PORT}`);
-});
+// En local (o `npm start`) levantamos el servidor. En entornos serverless
+// (p. ej. Vercel) se importa `app` sin escuchar en un puerto.
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`AIFA-OPERACIONES dev server running at http://localhost:${PORT}`);
+  });
+}
+
+module.exports = app;
