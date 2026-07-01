@@ -28595,6 +28595,11 @@ FF
                      ============================================= -->
                 <div id="portal-digitalizacion-section" class="content-section">
                     <style>
+                        /* La animacion global .content-section usa transform:translateY,
+                           lo que crea un containing-block y rompe position:sticky de los
+                           encabezados de la tabla. Aqui la sustituimos por una de solo opacidad. */
+                        #portal-digitalizacion-section.content-section{animation:pdxFadeIn .4s ease}
+                        @keyframes pdxFadeIn{from{opacity:0}to{opacity:1}}
                         #portal-digitalizacion-section .pdx-hero{
                             position:relative;overflow:hidden;border-radius:20px;
                             background:linear-gradient(120deg,#0a1f44 0%,#13306b 45%,#1e40af 100%);
