@@ -8,48 +8,124 @@
     const UPLOAD_ROLES  = ['admin', 'superadmin', 'editor'];
     const OPS_CACHE_PFX = 'aifa_ops_cache_';
 
-    // Indicadores de columnas que siempre existen en la hoja de datos
-    const SHEET_SIGNATURE = ['aterrizaje_despegue', 'no_vuelo', 'hora_programada'];
+    // Indicadores de columnas que siempre existen en la hoja de datos.
+    // Se incluyen las variantes normalizadas en español, inglés simple y el
+    // formato crudo del software del aeropuerto ([Arr]/[Dep]) para que la
+    // detección de hoja funcione con cualquiera de ellos.
+    const SHEET_SIGNATURE = [
+        // Español (plantilla Demoras procesada)
+        'aterrizaje_despegue', 'no_vuelo', 'hora_programada',
+        // Inglés simple
+        'landing_takeoff', 'flight_no', 'scheduled_time',
+        // Export crudo del software del aeropuerto — Llegadas
+        'arr_flight_designator', 'arr_airline_code', 'arr_aldt',
+        // Export crudo del software del aeropuerto — Salidas
+        'dep_flight_designator', 'dep_airline_code', 'dep_atot'
+    ];
 
-    // Columnas que contienen seriales de fecha Excel
-    const DATE_COL_NORMS = new Set(['aterrizaje_despegue', 'hora_programada', 'hora_actual']);
+    // Columnas de la tabla Demoras (nombre normalizado) que almacenan fechas/horas.
+    // Se detecta sobre la columna DESTINO en la DB, por lo que aplica sin importar
+    // si el encabezado de origen venía en español o inglés.
+    const DB_DATE_COL_NORMS = new Set(['aterrizaje_despegue', 'hora_programada', 'hora_actual']);
 
-    // Alias explícitos: nombre normalizado del Excel → nombre normalizado de la columna en DB.
-    // Necesarios cuando el Excel usa preposiciones ("de") o idioma diferente al esquema.
+    // Alias explícitos: nombre normalizado del encabezado → nombre normalizado de la columna REAL en DB.
+    // Los nombres normalizados destino coinciden EXACTAMENTE con las columnas reales de la tabla
+    // Demoras (con espacios/acentos): "Código de Demora"→codigo_de_demora, "Tipo de Servicio"→tipo_de_servicio, etc.
     const EXCEL_TO_DB_ALIASES = {
-        'tiempo_de_demora':        'tiempo_demora',          // "Tiempo de Demora" → Tiempo_Demora
-        'codigo_de_demora':        'codigo_demora',          // "Código de Demora" → Codigo_Demora
-        'domestico_internacional': 'domestic_international', // "Doméstico/Internacional" → Domestic_International
-        'tipo_de_servicio':        'tipo_servicio',          // "Tipo de Servicio" → Tipo_Servicio
-        'codigo_de_afac_aifa':     'codigo_afac_aifa',       // "Código de AFAC/AIFA" → Codigo_AFAC_AIFA
-        'demoras':                 'demoras_col',            // "Demoras" → Demoras_col (evita conflicto con nombre de tabla)
-        'no_de_av':                'tipo_avion',             // "No. de Av." → Tipo_Avion
+        // ── Español (variantes de encabezado que difieren del nombre real) ─────
+        'domestico_internacional': 'domestic_international', // "Doméstico/Internacional" → Domestic/International
+        'no_de_av':                'tipo_de_avion',          // "No. de Av." → Tipo de Avión
+
+        // ── Inglés simple ─────────────────────────────────────────────────────
+        'landing_takeoff':         'aterrizaje_despegue',    // "Landing/Takeoff" → Aterrizaje/Despegue
+        'airline':                 'aerolinea',              // "Airline" → Aerolínea
+        'aircraft_type':           'tipo_de_avion',          // "Aircraft Type" → Tipo de Avión
+        'aircraft':                'tipo_de_avion',          // "Aircraft" → Tipo de Avión
+        'registration':            'matricula',              // "Registration" → Matrícula
+        'tail_number':             'matricula',              // "Tail Number" → Matrícula
+        'flight_no':               'no_vuelo',               // "Flight No" → No. Vuelo
+        'flight_number':           'no_vuelo',               // "Flight Number" → No. Vuelo
+        'route':                   'ruta',                   // "Route" → Ruta
+        'routing':                 'ruta',                   // "Routing" → Ruta
+        'scheduled_time':          'hora_programada',        // "Scheduled Time" → Hora Programada
+        'actual_time':             'hora_actual',            // "Actual Time" → Hora Actual
+        'delay_time':              'tiempo_de_demora',       // "Delay Time" → Tiempo de Demora
+        'delay_code':              'codigo_de_demora',       // "Delay Code" → Código de Demora
+        'passengers':              'pasajeros',              // "Passengers" → Pasajeros
+        'service_type':            'tipo_de_servicio',       // "Service Type" → Tipo de Servicio
+        'reason':                  'motivo',                 // "Reason" → Motivo
+        'status':                  'estatus',                // "Status" → Estatus
+        'arrival_departure':       'llegada_salida',         // "Arrival/Departure" → Llegada/Salida
+        'afac_aifa_code':          'codigo_de_afac_aifa',    // "AFAC/AIFA Code" → Código de AFAC/AIFA
+        'service_totals':          'totales_servicio',       // "Service Totals" → Totales Servicio
+        'delays':                  'demoras',                // "Delays" → Demoras
+        'punctuality':             'puntualidad',            // "Punctuality" → Puntualidad
+        'company_punctuality':     'puntualidad_compania',   // "Company Punctuality" → Puntualidad compañía
+        'position':                'posicion',               // "Position" → Posicion
+        'month':                   'mes',                    // "Month" → MES
+        'year':                    'anio',                   // "Year" → ANIO
+
+        // ── Export crudo del software del aeropuerto (LLEGADAS, prefijo [Arr]) ──
+        'arr_aldt':                'aterrizaje_despegue',    // Actual Landing Time → Aterrizaje/Despegue
+        'arr_airline_code':        'aerolinea',
+        'arr_aircraft_type':       'tipo_de_avion',
+        'arr_registration':        'matricula',
+        'arr_flight_designator':   'no_vuelo',
+        'arr_routing':             'ruta',
+        'arr_sibt':                'hora_programada',        // Scheduled In-Block Time → Hora Programada
+        'arr_aibt':                'hora_actual',            // Actual In-Block Time → Hora Actual
+        'arr_efidl':               'tiempo_de_demora',       // Inbound delay → Tiempo de Demora
+        'arr_delay_code':          'codigo_de_demora',
+        'arr_boarded':             'pasajeros',
+        'arr_security_level':      'domestic_international',  // DOMESTIC / INTERNATIONAL
+        'arr_service_type':        'tipo_de_servicio',
+        'arr_exemption_dom':       'motivo',
+        'arr_stand':               'posicion',
+
+        // ── Export crudo del software del aeropuerto (SALIDAS, prefijo [Dep]) ──
+        'dep_atot':                'aterrizaje_despegue',    // Actual Take-Off Time → Aterrizaje/Despegue
+        'dep_airline_code':        'aerolinea',
+        'dep_aircraft_type':       'tipo_de_avion',
+        'dep_registration':        'matricula',
+        'dep_flight_designator':   'no_vuelo',
+        'dep_routing':             'ruta',
+        'dep_sobt':                'hora_programada',        // Scheduled Off-Block Time → Hora Programada
+        'dep_aobt':                'hora_actual',            // Actual Off-Block Time → Hora Actual
+        'dep_efidl':               'tiempo_de_demora',       // Outbound delay → Tiempo de Demora
+        'dep_delay_code':          'codigo_de_demora',
+        'dep_boarded':             'pasajeros',
+        'dep_security_level':      'domestic_international',
+        'dep_service_type':        'tipo_de_servicio',
+        'dep_exemption_dom':       'motivo',
+        'dep_stand':               'posicion',
     };
 
-    // Nombres exactos de las columnas en la tabla Demoras (mayúsculas/minúsculas como en Supabase).
+    // Nombres EXACTOS de las columnas en la tabla Demoras de Supabase (con espacios/acentos).
     // Se usa como fallback cuando la tabla está vacía y getDbColNames() retorna null.
     const DB_COL_EXACT = {
-        'aterrizaje_despegue':     'Aterrizaje_Despegue',
-        'aerolinea':               'Aerolinea',
-        'tipo_avion':              'Tipo_Avion',
-        'matricula':               'Matricula',
-        'no_vuelo':                'No_Vuelo',
+        'aterrizaje_despegue':     'Aterrizaje/Despegue',
+        'aerolinea':               'Aerolínea',
+        'tipo_de_avion':           'Tipo de Avión',
+        'matricula':               'Matrícula',
+        'no_vuelo':                'No. Vuelo',
         'ruta':                    'Ruta',
-        'hora_programada':         'Hora_Programada',
-        'hora_actual':             'Hora_Actual',
-        'tiempo_demora':           'Tiempo_Demora',
-        'codigo_demora':           'Codigo_Demora',
+        'hora_programada':         'Hora Programada',
+        'hora_actual':             'Hora Actual',
+        'tiempo_de_demora':        'Tiempo de Demora',
+        'codigo_de_demora':        'Código de Demora',
         'pasajeros':               'Pasajeros',
-        'domestic_international':  'Domestic_International',
-        'tipo_servicio':           'Tipo_Servicio',
+        'domestic_international':  'Domestic/International',
+        'tipo_de_servicio':        'Tipo de Servicio',
         'motivo':                  'Motivo',
         'estatus':                 'Estatus',
-        'llegada_salida':          'Llegada_Salida',
-        'codigo_afac_aifa':        'Codigo_AFAC_AIFA',
-        'totales_servicio':        'Totales_Servicio',
-        'demoras_col':             'Demoras_col',
+        'llegada_salida':          'Llegada/Salida',
+        'codigo_de_afac_aifa':     'Código de AFAC/AIFA',
+        'servicio_llegada':        'Servicio llegada',
+        'servicio_de_salida':      'Servicio de Salida',
+        'totales_servicio':        'Totales Servicio',
+        'demoras':                 'Demoras',
         'puntualidad':             'Puntualidad',
-        'puntualidad_compania':    'Puntualidad_Compania',
+        'puntualidad_compania':    'Puntualidad compañía',
         'posicion':                'Posicion',
         'mes':                     'MES',
         'anio':                    'ANIO',
@@ -60,6 +136,15 @@
         'ene':1,'feb':2,'mar':3,'abr':4,'may':5,'jun':6,
         'jul':7,'ago':8,'sep':9,'oct':10,'nov':11,'dic':12
     };
+
+    // Abreviaturas de mes en inglés → índice 0-11 (para fechas "14FEB 19:05" del export del aeropuerto)
+    const MONTH_ABBR_EN = {
+        'jan':0,'feb':1,'mar':2,'apr':3,'may':4,'jun':5,
+        'jul':6,'aug':7,'sep':8,'oct':9,'nov':10,'dec':11
+    };
+
+    // Año de contexto del archivo en curso (para completar fechas sin año, ej. "14FEB 19:05").
+    let _importCtxYear = null;
 
     /**
      * Intenta extraer mes y año del nombre de la hoja.
@@ -105,6 +190,54 @@
         return new Date((serial - 25569) * 86400000).toISOString();
     }
 
+    /** Parsea texto CSV a filas (array de arrays). Autodetecta el delimitador
+     *  (coma, punto y coma o tabulador) y respeta comillas dobles con escape "".
+     *  Devuelve la primera fila como encabezados y el resto como datos. */
+    function parseCsvToRows(text) {
+        // Quitar BOM inicial
+        text = String(text || '').replace(/^\uFEFF/, '');
+        if (!text) return [];
+
+        // Autodetectar delimitador a partir de la primera línea
+        const nl = text.indexOf('\n');
+        const firstLine = nl >= 0 ? text.slice(0, nl) : text;
+        const count = ch => (firstLine.split(ch).length - 1);
+        const commas = count(',');
+        const semis  = count(';');
+        const tabs   = count('\t');
+        let delim = ',';
+        if (semis >= commas && semis >= tabs && semis > 0) delim = ';';
+        else if (tabs >= commas && tabs > 0) delim = '\t';
+
+        const rows = [];
+        let field = '';
+        let cur = [];
+        let inQuotes = false;
+        for (let i = 0; i < text.length; i++) {
+            const c = text[i];
+            if (inQuotes) {
+                if (c === '"') {
+                    if (text[i + 1] === '"') { field += '"'; i++; }
+                    else inQuotes = false;
+                } else {
+                    field += c;
+                }
+            } else if (c === '"') {
+                inQuotes = true;
+            } else if (c === delim) {
+                cur.push(field); field = '';
+            } else if (c === '\n') {
+                cur.push(field); rows.push(cur); cur = []; field = '';
+            } else if (c === '\r') {
+                // ignorar (CRLF)
+            } else {
+                field += c;
+            }
+        }
+        if (field !== '' || cur.length > 0) { cur.push(field); rows.push(cur); }
+        return rows;
+    }
+
     /** Encuentra la hoja con datos de operaciones.
      *  Prioridad:
      *  1. Hojas cuyo nombre coincide con el patrón "MES YYYY" (ej. "MAY 2026", "ABR 2026")
@@ -145,6 +278,23 @@
     }
 
     /**
+     * Detecta si los encabezados provienen del export crudo del software del
+     * aeropuerto y devuelve la dirección del archivo.
+     * @returns {'Llegada'|'Salida'|null} 'Llegada' si predominan columnas [Arr],
+     *          'Salida' si predominan [Dep], null si es la plantilla Demoras.
+     */
+    function detectAirportDirection(headers) {
+        let arr = 0, dep = 0;
+        (headers || []).forEach(h => {
+            const n = normCol(h);
+            if (n.startsWith('arr_')) arr++;
+            else if (n.startsWith('dep_')) dep++;
+        });
+        if (arr === 0 && dep === 0) return null;
+        return arr >= dep ? 'Llegada' : 'Salida';
+    }
+
+    /**
      * Construye el mapa: índice Excel → { dbCol, isDate }
      * Prioridad:
      *   1. Columna real de Supabase con mismo nombre normalizado (más precisa)
@@ -166,8 +316,46 @@
                        || DB_COL_EXACT[normAlias]
                        || DB_COL_EXACT[norm]
                        || normAlias;
-            return { idx, excelHeader: h, dbCol, isDate: DATE_COL_NORMS.has(norm) };
+            // La detección de fecha se hace sobre la columna DESTINO (DB), por lo
+            // que funciona igual si el encabezado venía en español o en inglés.
+            return { idx, excelHeader: h, dbCol, isDate: DB_DATE_COL_NORMS.has(normCol(dbCol)) };
         });
+    }
+
+    /** Convierte serial Excel (número) o cadena de fecha (CSV) a ISO 8601. */
+    function coerceDateValue(val) {
+        if (typeof val === 'number') return excelSerialToISO(val);
+        const s = String(val).trim();
+        if (s === '') return null;
+        // Serial de Excel exportado como texto (ej. "46143.98")
+        if (/^\d+(?:\.\d+)?$/.test(s)) {
+            const n = parseFloat(s);
+            if (n > 1000) return excelSerialToISO(n);
+        }
+        // Formatos de fecha comunes: DD/MM/YYYY [HH:MM[:SS]] o DD-MM-YYYY …
+        const m = s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
+        if (m) {
+            let [, d, mo, y, hh, mm, ss] = m;
+            if (y.length === 2) y = '20' + y;
+            const dt = new Date(Date.UTC(+y, +mo - 1, +d, +(hh || 0), +(mm || 0), +(ss || 0)));
+            if (!isNaN(dt.getTime())) return dt.toISOString();
+        }
+        // Formato del export del aeropuerto: "14FEB 19:05" o "14FEB2026 19:05".
+        // Si no trae año, se usa el año de contexto del archivo (_importCtxYear).
+        const m2 = s.match(/^(\d{1,2})\s*([A-Za-z]{3})\s*(\d{2,4})?[\s,]+(\d{1,2}):(\d{2})/);
+        if (m2) {
+            const mo = MONTH_ABBR_EN[m2[2].toLowerCase()];
+            if (mo !== undefined) {
+                let y = m2[3] ? (m2[3].length === 2 ? 2000 + (+m2[3]) : +m2[3])
+                              : (_importCtxYear || new Date().getFullYear());
+                const dt = new Date(Date.UTC(y, mo, +m2[1], +m2[4], +m2[5]));
+                if (!isNaN(dt.getTime())) return dt.toISOString();
+            }
+        }
+        // Último recurso: dejar que el motor de fechas del navegador lo intente (ISO, etc.)
+        const dt2 = new Date(s);
+        if (!isNaN(dt2.getTime())) return dt2.toISOString();
+        return s;
     }
 
     /** Transforma una fila raw (array) en objeto DB usando el mapping */
@@ -177,8 +365,8 @@
             const val = rawRow[idx];
             if (val === null || val === undefined || val === '') {
                 out[dbCol] = null;
-            } else if (isDate && typeof val === 'number') {
-                out[dbCol] = excelSerialToISO(val);
+            } else if (isDate) {
+                out[dbCol] = coerceDateValue(val);
             } else {
                 out[dbCol] = val;
             }
@@ -198,13 +386,25 @@
         return clean;
     }
 
-    /** Sube filas en lotes de 500 con callback de progreso */
-    async function uploadInBatches(rows, onProgress) {
+    /** Sube filas en lotes de 500 con callback de progreso.
+     *  Si se provee `realColSet` (columnas reales de la tabla), descarta cualquier
+     *  clave que no exista en la tabla para evitar el error de PostgREST
+     *  "Could not find the '<col>' column of 'Demoras' in the schema cache". */
+    async function uploadInBatches(rows, onProgress, realColSet) {
         const client = window.supabaseClient;
         const BATCH = 500;
         let done = 0;
+        const prep = (row) => {
+            const clean = stripAutogen(row);
+            if (!realColSet) return clean;
+            const out = {};
+            for (const [k, v] of Object.entries(clean)) {
+                if (realColSet.has(k)) out[k] = v;
+            }
+            return out;
+        };
         for (let i = 0; i < rows.length; i += BATCH) {
-            const chunk = rows.slice(i, i + BATCH).map(stripAutogen);
+            const chunk = rows.slice(i, i + BATCH).map(prep);
             const { error } = await client.from('Demoras').insert(chunk);
             if (error) throw error;
             done += chunk.length;
@@ -242,23 +442,44 @@
         if (previewDiv)  previewDiv.innerHTML = '';
         if (progWrap)    progWrap.classList.add('d-none');
         if (btnImport)   btnImport.disabled = true;
-        setStatus('<i class="fas fa-spinner fa-spin me-1"></i>Leyendo archivo Excel…');
+
+        const isCsv = /\.csv$/i.test(file.name || '');
+        setStatus(`<i class="fas fa-spinner fa-spin me-1"></i>Leyendo archivo ${isCsv ? 'CSV' : 'Excel'}…`);
 
         try {
-            const buf = await file.arrayBuffer();
-            const wb  = XLSX.read(buf, { type: 'array', cellDates: false });
+            let sheetName, rows;
 
-            // 1. Detectar hoja
-            const found = findDataSheet(wb);
-            if (!found) {
-                setStatus('No se encontró una hoja con datos de operaciones. Verifica que el archivo sea el correcto.', 'danger');
-                return;
+            if (isCsv) {
+                // CSV: una sola "hoja"; el nombre del archivo aporta MES/AÑO (ej. "Mayo 2026.csv")
+                const text = await file.text();
+                rows = parseCsvToRows(text);
+                if (!rows || rows.length < 2) {
+                    setStatus('El archivo CSV está vacío o no contiene filas de datos.', 'danger');
+                    return;
+                }
+                sheetName = (file.name || '').replace(/\.[^.]+$/, '');
+            } else {
+                const buf = await file.arrayBuffer();
+                const wb  = XLSX.read(buf, { type: 'array', cellDates: false });
+
+                // 1. Detectar hoja
+                const found = findDataSheet(wb);
+                if (!found) {
+                    setStatus('No se encontró una hoja con datos de operaciones. Verifica que el archivo sea el correcto.', 'danger');
+                    return;
+                }
+                sheetName = found.sheetName;
+                rows      = found.rows;
             }
-            const { sheetName, rows } = found;
-            const headers  = rows[0];
-            const dataRows = rows.slice(1).filter(r => Array.isArray(r) && r.some(v => v !== null && v !== undefined));
 
-            // 2. Detectar MES y ANIO — prioridad: nombre de hoja → columnas MES/ANIO → fecha del dato
+            const headers  = rows[0];
+            const dataRows = rows.slice(1).filter(r => Array.isArray(r) && r.some(v => v !== null && v !== undefined && String(v).trim() !== ''));
+
+            // Dirección del export crudo del aeropuerto ([Arr] → Llegada, [Dep] → Salida).
+            // null cuando el archivo es la plantilla Demoras (español/inglés simple).
+            const airportDirection = detectAirportDirection(headers);
+
+            // 2. Detectar MES y ANIO — prioridad: nombre de hoja → nombre de archivo → columnas MES/ANIO → fecha del dato
             let mesDato = null, anioDato = null;
 
             // 2a. Nombre de la hoja (más confiable — ej. "ABR 2026")
@@ -266,6 +487,16 @@
             if (fromSheet) {
                 mesDato = fromSheet.mes;
                 anioDato = fromSheet.anio;
+            }
+
+            // 2a-bis. Nombre del archivo (ej. "Mayo 2026.xlsx", "Julio 2026.csv").
+            // Útil para el export del aeropuerto, cuyo nombre de hoja no trae el periodo.
+            if (!mesDato || !anioDato) {
+                const fromFile = mesAnioFromSheetName((file.name || '').replace(/\.[^.]+$/, ''));
+                if (fromFile) {
+                    if (!mesDato)  mesDato  = fromFile.mes;
+                    if (!anioDato) anioDato = fromFile.anio;
+                }
             }
 
             // 2b. Columnas MES / ANIO en los datos (fallback)
@@ -281,13 +512,65 @@
 
             // 2c. Derivar del primer valor de fecha en la columna aterrizaje/despegue (fallback)
             if (!mesDato || !anioDato) {
-                const atzIdx = headers.findIndex(h => normCol(h) === 'aterrizaje_despegue');
+                const atzIdx = headers.findIndex(h => {
+                    const n = normCol(h);
+                    return n === 'aterrizaje_despegue' || n === 'landing_takeoff'
+                        || n === 'arr_aldt' || n === 'dep_atot';
+                });
                 if (atzIdx >= 0) {
                     const serial = (dataRows[0] || [])[atzIdx];
                     if (typeof serial === 'number' && serial > 0) {
                         const d = new Date((serial - 25569) * 86400000);
                         if (!mesDato)  mesDato  = d.getUTCMonth() + 1;
                         if (!anioDato) anioDato = d.getUTCFullYear();
+                    }
+                }
+            }
+
+            // Año de contexto para fechas sin año ("14FEB 19:05") del export del aeropuerto
+            _importCtxYear = anioDato || null;
+
+            // 2d. Validador de periodo por MAYORÍA de datos.
+            // Si el nombre del archivo/hoja dice un mes pero la fecha real de las
+            // operaciones pertenece mayoritariamente a otro mes/año, se corrige el
+            // periodo con el que realmente corresponde a los datos (evita etiquetar
+            // "Julio" un archivo que en realidad es de "Junio", por ejemplo).
+            let periodoCorregido = null;
+            const fechaIdx = headers.findIndex(h => {
+                const n = normCol(h);
+                return n === 'aterrizaje_despegue' || n === 'landing_takeoff'
+                    || n === 'arr_aldt' || n === 'dep_atot';
+            });
+            if (fechaIdx >= 0 && dataRows.length) {
+                const conteo = new Map();   // "anio-mes" → cantidad
+                let validos = 0;
+                for (const row of dataRows) {
+                    const iso = coerceDateValue(row[fechaIdx]);
+                    if (!iso) continue;
+                    const d = new Date(iso);
+                    if (isNaN(d.getTime())) continue;
+                    const key = `${d.getUTCFullYear()}-${d.getUTCMonth() + 1}`;
+                    conteo.set(key, (conteo.get(key) || 0) + 1);
+                    validos++;
+                }
+                if (validos > 0) {
+                    let bestKey = null, bestN = 0;
+                    for (const [k, n] of conteo) if (n > bestN) { bestN = n; bestKey = k; }
+                    const proporcion = bestN / validos;
+                    const [aDom, mDom] = bestKey.split('-').map(Number);
+                    // Umbral de "mayoría clara": si ≥90% de las operaciones pertenecen a
+                    // un mes/año distinto al detectado, se corrige el periodo.
+                    const UMBRAL_MAYORIA = 0.90;
+                    const difiere = (mDom !== mesDato) || (aDom !== anioDato);
+                    if (proporcion >= UMBRAL_MAYORIA && difiere) {
+                        periodoCorregido = {
+                            antesMes: mesDato, antesAnio: anioDato,
+                            mes: mDom, anio: aDom,
+                            porcentaje: Math.round(proporcion * 100)
+                        };
+                        mesDato = mDom;
+                        anioDato = aDom;
+                        _importCtxYear = anioDato;
                     }
                 }
             }
@@ -320,6 +603,13 @@
                 ? `<div class="alert alert-warning py-2 mt-2 mb-0 small"><i class="fas fa-exclamation-triangle me-1"></i>Ya existen <strong>${existingCount.toLocaleString()}</strong> registros para <strong>${mesStr} ${anioStr}</strong>. Se eliminarán y reemplazarán.</div>`
                 : `<div class="alert alert-success py-2 mt-2 mb-0 small"><i class="fas fa-check-circle me-1"></i>No hay datos previos para ${mesStr} ${anioStr}. Se insertarán directamente.</div>`;
 
+            const periodoCorregidoWarning = periodoCorregido
+                ? `<div class="alert alert-info py-2 mt-2 mb-0 small"><i class="fas fa-calendar-check me-1"></i>`
+                  + `El nombre indicaba <strong>${(periodoCorregido.antesMes && periodoCorregido.antesMes >= 1 && periodoCorregido.antesMes <= 12) ? MES_NOMBRES[periodoCorregido.antesMes] : '?'} ${periodoCorregido.antesAnio || '?'}</strong>, `
+                  + `pero el <strong>${periodoCorregido.porcentaje}%</strong> de las operaciones son de <strong>${mesStr} ${anioStr}</strong>. `
+                  + `Se importarán como <strong>${mesStr} ${anioStr}</strong>.</div>`
+                : '';
+
             if (previewDiv) {
                 previewDiv.innerHTML = `
                     <div class="p-3 bg-light rounded border mt-3">
@@ -336,16 +626,27 @@
                         </div>
                         <div class="mb-1 small text-muted">Mapeo de columnas detectado:</div>
                         <div class="mb-0">${colPreviewHtml}</div>
+                        ${periodoCorregidoWarning}
                         ${existingWarning}
                     </div>`;
             }
 
-            setStatus(`<i class="fas fa-file-excel text-success me-1"></i>Archivo listo: <strong>${dataRows.length.toLocaleString()} filas</strong> de <strong>${mesStr} ${anioStr}</strong>. Confirma para importar.`);
+            setStatus(`<i class="fas ${isCsv ? 'fa-file-csv' : 'fa-file-excel'} text-success me-1"></i>Archivo listo: <strong>${dataRows.length.toLocaleString()} filas</strong> de <strong>${mesStr} ${anioStr}</strong>. Confirma para importar.`);
             if (btnImport) btnImport.disabled = false;
 
             // 6. Guardar estado en el botón para cuando haga click
             if (btnImport) {
                 btnImport.onclick = async () => {
+                    // Confirmación SOLO cuando ya existen datos del mismo periodo
+                    // (se van a eliminar y reemplazar).
+                    if (existingCount > 0) {
+                        const ok = window.confirm(
+                            `Ya existen ${existingCount.toLocaleString()} registros de ${mesStr} ${anioStr}.\n\n`
+                            + `Se ELIMINARÁN y se reemplazarán por las ${dataRows.length.toLocaleString()} filas de este archivo.\n\n`
+                            + `¿Deseas continuar?`
+                        );
+                        if (!ok) return;
+                    }
                     btnImport.disabled = true;
                     if (progWrap) progWrap.classList.remove('d-none');
                     setProgress(0, dataRows.length);
@@ -364,27 +665,21 @@
 
                         // Transformar filas (la columna "No" ya fue excluida por AUTOGEN_COLS)
                         // Filtrar filas completamente vacías (sin ningún valor relevante)
-                        const noEntry  = mapping.find(m => normCol(m.excelHeader) === 'no');
-                        const noDbCol  = noEntry ? noEntry.dbCol : 'No';
-                        // Buscar el nombre real de las columnas MES/ANIO en el mapping para sobreescribirlas
-                        const mesEntry  = mapping.find(m => normCol(m.excelHeader) === 'mes');
-                        const anioEntry = mapping.find(m => normCol(m.excelHeader) === 'anio');
-                        const mesDbCol  = mesEntry  ? mesEntry.dbCol  : 'MES';
-                        const anioDbCol = anioEntry ? anioEntry.dbCol : 'ANIO';
+                        // Las columnas se resuelven por el nombre DESTINO real (m.dbCol), no por el
+                        // encabezado de origen, para que funcione con cualquier idioma/formato.
+                        const noDbCol   = (mapping.find(m => normCol(m.dbCol) === 'no') || {}).dbCol || 'No';
+                        const mesDbCol  = (mapping.find(m => normCol(m.dbCol) === 'mes') || {}).dbCol || 'MES';
+                        const anioDbCol = (mapping.find(m => normCol(m.dbCol) === 'anio') || {}).dbCol || 'ANIO';
 
-                        // Resolver nombres de columnas para lógica de Estatus
-                        const rutaEntry   = mapping.find(m => normCol(m.excelHeader) === 'ruta');
-                        const tiempoEntry = mapping.find(m =>
-                            normCol(m.excelHeader) === 'tiempo_de_demora' ||
-                            normCol(m.excelHeader) === 'tiempo_demora');
-                        const estatusEntry = mapping.find(m => normCol(m.excelHeader) === 'estatus');
-                        const llegadaSalidaEntry = mapping.find(m =>
-                            normCol(m.excelHeader) === 'llegada_salida' ||
-                            normCol(m.excelHeader) === 'llegada_salida');
+                        // Resolver nombres de columnas para lógica de Estatus (por columna DESTINO real)
+                        const rutaEntry          = mapping.find(m => normCol(m.dbCol) === 'ruta');
+                        const tiempoEntry        = mapping.find(m => normCol(m.dbCol) === 'tiempo_de_demora');
+                        const estatusEntry       = mapping.find(m => normCol(m.dbCol) === 'estatus');
+                        const llegadaSalidaEntry = mapping.find(m => normCol(m.dbCol) === 'llegada_salida');
                         const rutaDbCol         = rutaEntry         ? rutaEntry.dbCol         : 'Ruta';
-                        const tiempoDbCol       = tiempoEntry       ? tiempoEntry.dbCol       : 'Tiempo_Demora';
+                        const tiempoDbCol       = tiempoEntry       ? tiempoEntry.dbCol       : 'Tiempo de Demora';
                         const estatusDbCol      = estatusEntry      ? estatusEntry.dbCol      : 'Estatus';
-                        const llegadaSalidaDbCol = llegadaSalidaEntry ? llegadaSalidaEntry.dbCol : 'Llegada_Salida';
+                        const llegadaSalidaDbCol = llegadaSalidaEntry ? llegadaSalidaEntry.dbCol : 'Llegada/Salida';
 
                         /** Deriva el Estatus de un vuelo según reglas de negocio. */
                         function calcEstatus(row) {
@@ -432,18 +727,38 @@
                                     [anioDbCol]:          anioDato,
                                     [noDbCol]:            i + 1,
                                     [estatusDbCol]:       estatusDerived,
-                                    [llegadaSalidaDbCol]: calcLlegadaSalida(r, estatusDerived)
+                                    // Export del aeropuerto: la dirección viene fija por archivo
+                                    // ([Arr] → Llegada, [Dep] → Salida). Plantilla Demoras: derivar de Ruta.
+                                    [llegadaSalidaDbCol]: airportDirection || calcLlegadaSalida(r, estatusDerived)
                                 };
                             });
+
+                        // Columnas reales de la tabla (introspección). Si existen, se filtran
+                        // las claves inexistentes antes de insertar y se avisa cuáles se omiten.
+                        const realColSet = (Array.isArray(dbColNames) && dbColNames.length)
+                            ? new Set(dbColNames) : null;
+                        let skippedCols = [];
+                        let skippedColsMsg = '';
+                        if (realColSet && dbRows.length) {
+                            skippedCols = Object.keys(dbRows[0]).filter(k =>
+                                !AUTOGEN_COLS.has(k) && !AUTOGEN_COLS.has(normCol(k)) && !realColSet.has(k));
+                            if (skippedCols.length) {
+                                skippedColsMsg = `<br><span class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i>`
+                                    + `No se guardaron estas columnas porque no existen en la tabla <strong>Demoras</strong>: `
+                                    + `<strong>${skippedCols.join(', ')}</strong>. `
+                                    + `Agrégalas en Supabase (o recarga el schema cache) para conservar esos datos.</span>`;
+                            }
+                        }
+
                         await uploadInBatches(dbRows, (done, total) => {
                             setProgress(done, total);
                             setStatus(`<i class="fas fa-spinner fa-spin me-1"></i>Subiendo… <strong>${done.toLocaleString()}</strong> / ${total.toLocaleString()} registros`);
-                        });
+                        }, realColSet);
 
                         setProgress(dbRows.length, dbRows.length);
                         setStatus(
-                            `<i class="fas fa-check-circle text-success me-1"></i><strong>${dbRows.length.toLocaleString()} registros</strong> importados para <strong>${mesStr} ${anioStr}</strong>.`,
-                            'success'
+                            `<i class="fas fa-check-circle text-success me-1"></i><strong>${dbRows.length.toLocaleString()} registros</strong> importados para <strong>${mesStr} ${anioStr}</strong>.${skippedColsMsg}`,
+                            skippedCols.length ? 'warning' : 'success'
                         );
 
                         // Invalidar caché del mes importado
@@ -473,12 +788,27 @@
 
     // ── Inicialización ─────────────────────────────────────────────────────────
 
+    /** Determina si el usuario actual puede importar/borrar Demoras.
+     *  Combina las tres señales de rol del app para evitar desincronización:
+     *    1. window.dataManager.isAdmin (bandera canónica del app)
+     *    2. window.dataManager.userRole
+     *    3. sessionStorage.user_role (fallback si dataManager aún no carga)
+     */
+    function canUploadDemoras() {
+        const dm = window.dataManager;
+        if (dm) {
+            if (dm.isAdmin) return true;
+            if (dm.userRole && UPLOAD_ROLES.includes(dm.userRole)) return true;
+        }
+        const role = sessionStorage.getItem('user_role') || 'viewer';
+        return UPLOAD_ROLES.includes(role);
+    }
+
     /** Muestra/oculta los botones de admin segun el rol */
     function syncImportBtn() {
-        const role      = sessionStorage.getItem('user_role') || 'viewer';
         const container = document.getElementById('demoras-admin-btns');
         // El wrapper usa display:none!important por defecto; lo reemplazamos con flex
-        if (container) container.style.cssText = UPLOAD_ROLES.includes(role)
+        if (container) container.style.cssText = canUploadDemoras()
             ? 'display:flex!important'
             : 'display:none!important';
     }
@@ -508,21 +838,27 @@
         }
     });
 
-    // Re-sync cuando la sesión carga (el rol puede llegar tarde)
+    // Re-sync cuando cambia el estado de sesión/rol.
+    // dataManager despacha 'admin-mode-changed' en window; también se cubre el
+    // legacy 'aifa-session-ready' y la entrada a la sección de Análisis.
+    window.addEventListener('admin-mode-changed', syncImportBtn);
+    window.addEventListener('analisis-operaciones:visible', syncImportBtn);
     document.addEventListener('aifa-session-ready', syncImportBtn);
     // Fallback: revisar periódicamente hasta que el rol esté disponible
     let _syncRetries = 0;
     const _syncInterval = setInterval(() => {
-        const role = sessionStorage.getItem('user_role');
-        if (role || _syncRetries++ > 20) {
-            syncImportBtn();
+        // Detener cuando ya se puede subir, o cuando hay un rol resuelto, o al agotar reintentos
+        const hasRole = !!(window.dataManager && (window.dataManager.userRole || window.dataManager.isAdmin))
+                     || !!sessionStorage.getItem('user_role');
+        syncImportBtn();
+        if (canUploadDemoras() || hasRole || _syncRetries++ > 20) {
             clearInterval(_syncInterval);
         }
     }, 500);
 
     function handleFileSelect(file) {
-        if (!file.name.match(/\.(xlsx|xls)$/i)) {
-            setStatus('Formato no soportado. Sube un archivo .xlsx o .xls.', 'danger');
+        if (!file.name.match(/\.(xlsx|xls|csv)$/i)) {
+            setStatus('Formato no soportado. Sube un archivo .xlsx, .xls o .csv.', 'danger');
             return;
         }
         const label = document.getElementById('du-file-label');

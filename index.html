@@ -139,7 +139,9 @@
         .ops-scroll {
             position: relative;
             max-height: calc(100vh - 360px);
-            min-height: 300px;
+            /* Alto mínimo para mostrar ~15 filas antes de necesitar scroll
+               (encabezado sticky ~48px + 15 filas ≈ 46px c/u). */
+            min-height: 740px;
             overflow: auto;
             border: 1px solid #dee2e6;
             border-radius: 6px;
@@ -31104,7 +31106,7 @@ FF
     <script src="js/demoras.js"></script>
     <script src="js/aerolineas.js"></script>
     <script src="js/analisis-operaciones.js?v=37"></script>
-    <script src="js/demoras-upload.js?v=1"></script>
+    <script src="js/demoras-upload.js?v=9"></script>
     <script src="js/manifiestos-upload.js?v=1"></script>
     <script src="js/manifiestos-carga-upload.js?v=1"></script>
     <script src="js/operaciones.js"></script>
@@ -32876,8 +32878,9 @@ window.AeropuertosModule = (function () {
             </div>
             <div class="modal-body p-4">
                 <p class="text-muted small mb-3">
-                    Sube el archivo Excel mensual de Demoras. El sistema detectará automáticamente la hoja de datos,
-                    mapeará las columnas y actualizará la base de datos en Supabase.
+                    Sube el archivo mensual de Demoras en formato <strong>Excel (.xlsx / .xls)</strong> o <strong>CSV</strong>.
+                    El sistema detectará automáticamente la hoja de datos, mapeará las columnas
+                    (encabezados en <strong>español o inglés</strong>) y actualizará la base de datos en Supabase.
                     Si ya existen datos para ese mes/año, serán reemplazados.
                 </p>
                 <!-- Drop Zone -->
@@ -32885,10 +32888,10 @@ window.AeropuertosModule = (function () {
                     class="border border-2 border-dashed rounded-3 p-4 text-center"
                     style="border-color:#a7f3d0!important;background:#f0fdf4;cursor:pointer;transition:background .2s">
                     <i class="fas fa-cloud-upload-alt fa-2x text-success mb-2"></i>
-                    <div class="fw-semibold text-success">Arrastra aquí el archivo .xlsx</div>
+                    <div class="fw-semibold text-success">Arrastra aquí el archivo .xlsx, .xls o .csv</div>
                     <div class="text-muted small mt-1">o haz click para seleccionar</div>
                     <div class="text-muted small mt-2 fw-semibold" id="du-file-label">Ningún archivo seleccionado</div>
-                    <input type="file" id="du-file-input" accept=".xlsx,.xls" class="d-none">
+                    <input type="file" id="du-file-input" accept=".xlsx,.xls,.csv" class="d-none">
                 </div>
                 <style>#du-drop-zone.drag-over{background:#d1fae5!important;border-color:#059669!important;}</style>
                 <!-- Status -->
