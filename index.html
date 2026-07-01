@@ -24076,13 +24076,22 @@ FF
                 modal.addEventListener('hidden.bs.modal', function(){ try { full.pause(); full.currentTime = 0; } catch(_){} pendingStart = 0; });
             }
 
-            // Mapa satelital: carga diferida de Leaflet + Esri World Imagery al abrir el modal
+            // ── Mapa satelital del AIFA ──────────────────────────────────────
+            // Para mostrar Google Earth REAL embebido (Photorealistic 3D Tiles de
+            // Google) coloca aquí tu API Key de Google Maps Platform con la API
+            // "Map Tiles" habilitada. Mientras esté vacía, el modal usa como
+            // respaldo imágenes satelitales actualizadas (Esri World Imagery).
+            var AGF_GOOGLE_MAPS_API_KEY = '';
+
             var mapModal = document.getElementById('agfMapModal');
             if (mapModal) {
                 var mapWrap = mapModal.querySelector('#agfMapFrameWrap');
                 var mapEl   = mapModal.querySelector('#agfMapLeaflet');
-                var mapObj  = null;
+                var mapObj  = null;      // instancia Leaflet (respaldo)
+                var earth3d = null;      // elemento <gmp-map-3d> (Google Earth)
+                var mapMode = null;      // 'earth' | 'esri'
                 var AIFA    = [19.7425, -99.0157];
+
                 function agfLoadCss(href){
                     return new Promise(function(res){
                         if (document.querySelector('link[href="' + href + '"]')) { res(); return; }
@@ -24094,13 +24103,40 @@ FF
                 }
                 function agfLoadJs(src){
                     return new Promise(function(res, rej){
+                        var existing = document.querySelector('script[data-agf-src="' + src + '"]');
+                        if (existing) {
+                            if (existing.dataset.loaded) { res(); return; }
+                            existing.addEventListener('load', res);
+                            existing.addEventListener('error', rej);
+                            return;
+                        }
                         var s = document.createElement('script');
-                        s.src = src; s.async = true;
-                        s.onload = res; s.onerror = rej;
+                        s.src = src; s.async = true; s.setAttribute('data-agf-src', src);
+                        s.onload = function(){ s.dataset.loaded = '1'; res(); };
+                        s.onerror = rej;
                         document.head.appendChild(s);
                     });
                 }
-                function agfInitMap(){
+
+                // Google Earth real (Photorealistic 3D Tiles) mediante la Maps 3D API
+                function agfInitEarth(){
+                    if (earth3d || !mapEl) return;
+                    mapEl.innerHTML = '';
+                    var el = document.createElement('gmp-map-3d');
+                    el.style.width = '100%';
+                    el.style.height = '100%';
+                    el.setAttribute('center', AIFA[0] + ',' + AIFA[1] + ',0');
+                    el.setAttribute('range', '1600');
+                    el.setAttribute('tilt', '55');
+                    el.setAttribute('heading', '25');
+                    mapEl.appendChild(el);
+                    earth3d = el;
+                    mapMode = 'earth';
+                    if (mapWrap) { mapWrap.classList.add('is-ready'); }
+                }
+
+                // Respaldo: imágenes satelitales actualizadas (Esri) con Leaflet
+                function agfInitEsri(){
                     if (mapObj || !window.L || !mapEl) return;
                     mapObj = L.map(mapEl, { center: AIFA, zoom: 16, zoomControl: true, attributionControl: true });
                     L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
@@ -24108,17 +24144,41 @@ FF
                         attribution: 'Imágenes: Esri, Maxar, Earthstar Geographics, y la comunidad de usuarios de GIS'
                     }).addTo(mapObj);
                     L.marker(AIFA).addTo(mapObj).bindPopup('Terminal de Aviación General y FBO · AIFA');
+                    mapMode = 'esri';
                     if (mapWrap) { mapWrap.classList.add('is-ready'); }
                 }
+
+                function agfLoadEarth(){
+                    var key = (AGF_GOOGLE_MAPS_API_KEY || '').trim();
+                    if (!key) return Promise.reject(new Error('sin-api-key'));
+                    if (window.google && window.google.maps && window.google.maps.importLibrary) {
+                        return window.google.maps.importLibrary('maps3d');
+                    }
+                    var url = 'https://maps.googleapis.com/maps/api/js?key=' + encodeURIComponent(key) + '&v=alpha&libraries=maps3d';
+                    return agfLoadJs(url).then(function(){
+                        return window.google.maps.importLibrary('maps3d');
+                    });
+                }
+
+                function agfLoadEsri(){
+                    if (window.L) return Promise.resolve();
+                    return agfLoadCss('https://unpkg.com/leaflet@1.9.4/dist/leaflet.css')
+                        .then(function(){ return agfLoadJs('https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'); });
+                }
+
                 mapModal.addEventListener('shown.bs.modal', function(){
-                    if (mapObj) { setTimeout(function(){ mapObj.invalidateSize(); }, 150); return; }
-                    var ready = window.L ? Promise.resolve()
-                        : agfLoadCss('https://unpkg.com/leaflet@1.9.4/dist/leaflet.css')
-                            .then(function(){ return agfLoadJs('https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'); });
-                    ready.then(function(){
-                        agfInitMap();
-                        setTimeout(function(){ if (mapObj) { mapObj.invalidateSize(); } }, 220);
-                    }).catch(function(){});
+                    if (mapMode === 'esri' && mapObj) { setTimeout(function(){ mapObj.invalidateSize(); }, 150); return; }
+                    if (mapMode === 'earth') { return; }
+                    // Primer intento: Google Earth real; si no hay key o falla, respaldo Esri
+                    agfLoadEarth()
+                        .then(function(){ agfInitEarth(); })
+                        .catch(function(){
+                            return agfLoadEsri().then(function(){
+                                agfInitEsri();
+                                setTimeout(function(){ if (mapObj) { mapObj.invalidateSize(); } }, 220);
+                            });
+                        })
+                        .catch(function(){});
                 });
             }
 
