@@ -23589,6 +23589,27 @@ FF
             #aviacion-general-fbo-section .agf-stat .val{font-size:1.7rem; font-weight:800; line-height:1; color:var(--agf-ink); letter-spacing:-.01em}
             #aviacion-general-fbo-section .agf-stat .val small{font-size:.85rem; font-weight:700; color:var(--agf-slate)}
             #aviacion-general-fbo-section .agf-stat .lbl{font-size:.74rem; font-weight:700; color:var(--agf-slate); margin-top:.35rem; line-height:1.3}
+            /* ── PLANO / IMAGEN PLATAFORMA ── */
+            #aviacion-general-fbo-section .agf-plan{
+                position:relative; border-radius:1.15rem; overflow:hidden; margin-bottom:3rem;
+                border:1px solid #e2e8f0; background:#0b1b34; box-shadow:0 30px 60px -30px rgba(11,27,52,.6);
+            }
+            #aviacion-general-fbo-section .agf-plan img{display:block; width:100%; height:auto}
+            #aviacion-general-fbo-section .agf-plan-cap{
+                position:absolute; left:0; right:0; bottom:0; padding:1.4rem 1.5rem .95rem;
+                background:linear-gradient(to top, rgba(6,15,32,.88), rgba(6,15,32,.35) 60%, transparent);
+                color:#fff;
+            }
+            #aviacion-general-fbo-section .agf-plan-cap h6{margin:0 0 .15rem; font-weight:800; font-size:1.05rem; letter-spacing:.01em}
+            #aviacion-general-fbo-section .agf-plan-cap span{font-size:.82rem; opacity:.85}
+            #aviacion-general-fbo-section .agf-plan-badge{
+                position:absolute; top:1rem; left:1rem; z-index:2; display:inline-flex; align-items:center; gap:.45rem;
+                padding:.4rem .8rem; border-radius:999px; background:rgba(255,255,255,.92); backdrop-filter:blur(6px);
+                font-size:.72rem; font-weight:800; color:#0b1b34; box-shadow:0 8px 20px -10px rgba(0,0,0,.5);
+            }
+            @media (max-width: 575.98px){
+                #aviacion-general-fbo-section .agf-plan-cap{position:static; background:#0b1b34}
+            }
             /* ── SERVICES ── */
             #aviacion-general-fbo-section .agf-serv{
                 display:flex; gap:.9rem; align-items:flex-start; padding:1.05rem 1.1rem; height:100%; border-radius:.95rem;
@@ -23738,6 +23759,16 @@ FF
                             <div class="val agf-count" data-to="1">1</div>
                             <div class="lbl">Hangar de resguardo</div>
                         </div>
+                    </div>
+                </div>
+
+                <!-- ── Plano / imagen de plataforma y posiciones ── -->
+                <div class="agf-plan">
+                    <span class="agf-plan-badge"><i class="fas fa-map-location-dot"></i>Plataforma &amp; posiciones</span>
+                    <img src="images/FBO.png" alt="Plano de la Terminal de Aviación General y FBO: plataforma, posiciones y hangares" loading="lazy">
+                    <div class="agf-plan-cap">
+                        <h6>Terminal de Aviación General y FBO</h6>
+                        <span>23 posiciones en plataforma · 55,305.50 m² para estacionamiento de aeronaves · 2 hangares de mantenimiento · 1 hangar de resguardo</span>
                     </div>
                 </div>
 
