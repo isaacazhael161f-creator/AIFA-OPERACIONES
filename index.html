@@ -28655,6 +28655,42 @@ FF
                         }
                         #portal-digitalizacion-section .pdx-stat-num{font-size:1.7rem;font-weight:800;line-height:1;color:#0f172a}
                         #portal-digitalizacion-section .pdx-stat-lbl{font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:#94a3b8}
+
+                        /* ── Tabla de manifiestos ── */
+                        #padmin-table{border-collapse:separate;border-spacing:0}
+                        #padmin-table thead .pdx-grp-row th{
+                            position:sticky;top:0;z-index:4;color:#fff;font-weight:700;height:30px;
+                            font-size:.64rem;letter-spacing:.06em;text-transform:uppercase;
+                            padding:.35rem .5rem;text-align:center;background:var(--g,#334155);
+                            border-right:2px solid rgba(255,255,255,.4);border-bottom:none;
+                        }
+                        #padmin-table thead .pdx-grp-row th:last-child{border-right:none}
+                        #padmin-table thead .pdx-lbl-row th{
+                            position:sticky;top:30px;z-index:3;background:#f1f5f9 !important;
+                            border-bottom:2px solid #cbd5e1;padding:.4rem .45rem;color:#475569;
+                        }
+                        #padmin-table tbody td,
+                        #padmin-table thead .pdx-lbl-row th{border-right:1px solid #eef1f5}
+                        #padmin-table tbody tr:nth-child(even){background:#fafbfc}
+                        #padmin-table tbody tr:hover{background:#eef5ff !important}
+                        #padmin-table tbody td{padding-top:.5rem;padding-bottom:.5rem}
+                        /* separadores entre grupos */
+                        #padmin-table tbody td:nth-child(7),   #padmin-table tbody td:nth-child(12),
+                        #padmin-table tbody td:nth-child(17),  #padmin-table tbody td:nth-child(19),
+                        #padmin-table tbody td:nth-child(21),  #padmin-table tbody td:nth-child(25),
+                        #padmin-table thead .pdx-lbl-row th:nth-child(7),  #padmin-table thead .pdx-lbl-row th:nth-child(12),
+                        #padmin-table thead .pdx-lbl-row th:nth-child(17), #padmin-table thead .pdx-lbl-row th:nth-child(19),
+                        #padmin-table thead .pdx-lbl-row th:nth-child(21), #padmin-table thead .pdx-lbl-row th:nth-child(25){
+                            border-left:2px solid #cbd5e1;
+                        }
+                        /* primera columna (Vuelo) fija al hacer scroll horizontal */
+                        #padmin-table thead .pdx-lbl-row th:first-child,
+                        #padmin-table tbody td:first-child{
+                            position:sticky;left:0;z-index:2;box-shadow:2px 0 5px -3px rgba(15,23,42,.35);
+                        }
+                        #padmin-table tbody tr td:first-child{background:#fff}
+                        #padmin-table tbody tr:nth-child(even) td:first-child{background:#fafbfc}
+                        #padmin-table tbody tr:hover td:first-child{background:#eef5ff}
                     </style>
                     <div class="container-fluid py-3">
 
@@ -28829,8 +28865,17 @@ FF
                             </div>
                             <div class="table-responsive" id="padmin-table-wrap" style="max-height:62vh;overflow-y:auto">
                                 <table class="table table-hover table-sm align-middle mb-0" id="padmin-table" style="font-size:.78rem;min-width:1800px">
-                                    <thead class="table-light sticky-top" style="z-index:2">
-                                        <tr class="text-center text-uppercase text-muted" style="font-size:.68rem;letter-spacing:.04em">
+                                    <thead class="sticky-top" style="z-index:2">
+                                        <tr class="pdx-grp-row">
+                                            <th colspan="6"  style="--g:#1e3a8a">Identificación del vuelo</th>
+                                            <th colspan="5"  style="--g:#0e7490">Horarios</th>
+                                            <th colspan="5"  style="--g:#6d28d9">Pasajeros</th>
+                                            <th colspan="2"  style="--g:#c2410c">Aeronave</th>
+                                            <th colspan="2"  style="--g:#15803d">Carga</th>
+                                            <th colspan="4"  style="--g:#475569">Datos adicionales</th>
+                                            <th colspan="4"  style="--g:#4338ca">Gestión</th>
+                                        </tr>
+                                        <tr class="pdx-lbl-row text-center text-uppercase" style="font-size:.66rem;letter-spacing:.03em;font-weight:600">
                                             <th class="text-start ps-3" style="white-space:nowrap">Vuelo</th>
                                             <th style="white-space:nowrap">Tipo</th>
                                             <th style="white-space:nowrap">Aerolínea</th>
