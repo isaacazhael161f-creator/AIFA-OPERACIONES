@@ -23811,11 +23811,11 @@ FF
                         </div>
                     </div>
                     <div class="col-md-4">
-                        <div class="agf-clip" data-bs-toggle="modal" data-bs-target="#agfVideoModal">
+                        <div class="agf-clip" data-bs-toggle="modal" data-bs-target="#agfVideoModal" data-modal-start="129">
                             <img src="images/Pasajero%20FBO.jpg" alt="Atención a tripulaciones en el FBO" loading="lazy">
-                            <video autoplay muted loop playsinline preload="none" poster="images/Pasajero%20FBO.jpg"
+                            <video class="agf-clip-seg" data-start="129" data-end="180" muted loop playsinline preload="metadata" poster="images/Pasajero%20FBO.jpg"
                                    onerror="this.style.display='none'">
-                                <source src="videos/fbo-atencion.mp4" type="video/mp4">
+                                <source src="videos/FBO%20AIFA%20-%20Trim.mp4#t=129,180" type="video/mp4">
                             </video>
                             <div class="agf-clip-shade"></div>
                             <div class="agf-clip-play"><i class="fas fa-play"></i></div>
@@ -23872,16 +23872,45 @@ FF
 
             var modal = document.getElementById('agfVideoModal');
             var full  = document.getElementById('agfFullVideo');
+            var pendingStart = 0;
             if (modal && full) {
-                modal.addEventListener('shown.bs.modal', function(){ try { full.play(); } catch(_){} });
-                modal.addEventListener('hidden.bs.modal', function(){ try { full.pause(); full.currentTime = 0; } catch(_){} });
+                modal.addEventListener('shown.bs.modal', function(){
+                    try { if (pendingStart > 0) full.currentTime = pendingStart; } catch(_){}
+                    try { full.play(); } catch(_){}
+                });
+                modal.addEventListener('hidden.bs.modal', function(){ try { full.pause(); full.currentTime = 0; } catch(_){} pendingStart = 0; });
             }
+
+            // Al pulsar un clip con inicio definido, el modal arranca en ese punto
+            sec.querySelectorAll('.agf-clip[data-modal-start]').forEach(function(clip){
+                clip.addEventListener('click', function(){
+                    pendingStart = parseFloat(clip.getAttribute('data-modal-start')) || 0;
+                });
+            });
+
+            // Clips que muestran un segmento del video: mantener el bucle dentro del tramo
+            sec.querySelectorAll('.agf-clip-seg').forEach(function(v){
+                var start = parseFloat(v.getAttribute('data-start')) || 0;
+                var end   = parseFloat(v.getAttribute('data-end'))   || 0;
+                v.addEventListener('loadedmetadata', function(){ try { v.currentTime = start; } catch(_){} });
+                v.addEventListener('timeupdate', function(){
+                    if (end && v.currentTime >= end) { try { v.currentTime = start; v.play(); } catch(_){} }
+                });
+            });
 
             if ('IntersectionObserver' in window) {
                 var io = new IntersectionObserver(function(entries){
                     entries.forEach(function(e){
                         var v = e.target;
-                        if (e.isIntersecting) { try { v.play(); } catch(_){} }
+                        if (e.isIntersecting) {
+                            if (v.classList.contains('agf-clip-seg')) {
+                                var s = parseFloat(v.getAttribute('data-start')) || 0;
+                                if (v.currentTime < s || (v.dataset.end && v.currentTime >= parseFloat(v.dataset.end))) {
+                                    try { v.currentTime = s; } catch(_){}
+                                }
+                            }
+                            try { v.play(); } catch(_){}
+                        }
                         else { try { v.pause(); } catch(_){} }
                     });
                 }, { threshold: 0.25 });
