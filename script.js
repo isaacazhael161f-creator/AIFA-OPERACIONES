@@ -18745,7 +18745,7 @@ async function _conciSaveBulkEdits() {
             desc: 'GAG · GC · GCOMB',
             icon: 'truck-loading',
             color: '#fd7e14',
-            sections: ['combustibles', 'capacidad-carga']
+            sections: ['aviacion-general-fbo', 'combustibles', 'capacidad-carga']
         },
         {
             key: 'SI',

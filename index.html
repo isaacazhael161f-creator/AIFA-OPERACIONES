@@ -1476,7 +1476,7 @@ FF
                         </button>
                         <div class="collapse" id="sg-ssc">
                             <div class="si-body si-body--sub">
-                                <div class="si-group si-group--ger si-group--pend">
+                                <div class="si-group si-group--ger">
                                     <button class="si-grp-btn si-grp-btn--ger collapsed"
                                             data-bs-toggle="collapse" data-bs-target="#sg-gag" aria-expanded="false">
                                         <i class="fas fa-paper-plane si-ger-ico"></i>
@@ -1485,7 +1485,11 @@ FF
                                         <i class="fas fa-chevron-down si-chev"></i>
                                     </button>
                                     <div class="collapse" id="sg-gag">
-                                        <div class="si-body si-body--ger"><span class="si-coming">Próximamente</span></div>
+                                        <div class="si-body si-body--ger">
+                                            <a class="menu-item si-link si-link--l2" href="#" data-section="aviacion-general-fbo">
+                                                <i class="fas fa-plane-departure si-ico"></i><span class="si-txt">Terminal de Aviación General &middot; FBO</span>
+                                            </a>
+                                        </div>
                                     </div>
                                 </div>
                                 <div class="si-group si-group--ger">
@@ -23485,6 +23489,436 @@ FF
             </div>
         </div>
     </div><!-- /capacidad-carga-section -->
+
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- TERMINAL DE AVIACIÓN GENERAL & FBO  ·  GAG (vista ejecutiva)         -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <div id="aviacion-general-fbo-section" class="content-section">
+        <style>
+            #aviacion-general-fbo-section{
+                --agf-navy:#0a1730; --agf-navy2:#122544; --agf-sky:#38bdf8; --agf-sky-d:#0ea5e9;
+                --agf-gold:#f5c451; --agf-gold-d:#eab308; --agf-ink:#0f172a; --agf-slate:#64748b;
+                animation:agfFade .5s ease;
+            }
+            @keyframes agfFade{from{opacity:0}to{opacity:1}}
+            #aviacion-general-fbo-section .agf-wrap{background:#eef2f7;border-radius:1.25rem;overflow:hidden}
+            /* ── HERO ── */
+            #aviacion-general-fbo-section .agf-hero{
+                position:relative; min-height:60vh; display:flex; align-items:flex-end; overflow:hidden;
+                background:#06101f url('images/Aviones%20FBO.png') center 30%/cover no-repeat;
+            }
+            #aviacion-general-fbo-section .agf-hero-video{
+                position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:0;
+            }
+            #aviacion-general-fbo-section .agf-hero-shade{
+                position:absolute; inset:0; z-index:1;
+                background:linear-gradient(180deg,rgba(6,16,31,.55) 0%,rgba(6,16,31,.35) 40%,rgba(6,16,31,.92) 100%),
+                           linear-gradient(90deg,rgba(6,16,31,.75) 0%,rgba(6,16,31,.15) 60%);
+            }
+            #aviacion-general-fbo-section .agf-hero-inner{position:relative; z-index:2; padding:2.4rem 2rem 2.2rem; width:100%}
+            #aviacion-general-fbo-section .agf-eyebrow{
+                display:inline-flex; align-items:center; gap:.5rem; font-size:.7rem; font-weight:800; letter-spacing:.14em;
+                text-transform:uppercase; color:#0a1730; background:linear-gradient(135deg,var(--agf-gold),var(--agf-gold-d));
+                padding:.4rem .85rem; border-radius:2rem; box-shadow:0 8px 22px -10px rgba(234,179,8,.7);
+            }
+            #aviacion-general-fbo-section .agf-hero h1{
+                color:#fff; font-weight:800; letter-spacing:-.02em; line-height:1.05; margin:.9rem 0 .3rem;
+                font-size:clamp(1.8rem,4vw,3.1rem); text-shadow:0 10px 40px rgba(0,0,0,.5);
+            }
+            #aviacion-general-fbo-section .agf-hero h1 .fbo{
+                background:linear-gradient(120deg,#7dd3fc,#38bdf8 55%,#f5c451); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+            }
+            #aviacion-general-fbo-section .agf-hero-sub{
+                color:#cbd7e6; font-size:clamp(.9rem,1.4vw,1.05rem); max-width:640px; line-height:1.6; margin-bottom:1.3rem;
+            }
+            #aviacion-general-fbo-section .agf-cta{
+                display:inline-flex; align-items:center; gap:.6rem; font-weight:700; font-size:.9rem; border:none; cursor:pointer;
+                padding:.8rem 1.5rem; border-radius:.85rem; text-decoration:none; transition:transform .16s ease, box-shadow .16s ease;
+            }
+            #aviacion-general-fbo-section .agf-cta--primary{
+                color:#06101f; background:linear-gradient(135deg,#7dd3fc,#38bdf8); box-shadow:0 14px 30px -12px rgba(56,189,248,.8);
+            }
+            #aviacion-general-fbo-section .agf-cta--ghost{
+                color:#fff; background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.35); backdrop-filter:blur(4px);
+            }
+            #aviacion-general-fbo-section .agf-cta:hover{transform:translateY(-3px); box-shadow:0 20px 40px -14px rgba(0,0,0,.5)}
+            #aviacion-general-fbo-section .agf-cta--primary .fa-play{
+                display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:50%;
+                background:rgba(6,16,31,.15);
+            }
+            /* ── SECTION SHELL ── */
+            #aviacion-general-fbo-section .agf-body{padding:1.8rem 1.6rem 2.4rem}
+            #aviacion-general-fbo-section .agf-sec-title{
+                font-weight:800; font-size:1.05rem; color:var(--agf-ink); display:flex; align-items:center; gap:.6rem; margin-bottom:.35rem;
+            }
+            #aviacion-general-fbo-section .agf-sec-title i{
+                width:34px; height:34px; flex:none; border-radius:.65rem; display:flex; align-items:center; justify-content:center;
+                color:#fff; font-size:.9rem; background:linear-gradient(135deg,var(--agf-navy2),var(--agf-navy));
+            }
+            #aviacion-general-fbo-section .agf-sec-lead{color:var(--agf-slate); font-size:.82rem; margin-bottom:1.1rem; max-width:760px}
+            /* ── INTRO ── */
+            #aviacion-general-fbo-section .agf-intro{
+                background:linear-gradient(135deg,var(--agf-navy) 0%,var(--agf-navy2) 100%); color:#e2e8f0; border-radius:1.1rem;
+                padding:1.7rem; position:relative; overflow:hidden; box-shadow:0 24px 60px -30px rgba(10,23,48,.9);
+            }
+            #aviacion-general-fbo-section .agf-intro::after{
+                content:""; position:absolute; right:-70px; top:-70px; width:230px; height:230px; border-radius:50%;
+                background:radial-gradient(circle,rgba(56,189,248,.28),transparent 70%);
+            }
+            #aviacion-general-fbo-section .agf-intro h3{color:#fff; font-weight:800; font-size:1.35rem; margin-bottom:.7rem}
+            #aviacion-general-fbo-section .agf-intro p{font-size:.9rem; line-height:1.7; opacity:.92; margin-bottom:0}
+            #aviacion-general-fbo-section .agf-intro-img{
+                border-radius:1.1rem; overflow:hidden; height:100%; min-height:230px; box-shadow:0 24px 60px -30px rgba(10,23,48,.9); position:relative;
+            }
+            #aviacion-general-fbo-section .agf-intro-img img{width:100%; height:100%; object-fit:cover; display:block}
+            #aviacion-general-fbo-section .agf-intro-img .cap{
+                position:absolute; left:0; right:0; bottom:0; padding:1rem; color:#fff; font-weight:700; font-size:.85rem;
+                background:linear-gradient(0deg,rgba(6,16,31,.85),transparent);
+            }
+            /* ── STATS ── */
+            #aviacion-general-fbo-section .agf-stat{
+                position:relative; overflow:hidden; border-radius:1rem; padding:1.15rem 1.15rem 1.2rem; height:100%; background:#fff;
+                border:1px solid #e6ecf4; box-shadow:0 12px 30px -20px rgba(15,23,42,.5); transition:transform .18s ease, box-shadow .18s ease;
+            }
+            #aviacion-general-fbo-section .agf-stat:hover{transform:translateY(-4px); box-shadow:0 22px 44px -18px rgba(15,23,42,.4)}
+            #aviacion-general-fbo-section .agf-stat::before{content:""; position:absolute; left:0; top:0; bottom:0; width:5px; background:var(--c,#38bdf8)}
+            #aviacion-general-fbo-section .agf-stat .ico{
+                width:44px; height:44px; border-radius:.7rem; display:flex; align-items:center; justify-content:center; font-size:1.1rem;
+                color:#fff; background:var(--c,#38bdf8); box-shadow:0 10px 22px -10px var(--c,#38bdf8); margin-bottom:.7rem;
+            }
+            #aviacion-general-fbo-section .agf-stat .val{font-size:1.7rem; font-weight:800; line-height:1; color:var(--agf-ink); letter-spacing:-.01em}
+            #aviacion-general-fbo-section .agf-stat .val small{font-size:.85rem; font-weight:700; color:var(--agf-slate)}
+            #aviacion-general-fbo-section .agf-stat .lbl{font-size:.74rem; font-weight:700; color:var(--agf-slate); margin-top:.35rem; line-height:1.3}
+            /* ── SERVICES ── */
+            #aviacion-general-fbo-section .agf-serv{
+                display:flex; gap:.9rem; align-items:flex-start; padding:1.05rem 1.1rem; height:100%; border-radius:.95rem;
+                background:#fff; border:1px solid #e6ecf4; box-shadow:0 10px 26px -20px rgba(15,23,42,.5); transition:transform .16s ease, box-shadow .16s ease, border-color .16s ease;
+            }
+            #aviacion-general-fbo-section .agf-serv:hover{transform:translateY(-3px); box-shadow:0 20px 40px -18px rgba(15,23,42,.4); border-color:var(--agf-sky)}
+            #aviacion-general-fbo-section .agf-serv .k{
+                flex:none; width:46px; height:46px; border-radius:.75rem; display:flex; align-items:center; justify-content:center; font-size:1.15rem; color:#fff;
+                background:linear-gradient(135deg,var(--agf-sky),var(--agf-sky-d));
+            }
+            #aviacion-general-fbo-section .agf-serv h6{font-weight:800; font-size:.86rem; color:var(--agf-ink); margin:.1rem 0 .25rem}
+            #aviacion-general-fbo-section .agf-serv p{font-size:.76rem; color:var(--agf-slate); line-height:1.45; margin:0}
+            /* ── AUTHORITIES ── */
+            #aviacion-general-fbo-section .agf-auth{
+                background:linear-gradient(135deg,var(--agf-navy),var(--agf-navy2)); border-radius:1.1rem; padding:1.5rem 1.6rem; color:#fff;
+                box-shadow:0 24px 60px -30px rgba(10,23,48,.9);
+            }
+            #aviacion-general-fbo-section .agf-auth h4{font-weight:800; font-size:1.05rem; margin-bottom:.25rem}
+            #aviacion-general-fbo-section .agf-auth p{opacity:.8; font-size:.8rem; margin-bottom:1rem}
+            #aviacion-general-fbo-section .agf-pill{
+                display:inline-flex; align-items:center; gap:.5rem; font-size:.8rem; font-weight:700; color:#0a1730;
+                background:#fff; border-radius:2rem; padding:.5rem 1rem; box-shadow:0 8px 18px -10px rgba(0,0,0,.45); transition:transform .16s ease;
+            }
+            #aviacion-general-fbo-section .agf-pill:hover{transform:translateY(-2px)}
+            #aviacion-general-fbo-section .agf-pill i{color:var(--agf-sky-d)}
+            /* ── VIDEO GALLERY ── */
+            #aviacion-general-fbo-section .agf-clip{
+                position:relative; border-radius:1rem; overflow:hidden; aspect-ratio:16/10; cursor:pointer; background:#06101f;
+                box-shadow:0 16px 40px -22px rgba(10,23,48,.85); transition:transform .18s ease, box-shadow .18s ease;
+            }
+            #aviacion-general-fbo-section .agf-clip:hover{transform:translateY(-4px); box-shadow:0 26px 54px -22px rgba(10,23,48,.7)}
+            #aviacion-general-fbo-section .agf-clip video,
+            #aviacion-general-fbo-section .agf-clip img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover}
+            #aviacion-general-fbo-section .agf-clip img{z-index:0}
+            #aviacion-general-fbo-section .agf-clip video{z-index:1}
+            #aviacion-general-fbo-section .agf-clip-shade{
+                position:absolute; inset:0; background:linear-gradient(0deg,rgba(6,16,31,.9),rgba(6,16,31,.05) 55%); z-index:2;
+            }
+            #aviacion-general-fbo-section .agf-clip-play{
+                position:absolute; z-index:3; top:50%; left:50%; transform:translate(-50%,-50%); width:56px; height:56px; border-radius:50%;
+                display:flex; align-items:center; justify-content:center; color:#06101f; font-size:1.1rem;
+                background:linear-gradient(135deg,#7dd3fc,#38bdf8); box-shadow:0 12px 30px -8px rgba(56,189,248,.9); transition:transform .18s ease;
+            }
+            #aviacion-general-fbo-section .agf-clip:hover .agf-clip-play{transform:translate(-50%,-50%) scale(1.12)}
+            #aviacion-general-fbo-section .agf-clip-cap{
+                position:absolute; z-index:3; left:0; right:0; bottom:0; padding:.9rem 1rem; color:#fff; font-weight:700; font-size:.82rem;
+            }
+            #aviacion-general-fbo-section .agf-clip-cap small{display:block; font-weight:600; font-size:.7rem; opacity:.8; margin-top:.1rem}
+            /* ── MODAL ── */
+            #agfVideoModal .modal-content{background:#06101f; border:none; border-radius:1rem; overflow:hidden}
+            #agfVideoModal video{width:100%; display:block; background:#000}
+            #agfVideoModal .btn-close{filter:invert(1) grayscale(1) brightness(2)}
+            @media (max-width:576px){
+                #aviacion-general-fbo-section .agf-hero{min-height:52vh}
+                #aviacion-general-fbo-section .agf-hero-inner{padding:1.6rem 1.2rem}
+            }
+        </style>
+
+        <div class="agf-wrap">
+
+            <!-- ═════════ HERO ═════════ -->
+            <div class="agf-hero">
+                <video class="agf-hero-video" autoplay muted loop playsinline preload="metadata"
+                       poster="images/Aviones%20FBO.png"
+                       onerror="this.style.display='none'"
+                       aria-label="Terminal de Aviación General y FBO del AIFA">
+                    <source src="videos/FBO%20AIFA%20-%20Trim.mp4" type="video/mp4">
+                </video>
+                <div class="agf-hero-shade"></div>
+                <div class="agf-hero-inner">
+                    <span class="agf-eyebrow"><i class="fas fa-paper-plane"></i>&nbsp;GAG · Aviación General</span>
+                    <h1>Terminal de Aviación General <span class="fbo">&amp; FBO</span></h1>
+                    <p class="agf-hero-sub">
+                        <strong>Fixed Base Operator</strong> — una gama integral de servicios para la aviación general,
+                        garantizando eficiencia operativa, comodidad y atención personalizada para tripulaciones y pasajeros.
+                    </p>
+                    <div class="d-flex flex-wrap gap-2">
+                        <button type="button" class="agf-cta agf-cta--primary" data-bs-toggle="modal" data-bs-target="#agfVideoModal">
+                            <span class="fa-play"><i class="fas fa-play"></i></span> Ver recorrido en video
+                        </button>
+                        <a class="agf-cta agf-cta--ghost" href="Capacidad_FBO.pdf" target="_blank" rel="noopener">
+                            <i class="fas fa-file-pdf"></i> Presentación de capacidad
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="agf-body">
+
+                <!-- ═════════ ¿QUÉ ES EL FBO? ═════════ -->
+                <div class="row g-4 align-items-stretch mb-5">
+                    <div class="col-lg-7">
+                        <div class="agf-intro h-100">
+                            <h3><i class="fas fa-plane-departure me-2" style="color:var(--agf-sky)"></i>¿Qué es el FBO?</h3>
+                            <p>
+                                La <strong>Terminal de Aviación General y FBO</strong> (Fixed Base Operator) tiene como finalidad
+                                proporcionar una gama integral de servicios para la aviación general, garantizando
+                                <strong>eficiencia operativa</strong>, <strong>comodidad</strong> y
+                                <strong>atención personalizada</strong> para tripulaciones y pasajeros. Un espacio pensado para la
+                                aviación privada, ejecutiva y de negocios que opera en el AIFA.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="col-lg-5">
+                        <div class="agf-intro-img">
+                            <img src="images/Pasajero%20FBO.jpg" alt="Atención personalizada a pasajeros en el FBO" loading="lazy">
+                            <div class="cap"><i class="fas fa-user-tie me-2"></i>Atención personalizada a tripulaciones y pasajeros</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ═════════ CARACTERÍSTICAS PRINCIPALES ═════════ -->
+                <div class="agf-sec-title"><i class="fas fa-building-circle-check"></i>Características principales</div>
+                <p class="agf-sec-lead">Infraestructura de primer nivel diseñada para la operación fluida de la aviación general.</p>
+                <div class="row g-3 mb-5">
+                    <div class="col-6 col-lg">
+                        <div class="agf-stat" style="--c:#2563eb">
+                            <div class="ico"><i class="fas fa-building"></i></div>
+                            <div class="val agf-count" data-to="2577.02" data-dec="2">2,577.02 <small>m²</small></div>
+                            <div class="lbl">Edificio Terminal de Aviación General y FBO</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-lg">
+                        <div class="agf-stat" style="--c:#0ea5e9">
+                            <div class="ico"><i class="fas fa-plane"></i></div>
+                            <div class="val agf-count" data-to="23">23</div>
+                            <div class="lbl">Posiciones en plataforma</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-lg">
+                        <div class="agf-stat" style="--c:#0d9488">
+                            <div class="ico"><i class="fas fa-ruler-combined"></i></div>
+                            <div class="val agf-count" data-to="55305.50" data-dec="2">55,305.50 <small>m²</small></div>
+                            <div class="lbl">Plataforma para estacionamiento de aeronaves</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-lg">
+                        <div class="agf-stat" style="--c:#7c3aed">
+                            <div class="ico"><i class="fas fa-warehouse"></i></div>
+                            <div class="val agf-count" data-to="2">2</div>
+                            <div class="lbl">Hangares de mantenimiento</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-lg">
+                        <div class="agf-stat" style="--c:#f59e0b">
+                            <div class="ico"><i class="fas fa-shield-halved"></i></div>
+                            <div class="val agf-count" data-to="1">1</div>
+                            <div class="lbl">Hangar de resguardo</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ═════════ SERVICIOS ═════════ -->
+                <div class="agf-sec-title"><i class="fas fa-hand-holding-hand"></i>Servicios aeroportuarios y complementarios</div>
+                <p class="agf-sec-lead">Coordinación integral de principio a fin para cada operación de aviación general.</p>
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6 col-xl-4">
+                        <div class="agf-serv">
+                            <div class="k"><i class="fas fa-plane-arrival"></i></div>
+                            <div><h6>Recepción y despacho de aeronaves</h6><p>Coordinación de arribos y salidas con atención en plataforma.</p></div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-xl-4">
+                        <div class="agf-serv">
+                            <div class="k"><i class="fas fa-gas-pump"></i></div>
+                            <div><h6>Coordinación de combustible</h6><p>Gestión de suministro y carga de combustible de aviación.</p></div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-xl-4">
+                        <div class="agf-serv">
+                            <div class="k"><i class="fas fa-warehouse"></i></div>
+                            <div><h6>Resguardo en hangares</h6><p>Espacios de resguardo y mantenimiento para aeronaves.</p></div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-xl-4">
+                        <div class="agf-serv">
+                            <div class="k"><i class="fas fa-van-shuttle"></i></div>
+                            <div><h6>Coordinación de transporte</h6><p>Logística de traslados terrestres para tripulaciones y pasajeros.</p></div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-xl-8">
+                        <div class="agf-serv">
+                            <div class="k"><i class="fas fa-user-shield"></i></div>
+                            <div>
+                                <h6>Coordinación con autoridades</h6>
+                                <p>Enlace con AFAC, INM, ANAM, SENASICA, Guardia Nacional y Sanidad Internacional para agilizar cada operación.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ═════════ AUTORIDADES ═════════ -->
+                <div class="agf-auth mb-5">
+                    <h4><i class="fas fa-landmark-flag me-2" style="color:var(--agf-gold)"></i>Coordinación con autoridades</h4>
+                    <p>Trabajamos de la mano con las autoridades que intervienen en la operación de la aviación general.</p>
+                    <div class="d-flex flex-wrap gap-2">
+                        <span class="agf-pill"><i class="fas fa-tower-control"></i>AFAC</span>
+                        <span class="agf-pill"><i class="fas fa-passport"></i>INM</span>
+                        <span class="agf-pill"><i class="fas fa-boxes-packing"></i>ANAM</span>
+                        <span class="agf-pill"><i class="fas fa-leaf"></i>SENASICA</span>
+                        <span class="agf-pill"><i class="fas fa-shield"></i>Guardia Nacional</span>
+                        <span class="agf-pill"><i class="fas fa-briefcase-medical"></i>Sanidad Internacional</span>
+                    </div>
+                </div>
+
+                <!-- ═════════ RECORRIDO EN VIDEO ═════════ -->
+                <div class="agf-sec-title"><i class="fas fa-clapperboard"></i>Recorrido en video</div>
+                <p class="agf-sec-lead">Conoce la Terminal de Aviación General y FBO del AIFA. Toca cualquier momento para ver el recorrido completo.</p>
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <div class="agf-clip" data-bs-toggle="modal" data-bs-target="#agfVideoModal">
+                            <img src="images/Aviones%20FBO.png" alt="Plataforma y posiciones del FBO" loading="lazy">
+                            <video autoplay muted loop playsinline preload="none" poster="images/Aviones%20FBO.png"
+                                   onerror="this.style.display='none'">
+                                <source src="videos/fbo-plataforma.mp4" type="video/mp4">
+                            </video>
+                            <div class="agf-clip-shade"></div>
+                            <div class="agf-clip-play"><i class="fas fa-play"></i></div>
+                            <div class="agf-clip-cap">Plataforma &amp; posiciones<small>23 posiciones · 55,305 m²</small></div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="agf-clip" data-bs-toggle="modal" data-bs-target="#agfVideoModal">
+                            <img src="images/Pasajero%20FBO.jpg" alt="Atención a tripulaciones en el FBO" loading="lazy">
+                            <video autoplay muted loop playsinline preload="none" poster="images/Pasajero%20FBO.jpg"
+                                   onerror="this.style.display='none'">
+                                <source src="videos/fbo-atencion.mp4" type="video/mp4">
+                            </video>
+                            <div class="agf-clip-shade"></div>
+                            <div class="agf-clip-play"><i class="fas fa-play"></i></div>
+                            <div class="agf-clip-cap">Atención a tripulaciones<small>Servicio personalizado</small></div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="agf-clip" data-bs-toggle="modal" data-bs-target="#agfVideoModal">
+                            <img src="images/Privado.jpeg" alt="Hangares y resguardo del FBO" loading="lazy">
+                            <video autoplay muted loop playsinline preload="none" poster="images/Privado.jpeg"
+                                   onerror="this.style.display='none'">
+                                <source src="videos/fbo-hangares.mp4" type="video/mp4">
+                            </video>
+                            <div class="agf-clip-shade"></div>
+                            <div class="agf-clip-play"><i class="fas fa-play"></i></div>
+                            <div class="agf-clip-cap">Hangares &amp; resguardo<small>2 mantenimiento · 1 resguardo</small></div>
+                        </div>
+                    </div>
+                </div>
+
+                <p class="text-muted mt-4 mb-0" style="font-size:.72rem;">
+                    <i class="fas fa-circle-info me-1"></i>Fuente: Presentación de Capacidad del FBO · Gerencia de Aviación General (GAG).
+                </p>
+
+            </div>
+        </div>
+
+        <!-- ═════════ MODAL: VIDEO COMPLETO ═════════ -->
+        <div class="modal fade" id="agfVideoModal" tabindex="-1" aria-hidden="true" aria-labelledby="agfVideoModalLabel">
+            <div class="modal-dialog modal-lg modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header border-0 pb-0">
+                        <h5 class="modal-title text-white fw-bold" id="agfVideoModalLabel"><i class="fas fa-plane-departure me-2" style="color:#38bdf8"></i>FBO AIFA · Recorrido</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                    </div>
+                    <div class="modal-body">
+                        <video id="agfFullVideo" controls playsinline preload="metadata" poster="images/Aviones%20FBO.png">
+                            <source src="videos/FBO%20AIFA%20-%20Trim.mp4" type="video/mp4">
+                            Tu navegador no soporta la reproducción de video.
+                        </video>
+                        <p class="text-white-50 small mb-0 mt-2 px-1">
+                            <i class="fas fa-circle-info me-1"></i>Coloca el archivo <code class="text-info">FBO AIFA - Trim.mp4</code> en la carpeta <code class="text-info">videos/</code> para habilitar el recorrido.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script>
+        (function(){
+            var sec = document.getElementById('aviacion-general-fbo-section');
+            if (!sec || sec.dataset.agfInit) return;
+            sec.dataset.agfInit = '1';
+
+            var modal = document.getElementById('agfVideoModal');
+            var full  = document.getElementById('agfFullVideo');
+            if (modal && full) {
+                modal.addEventListener('shown.bs.modal', function(){ try { full.play(); } catch(_){} });
+                modal.addEventListener('hidden.bs.modal', function(){ try { full.pause(); full.currentTime = 0; } catch(_){} });
+            }
+
+            if ('IntersectionObserver' in window) {
+                var io = new IntersectionObserver(function(entries){
+                    entries.forEach(function(e){
+                        var v = e.target;
+                        if (e.isIntersecting) { try { v.play(); } catch(_){} }
+                        else { try { v.pause(); } catch(_){} }
+                    });
+                }, { threshold: 0.25 });
+                sec.querySelectorAll('.agf-hero-video, .agf-clip video').forEach(function(v){ io.observe(v); });
+            }
+
+            function animateCount(el){
+                var to  = parseFloat(el.getAttribute('data-to')) || 0;
+                var dec = parseInt(el.getAttribute('data-dec') || '0', 10);
+                var unit = el.querySelector('small');
+                var unitHtml = unit ? ' <small>' + unit.textContent + '</small>' : '';
+                var start = null, dur = 1200;
+                function fmt(n){ return n.toLocaleString('es-MX', { minimumFractionDigits: dec, maximumFractionDigits: dec }); }
+                function step(ts){
+                    if (!start) start = ts;
+                    var p = Math.min((ts - start) / dur, 1);
+                    var eased = 1 - Math.pow(1 - p, 3);
+                    el.innerHTML = fmt(to * eased) + unitHtml;
+                    if (p < 1) requestAnimationFrame(step);
+                    else el.innerHTML = fmt(to) + unitHtml;
+                }
+                requestAnimationFrame(step);
+            }
+            if ('IntersectionObserver' in window) {
+                var co = new IntersectionObserver(function(entries){
+                    entries.forEach(function(e){
+                        if (e.isIntersecting && !e.target.dataset.done) {
+                            e.target.dataset.done = '1';
+                            animateCount(e.target);
+                        }
+                    });
+                }, { threshold: 0.6 });
+                sec.querySelectorAll('.agf-count').forEach(function(el){ co.observe(el); });
+            }
+        })();
+        </script>
+    </div><!-- /aviacion-general-fbo-section -->
 
 
                 <!-- Análisis de Operaciones Section -->
