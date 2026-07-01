@@ -23568,7 +23568,7 @@ FF
             #aviacion-general-fbo-section .agf-intro h3{color:#fff; font-weight:800; font-size:1.35rem; margin-bottom:.7rem}
             #aviacion-general-fbo-section .agf-intro p{font-size:.9rem; line-height:1.7; opacity:.92; margin-bottom:0}
             #aviacion-general-fbo-section .agf-intro-img{
-                border-radius:1.1rem; overflow:hidden; height:100%; min-height:230px; box-shadow:0 24px 60px -30px rgba(10,23,48,.9); position:relative;
+                border-radius:1.1rem; overflow:hidden; height:320px; min-height:230px; box-shadow:0 24px 60px -30px rgba(10,23,48,.9); position:relative;
             }
             #aviacion-general-fbo-section .agf-intro-img img{width:100%; height:100%; object-fit:cover; display:block}
             #aviacion-general-fbo-section .agf-intro-img .cap{
@@ -23606,6 +23606,17 @@ FF
                 position:absolute; top:1rem; left:1rem; z-index:2; display:inline-flex; align-items:center; gap:.45rem;
                 padding:.4rem .8rem; border-radius:999px; background:rgba(255,255,255,.92); backdrop-filter:blur(6px);
                 font-size:.72rem; font-weight:800; color:#0b1b34; box-shadow:0 8px 20px -10px rgba(0,0,0,.5);
+            }
+            #aviacion-general-fbo-section .agf-map-btn{
+                position:absolute; top:1rem; right:1rem; z-index:3; display:inline-flex; align-items:center; gap:.5rem;
+                padding:.55rem .95rem; border-radius:999px; text-decoration:none; border:1px solid rgba(255,255,255,.28);
+                background:linear-gradient(135deg,#2563eb,#0ea5e9); color:#fff; font-size:.78rem; font-weight:800;
+                box-shadow:0 12px 26px -10px rgba(14,165,233,.7); transition:transform .18s ease, box-shadow .18s ease;
+            }
+            #aviacion-general-fbo-section .agf-map-btn:hover{ transform:translateY(-2px); box-shadow:0 18px 34px -12px rgba(14,165,233,.85); color:#fff }
+            #aviacion-general-fbo-section .agf-map-btn i{ font-size:.85rem }
+            @media (max-width: 575.98px){
+                #aviacion-general-fbo-section .agf-map-btn{ top:auto; bottom:1rem; right:1rem; font-size:.72rem; padding:.5rem .8rem }
             }
             @media (max-width: 575.98px){
                 #aviacion-general-fbo-section .agf-plan-cap{position:static; background:#0b1b34}
@@ -23795,9 +23806,9 @@ FF
             <div class="agf-body">
 
                 <!-- ═════════ ¿QUÉ ES EL FBO? ═════════ -->
-                <div class="row g-4 align-items-stretch mb-5">
+                <div class="row g-4 align-items-center mb-5">
                     <div class="col-lg-7">
-                        <div class="agf-intro h-100">
+                        <div class="agf-intro">
                             <h3><i class="fas fa-plane-departure me-2" style="color:var(--agf-sky)"></i>¿Qué es el FBO?</h3>
                             <p>
                                 La <strong>Terminal de Aviación General y FBO</strong> (Fixed Base Operator) tiene como finalidad
@@ -23860,6 +23871,9 @@ FF
                 <!-- ── Plano / imagen de plataforma y posiciones ── -->
                 <div class="agf-plan">
                     <span class="agf-plan-badge"><i class="fas fa-map-location-dot"></i>Plataforma &amp; posiciones</span>
+                    <a class="agf-map-btn" href="https://www.google.com/maps/place/Aeropuerto+Internacional+Felipe+%C3%81ngeles+(AIFA)/@19.7425,-99.0157,4800m/data=!3m1!1e3" target="_blank" rel="noopener" title="Abrir el mapa satelital del AIFA en Google Maps">
+                        <i class="fas fa-satellite-dish"></i> Ver mapa satelital del AIFA
+                    </a>
                     <img src="images/FBO.png" alt="Plano de la Terminal de Aviación General y FBO: plataforma, posiciones y hangares" loading="lazy">
                     <div class="agf-plan-cap">
                         <h6>Terminal de Aviación General y FBO</h6>
