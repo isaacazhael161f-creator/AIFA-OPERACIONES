@@ -17004,6 +17004,26 @@ function _conciParseTimeOnly(rawValue) {
     return { hour: parseInt(match[1], 10), minute: parseInt(match[2], 10) };
 }
 
+// Convierte las partes de fecha/hora a un objeto Date (requiere hora y minuto).
+function _conciPartsToDate(parts) {
+    if (!parts || !Number.isFinite(parts.day) || !Number.isFinite(parts.month) || !Number.isFinite(parts.year)) return null;
+    if (!Number.isFinite(parts.hour) || !Number.isFinite(parts.minute)) return null;
+    return new Date(parts.year, parts.month - 1, parts.day, parts.hour, parts.minute, 0, 0);
+}
+
+// HRS. CUMPLIDAS = (HR. DE RECEPCIÓN − HR. DE OPERACIÓN) en horas decimales.
+// Reproduce la fórmula de Excel =SI.ERROR((R-P)*24,"-"): la resta de dos fechas
+// da días y al multiplicar por 24 se obtienen las horas. Si algún dato no es una
+// fecha/hora válida, devuelve "-".
+function _conciHrsCumplidas(opRaw, recRaw, fallbackYear) {
+    const opDate = _conciPartsToDate(_conciParseDateTimeParts(opRaw, fallbackYear));
+    const recDate = _conciPartsToDate(_conciParseDateTimeParts(recRaw, fallbackYear));
+    if (!opDate || !recDate) return '-';
+    const hours = (recDate.getTime() - opDate.getTime()) / 3600000;
+    if (!Number.isFinite(hours)) return '-';
+    return hours.toFixed(2);
+}
+
 function _conciFormatDateParts(parts) {
     if (!parts || !Number.isFinite(parts.day) || !Number.isFinite(parts.month) || !Number.isFinite(parts.year)) return '';
     return `${_conciPad2(parts.day)}/${_conciPad2(parts.month)}/${parts.year}`;
@@ -17613,6 +17633,10 @@ function _renderConciManifiestosTable(data, columns, fallbackYear) {
     // Columna "TIPO DE OPERACIÓN": se muestra como Nacional / Internacional según el
     // origen/destino del vuelo (no como el service type F/J/P original).
     const _optypeCol  = displayCols.find(c => /tipo.*oper|service\s*type/i.test(c)) || null;
+    // Columnas para calcular HRS. CUMPLIDAS = (HR. DE RECEPCIÓN − HR. DE OPERACIÓN) × 24.
+    const _hrsCumplidasCol = displayCols.find(c => /hrs?\.?\s*cumplidas/i.test(c)) || null;
+    const _hrOperacionCol  = displayCols.find(c => /hr\.?\s*de\s*oper/i.test(c)) || null;
+    const _hrRecepcionCol  = displayCols.find(c => /hr\.?\s*de\s*recep/i.test(c)) || null;
     const _fechaCol   = displayCols.find(c => /(^|\b)fecha(\b|$)/i.test(c)) || null;
     _conciEditFallbackYear = fallbackYear;
     _conciEditFechaCol     = _fechaCol;
@@ -17697,6 +17721,7 @@ function _renderConciManifiestosTable(data, columns, fallbackYear) {
         isAirline:   c === _airlineCol,
         isRouting:   c === _routingCol && hasIataMap,
         isOptype:    c === _optypeCol,
+        isHrsCumplidas: c === _hrsCumplidasCol && !!_hrOperacionCol && !!_hrRecepcionCol,
         isEvidencia: /evidencia/i.test(c),
     }));
 
@@ -17782,6 +17807,12 @@ function _renderConciManifiestosTable(data, columns, fallbackYear) {
                         td.textContent = '';
                         td.dataset.raw = '';
                     }
+                } else if (meta.isHrsCumplidas) {
+                    const opRaw = _hrOperacionCol ? row[_hrOperacionCol] : '';
+                    const recRaw = _hrRecepcionCol ? row[_hrRecepcionCol] : '';
+                    const hrs = _conciHrsCumplidas(opRaw, recRaw, fallbackYear);
+                    td.textContent = hrs;
+                    td.dataset.raw = hrs;
                 } else if (meta.isEvidencia) {
                     // Si es la columna de evidencia de PDF y trae link
                     if (rawStr && (rawStr.startsWith('http') || rawStr.endsWith('.pdf'))) {
