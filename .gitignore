@@ -39,5 +39,8 @@ Thumbs.db
 NG-Client/NG-Client.exe
 *.exe
 
+# Video FBO (347 MB) - excede el limite de 100 MB de GitHub; servir localmente o via CDN
+videos/FBO AIFA - Trim.mp4
+
 # TypeScript
 *.tsbuildinfo
