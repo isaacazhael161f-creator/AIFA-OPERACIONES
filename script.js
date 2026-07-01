@@ -13426,6 +13426,7 @@ function setupManifestsUI() {
         // Aeropuertos
         let airportByIATA = new Map(); // IATA -> Name
         let airportCityByIATA = new Map(); // IATA -> City name (short, for display)
+        let airportCountryByIATA = new Map(); // IATA -> Country name
         let airportByName = new Map(); // lowercase Name -> IATA
         let iataSet = new Set();
         // OCR helpers locales
@@ -13591,10 +13592,12 @@ function setupManifestsUI() {
                     const IATA = (parts[0] || '').trim().toUpperCase();
                     // const ICAO = (parts[1]||'').trim().toUpperCase(); // no usado aquí
                     const Name = (parts[2] || '').trim().replace(/^"|"$/g, ''); // SOLO Name
+                    const Country = (parts[3] || '').trim().replace(/^"|"$/g, ''); // Country column
                     const City = (parts[4] || '').trim().replace(/^"|"$/g, ''); // City column
                     if (!IATA || !Name) continue;
                     airportByIATA.set(IATA, Name);
                     airportCityByIATA.set(IATA, City || Name);
+                    if (Country) airportCountryByIATA.set(IATA, Country);
                     airportByName.set(Name.toLowerCase(), IATA);
                     iataSet.add(IATA);
                     optsIATA.push(`<option value="${IATA}">${Name}</option>`);
@@ -13609,6 +13612,11 @@ function setupManifestsUI() {
                     if (!code) return '';
                     const k = String(code).trim().toUpperCase();
                     return airportCityByIATA.get(k) || airportByIATA.get(k) || k;
+                };
+                window._iataToCountry = code => {
+                    if (!code) return '';
+                    const k = String(code).trim().toUpperCase();
+                    return airportCountryByIATA.get(k) || '';
                 };
             } catch (e) { console.warn('No se pudo cargar airports.csv', e); }
         }
@@ -16636,11 +16644,12 @@ function _conciSetRefreshLoading(isLoading) {
 
 // Ensures window._iataToCity is available (loads airports.csv if needed)
 async function _ensureIataCityMap() {
-    if (window._iataToCity) return; // already loaded
+    if (window._iataToCity && window._iataToCountry) return; // already loaded
     try {
         const res = await fetch('data/master/airports.csv', { cache: 'force-cache' });
         const text = await res.text();
         const map = new Map();
+        const countryMap = new Map();
         const lines = text.split(/\r?\n/).filter(l => l.trim());
         // Parse CSV respecting quotes
         function _parseLine(line) {
@@ -16659,16 +16668,39 @@ async function _ensureIataCityMap() {
             if (parts.length < 3) continue;
             const IATA = (parts[0] || '').trim().toUpperCase();
             const Name = (parts[2] || '').trim().replace(/^"|"$/g, '');
+            const Country = (parts[3] || '').trim().replace(/^"|"$/g, '');
             const City = (parts[4] || '').trim().replace(/^"|"$/g, '');
-            if (IATA) map.set(IATA, City || Name || IATA);
+            if (IATA) {
+                map.set(IATA, City || Name || IATA);
+                if (Country) countryMap.set(IATA, Country);
+            }
         }
         window._iataToCity = code => {
             const k = String(code || '').trim().toUpperCase();
             return map.get(k) || k;
         };
+        window._iataToCountry = code => {
+            const k = String(code || '').trim().toUpperCase();
+            return countryMap.get(k) || '';
+        };
     } catch(e) {
         window._iataToCity = code => String(code || '').trim().toUpperCase();
+        window._iataToCountry = () => '';
     }
+}
+
+// Determina si una operación es Nacional o Internacional a partir del código
+// de origen/destino (IATA). Devuelve 'Nacional', 'Internacional' o '' si no se
+// puede determinar. AIFA está en México, por lo que la operación es Nacional
+// cuando el otro extremo del vuelo también está en México.
+function _conciOperacionNacInt(code) {
+    const k = String(code || '').trim().toUpperCase();
+    if (!k) return '';
+    // Fallback por prefijo ICAO mexicano (MM…) cuando el código es de 4 letras.
+    if (k.length === 4 && /^MM/.test(k)) return 'Nacional';
+    const country = window._iataToCountry ? window._iataToCountry(k) : '';
+    if (!country) return '';
+    return /^m[eé]xico$/i.test(country.trim()) ? 'Nacional' : 'Internacional';
 }
 
 // Fetch all rows from a Supabase table (paginated)
@@ -17578,6 +17610,9 @@ function _renderConciManifiestosTable(data, columns, fallbackYear) {
     const _airlineCol = displayCols.find(c => /aerol[ií]nea|airline/i.test(c)) || null;
     // Match columns named exactly 'Routing' OR containing 'origen' or 'destino' (e.g. 'DESTINO / ORIGEN')
     const _routingCol = displayCols.find(c => /^routing$/i.test(c) || /origen|destino.*origen|routing/i.test(c)) || null;
+    // Columna "TIPO DE OPERACIÓN": se muestra como Nacional / Internacional según el
+    // origen/destino del vuelo (no como el service type F/J/P original).
+    const _optypeCol  = displayCols.find(c => /tipo.*oper|service\s*type/i.test(c)) || null;
     const _fechaCol   = displayCols.find(c => /(^|\b)fecha(\b|$)/i.test(c)) || null;
     _conciEditFallbackYear = fallbackYear;
     _conciEditFechaCol     = _fechaCol;
@@ -17661,8 +17696,27 @@ function _renderConciManifiestosTable(data, columns, fallbackYear) {
         c,
         isAirline:   c === _airlineCol,
         isRouting:   c === _routingCol && hasIataMap,
+        isOptype:    c === _optypeCol,
         isEvidencia: /evidencia/i.test(c),
     }));
+
+    // Extrae el código IATA del extremo relevante (origen si es llegada, destino si
+    // es salida) a partir del valor de routing "AAA-BBB" o "AAA/BBB".
+    const _routingEndpointCode = (routingRaw, tipoRaw) => {
+        const isArr = /lleg|arr/i.test(String(tipoRaw || ''));
+        const parts = String(routingRaw || '').toUpperCase().split(/[-\/]+/).filter(Boolean);
+        if (parts.length >= 2) return isArr ? parts[0] : parts[parts.length - 1];
+        return parts[0] || '';
+    };
+    const _optypeCache = new Map();
+    const resolveOptype = (routingRaw, tipoRaw) => {
+        const key = `${routingRaw}\u0001${tipoRaw}`;
+        if (_optypeCache.has(key)) return _optypeCache.get(key);
+        const code = _routingEndpointCode(routingRaw, tipoRaw);
+        const out = _conciOperacionNacInt(code);
+        _optypeCache.set(key, out);
+        return out;
+    };
 
     const appendBatch = () => {
         appendScheduled = false;
@@ -17713,6 +17767,21 @@ function _renderConciManifiestosTable(data, columns, fallbackYear) {
                     const city = code ? iataToCity(code) : rawStr;
                     td.textContent = city || rawStr;
                     if (rawStr) td.title = rawStr;
+                } else if (meta.isOptype) {
+                    const routingRaw = _routingCol ? String(row[_routingCol] || '') : '';
+                    const tipoRaw = _tipoCol ? String(row[_tipoCol] || '') : '';
+                    const op = resolveOptype(routingRaw, tipoRaw);
+                    if (op) {
+                        const isNac = op === 'Nacional';
+                        const badge = document.createElement('span');
+                        badge.style.cssText = `display:inline-block;padding:2px 10px;border-radius:999px;font-size:0.72rem;font-weight:700;line-height:1.2;border:1px solid ${isNac ? '#8bc34a' : '#64b5f6'};background:${isNac ? '#e8f5e9' : '#e3f2fd'};color:${isNac ? '#2e7d32' : '#1565c0'};`;
+                        badge.innerHTML = `<i class="fas ${isNac ? 'fa-flag' : 'fa-globe-americas'} me-1"></i>${op}`;
+                        td.appendChild(badge);
+                        td.dataset.raw = op;
+                    } else {
+                        td.textContent = '';
+                        td.dataset.raw = '';
+                    }
                 } else if (meta.isEvidencia) {
                     // Si es la columna de evidencia de PDF y trae link
                     if (rawStr && (rawStr.startsWith('http') || rawStr.endsWith('.pdf'))) {
