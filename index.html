@@ -23658,6 +23658,57 @@ FF
                 position:absolute; z-index:3; left:0; right:0; bottom:0; padding:.9rem 1rem; color:#fff; font-weight:700; font-size:.82rem;
             }
             #aviacion-general-fbo-section .agf-clip-cap small{display:block; font-weight:600; font-size:.7rem; opacity:.8; margin-top:.1rem}
+            /* ── SHOWCASE (video destacado con slogan) ── */
+            #aviacion-general-fbo-section .agf-showcase{
+                position:relative; border-radius:1.4rem; overflow:hidden; cursor:pointer; margin-bottom:1.25rem;
+                aspect-ratio:21/8; min-height:320px; background:#06101f; isolation:isolate;
+                box-shadow:0 34px 70px -30px rgba(10,23,48,.9);
+            }
+            #aviacion-general-fbo-section .agf-showcase:hover{box-shadow:0 40px 82px -28px rgba(10,23,48,.85)}
+            #aviacion-general-fbo-section .agf-showcase-video{
+                position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:0; transition:transform .6s ease;
+            }
+            #aviacion-general-fbo-section .agf-showcase:hover .agf-showcase-video{transform:scale(1.04)}
+            #aviacion-general-fbo-section .agf-showcase-overlay{
+                position:absolute; inset:0; z-index:1;
+                background:linear-gradient(90deg,rgba(4,12,26,.95) 0%,rgba(4,12,26,.74) 38%,rgba(4,12,26,.25) 70%,rgba(4,12,26,.55) 100%);
+            }
+            #aviacion-general-fbo-section .agf-showcase-content{
+                position:absolute; z-index:2; left:0; top:0; bottom:0; display:flex; flex-direction:column; justify-content:center;
+                max-width:min(640px,70%); padding:2rem 2.7rem;
+            }
+            #aviacion-general-fbo-section .agf-showcase-kicker{
+                display:inline-flex; align-items:center; gap:.5rem; align-self:flex-start; margin-bottom:1rem;
+                padding:.42rem .95rem; border-radius:999px; backdrop-filter:blur(6px);
+                background:rgba(56,189,248,.16); border:1px solid rgba(125,211,252,.35);
+                color:#bae6fd; font-size:.72rem; font-weight:800; letter-spacing:.05em; text-transform:uppercase;
+            }
+            #aviacion-general-fbo-section .agf-showcase-kicker i{color:#7dd3fc}
+            #aviacion-general-fbo-section .agf-showcase-title{
+                color:#fff; font-weight:900; line-height:1.08; letter-spacing:-.02em; margin:0 0 .85rem;
+                font-size:clamp(1.65rem,3.3vw,2.8rem); text-shadow:0 4px 30px rgba(0,0,0,.5);
+            }
+            #aviacion-general-fbo-section .agf-showcase-title b{
+                background:linear-gradient(120deg,#7dd3fc,#38bdf8); -webkit-background-clip:text; background-clip:text; color:transparent;
+            }
+            #aviacion-general-fbo-section .agf-showcase-sub{
+                color:#dbeafe; font-size:clamp(.9rem,1.3vw,1.05rem); font-weight:500; line-height:1.5; margin:0 0 1.5rem;
+                max-width:34rem; text-shadow:0 2px 16px rgba(0,0,0,.45);
+            }
+            #aviacion-general-fbo-section .agf-showcase-cta{
+                display:inline-flex; align-items:center; gap:.6rem; align-self:flex-start;
+                padding:.75rem 1.55rem; border-radius:999px; font-weight:800; font-size:.92rem; color:#06101f;
+                background:linear-gradient(135deg,#7dd3fc,#38bdf8); box-shadow:0 16px 34px -12px rgba(56,189,248,.8);
+                transition:transform .18s ease, box-shadow .18s ease;
+            }
+            #aviacion-general-fbo-section .agf-showcase:hover .agf-showcase-cta{transform:translateY(-2px); box-shadow:0 20px 42px -12px rgba(56,189,248,.9)}
+            #aviacion-general-fbo-section .agf-showcase-cta i{font-size:.8rem}
+            @media (max-width: 767.98px){
+                #aviacion-general-fbo-section .agf-showcase{aspect-ratio:auto; min-height:0}
+                #aviacion-general-fbo-section .agf-showcase-video{position:relative; height:220px}
+                #aviacion-general-fbo-section .agf-showcase-overlay{display:none}
+                #aviacion-general-fbo-section .agf-showcase-content{position:relative; max-width:100%; padding:1.5rem 1.4rem 1.75rem; background:#06101f}
+            }
             /* ── MODAL ── */
             #agfVideoModal .modal-content{background:#06101f; border:none; border-radius:1rem; overflow:hidden}
             #agfVideoModal video{width:100%; display:block; background:#000}
@@ -23828,20 +23879,24 @@ FF
                 <!-- ═════════ RECORRIDO EN VIDEO ═════════ -->
                 <div class="agf-sec-title"><i class="fas fa-clapperboard"></i>Recorrido en video</div>
                 <p class="agf-sec-lead">Conoce la Terminal de Aviación General y FBO del AIFA. Toca cualquier momento para ver el recorrido completo.</p>
-                <div class="row g-3">
-                    <div class="col-md-4">
-                        <div class="agf-clip" data-bs-toggle="modal" data-bs-target="#agfVideoModal">
-                            <img src="images/Aviones%20FBO.png" alt="Plataforma y posiciones del FBO" loading="lazy">
-                            <video autoplay muted loop playsinline preload="none" poster="images/Aviones%20FBO.png"
-                                   onerror="this.style.display='none'">
-                                <source src="videos/fbo-plataforma.mp4" type="video/mp4">
-                            </video>
-                            <div class="agf-clip-shade"></div>
-                            <div class="agf-clip-play"><i class="fas fa-play"></i></div>
-                            <div class="agf-clip-cap">Plataforma &amp; posiciones<small>23 posiciones · 55,305 m²</small></div>
-                        </div>
+
+                <!-- ── Showcase destacado con slogan de venta ── -->
+                <div class="agf-showcase" data-bs-toggle="modal" data-bs-target="#agfVideoModal" data-modal-start="55">
+                    <video class="agf-showcase-video agf-clip-seg" data-start="55" data-end="83" autoplay muted loop playsinline preload="metadata" poster="images/Aviones%20FBO.png"
+                           onerror="this.style.display='none'">
+                        <source src="videos/FBO%20AIFA%20-%20Trim.mp4#t=55,83" type="video/mp4">
+                    </video>
+                    <div class="agf-showcase-overlay"></div>
+                    <div class="agf-showcase-content">
+                        <span class="agf-showcase-kicker"><i class="fas fa-star"></i>Terminal de Aviación General · FBO AIFA</span>
+                        <h3 class="agf-showcase-title">Donde la aviación privada<br><b>aterriza en excelencia</b></h3>
+                        <p class="agf-showcase-sub">55,305 m² de plataforma, 23 posiciones y atención personalizada de clase mundial para su aeronave, tripulación y pasajeros.</p>
+                        <span class="agf-showcase-cta"><i class="fas fa-play"></i>Ver el recorrido</span>
                     </div>
-                    <div class="col-md-4">
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-md-6">
                         <div class="agf-clip" data-bs-toggle="modal" data-bs-target="#agfVideoModal" data-modal-start="129">
                             <img src="images/Pasajero%20FBO.jpg" alt="Atención a tripulaciones en el FBO" loading="lazy">
                             <video class="agf-clip-seg" data-start="129" data-end="180" muted loop playsinline preload="metadata" poster="images/Pasajero%20FBO.jpg"
@@ -23853,7 +23908,7 @@ FF
                             <div class="agf-clip-cap">Atención a tripulaciones<small>Servicio personalizado</small></div>
                         </div>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-6">
                         <div class="agf-clip" data-bs-toggle="modal" data-bs-target="#agfVideoModal">
                             <img src="images/Privado.jpeg" alt="Hangares y resguardo del FBO" loading="lazy">
                             <video autoplay muted loop playsinline preload="none" poster="images/Privado.jpeg"
@@ -23913,7 +23968,7 @@ FF
             }
 
             // Al pulsar un clip con inicio definido, el modal arranca en ese punto
-            sec.querySelectorAll('.agf-clip[data-modal-start]').forEach(function(clip){
+            sec.querySelectorAll('[data-modal-start]').forEach(function(clip){
                 clip.addEventListener('click', function(){
                     pendingStart = parseFloat(clip.getAttribute('data-modal-start')) || 0;
                 });
@@ -23945,7 +24000,7 @@ FF
                         else { try { v.pause(); } catch(_){} }
                     });
                 }, { threshold: 0.25 });
-                sec.querySelectorAll('.agf-hero-video, .agf-clip video').forEach(function(v){ io.observe(v); });
+                sec.querySelectorAll('.agf-hero-video, .agf-showcase-video, .agf-clip video').forEach(function(v){ io.observe(v); });
             }
 
             function animateCount(el){
