@@ -25,8 +25,33 @@
 
     /* ── estado global ── */
     let sb, user, isAdmin = false;
+    let canAifa = false, canAfac = false, isReviewer = false, userRole = 'aerolinea';
     let provRows = [], adminRows = [], adminFiltered = [];
     let viewMode = 'provider'; // 'provider' | 'admin'
+
+    /* ── roles ──
+       aerolinea → captura · aifa → aprueba AIFA · afac → aprueba AFAC · admin → ambos */
+    function resolveRole(u) {
+        const meta  = u.user_metadata || {};
+        const email = (u.email || '').toLowerCase();
+        let role = String(meta.role || '').toLowerCase();
+        if (!role) {
+            if (email.includes('afac')) role = 'afac';
+            else if (email.includes('aifa.admin') || email.includes('admin@') || email.includes('.admin@')) role = 'admin';
+            else if (meta.is_admin === true) role = 'admin';
+            else role = 'aerolinea';
+        }
+        return role;
+    }
+
+    /* ── estatus general derivado de las 2 aprobaciones ── */
+    function deriveStatus(aifa, afac) {
+        const a = aifa || 'pendiente', b = afac || 'pendiente';
+        if (a === 'rechazado' || b === 'rechazado') return 'rechazado';
+        if (a === 'aprobado' && b === 'aprobado')   return 'aprobado';
+        if (a === 'aprobado' || b === 'aprobado')   return 'en_revision';
+        return 'pendiente';
+    }
 
     /* ──────────────────────────────────────────
        BOOTSTRAP
@@ -72,17 +97,93 @@
             btn.addEventListener('click', doLogin);
             $('inp-pass')?.addEventListener('keydown', e => e.key === 'Enter' && doLogin());
         }
+        // Toggle registro / login
+        const toSignup = $('lnk-show-signup'), toLogin = $('lnk-show-login');
+        if (toSignup && !toSignup._w) {
+            toSignup._w = true;
+            toSignup.addEventListener('click', e => { e.preventDefault(); hide('login-mode'); show('signup-mode'); clearLoginAlert(); });
+        }
+        if (toLogin && !toLogin._w) {
+            toLogin._w = true;
+            toLogin.addEventListener('click', e => { e.preventDefault(); hide('signup-mode'); show('login-mode'); clearLoginAlert(); });
+        }
+        const sBtn = $('btn-do-signup');
+        if (sBtn && !sBtn._w) {
+            sBtn._w = true;
+            sBtn.addEventListener('click', doSignup);
+            $('sg-pass2')?.addEventListener('keydown', e => e.key === 'Enter' && doSignup());
+        }
     }
 
-    async function doLogin() {
-        let email = val('inp-user').trim();
-        const pwd = val('inp-pass');
-        if (!email || !pwd) { loginAlert('Ingresa usuario y contraseña.', 'warn'); return; }
-
+    function userToEmail(raw) {
+        let email = String(raw || '').trim();
         if (!email.includes('@')) {
             const n = email.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,'.');
             email = `${n}@aifa.operaciones`;
         }
+        return email;
+    }
+
+    async function doSignup() {
+        const company = val('sg-company').trim();
+        const rawUser = val('sg-user').trim();
+        const pwd     = val('sg-pass');
+        const pwd2    = val('sg-pass2');
+
+        if (!company)            { loginAlert('Escribe el nombre de la aerolínea.', 'warn'); return; }
+        if (!rawUser)            { loginAlert('Escribe un usuario o correo.', 'warn'); return; }
+        if (!pwd || pwd.length < 6) { loginAlert('La contraseña debe tener al menos 6 caracteres.', 'warn'); return; }
+        if (pwd !== pwd2)        { loginAlert('Las contraseñas no coinciden.', 'warn'); return; }
+
+        const email = userToEmail(rawUser);
+
+        $('signup-txt')?.classList.add('d-none');
+        $('signup-spin')?.classList.remove('d-none');
+        const btn = $('btn-do-signup');
+        if (btn) btn.disabled = true;
+
+        try {
+            const { data, error } = await sb.auth.signUp({
+                email,
+                password: pwd,
+                options: { data: { company, full_name: company, role: 'aerolinea' } }
+            });
+            if (error) throw error;
+
+            // Si hay sesión inmediata (confirmación de correo desactivada), entrar directo.
+            if (data.session?.user) {
+                user = data.session.user;
+                hide('screen-login');
+                await bootApp();
+                return;
+            }
+            // Intentar iniciar sesión (por si signUp no devolvió sesión pero sí creó al usuario)
+            const { data: si, error: siErr } = await sb.auth.signInWithPassword({ email, password: pwd });
+            if (!siErr && si?.user) {
+                user = si.user;
+                hide('screen-login');
+                await bootApp();
+                return;
+            }
+            // Requiere confirmación por correo
+            hide('signup-mode'); show('login-mode');
+            loginAlert('Cuenta creada. Si tu correo requiere confirmación, revísalo; luego inicia sesión.', 'success');
+        } catch (err) {
+            const msg = /already registered|already exists/i.test(err.message || '')
+                ? 'Ese usuario ya está registrado. Inicia sesión.'
+                : (err.message || 'No se pudo crear la cuenta.');
+            loginAlert(msg, 'danger');
+        } finally {
+            $('signup-txt')?.classList.remove('d-none');
+            $('signup-spin')?.classList.add('d-none');
+            if (btn) btn.disabled = false;
+        }
+    }
+
+    async function doLogin() {
+        let email = userToEmail(val('inp-user'));
+        const pwd = val('inp-pass');
+        if (!val('inp-user').trim() || !pwd) { loginAlert('Ingresa usuario y contraseña.', 'warn'); return; }
 
         $('login-txt')?.classList.add('d-none');
         $('login-spin')?.classList.remove('d-none');
@@ -117,37 +218,50 @@
         el.classList.add('show');
     }
 
+    function clearLoginAlert() {
+        const el = $('login-alert');
+        if (!el) return;
+        el.textContent = '';
+        el.className = '';
+        el.classList.remove('show');
+    }
+
     /* ──────────────────────────────────────────
        APP BOOT
     ────────────────────────────────────────── */
     async function bootApp() {
         show('screen-app');
 
-        // Detectar rol admin (metadata o email de administración)
+        // Detectar rol y permisos de aprobación
         const meta = user.user_metadata || {};
-        isAdmin = meta.role === 'admin' || meta.is_admin === true
-               || (user.email || '').includes('admin@')
-               || (user.email || '').includes('.admin@');
+        userRole   = resolveRole(user);
+        isAdmin    = userRole === 'admin';
+        canAifa    = userRole === 'admin' || userRole === 'aifa';
+        canAfac    = userRole === 'admin' || userRole === 'afac';
+        isReviewer = canAifa || canAfac;
 
         // Navbar
-        const name = meta.full_name || user.email?.split('@')[0] || 'Usuario';
+        const name = meta.full_name || meta.company || user.email?.split('@')[0] || 'Usuario';
         setT('nav-user', name);
         setT('prov-name', name.split(' ')[0]);
 
+        const roleLabel = { admin:'Admin AIFA', aifa:'AIFA · Aeropuerto', afac:'AFAC · Autoridad', aerolinea:'Prestador' }[userRole] || 'Prestador';
         const badge = $('nav-badge');
         if (badge) {
-            badge.textContent = isAdmin ? 'Admin AIFA' : 'Prestador';
-            badge.className   = `nav-badge ${isAdmin ? 'nb-admin' : 'nb-prov'}`;
+            badge.textContent = roleLabel;
+            badge.className   = `nav-badge ${isReviewer ? 'nb-admin' : 'nb-prov'}`;
             badge.classList.remove('d-none');
         }
 
-        if (isAdmin) {
+        if (isReviewer) {
             const sw = $('btn-switch-view');
             if (sw) sw.classList.remove('d-none');
         }
 
         wireGlobal();
-        showProviderView();
+        // Los revisores (AIFA/AFAC) entran directo al panel de revisión
+        if (isReviewer) showAdminView();
+        else            showProviderView();
     }
 
     /* ──────────────────────────────────────────
@@ -374,7 +488,12 @@
               <td style="text-align:center;font-weight:600">${r['TOTAL PAX']??'—'}</td>
               <td style="color:var(--muted);font-size:.8rem">${esc(r['_portal_company']||'—')}</td>
               <td style="color:var(--muted);font-size:.8rem">${esc(r['CAPTURÓ']||'—')}</td>
-              <td><span class="sbadge sb-${st}">${statusLabel(st)}</span></td>
+              <td><span class="sbadge sb-${st}">${statusLabel(st)}</span>
+                  <div style="margin-top:.25rem;display:flex;gap:.25rem;flex-wrap:wrap">
+                    ${miniApBadge('AIFA', r['_portal_aprob_aifa'])}
+                    ${miniApBadge('AFAC', r['_portal_aprob_afac'])}
+                  </div>
+              </td>
               <td style="color:var(--muted);font-size:.79rem;white-space:nowrap">${fmtTS(r['_portal_created_at'])}</td>
               <td onclick="event.stopPropagation()">
                 <button class="btn-sm" onclick="window._showDetail(${r.id})" title="Ver detalle">
@@ -432,7 +551,7 @@
         const tipo      = String(r['TIPO DE MANIFIESTO'] || '');
         const isLlegada = tipo.toLowerCase().includes('llegada');
         const st        = r['_portal_status'] || 'pendiente';
-        const admin     = isAdmin;
+        const admin     = isReviewer;
         body.innerHTML = `
         <div class="det-sec">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;flex-wrap:wrap;gap:.5rem">
@@ -479,7 +598,7 @@
         ${r['DEMORA +- 15 MIN.'] ? `<div class="det-sec"><h6>⏱ Demoras</h6><div class="det-grid">${F('Causa/Min.', r['DEMORA +- 15 MIN.'])}${F('Código', r['CÓDIGO DEMORA'])}</div></div>` : ''}
         ${r['OBSERVACIONES'] ? `<div class="det-sec"><h6>📝 Observaciones</h6><div style="font-size:.85rem;color:var(--text);line-height:1.6;background:#f8fafc;padding:.75rem 1rem;border-radius:10px;border:1px solid var(--border)">${esc(r['OBSERVACIONES'])}</div></div>` : ''}
         ${r['EVIDENCIA'] ? `<div class="det-sec"><h6>📎 Documento adjunto</h6><a href="${esc(r['EVIDENCIA'])}" target="_blank" rel="noopener" class="btn-aifa" style="display:inline-flex"><i class="fas fa-file-pdf"></i> Ver PDF adjunto</a></div>` : ''}
-        ${r['_portal_review_notes'] ? `<div class="det-sec"><h6>💬 Notas de revisión AIFA</h6><div style="font-size:.85rem;color:var(--indigo);background:rgba(57,73,171,.06);padding:.75rem 1rem;border-radius:10px;border:1px solid rgba(57,73,171,.2)">${esc(r['_portal_review_notes'])}</div></div>` : ''}
+        ${buildApprovalSummary(r)}
         ${admin ? buildReviewSection(r) : ''}
         <div style="font-size:.72rem;color:var(--muted);margin-top:1rem;text-align:right">Folio #${String(r.id).padStart(6,'0')} · Capturó ${esc(r['CAPTURÓ']||'—')} · ${fmtTS(r['_portal_created_at'])}</div>`;
 
@@ -487,52 +606,127 @@
         ov.classList.remove('hidden');
     }
 
-    function buildReviewSection(r) {
+    /* ── Resumen de las 2 aprobaciones (visible para todos) ── */
+    function apStatusChip(v) {
+        const s = v || 'pendiente';
+        const map = {
+            pendiente:  ['#c2410c','#fff7ed','#fed7aa','Pendiente'],
+            aprobado:   ['#166534','#f0fdf4','#bbf7d0','Aprobado'],
+            rechazado:  ['#991b1b','#fef2f2','#fecaca','Rechazado'],
+        };
+        const [c,bg,bd,lbl] = map[s] || map.pendiente;
+        return `<span style="font-size:.74rem;font-weight:800;color:${c};background:${bg};border:1px solid ${bd};padding:.15rem .55rem;border-radius:999px">${lbl}</span>`;
+    }
+
+    function apTrack(titulo, ico, estado, byName, at, notes) {
+        return `
+        <div style="flex:1;min-width:200px;background:#f8fafc;border:1px solid var(--border);border-radius:12px;padding:.8rem 1rem">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:.5rem;margin-bottom:.4rem">
+                <span style="font-weight:800;font-size:.82rem;color:var(--blue)">${ico} ${titulo}</span>
+                ${apStatusChip(estado)}
+            </div>
+            <div style="font-size:.72rem;color:var(--muted);line-height:1.5">
+                ${byName ? `Por: <strong>${esc(byName)}</strong><br>` : 'Sin revisar aún'}
+                ${at ? fmtTS(at) : ''}
+            </div>
+            ${notes ? `<div style="margin-top:.4rem;font-size:.76rem;color:var(--text);background:#fff;border:1px solid var(--border);border-radius:8px;padding:.4rem .6rem">${esc(notes)}</div>` : ''}
+        </div>`;
+    }
+
+    function buildApprovalSummary(r) {
+        const aifa = r['_portal_aprob_aifa'] || 'pendiente';
+        const afac = r['_portal_aprob_afac'] || 'pendiente';
         return `
         <div class="det-sec">
-            <h6>⚙️ Acción AIFA (revisión)</h6>
-            <div class="mb-2">
-                <label class="form-label" style="font-size:.8rem">Notas de revisión</label>
-                <textarea id="rev-notes" class="form-control" rows="3" placeholder="Comentarios sobre el manifiesto…" style="font-size:.84rem">${esc(r['_portal_review_notes']||'')}</textarea>
+            <h6>✅ Estado de aprobaciones</h6>
+            <div style="display:flex;gap:.75rem;flex-wrap:wrap">
+                ${apTrack('AIFA · Aeropuerto', '🏢', aifa, r['_portal_aifa_by_name'], r['_portal_aifa_at'], r['_portal_aifa_notes'])}
+                ${apTrack('AFAC · Autoridad', '🛡️', afac, r['_portal_afac_by_name'], r['_portal_afac_at'], r['_portal_afac_notes'])}
             </div>
-            <div class="rev-actions">
-                <button class="btn-rev btn-rev-pend" onclick="window._setStatus(${r.id},'pendiente')"><i class="fas fa-hourglass-half"></i> Pendiente</button>
-                <button class="btn-rev btn-rev-rev"  onclick="window._setStatus(${r.id},'en_revision')"><i class="fas fa-eye"></i> En revisión</button>
-                <button class="btn-rev btn-rev-apro" onclick="window._setStatus(${r.id},'aprobado')"><i class="fas fa-check"></i> Aprobar</button>
-                <button class="btn-rev btn-rev-rech" onclick="window._setStatus(${r.id},'rechazado')"><i class="fas fa-times"></i> Rechazar</button>
+            <div style="margin-top:.6rem;font-size:.78rem;color:var(--muted)">
+                El manifiesto queda <strong>APROBADO</strong> únicamente cuando <strong>AIFA</strong> y <strong>AFAC</strong> aprueban.
             </div>
+        </div>`;
+    }
+
+    function buildReviewSection(r) {
+        // Bloques según los permisos del revisor
+        const blocks = [];
+        if (canAifa) blocks.push(reviewBlock(r, 'aifa', '🏢 AIFA · Aeropuerto', r['_portal_aprob_aifa'], r['_portal_aifa_notes']));
+        if (canAfac) blocks.push(reviewBlock(r, 'afac', '🛡️ AFAC · Autoridad', r['_portal_aprob_afac'], r['_portal_afac_notes']));
+        if (!blocks.length) return '';
+        return `
+        <div class="det-sec">
+            <h6>⚙️ Acción de revisión</h6>
+            ${blocks.join('')}
             <div id="rev-alert" style="display:none;margin-top:.6rem;font-size:.82rem;padding:.55rem .9rem;border-radius:9px;border:1px solid var(--border)"></div>
         </div>`;
     }
 
-    window._setStatus = async function(id, status) {
-        const notes = $('rev-notes')?.value || '';
+    function reviewBlock(r, entidad, titulo, estado, notes) {
+        return `
+        <div style="border:1px solid var(--border);border-radius:12px;padding:.8rem 1rem;margin-bottom:.7rem">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:.5rem;margin-bottom:.5rem">
+                <span style="font-weight:800;font-size:.85rem;color:var(--blue)">${titulo}</span>
+                ${apStatusChip(estado)}
+            </div>
+            <div class="mb-2">
+                <label class="form-label" style="font-size:.78rem">Notas de revisión ${entidad.toUpperCase()}</label>
+                <textarea id="rev-notes-${entidad}" class="form-control" rows="2" placeholder="Comentarios…" style="font-size:.84rem">${esc(notes||'')}</textarea>
+            </div>
+            <div class="rev-actions">
+                <button class="btn-rev btn-rev-pend" onclick="window._setApproval(${r.id},'${entidad}','pendiente')"><i class="fas fa-hourglass-half"></i> Pendiente</button>
+                <button class="btn-rev btn-rev-apro" onclick="window._setApproval(${r.id},'${entidad}','aprobado')"><i class="fas fa-check"></i> Aprobar</button>
+                <button class="btn-rev btn-rev-rech" onclick="window._setApproval(${r.id},'${entidad}','rechazado')"><i class="fas fa-times"></i> Rechazar</button>
+            </div>
+        </div>`;
+    }
+
+    window._setApproval = async function(id, entidad, decision) {
         const al = $('rev-alert');
         if (al) { al.style.display = 'none'; }
+        const notes = ($(`rev-notes-${entidad}`)?.value || '').trim();
+        const revName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Revisor';
+
+        // Construir update de la entidad + estatus general derivado
+        const row = adminRows.find(r => r.id === id) || provRows.find(r => r.id === id) || {};
+        const otherKey = entidad === 'aifa' ? '_portal_aprob_afac' : '_portal_aprob_aifa';
+        const otherVal = row[otherKey] || 'pendiente';
+        const newAifa = entidad === 'aifa' ? decision : (row['_portal_aprob_aifa'] || 'pendiente');
+        const newAfac = entidad === 'afac' ? decision : (row['_portal_aprob_afac'] || 'pendiente');
+        const general = deriveStatus(newAifa, newAfac);
+
+        const upd = {
+            [`_portal_aprob_${entidad}`]: decision,
+            [`_portal_${entidad}_by`]:      user.id,
+            [`_portal_${entidad}_by_name`]: revName,
+            [`_portal_${entidad}_at`]:      new Date().toISOString(),
+            [`_portal_${entidad}_notes`]:   notes || null,
+            '_portal_status':               general,
+            '_portal_reviewed_at':          new Date().toISOString(),
+        };
 
         try {
-            const { error } = await sb.from(TABLE).update({
-                '_portal_status':       status,
-                '_portal_review_notes': notes.trim() || null,
-                '_portal_reviewed_at':  new Date().toISOString(),
-            }).eq('id', id);
+            const { error } = await sb.from(TABLE).update(upd).eq('id', id);
             if (error) throw error;
 
-            // Update local caches
+            // Actualizar cachés locales
             [adminRows, provRows].forEach(arr => {
                 const idx = arr.findIndex(r => r.id === id);
-                if (idx >= 0) { arr[idx]['_portal_status'] = status; arr[idx]['_portal_review_notes'] = notes.trim(); }
+                if (idx >= 0) Object.assign(arr[idx], upd);
             });
 
             renderAdminStats();
             applyAdminFilters();
             renderProviderStats();
             renderProviderTable();
+            // Re-render del detalle para reflejar el nuevo estado
+            window._showDetail?.(id);
 
             if (al) {
                 al.style.display = 'block';
                 al.style.background = '#f0fdf4'; al.style.color = '#166534'; al.style.borderColor = '#bbf7d0';
-                al.textContent = `✓ Estado actualizado a "${statusLabel(status)}"`;
+                al.textContent = `✓ ${entidad.toUpperCase()}: ${statusLabel(decision)} · Estado general: ${statusLabel(general)}`;
             }
         } catch(err) {
             if (al) {
@@ -737,6 +931,8 @@
                 '_portal_company':     transpNom,
                 '_portal_flight_date': flightDate,
                 '_portal_status':      'pendiente',
+                '_portal_aprob_aifa':  'pendiente',
+                '_portal_aprob_afac':  'pendiente',
                 '_portal_created_at':  new Date().toISOString(),
             };
 
@@ -837,6 +1033,17 @@
     ────────────────────────────────────────── */
     function statusLabel(s) {
         return({ pendiente:'Pendiente', en_revision:'En revisión', aprobado:'Aprobado', rechazado:'Rechazado' })[s] || s;
+    }
+
+    function miniApBadge(lbl, v) {
+        const s = v || 'pendiente';
+        const map = {
+            pendiente:  ['#c2410c','#fff7ed','#fed7aa','◷'],
+            aprobado:   ['#166534','#f0fdf4','#bbf7d0','✓'],
+            rechazado:  ['#991b1b','#fef2f2','#fecaca','✕'],
+        };
+        const [c,bg,bd,ic] = map[s] || map.pendiente;
+        return `<span title="${lbl}: ${statusLabel(s)}" style="font-size:.62rem;font-weight:800;color:${c};background:${bg};border:1px solid ${bd};padding:.05rem .35rem;border-radius:999px;white-space:nowrap">${ic} ${lbl}</span>`;
     }
 
     /* ──────────────────────────────────────────

@@ -20,6 +20,29 @@ ALTER TABLE "Conciliación Manifiestos"
     ADD COLUMN IF NOT EXISTS "_portal_created_at"   TIMESTAMPTZ DEFAULT NOW();
 
 -- ──────────────────────────────────────────────────────────────
+--  1b. DOBLE APROBACIÓN — AIFA (aeropuerto) + AFAC (autoridad)
+--     Un manifiesto queda APROBADO solo cuando ambas partes aprueban.
+--     El campo "_portal_status" es el estatus GENERAL derivado:
+--       · rechazado  → si cualquiera rechaza
+--       · aprobado   → si AMBOS aprueban
+--       · en_revision→ si una parte ya aprobó pero falta la otra
+--       · pendiente  → sin revisiones
+-- ──────────────────────────────────────────────────────────────
+ALTER TABLE "Conciliación Manifiestos"
+    -- Aprobación AIFA (aeropuerto)
+    ADD COLUMN IF NOT EXISTS "_portal_aprob_aifa"   TEXT DEFAULT 'pendiente',
+    ADD COLUMN IF NOT EXISTS "_portal_aifa_by"      UUID,
+    ADD COLUMN IF NOT EXISTS "_portal_aifa_by_name" TEXT,
+    ADD COLUMN IF NOT EXISTS "_portal_aifa_at"      TIMESTAMPTZ,
+    ADD COLUMN IF NOT EXISTS "_portal_aifa_notes"   TEXT,
+    -- Aprobación AFAC (autoridad aeronáutica)
+    ADD COLUMN IF NOT EXISTS "_portal_aprob_afac"   TEXT DEFAULT 'pendiente',
+    ADD COLUMN IF NOT EXISTS "_portal_afac_by"      UUID,
+    ADD COLUMN IF NOT EXISTS "_portal_afac_by_name" TEXT,
+    ADD COLUMN IF NOT EXISTS "_portal_afac_at"      TIMESTAMPTZ,
+    ADD COLUMN IF NOT EXISTS "_portal_afac_notes"   TEXT;
+
+-- ──────────────────────────────────────────────────────────────
 --  2. ÍNDICES PARA PERFORMANCE DEL PORTAL
 -- ──────────────────────────────────────────────────────────────
 CREATE INDEX IF NOT EXISTS idx_cm_portal_user
@@ -135,12 +158,36 @@ BEGIN
 END $$;
 
 -- ──────────────────────────────────────────────────────────────
---  5. VERIFICACIÓN
+--  6. ROLES Y CREACIÓN DE USUARIOS
 -- ──────────────────────────────────────────────────────────────
--- Confirmar columnas añadidas:
--- SELECT column_name, data_type
--- FROM information_schema.columns
--- WHERE table_name = 'Conciliación Manifiestos'
---   AND column_name LIKE '_portal_%'
--- ORDER BY ordinal_position;
+--  El portal maneja 4 roles, identificados por "role" en el
+--  User Metadata (raw_user_meta_data) del usuario en Supabase Auth:
+--
+--    · aerolinea → captura manifiestos (se auto-registran en el portal)
+--    · aifa      → aprueba por parte del AEROPUERTO (AIFA)
+--    · afac      → aprueba por parte de la AUTORIDAD (AFAC)
+--    · admin     → superusuario: puede aprobar por AIFA y por AFAC
+--
+--  AEROLÍNEAS: se crean SOLAS desde el portal (botón "Crear cuenta").
+--  Se registran siempre con role='aerolinea'.
+--
+--  AIFA / AFAC / ADMIN: se crean manualmente en el dashboard de
+--  Supabase → Authentication → Users → Add user. En "User Metadata"
+--  (JSON) agrega, por ejemplo:
+--       { "role": "aifa",  "full_name": "Operaciones AIFA" }
+--       { "role": "afac",  "full_name": "Autoridad AFAC" }
+--       { "role": "admin", "full_name": "Administrador" }
+--
+--  También se reconoce el rol por el correo si contiene:
+--       "afac"  → autoridad AFAC
+--       "aifa.admin" o "admin@" → AIFA / admin
+--
+--  Para asignar/actualizar el rol de un usuario ya existente por SQL:
+--
+--  UPDATE auth.users
+--     SET raw_user_meta_data =
+--         COALESCE(raw_user_meta_data, '{}'::jsonb)
+--         || '{"role":"afac","full_name":"Autoridad AFAC"}'::jsonb
+--   WHERE email = 'afac@aifa.operaciones';
+-- ──────────────────────────────────────────────────────────────
 

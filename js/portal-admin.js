@@ -15,6 +15,36 @@
 
     let allRows = [], filteredRows = [], reviewModal = null, reviewingId = null;
     let loaded  = false; // carga lazy: solo al primer acceso
+    let currentUser = null, canAifa = true, canAfac = false; // AIFA staff por defecto aprueba AIFA
+
+    /* ── estatus general derivado de las 2 aprobaciones ── */
+    function deriveStatus(aifa, afac) {
+        const a = aifa || 'pendiente', b = afac || 'pendiente';
+        if (a === 'rechazado' || b === 'rechazado') return 'rechazado';
+        if (a === 'aprobado' && b === 'aprobado')   return 'aprobado';
+        if (a === 'aprobado' || b === 'aprobado')   return 'en_revision';
+        return 'pendiente';
+    }
+
+    async function resolvePermissions() {
+        try {
+            const sb = window.supabaseClient;
+            const { data } = await sb.auth.getUser();
+            currentUser = data?.user || null;
+            const meta  = currentUser?.user_metadata || {};
+            const email = (currentUser?.email || '').toLowerCase();
+            let role = String(meta.role || '').toLowerCase();
+            if (!role) {
+                if (email.includes('afac')) role = 'afac';
+                else if (email.includes('admin')) role = 'admin';
+                else role = 'aifa';
+            }
+            canAifa = role === 'admin' || role === 'aifa';
+            canAfac = role === 'admin' || role === 'afac';
+            // Si no coincide con ninguno (staff genérico AIFA), permitir AIFA
+            if (!canAifa && !canAfac) canAifa = true;
+        } catch { canAifa = true; canAfac = false; }
+    }
 
     /* ================================================================
        INIT
@@ -29,7 +59,6 @@
         // Botones del panel
         $('btn-padmin-refresh')?.addEventListener('click', loadAll);
         $('btn-padmin-export') ?.addEventListener('click', exportExcel);
-        $('btn-save-review')   ?.addEventListener('click', saveReview);
 
         // Link del portal para compartir con aerolíneas
         try {
@@ -85,6 +114,7 @@
         const sb = window.supabaseClient;
         if (!sb) { console.warn('portal-admin: supabaseClient not ready'); return; }
 
+        await resolvePermissions();
         show('padmin-loading');
         $('padmin-table-wrap')?.classList.add('opacity-50');
 
@@ -210,7 +240,12 @@
                 ${cel(r['CÓDIGO DEMORA'])}
                 ${celL(r['OBSERVACIONES'], 'text-muted')}
                 ${celL(r['_portal_company'], 'text-muted')}
-                <td style="white-space:nowrap">${bdg}</td>
+                <td style="white-space:nowrap">${bdg}
+                    <div style="margin-top:3px;display:flex;gap:3px;flex-wrap:wrap">
+                        ${padminMiniBadge('AIFA', r['_portal_aprob_aifa'])}
+                        ${padminMiniBadge('AFAC', r['_portal_aprob_afac'])}
+                    </div>
+                </td>
                 <td class="text-muted" style="white-space:nowrap;font-size:.72rem">${sd}</td>
                 <td class="pe-2" style="white-space:nowrap">
                     ${pdfBtn}
@@ -289,42 +324,102 @@
             </div>
         </div>`;
 
-        // Set current values
-        const statusSel = $('review-status');
-        if (statusSel) statusSel.value = r['_portal_status'] || 'pendiente';
-        const notesEl = $('review-notes');
-        if (notesEl) notesEl.value = r['_portal_review_notes'] || '';
-
+        // Render de las 2 aprobaciones (AIFA + AFAC)
+        $('review-alert')?.classList.add('d-none');
+        renderApprovals(r);
         reviewModal?.show();
     };
 
-    async function saveReview() {
-        if (!reviewingId) return;
+    function apChip(v) {
+        const s = v || 'pendiente';
+        const map = {
+            pendiente:  ['#c2410c','#fff7ed','#fed7aa','Pendiente'],
+            aprobado:   ['#166534','#f0fdf4','#bbf7d0','Aprobado'],
+            rechazado:  ['#991b1b','#fef2f2','#fecaca','Rechazado'],
+        };
+        const [c,bg,bd,lbl] = map[s] || map.pendiente;
+        return `<span class="badge" style="color:${c};background:${bg};border:1px solid ${bd}">${lbl}</span>`;
+    }
+
+    function trackCard(r, entidad, titulo, colorClass, can) {
+        const estado = r[`_portal_aprob_${entidad}`] || 'pendiente';
+        const byName = r[`_portal_${entidad}_by_name`];
+        const at     = r[`_portal_${entidad}_at`];
+        const notes  = r[`_portal_${entidad}_notes`] || '';
+        const at_s   = at ? new Date(at).toLocaleString('es-MX', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' }) : '';
+        const actions = can ? `
+            <textarea id="rev-notes-${entidad}" class="form-control form-control-sm mb-2" rows="2" placeholder="Notas de ${entidad.toUpperCase()}…">${esc(notes)}</textarea>
+            <div class="d-flex gap-2 flex-wrap">
+                <button class="btn btn-sm btn-outline-secondary" onclick="portalAdminSetApproval(${r.id},'${entidad}','pendiente')"><i class="fas fa-hourglass-half me-1"></i>Pendiente</button>
+                <button class="btn btn-sm btn-success" onclick="portalAdminSetApproval(${r.id},'${entidad}','aprobado')"><i class="fas fa-check me-1"></i>Aprobar</button>
+                <button class="btn btn-sm btn-danger" onclick="portalAdminSetApproval(${r.id},'${entidad}','rechazado')"><i class="fas fa-times me-1"></i>Rechazar</button>
+            </div>`
+            : `<div class="small text-muted fst-italic">No tienes permiso para aprobar en esta entidad.</div>
+               ${notes ? `<div class="small mt-2 p-2 bg-light border rounded">${esc(notes)}</div>` : ''}`;
+        return `
+        <div class="col-md-6">
+            <div class="p-3 rounded-3 border h-100" style="border-left:4px solid ${colorClass} !important">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="fw-bold">${titulo}</span>
+                    ${apChip(estado)}
+                </div>
+                <div class="small text-muted mb-2">${byName ? `Por: <strong>${esc(byName)}</strong> · ${at_s}` : 'Sin revisar aún'}</div>
+                ${actions}
+            </div>
+        </div>`;
+    }
+
+    function renderApprovals(r) {
+        const wrap = $('review-approvals');
+        if (!wrap) return;
+        wrap.innerHTML =
+            trackCard(r, 'aifa', '🏢 AIFA · Aeropuerto', '#1565c0', canAifa) +
+            trackCard(r, 'afac', '🛡️ AFAC · Autoridad', '#2e7d32', canAfac);
+    }
+
+    function reviewAlert(msg, ok) {
+        const el = $('review-alert');
+        if (!el) return;
+        el.classList.remove('d-none');
+        el.style.background = ok ? '#f0fdf4' : '#fef2f2';
+        el.style.color      = ok ? '#166534' : '#991b1b';
+        el.style.border     = `1px solid ${ok ? '#bbf7d0' : '#fecaca'}`;
+        el.textContent = msg;
+    }
+
+    window.portalAdminSetApproval = async function(id, entidad, decision) {
         const sb = window.supabaseClient;
         if (!sb) return;
+        const r = allRows.find(x => x.id === id) || {};
+        const notes = ($(`rev-notes-${entidad}`)?.value || '').trim();
+        const revName = currentUser?.user_metadata?.full_name || currentUser?.email?.split('@')[0] || 'Revisor AIFA';
 
-        const status = val('review-status');
-        const notes  = val('review-notes').trim();
-        const btn    = $('btn-save-review');
+        const newAifa = entidad === 'aifa' ? decision : (r['_portal_aprob_aifa'] || 'pendiente');
+        const newAfac = entidad === 'afac' ? decision : (r['_portal_aprob_afac'] || 'pendiente');
+        const general = deriveStatus(newAifa, newAfac);
 
-        if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Guardando…'; }
+        const upd = {
+            [`_portal_aprob_${entidad}`]:   decision,
+            [`_portal_${entidad}_by`]:      currentUser?.id || null,
+            [`_portal_${entidad}_by_name`]: revName,
+            [`_portal_${entidad}_at`]:      new Date().toISOString(),
+            [`_portal_${entidad}_notes`]:   notes || null,
+            '_portal_status':               general,
+            '_portal_reviewed_at':          new Date().toISOString(),
+        };
 
         try {
-            const { error } = await sb.from(TABLE).update({
-                '_portal_status':       status,
-                '_portal_review_notes': notes || null,
-                '_portal_reviewed_at':  new Date().toISOString(),
-            }).eq('id', reviewingId);
+            const { error } = await sb.from(TABLE).update(upd).eq('id', id);
             if (error) throw error;
-
-            reviewModal?.hide();
-            await loadAll(); // refresca tabla y stats
+            Object.assign(r, upd);
+            renderApprovals(r);
+            applyFilters();
+            updateStats();
+            reviewAlert(`✓ ${entidad.toUpperCase()}: ${decision} · Estado general: ${general}`, true);
         } catch (err) {
-            alert('Error al guardar revisión: ' + err.message);
-        } finally {
-            if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-save me-1"></i>Guardar revisión'; }
+            reviewAlert('Error al guardar: ' + err.message, false);
         }
-    }
+    };
 
     /* ================================================================
        EXPORT EXCEL
@@ -395,6 +490,16 @@
        ================================================================ */
     function show(id) { const e = $(id); if (e) e.classList.remove('d-none'); }
     function hide(id) { const e = $(id); if (e) e.classList.add('d-none'); }
+    function padminMiniBadge(lbl, v) {
+        const s = v || 'pendiente';
+        const map = {
+            pendiente:  ['#c2410c','#fff7ed','#fed7aa','◷'],
+            aprobado:   ['#166534','#f0fdf4','#bbf7d0','✓'],
+            rechazado:  ['#991b1b','#fef2f2','#fecaca','✕'],
+        };
+        const [c,bg,bd,ic] = map[s] || map.pendiente;
+        return `<span title="${lbl}: ${s}" style="font-size:.6rem;font-weight:800;color:${c};background:${bg};border:1px solid ${bd};padding:0 .3rem;border-radius:999px;white-space:nowrap">${ic} ${lbl}</span>`;
+    }
     function esc(t) {
         return String(t)
             .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')

@@ -291,26 +291,75 @@
     </div>
     <div class="login-body">
       <div id="login-alert"></div>
-      <div class="login-iw">
-        <label class="login-lbl" for="inp-user">Usuario o correo electrónico</label>
-        <div style="position:relative">
-          <i class="fas fa-user-circle" style="position:absolute;left:1rem;top:50%;transform:translateY(-50%);color:rgba(255,255,255,.4);pointer-events:none"></i>
-          <input type="text" id="inp-user" class="login-inp" placeholder="Ej: aeromexico.ops" autocomplete="username">
+
+      <!-- ───────── MODO: INICIAR SESIÓN ───────── -->
+      <div id="login-mode">
+        <div class="login-iw">
+          <label class="login-lbl" for="inp-user">Usuario o correo electrónico</label>
+          <div style="position:relative">
+            <i class="fas fa-user-circle" style="position:absolute;left:1rem;top:50%;transform:translateY(-50%);color:rgba(255,255,255,.4);pointer-events:none"></i>
+            <input type="text" id="inp-user" class="login-inp" placeholder="Ej: aeromexico.ops" autocomplete="username">
+          </div>
+        </div>
+        <div class="login-iw">
+          <label class="login-lbl" for="inp-pass">Contraseña</label>
+          <div style="position:relative">
+            <i class="fas fa-lock" style="position:absolute;left:1rem;top:50%;transform:translateY(-50%);color:rgba(255,255,255,.4);pointer-events:none"></i>
+            <input type="password" id="inp-pass" class="login-inp" placeholder="••••••••" autocomplete="current-password">
+          </div>
+        </div>
+        <button class="btn-login" id="btn-do-login">
+          <span id="login-txt"><i class="fas fa-sign-in-alt"></i> Iniciar sesión</span>
+          <span id="login-spin" class="d-none"><span class="isp"></span> Verificando…</span>
+        </button>
+        <div style="text-align:center;margin-top:1rem;font-size:.85rem;color:rgba(255,255,255,.75)">
+          ¿Eres una aerolínea nueva?
+          <a href="#" id="lnk-show-signup" style="color:#fff;font-weight:700;text-decoration:underline">Crea tu cuenta</a>
         </div>
       </div>
-      <div class="login-iw">
-        <label class="login-lbl" for="inp-pass">Contraseña</label>
-        <div style="position:relative">
-          <i class="fas fa-lock" style="position:absolute;left:1rem;top:50%;transform:translateY(-50%);color:rgba(255,255,255,.4);pointer-events:none"></i>
-          <input type="password" id="inp-pass" class="login-inp" placeholder="••••••••" autocomplete="current-password">
+
+      <!-- ───────── MODO: CREAR CUENTA (aerolíneas) ───────── -->
+      <div id="signup-mode" class="d-none">
+        <div class="login-iw">
+          <label class="login-lbl" for="sg-company">Nombre de la aerolínea / empresa</label>
+          <div style="position:relative">
+            <i class="fas fa-plane" style="position:absolute;left:1rem;top:50%;transform:translateY(-50%);color:rgba(255,255,255,.4);pointer-events:none"></i>
+            <input type="text" id="sg-company" class="login-inp" placeholder="Ej: Aeroméxico" autocomplete="organization">
+          </div>
+        </div>
+        <div class="login-iw">
+          <label class="login-lbl" for="sg-user">Usuario o correo electrónico</label>
+          <div style="position:relative">
+            <i class="fas fa-user-circle" style="position:absolute;left:1rem;top:50%;transform:translateY(-50%);color:rgba(255,255,255,.4);pointer-events:none"></i>
+            <input type="text" id="sg-user" class="login-inp" placeholder="Ej: aeromexico.ops" autocomplete="username">
+          </div>
+          <div style="font-size:.72rem;color:rgba(255,255,255,.55);margin-top:.3rem;padding-left:.2rem">Si no pones correo, se creará como <em>usuario</em>@aifa.operaciones</div>
+        </div>
+        <div class="login-iw">
+          <label class="login-lbl" for="sg-pass">Contraseña</label>
+          <div style="position:relative">
+            <i class="fas fa-lock" style="position:absolute;left:1rem;top:50%;transform:translateY(-50%);color:rgba(255,255,255,.4);pointer-events:none"></i>
+            <input type="password" id="sg-pass" class="login-inp" placeholder="Mínimo 6 caracteres" autocomplete="new-password">
+          </div>
+        </div>
+        <div class="login-iw">
+          <label class="login-lbl" for="sg-pass2">Confirmar contraseña</label>
+          <div style="position:relative">
+            <i class="fas fa-lock" style="position:absolute;left:1rem;top:50%;transform:translateY(-50%);color:rgba(255,255,255,.4);pointer-events:none"></i>
+            <input type="password" id="sg-pass2" class="login-inp" placeholder="••••••••" autocomplete="new-password">
+          </div>
+        </div>
+        <button class="btn-login" id="btn-do-signup">
+          <span id="signup-txt"><i class="fas fa-user-plus"></i> Crear cuenta</span>
+          <span id="signup-spin" class="d-none"><span class="isp"></span> Creando…</span>
+        </button>
+        <div style="text-align:center;margin-top:1rem;font-size:.85rem;color:rgba(255,255,255,.75)">
+          ¿Ya tienes cuenta?
+          <a href="#" id="lnk-show-login" style="color:#fff;font-weight:700;text-decoration:underline">Inicia sesión</a>
         </div>
       </div>
-      <button class="btn-login" id="btn-do-login">
-        <span id="login-txt"><i class="fas fa-sign-in-alt"></i> Iniciar sesión</span>
-        <span id="login-spin" class="d-none"><span class="isp"></span> Verificando…</span>
-      </button>
     </div>
-    <div class="login-foot">¿Necesitas acceso? Contacta a <strong>AIFA — Operaciones</strong></div>
+    <div class="login-foot">¿Necesitas acceso de autoridad? Contacta a <strong>AIFA — Operaciones</strong></div>
   </div>
 </div>
 
@@ -1675,7 +1724,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="js/supabase-client.js"></script>
-<script src="js/portal-manifiestos.js?v=20260406"></script>
+<script src="js/portal-manifiestos.js?v=20260701"></script>
 </body>
 </html>
 

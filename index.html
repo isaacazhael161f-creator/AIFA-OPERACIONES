@@ -29235,28 +29235,14 @@ FF
                 <div class="modal-body">
                     <div id="review-details"></div>
                     <hr class="my-3">
-                    <div class="row g-3">
-                        <div class="col-md-5">
-                            <label class="form-label fw-semibold">Estado</label>
-                            <select id="review-status" class="form-select">
-                                <option value="pendiente">&#x23F3; Pendiente</option>
-                                <option value="en_revision">&#x1F504; En revisión</option>
-                                <option value="aprobado">&#x2714; Aprobado</option>
-                                <option value="rechazado">&#x2717; Rechazado</option>
-                            </select>
-                        </div>
-                        <div class="col-md-7">
-                            <label class="form-label fw-semibold">Notas de revisión</label>
-                            <textarea id="review-notes" class="form-control" rows="3"
-                                placeholder="Observaciones, correcciones solicitadas, motivo de rechazo…"></textarea>
-                        </div>
+                    <div class="mb-2">
+                        <label class="form-label fw-semibold mb-2">Aprobaciones — se requiere <span class="text-primary">AIFA</span> y <span class="text-success">AFAC</span></label>
+                        <div id="review-approvals" class="row g-3"></div>
                     </div>
+                    <div id="review-alert" class="small mt-2 d-none rounded-2 px-3 py-2"></div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn btn-primary" id="btn-save-review">
-                        <i class="fas fa-save me-1"></i>Guardar revisión
-                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
                 </div>
             </div>
         </div>
@@ -30994,7 +30980,7 @@ FF
     <script src="js/manifiestos.js"></script>
     <script src="js/manifiestos-analisis.js"></script>
     <script src="js/manifiestos-carga.js"></script>
-    <script src="js/portal-admin.js"></script>
+    <script src="js/portal-admin.js?v=20260701"></script>
     <script src="js/medicas.js?v=2"></script>
     <script src="js/fauna.js"></script>
     <script src="js/hidraulicas.js?v=13"></script>
