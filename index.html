@@ -23661,6 +23661,24 @@ FF
             #aviacion-general-fbo-section .agf-clip-wide{aspect-ratio:21/7; min-height:180px}
             #aviacion-general-fbo-section .agf-clip-wide .agf-clip-cap{font-size:1rem; padding:1.1rem 1.3rem}
             #aviacion-general-fbo-section .agf-clip-wide .agf-clip-cap small{font-size:.78rem}
+            #aviacion-general-fbo-section .agf-clip-slogan{
+                position:absolute; z-index:3; left:0; right:0; bottom:0; padding:1.6rem 1.8rem 1.5rem;
+                background:linear-gradient(0deg,rgba(4,12,26,.9),rgba(4,12,26,.05) 75%);
+            }
+            #aviacion-general-fbo-section .agf-clip-kicker{
+                display:inline-flex; align-items:center; gap:.5rem; margin-bottom:.55rem;
+                padding:.36rem .85rem; border-radius:999px; backdrop-filter:blur(6px);
+                background:rgba(56,189,248,.16); border:1px solid rgba(125,211,252,.35);
+                color:#bae6fd; font-size:.68rem; font-weight:800; letter-spacing:.05em; text-transform:uppercase;
+            }
+            #aviacion-general-fbo-section .agf-clip-kicker i{color:#7dd3fc}
+            #aviacion-general-fbo-section .agf-clip-title{
+                margin:0; color:#fff; font-weight:900; letter-spacing:-.02em; line-height:1.05;
+                font-size:clamp(1.35rem,2.6vw,2.15rem); text-shadow:0 4px 26px rgba(0,0,0,.5);
+            }
+            #aviacion-general-fbo-section .agf-clip-title b{
+                background:linear-gradient(120deg,#7dd3fc,#38bdf8); -webkit-background-clip:text; background-clip:text; color:transparent;
+            }
             /* ── SHOWCASE (video destacado con slogan) ── */
             #aviacion-general-fbo-section .agf-showcase{
                 position:relative; border-radius:1.4rem; overflow:hidden; cursor:pointer; margin-bottom:1.25rem;
@@ -23921,33 +23939,6 @@ FF
                     </div>
                 </div>
 
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <div class="agf-clip" data-bs-toggle="modal" data-bs-target="#agfVideoModal" data-modal-start="129">
-                            <img src="images/Pasajero%20FBO.jpg" alt="Atención a tripulaciones en el FBO" loading="lazy">
-                            <video class="agf-clip-seg" data-start="129" data-end="180" muted loop playsinline preload="metadata" poster="images/Pasajero%20FBO.jpg"
-                                   onerror="this.style.display='none'">
-                                <source src="videos/FBO%20AIFA%20-%20Trim.mp4#t=129,180" type="video/mp4">
-                            </video>
-                            <div class="agf-clip-shade"></div>
-                            <div class="agf-clip-play"><i class="fas fa-play"></i></div>
-                            <div class="agf-clip-cap">Atención a tripulaciones<small>Servicio personalizado</small></div>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="agf-clip" data-bs-toggle="modal" data-bs-target="#agfVideoModal">
-                            <img src="images/Privado.jpeg" alt="Hangares y resguardo del FBO" loading="lazy">
-                            <video autoplay muted loop playsinline preload="none" poster="images/Privado.jpeg"
-                                   onerror="this.style.display='none'">
-                                <source src="videos/fbo-hangares.mp4" type="video/mp4">
-                            </video>
-                            <div class="agf-clip-shade"></div>
-                            <div class="agf-clip-play"><i class="fas fa-play"></i></div>
-                            <div class="agf-clip-cap">Hangares &amp; resguardo<small>2 mantenimiento · 1 resguardo</small></div>
-                        </div>
-                    </div>
-                </div>
-
                 <!-- ── Segundo showcase: interiores y salas (5:09–5:47) ── -->
                 <div class="agf-showcase reverse mt-3" data-bs-toggle="modal" data-bs-target="#agfVideoModal" data-modal-start="309">
                     <video class="agf-showcase-video agf-clip-seg" data-start="309" data-end="347" autoplay muted loop playsinline preload="metadata" poster="images/Pasajero%20FBO.jpg"
@@ -23976,8 +23967,10 @@ FF
                         <source src="videos/FBO%20AIFA%20-%20Trim.mp4#t=125,195" type="video/mp4">
                     </video>
                     <div class="agf-clip-shade"></div>
-                    <div class="agf-clip-play"><i class="fas fa-play"></i></div>
-                    <div class="agf-clip-cap">Experiencia FBO de principio a fin<small>Recepción, salas y atención personalizada</small></div>
+                    <div class="agf-clip-slogan">
+                        <span class="agf-clip-kicker"><i class="fas fa-route"></i>Experiencia FBO de principio a fin</span>
+                        <h3 class="agf-clip-title">Su llegada, <b>sin una sola espera</b></h3>
+                    </div>
                 </div>
 
                 <p class="text-muted mt-4 mb-0" style="font-size:.72rem;">
