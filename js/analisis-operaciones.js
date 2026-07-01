@@ -335,6 +335,8 @@ async function applyOpsFiltersAndRender() {
     const activeMode = checked ? checked.id.replace('view-', '') : 'table';
     if (activeMode === 'charts') {
         setTimeout(renderOpsCharts, 100);
+    } else if (activeMode === 'informes') {
+        setTimeout(renderOpsInformes, 60);
     }
 }
 
@@ -1086,10 +1088,12 @@ function formatHeader(key) {
 window.toggleViewMode = function(mode) {
     const tableWrap = document.getElementById('ops-table-wrapper');
     const chartsWrap = document.getElementById('ops-charts-wrapper');
+    const informesWrap = document.getElementById('ops-informes-wrapper');
 
     // Hide all first
     if(tableWrap) tableWrap.classList.add('d-none');
     if(chartsWrap) chartsWrap.classList.add('d-none');
+    if(informesWrap) informesWrap.classList.add('d-none');
 
     // Show selected
     if (mode === 'table') {
@@ -1099,13 +1103,343 @@ window.toggleViewMode = function(mode) {
         if (getFilteredOpsData().length > 0) {
             setTimeout(renderOpsCharts, 100); // Small delay to ensure container visible
         }
+    } else if (mode === 'informes') {
+        if(informesWrap) informesWrap.classList.remove('d-none');
+        setTimeout(renderOpsInformes, 60);
     }
 };
 
 let _chartInstances = {};
-
 let _opsMasterCatalogCache = null;
-let _heatmapDetails = null; // stores per-hour+day flight records for cell drill-down
+
+// ════════════════════════════════════════════════════════════════════════
+//  INFORMES — réplica de las hojas del libro mensual de Demoras
+//  (Totales, Pasajeros, Carga, Demoras, Puntualidad). Se calculan a partir
+//  de los mismos registros de la tabla Demoras que alimentan este módulo,
+//  reproduciendo los COUNTIFS/SUMPRODUCT de las hojas del Excel.
+// ════════════════════════════════════════════════════════════════════════
+
+// Normaliza texto (sin acentos, mayúsculas, sin espacios sobrantes) para comparar.
+function _infNorm(v) {
+    return String(v == null ? '' : v)
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .trim().toUpperCase();
+}
+
+// Detecta las columnas relevantes en los registros cargados.
+function _infKeys(sample) {
+    const keys = Object.keys(sample || {});
+    const find = (re) => keys.find(k => re.test(k)) || null;
+    return {
+        aerolinea:     _opsDetectKey(sample, _OPS_AIRLINE_TERMS),
+        servicio:      _opsDetectKey(sample, _OPS_SERVICE_TERMS),
+        estatus:       find(/^estatus$/i) || find(/estatus/i),
+        llegadaSalida: find(/llegada.{0,5}salida|salida.{0,5}llegada/i),
+        domInt:        find(/domestic|internacional|domestico/i),
+        causaDemora:   find(/^demoras$/i),
+        puntualidad:   find(/^\s*puntualidad\s*$/i),
+        puntCompania:  find(/puntualidad.*compa/i),
+        pasajeros:     find(/^pasajeros$/i) || find(/pasajero|\bpax\b/i)
+    };
+}
+
+function _infMonthLabel() {
+    return `${currentMonthOps} ${currentYearOps}`;
+}
+
+const _INF_CAUSAS = {
+    '1': 'Repercusión',
+    '2': 'Compañía',
+    '3': 'Autoridad',
+    '4': 'Combustible',
+    '5': 'Evento circunstancial',
+    '6': 'Meteorología'
+};
+
+// ── Matriz A Tiempo / Demora / Cancelado × Llegada / Salida ────────────────
+function _infMatrix(rows, keys, filterFn) {
+    const res = { llegada: { a: 0, d: 0, c: 0 }, salida: { a: 0, d: 0, c: 0 } };
+    rows.forEach(r => {
+        if (filterFn && !filterFn(r)) return;
+        const est = _infNorm(r[keys.estatus]);
+        const ls = _infNorm(r[keys.llegadaSalida]);
+        const bucket = ls.startsWith('LLEG') ? res.llegada
+                     : ls.startsWith('SAL') ? res.salida : null;
+        if (!bucket) return;
+        if (est === 'A TIEMPO' || est === 'ALTERNO') bucket.a++;
+        else if (est === 'DEMORA') bucket.d++;
+        else if (est === 'CANCELADO') bucket.c++;
+    });
+    return res;
+}
+
+function _infMatrixTableHtml(title, m) {
+    const row = (label, o) => {
+        const total = o.a + o.d;
+        const totalGen = total + o.c;
+        return `<tr>
+            <th class="table-light">${label}</th>
+            <td class="text-end">${o.a.toLocaleString()}</td>
+            <td class="text-end">${o.d.toLocaleString()}</td>
+            <td class="text-end fw-semibold">${total.toLocaleString()}</td>
+            <td class="text-end">${o.c.toLocaleString()}</td>
+            <td class="text-end fw-bold">${totalGen.toLocaleString()}</td>
+        </tr>`;
+    };
+    const tot = {
+        a: m.llegada.a + m.salida.a,
+        d: m.llegada.d + m.salida.d,
+        c: m.llegada.c + m.salida.c
+    };
+    return `
+    <div class="col-12 col-xl-6 mb-3">
+        <div class="card border-0 shadow-sm h-100">
+            <div class="card-header bg-primary text-white fw-semibold py-2">${title}</div>
+            <div class="table-responsive">
+                <table class="table table-sm table-bordered mb-0 align-middle text-center" style="font-size:.85rem">
+                    <thead class="table-light">
+                        <tr>
+                            <th></th><th>A Tiempo</th><th>Demora</th><th>Total</th>
+                            <th>Cancelados</th><th>Total general</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${row('Llegada', m.llegada)}
+                        ${row('Salida', m.salida)}
+                        <tr class="table-secondary fw-bold">
+                            <th>Total</th>
+                            <td class="text-end">${tot.a.toLocaleString()}</td>
+                            <td class="text-end">${tot.d.toLocaleString()}</td>
+                            <td class="text-end">${(tot.a + tot.d).toLocaleString()}</td>
+                            <td class="text-end">${tot.c.toLocaleString()}</td>
+                            <td class="text-end">${(tot.a + tot.d + tot.c).toLocaleString()}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>`;
+}
+
+function _renderInformeTotales(rows, keys) {
+    const el = document.getElementById('inf-totales-pane');
+    if (!el) return;
+    const general = _infMatrix(rows, keys);
+    const domestic = keys.domInt ? _infMatrix(rows, keys, r => _infNorm(r[keys.domInt]).startsWith('DOM')) : null;
+    const internal = keys.domInt ? _infMatrix(rows, keys, r => _infNorm(r[keys.domInt]).startsWith('INT')) : null;
+    const pax = keys.servicio ? _infMatrix(rows, keys, r => _classifyOpsTraffic(r[keys.servicio]).pax) : null;
+    const carga = keys.servicio ? _infMatrix(rows, keys, r => _classifyOpsTraffic(r[keys.servicio]).cargo) : null;
+
+    let html = `<h5 class="fw-bold mb-1"><i class="fas fa-table-cells me-2 text-primary"></i>Totales de operaciones — ${_infMonthLabel()}</h5>
+        <p class="text-muted small mb-3">Distribución de operaciones por estatus (A Tiempo / Demora / Cancelado) y sentido (Llegada / Salida).</p>
+        <div class="row g-3">`;
+    html += _infMatrixTableHtml('General', general);
+    if (domestic) html += _infMatrixTableHtml('Nacional (Domestic)', domestic);
+    if (internal) html += _infMatrixTableHtml('Internacional', internal);
+    if (pax) html += _infMatrixTableHtml('Pasajeros', pax);
+    if (carga) html += _infMatrixTableHtml('Carga', carga);
+    html += '</div>';
+    el.innerHTML = html;
+}
+
+// ── Slots por aerolínea (Pasajeros / Carga) ────────────────────────────────
+function _infSlots(rows, keys, wantCargo) {
+    const map = {};
+    rows.forEach(r => {
+        const est = _infNorm(r[keys.estatus]);
+        if (est !== 'A TIEMPO' && est !== 'DEMORA') return;
+        const t = _classifyOpsTraffic(r[keys.servicio]);
+        if (wantCargo ? !t.cargo : !t.pax) return;
+        const code = _infNorm(r[keys.aerolinea]);
+        if (!code) return;
+        const ls = _infNorm(r[keys.llegadaSalida]);
+        const e = map[code] || (map[code] = { lleg: 0, sal: 0 });
+        if (ls.startsWith('LLEG')) e.lleg++;
+        else if (ls.startsWith('SAL')) e.sal++;
+    });
+    const catMap = (_opsMasterCatalogCache && _opsMasterCatalogCache.airlinesMap) || {};
+    const arr = Object.keys(map).map(code => {
+        const o = map[code];
+        return { code, name: catMap[code] || code, lleg: o.lleg, sal: o.sal, total: o.lleg + o.sal };
+    }).filter(x => x.total > 0).sort((a, b) => b.total - a.total);
+    const grand = arr.reduce((s, x) => s + x.total, 0);
+    return { arr, grand };
+}
+
+function _renderInformeSlots(paneId, rows, keys, wantCargo) {
+    const el = document.getElementById(paneId);
+    if (!el) return;
+    const tipo = wantCargo ? 'carga' : 'pasajeros';
+    const { arr, grand } = _infSlots(rows, keys, wantCargo);
+    const totLleg = arr.reduce((s, x) => s + x.lleg, 0);
+    const totSal = arr.reduce((s, x) => s + x.sal, 0);
+
+    let html = `<h5 class="fw-bold mb-1"><i class="fas fa-${wantCargo ? 'box' : 'users'} me-2 text-primary"></i>Slots asignados para ${tipo} — ${_infMonthLabel()}</h5>
+        <p class="text-muted small mb-3">Operaciones realizadas (A Tiempo o Demora) por aerolínea de ${tipo}, separadas por sentido.</p>`;
+    if (!arr.length) {
+        html += '<div class="alert alert-secondary">No hay operaciones de este tipo en el periodo.</div>';
+        el.innerHTML = html;
+        return;
+    }
+    html += `<div class="table-responsive"><table class="table table-sm table-striped table-bordered align-middle mb-0" style="font-size:.85rem">
+        <thead class="table-light"><tr>
+            <th>Aerolínea</th>
+            <th class="text-end">Slot de Llegada</th>
+            <th class="text-end">Slot de Salida</th>
+            <th class="text-end">Slots Totales</th>
+            <th class="text-end">Porcentaje</th>
+        </tr></thead><tbody>`;
+    arr.forEach(x => {
+        const pct = grand ? (x.total / grand * 100) : 0;
+        html += `<tr>
+            <td>${x.name === x.code ? x.code : `${x.name} <span class="text-muted">(${x.code})</span>`}</td>
+            <td class="text-end">${x.lleg.toLocaleString()}</td>
+            <td class="text-end">${x.sal.toLocaleString()}</td>
+            <td class="text-end fw-semibold">${x.total.toLocaleString()}</td>
+            <td class="text-end">${pct.toFixed(2)}%</td>
+        </tr>`;
+    });
+    html += `<tr class="table-secondary fw-bold">
+        <th>Total</th>
+        <td class="text-end">${totLleg.toLocaleString()}</td>
+        <td class="text-end">${totSal.toLocaleString()}</td>
+        <td class="text-end">${grand.toLocaleString()}</td>
+        <td class="text-end">100.00%</td>
+    </tr></tbody></table></div>`;
+    el.innerHTML = html;
+}
+
+// ── Demoras por causa ──────────────────────────────────────────────────────
+function _renderInformeDemoras(rows, keys) {
+    const el = document.getElementById('inf-demoras-pane');
+    if (!el) return;
+    const counts = {};
+    let total = 0;
+    rows.forEach(r => {
+        if (_infNorm(r[keys.estatus]) !== 'DEMORA') return;
+        const raw = String(r[keys.causaDemora] == null ? '' : r[keys.causaDemora]).trim();
+        const code = raw.replace(/\..*$/, '').charAt(0) || '';
+        const label = _INF_CAUSAS[code] || 'Sin clasificar';
+        counts[label] = (counts[label] || 0) + 1;
+        total++;
+    });
+    const order = ['Repercusión', 'Compañía', 'Meteorología', 'Combustible', 'Evento circunstancial', 'Autoridad', 'Sin clasificar'];
+    const arr = Object.keys(counts)
+        .sort((a, b) => (counts[b] - counts[a]) || (order.indexOf(a) - order.indexOf(b)));
+
+    let html = `<h5 class="fw-bold mb-1"><i class="fas fa-clock me-2 text-primary"></i>Demoras por causa — ${_infMonthLabel()}</h5>
+        <p class="text-muted small mb-3">Clasificación de las operaciones marcadas como <strong>Demora</strong> según su código de causa.</p>`;
+    if (!total) {
+        html += '<div class="alert alert-secondary">No hay demoras registradas en el periodo.</div>';
+        el.innerHTML = html;
+        return;
+    }
+    html += `<div class="table-responsive" style="max-width:640px"><table class="table table-sm table-striped table-bordered align-middle mb-0" style="font-size:.85rem">
+        <thead class="table-light"><tr><th>Causa</th><th class="text-end">Demoras</th><th class="text-end">Porcentaje</th></tr></thead><tbody>`;
+    arr.forEach(label => {
+        const pct = (counts[label] / total * 100);
+        html += `<tr><td>${label}</td><td class="text-end fw-semibold">${counts[label].toLocaleString()}</td><td class="text-end">${pct.toFixed(2)}%</td></tr>`;
+    });
+    html += `<tr class="table-secondary fw-bold"><th>Total</th><td class="text-end">${total.toLocaleString()}</td><td class="text-end">100.00%</td></tr>`;
+    html += '</tbody></table></div>';
+    el.innerHTML = html;
+}
+
+// ── Puntualidad por aerolínea ──────────────────────────────────────────────
+function _renderInformePuntualidad(rows, keys) {
+    const el = document.getElementById('inf-puntualidad-pane');
+    if (!el) return;
+    if (!keys.puntualidad) {
+        el.innerHTML = `<h5 class="fw-bold mb-1"><i class="fas fa-bullseye me-2 text-primary"></i>Puntualidad — ${_infMonthLabel()}</h5>
+            <div class="alert alert-warning">Los datos de este periodo no incluyen la columna <strong>Puntualidad</strong>.</div>`;
+        return;
+    }
+    const map = {};
+    rows.forEach(r => {
+        const code = _infNorm(r[keys.aerolinea]);
+        if (!code) return;
+        const p = _infNorm(r[keys.puntualidad]);
+        const pc = keys.puntCompania ? _infNorm(r[keys.puntCompania]) : '';
+        const e = map[code] || (map[code] = { a: 0, d: 0, c: 0, imp: 0, cimp: 0, pax: 0, cargo: 0 });
+        if (p === 'A TIEMPO') e.a++;
+        else if (p === 'DEMORA') e.d++;
+        else if (p === 'CANCELADO') e.c++;
+        if (pc === 'COMPANIA') e.imp++;
+        else if (pc === 'CANCELADO') e.cimp++;
+        const t = _classifyOpsTraffic(r[keys.servicio]);
+        if (t.cargo) e.cargo++; else if (t.pax) e.pax++;
+    });
+    const catMap = (_opsMasterCatalogCache && _opsMasterCatalogCache.airlinesMap) || {};
+    const arr = Object.keys(map).map(code => {
+        const o = map[code];
+        const total = o.a + o.d + o.c;
+        const totalImp = o.imp + o.cimp;
+        const punt = total > 0 ? (1 - totalImp / total) * 100 : null;
+        return {
+            code, name: catMap[code] || code,
+            categoria: o.cargo > o.pax ? 'Carga' : 'Pasajeros',
+            a: o.a, d: o.d, c: o.c, total, imp: o.imp, cimp: o.cimp, totalImp, punt
+        };
+    }).filter(x => x.total > 0)
+      .sort((a, b) => (b.punt == null ? -1 : b.punt) - (a.punt == null ? -1 : a.punt));
+
+    let html = `<h5 class="fw-bold mb-1"><i class="fas fa-bullseye me-2 text-primary"></i>Puntualidad por aerolínea — ${_infMonthLabel()}</h5>
+        <p class="text-muted small mb-3">Puntualidad = 100% − (Total imputables ÷ Total). Imputables = demoras/cancelaciones atribuibles a la compañía.</p>`;
+    if (!arr.length) {
+        html += '<div class="alert alert-secondary">No hay datos de puntualidad en el periodo.</div>';
+        el.innerHTML = html;
+        return;
+    }
+    html += `<div class="table-responsive"><table class="table table-sm table-striped table-bordered align-middle mb-0" style="font-size:.83rem">
+        <thead class="table-light"><tr>
+            <th>Categoría</th><th>Aerolínea</th>
+            <th class="text-end">A tiempo</th><th class="text-end">Demora</th><th class="text-end">Cancelado</th>
+            <th class="text-end">Total</th>
+            <th class="text-end">Imputables</th><th class="text-end">Canc. imput.</th><th class="text-end">Total imput.</th>
+            <th class="text-end">Puntualidad</th>
+        </tr></thead><tbody>`;
+    arr.forEach(x => {
+        const puntTxt = x.punt == null ? '—' : `${x.punt.toFixed(1)}%`;
+        const puntCls = x.punt == null ? '' : x.punt >= 85 ? 'text-success fw-bold' : x.punt >= 70 ? 'text-warning fw-bold' : 'text-danger fw-bold';
+        html += `<tr>
+            <td><span class="badge ${x.categoria === 'Carga' ? 'bg-info' : 'bg-primary'}">${x.categoria}</span></td>
+            <td>${x.name === x.code ? x.code : `${x.name} <span class="text-muted">(${x.code})</span>`}</td>
+            <td class="text-end">${x.a.toLocaleString()}</td>
+            <td class="text-end">${x.d.toLocaleString()}</td>
+            <td class="text-end">${x.c.toLocaleString()}</td>
+            <td class="text-end fw-semibold">${x.total.toLocaleString()}</td>
+            <td class="text-end">${x.imp.toLocaleString()}</td>
+            <td class="text-end">${x.cimp.toLocaleString()}</td>
+            <td class="text-end">${x.totalImp.toLocaleString()}</td>
+            <td class="text-end ${puntCls}">${puntTxt}</td>
+        </tr>`;
+    });
+    html += '</tbody></table></div>';
+    el.innerHTML = html;
+}
+
+// Punto de entrada: renderiza todas las sub-pestañas de Informes.
+async function renderOpsInformes() {
+    const rows = getFilteredOpsData();
+    const panes = ['inf-totales-pane', 'inf-pasajeros-pane', 'inf-carga-pane', 'inf-demoras-pane', 'inf-puntualidad-pane'];
+    if (!rows || !rows.length) {
+        panes.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.innerHTML = '<div class="alert alert-secondary my-2">No hay registros para el periodo/filtros seleccionados.</div>';
+        });
+        return;
+    }
+    if (!_opsMasterCatalogCache) {
+        try { await _loadOpsMasterCatalogs(); } catch (_) { }
+    }
+    const keys = _infKeys(rows[0]);
+    _renderInformeTotales(rows, keys);
+    _renderInformeSlots('inf-pasajeros-pane', rows, keys, false);
+    _renderInformeSlots('inf-carga-pane', rows, keys, true);
+    _renderInformeDemoras(rows, keys);
+    _renderInformePuntualidad(rows, keys);
+}
+
 let _heatmapOpsHourDetails = null; // stores per-hour+day ops records for ops-hour heatmap drill-down
 let _acMovFlights  = null; // { direction: { acType: [records] } } for aircraft-type bar drilldown
 let _posFlights    = null; // { posName: [records] } for positions bar drilldown
