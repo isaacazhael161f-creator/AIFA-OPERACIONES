@@ -17072,20 +17072,20 @@ function _conciPuntualidad(slotRaw, opRaw, fallbackYear) {
 }
 
 // HR. MÁXIMA DE ENTREGA — reproduce la fórmula de Excel =SI.ERROR(P+30/24,"-"):
-// P = SLOT ASIGNADO. En Excel 1 = 1 día, así que 30/24 equivale a 30 horas; la
-// hora máxima de entrega es el slot asignado + 30 horas. Si el slot no es una
+// P = HR. DE OPERACIÓN. En Excel 1 = 1 día, así que 30/24 equivale a 30 horas; la
+// hora máxima de entrega es la hora de operación + 30 horas. Si la hora no es una
 // fecha/hora válida, devuelve "-".
-function _conciHrMaximaEntrega(slotRaw, row, fechaCol, fallbackYear) {
-    let slotDate = _conciPartsToDate(_conciParseDateTimeParts(slotRaw, fallbackYear));
-    if (!slotDate) {
-        const timeOnly = _conciParseTimeOnly(slotRaw);
+function _conciHrMaximaEntrega(opRaw, row, fechaCol, fallbackYear) {
+    let opDate = _conciPartsToDate(_conciParseDateTimeParts(opRaw, fallbackYear));
+    if (!opDate) {
+        const timeOnly = _conciParseTimeOnly(opRaw);
         const rowDateParts = _conciGetRowDateParts(row, fechaCol, fallbackYear);
         if (timeOnly && rowDateParts) {
-            slotDate = _conciPartsToDate({ ...rowDateParts, ...timeOnly });
+            opDate = _conciPartsToDate({ ...rowDateParts, ...timeOnly });
         }
     }
-    if (!slotDate) return '-';
-    const maxDate = new Date(slotDate.getTime() + 30 * 3600000);
+    if (!opDate) return '-';
+    const maxDate = new Date(opDate.getTime() + 30 * 3600000);
     if (!Number.isFinite(maxDate.getTime())) return '-';
     return _conciFormatDateTimeParts({
         day: maxDate.getDate(),
@@ -17798,7 +17798,7 @@ function _renderConciManifiestosTable(data, columns, fallbackYear) {
         isOptype:    c === _optypeCol,
         isHrsCumplidas: c === _hrsCumplidasCol && !!_hrOperacionCol && !!_hrRecepcionCol,
         isPuntualidad: c === _puntualidadCol && !!_slotAsignadoCol && !!_hrOperacionCol,
-        isHrMaxEntrega: c === _hrMaxEntregaCol && !!_slotAsignadoCol,
+        isHrMaxEntrega: c === _hrMaxEntregaCol && !!_hrOperacionCol,
         isEvidencia: /evidencia/i.test(c),
     }));
 
@@ -17924,8 +17924,8 @@ function _renderConciManifiestosTable(data, columns, fallbackYear) {
                         td.dataset.raw = '-';
                     }
                 } else if (meta.isHrMaxEntrega) {
-                    const slotRaw = _slotAsignadoCol ? row[_slotAsignadoCol] : '';
-                    const maxEntrega = _conciHrMaximaEntrega(slotRaw, row, _fechaCol, fallbackYear);
+                    const opRaw = _hrOperacionCol ? row[_hrOperacionCol] : '';
+                    const maxEntrega = _conciHrMaximaEntrega(opRaw, row, _fechaCol, fallbackYear);
                     td.textContent = maxEntrega;
                     td.dataset.raw = maxEntrega;
                 } else if (meta.isEvidencia) {
