@@ -17889,6 +17889,282 @@ function _conciBindCountPills() {
     });
 }
 
+// ─── Exportación a Excel (Pasajeros / Carga) ───────────────────────────────
+// Definición de columnas destino por tipo, con alias para localizar el valor en
+// la fila y el tipo de formato con el que se debe exportar (para que el archivo se
+// vea igual que en la tabla).
+const _CONCI_EXPORT_COLS_PAX = [
+    { h: 'CIERRE SUBSECRETARIA', t: 'text', a: ['CIERRE SUBSECRETARIA'] },
+    { h: 'MES', t: 'mes', a: ['MES'] },
+    { h: 'FECHA', t: 'date', a: ['FECHA'] },
+    { h: 'TIPO DE MANIFIESTO', t: 'text', a: ['TIPO DE MANIFIESTO'] },
+    { h: 'AEROLINEA', t: 'airline', a: ['AEROLINEA', 'AEROLÍNEA'] },
+    { h: 'TIPO DE OPERACIÓN', t: 'optype', a: [] },
+    { h: 'AERONAVE', t: 'text', a: ['AERONAVE'] },
+    { h: 'MATRÍCULA', t: 'text', a: ['MATRÍCULA', 'MATRICULA'] },
+    { h: 'ESTATUS MATRÍCULA', t: 'text', a: ['ESTATUS MATRÍCULA', 'ESTATUS MATRICULA'] },
+    { h: '# DE VUELO', t: 'text', a: ['# DE VUELO'] },
+    { h: 'DESTINO / ORIGEN', t: 'routecity', a: ['DESTINO / ORIGEN'] },
+    { h: 'SLOT ASIGNADO', t: 'datetime', a: ['SLOT ASIGNADO'] },
+    { h: 'SLOT COORDINADO', t: 'datetime', a: ['SLOT COORDINADO'] },
+    { h: 'HR. DE INICIO O TERMINO DE PERNOCTA', t: 'datetime', a: ['HR. DE INICIO O TERMINO DE PERNOCTA'] },
+    { h: 'HR. DE EMBARQUE O DESEMBARQUE', t: 'datetime', a: ['HR. DE EMBARQUE O DESEMBARQUE'] },
+    { h: 'HR. DE OPERACIÓN', t: 'datetime', a: ['HR. DE OPERACIÓN'] },
+    { h: 'HR. MÁXIMA DE ENTREGA', t: 'hrmax', a: [] },
+    { h: 'HR. DE RECEPCIÓN', t: 'datetime', a: ['HR. DE RECEPCIÓN'] },
+    { h: 'HRS. CUMPLIDAS', t: 'hrscump', a: [] },
+    { h: 'PUNTUALIDAD / CANCELACIÓN', t: 'puntualidad', a: [] },
+    { h: 'TOTAL PAX', t: 'num', a: ['TOTAL PAX'] },
+    { h: 'DIPLOMATICOS', t: 'num', a: ['DIPLOMATICOS'] },
+    { h: 'EN COMISION', t: 'num', a: ['EN COMISION'] },
+    { h: 'INFANTES', t: 'num', a: ['INFANTES'] },
+    { h: 'TRANSITOS', t: 'num', a: ['TRANSITOS'] },
+    { h: 'CONEXIONES', t: 'num', a: ['CONEXIONES'] },
+    { h: 'OTROS EXENTOS', t: 'num', a: ['OTROS EXENTOS'] },
+    { h: 'TOTAL EXENTOS', t: 'num', a: ['TOTAL EXENTOS'] },
+    { h: 'PAX QUE PAGAN TUA', t: 'num', a: ['PAX QUE PAGAN TUA'] },
+    { h: 'KGS. DE EQUIPAJE', t: 'num', a: ['KGS. DE EQUIPAJE'] },
+    { h: 'KGS. DE CARGA', t: 'num', a: ['KGS. DE CARGA'] },
+    { h: 'CORREO', t: 'num', a: ['CORREO'] },
+    { h: 'DEMORA +- 15 MIN.', t: 'text', a: ['DEMORA +- 15 MIN.', 'DEMORA +-15 MIN', 'DEMORA +- 15 MIN'] },
+    { h: 'CÓDIGO DEMORA', t: 'text', a: ['CÓDIGO DEMORA', 'CODIGO DEMORA'] },
+    { h: 'OBSERVACIONES', t: 'textwrap', a: ['OBSERVACIONES'] },
+    { h: 'CAPTURÓ,', t: 'text', a: ['CAPTURÓ', 'CAPTURO'] },
+];
+
+const _CONCI_EXPORT_COLS_CARGA = [
+    { h: 'DATOS SUBSECRETARIA', t: 'text', a: ['DATOS SUBSECRETARIA', 'CIERRE SUBSECRETARIA'] },
+    { h: 'FECHA', t: 'date', a: ['FECHA'] },
+    { h: 'TIPO DE MANIFIESTO', t: 'text', a: ['TIPO DE MANIFIESTO'] },
+    { h: 'TIPO DE OPERACIÓN', t: 'optype', a: [] },
+    { h: 'AEROLINEA', t: 'airline', a: ['AEROLINEA', 'AEROLÍNEA'] },
+    { h: 'AERONAVE', t: 'text', a: ['AERONAVE'] },
+    { h: 'MATRÍCULA', t: 'text', a: ['MATRÍCULA', 'MATRICULA'] },
+    { h: '# DE VUELO', t: 'text', a: ['# DE VUELO'] },
+    { h: 'ORIGEN', t: 'codecity', a: ['ORIGEN'] },
+    { h: 'ESCALA', t: 'codecity', a: ['ESCALA'] },
+    { h: 'DESTINO', t: 'codecity', a: ['DESTINO'] },
+    { h: 'SLOT ASIGNADO', t: 'datetime', a: ['SLOT ASIGNADO'] },
+    { h: 'SLOT COORDINADO', t: 'datetime', a: ['SLOT COORDINADO'] },
+    { h: 'HR. DE INICIO O TERMINO DE PERNOCTA', t: 'datetime', a: ['HR. DE INICIO O TERMINO DE PERNOCTA'] },
+    { h: 'HR. DE EMBARQUE O DESEMBARQUE', t: 'datetime', a: ['HR. DE EMBARQUE O DESEMBARQUE'] },
+    { h: 'HR. DE OPERACIÓN', t: 'datetime', a: ['HR. DE OPERACIÓN'] },
+    { h: 'HR MÁXIMA DE ENTREGA', t: 'hrmax', a: [] },
+    { h: 'HR. DE RECEPCIÓN', t: 'datetime', a: ['HR. DE RECEPCIÓN'] },
+    { h: 'HR. CUMPLIDAS', t: 'hrscump', a: [] },
+    { h: 'PUNTUALIDAD', t: 'puntualidad', a: [] },
+    { h: 'IMPORTACIÓN', t: 'num', a: ['IMPORTACIÓN', 'IMPORTACION'] },
+    { h: 'KGS CARGA LLEGADA NLU', t: 'num', a: ['KGS CARGA LLEGADA NLU', 'KGS. CARGA LLEGADA', 'KGS LLEGADA'] },
+    { h: 'EXPORTACIÓN', t: 'num', a: ['EXPORTACIÓN', 'EXPORTACION'] },
+    { h: 'KG. DE CARGA SALIDA NLU', t: 'num', a: ['KG. DE CARGA SALIDA NLU', 'KGS CARGA SALIDA NLU', 'KGS SALIDA'] },
+    { h: 'TRANSITO', t: 'num', a: ['TRANSITO', 'TRANSITOS'] },
+    { h: 'CORREO', t: 'num', a: ['CORREO'] },
+    { h: 'DEMORA +-15 MIN', t: 'text', a: ['DEMORA +-15 MIN', 'DEMORA +- 15 MIN.', 'DEMORA +- 15 MIN'] },
+    { h: 'MOTIVO', t: 'textwrap', a: ['MOTIVO', 'OBSERVACIONES'] },
+    { h: 'CODIGO', t: 'text', a: ['CODIGO', 'CÓDIGO DEMORA'] },
+    { h: 'CAPTURÓ', t: 'text', a: ['CAPTURÓ', 'CAPTURO'] },
+];
+
+// Localiza el valor de una fila probando alias exactos y luego una comparación
+// normalizada (sin acentos/espacios/signos) contra las llaves reales.
+function _conciExportGetField(row, aliases) {
+    if (!row || !aliases) return '';
+    for (const a of aliases) {
+        const v = row[a];
+        if (v !== undefined && v !== null && String(v).trim() !== '') return v;
+    }
+    const norm = (s) => String(s || '').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^A-Z0-9]/g, '');
+    const keys = Object.keys(row);
+    for (const a of aliases) {
+        const na = norm(a);
+        for (const k of keys) {
+            if (norm(k) === na) {
+                const v = row[k];
+                if (v !== undefined && v !== null && String(v).trim() !== '') return v;
+            }
+        }
+    }
+    return '';
+}
+
+// Convierte un color #RRGGBB a ARGB (FFRRGGBB) para ExcelJS.
+function _conciHexToArgb(hex) {
+    const h = String(hex || '').replace('#', '').trim();
+    if (h.length === 6) return ('FF' + h).toUpperCase();
+    if (h.length === 8) return h.toUpperCase();
+    return 'FF000000';
+}
+
+async function _conciExportToExcel(kind) {
+    if (typeof ExcelJS === 'undefined' || typeof saveAs === 'undefined') {
+        alert('No se pudo cargar la librería de Excel. Verifica tu conexión e inténtalo de nuevo.');
+        return;
+    }
+    const cached = _conciRenderCache.get(_conciRenderedKey);
+    if (!cached || !Array.isArray(cached.rows) || cached.rows.length === 0) {
+        alert('No hay datos cargados para exportar.');
+        return;
+    }
+    const { rows, columns, year } = cached;
+    const cols = (Array.isArray(columns) && columns.length) ? columns : Object.keys(rows[0] || {});
+    const optypeCol  = cols.find(c => /tipo.*oper|service\s*type/i.test(c)) || null;
+    const airlineCol = cols.find(c => /aerol[ií]nea|airline/i.test(c)) || null;
+
+    const isCarga = kind === 'carga';
+    const defs = isCarga ? _CONCI_EXPORT_COLS_CARGA : _CONCI_EXPORT_COLS_PAX;
+    const dataRows = rows.filter(r => _conciRowIsCargo(r, optypeCol, airlineCol) === isCarga);
+    if (!dataRows.length) {
+        alert(`No hay vuelos de ${isCarga ? 'carga' : 'pasajeros'} en la vista actual.`);
+        return;
+    }
+
+    const get = _conciExportGetField;
+    const routeCity = (raw, isArr) => {
+        const parts = String(raw || '').toUpperCase().split(/[-\/]+/).filter(Boolean);
+        const code = parts.length >= 2 ? (isArr ? parts[0] : parts[parts.length - 1]) : (parts[0] || '');
+        if (!code) return String(raw || '');
+        return window._iataToCity ? window._iataToCity(code) : code;
+    };
+    const codeCity = (raw) => {
+        const s = String(raw || '').trim();
+        if (!s) return '';
+        if (/^[A-Za-z]{3}$/.test(s)) return window._iataToCity ? window._iataToCity(s.toUpperCase()) : s;
+        return s;
+    };
+    const firstCode = (raw) => (String(raw || '').toUpperCase().split(/[-\/\s]+/).filter(Boolean)[0] || '');
+
+    // Calcula el valor y estilo de una celda destino según su tipo.
+    const computeCell = (def, row, isArr) => {
+        const rawVal = def.a.length ? get(row, def.a) : '';
+        switch (def.t) {
+            case 'mes': {
+                const n = parseInt(String(rawVal).trim(), 10);
+                const v = (Number.isFinite(n) && n >= 1 && n <= 12) ? capitalizeFirst(SPANISH_MONTH_NAMES[n - 1]) : String(rawVal || '');
+                return { value: v };
+            }
+            case 'date':
+            case 'datetime':
+                return { value: _conciFormatDisplayValue(def.h, rawVal, row, 'FECHA', year) };
+            case 'airline': {
+                const meta = _conciResolveAirlineMeta(rawVal);
+                if (meta) {
+                    return {
+                        value: String(meta.name || rawVal || '').toUpperCase(),
+                        fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: _conciHexToArgb(meta.color || '#6c757d') } },
+                        fontColor: _conciHexToArgb(meta.textColor || '#ffffff'),
+                        bold: true,
+                    };
+                }
+                return { value: String(rawVal || '') };
+            }
+            case 'optype': {
+                let code = '';
+                if (isCarga) {
+                    const o = get(row, ['ORIGEN']);
+                    const d = get(row, ['DESTINO']);
+                    code = firstCode(isArr ? (o || d) : (d || o));
+                } else {
+                    const routing = get(row, ['DESTINO / ORIGEN']);
+                    const parts = String(routing || '').toUpperCase().split(/[-\/]+/).filter(Boolean);
+                    code = parts.length >= 2 ? (isArr ? parts[0] : parts[parts.length - 1]) : (parts[0] || '');
+                }
+                return { value: code ? _conciOperacionNacInt(code) : '' };
+            }
+            case 'routecity':
+                return { value: routeCity(rawVal, isArr) };
+            case 'codecity':
+                return { value: codeCity(rawVal) };
+            case 'hrmax':
+                return { value: _conciHrMaximaEntrega(get(row, ['HR. DE OPERACIÓN']), row, 'FECHA', year) };
+            case 'hrscump': {
+                const v = _conciHrsCumplidas(get(row, ['HR. DE OPERACIÓN']), get(row, ['HR. DE RECEPCIÓN']), year);
+                const num = parseFloat(v);
+                const out = { value: v, align: { vertical: 'middle', horizontal: 'center' } };
+                if (Number.isFinite(num)) {
+                    if (num < 30) { out.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8F5E9' } }; out.fontColor = 'FF2E7D32'; out.bold = true; }
+                    else if (num > 30) { out.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFEBEE' } }; out.fontColor = 'FFC62828'; out.bold = true; }
+                }
+                return out;
+            }
+            case 'puntualidad': {
+                const estado = _conciPuntualidad(get(row, ['SLOT ASIGNADO']), get(row, ['HR. DE OPERACIÓN']), year);
+                const styleMap = {
+                    'EN TIEMPO':  { bg: 'FFE8F5E9', fg: 'FF2E7D32' },
+                    'ANTES':      { bg: 'FFE8F5E9', fg: 'FF2E7D32' },
+                    'ANTICIPADO': { bg: 'FFE3F2FD', fg: 'FF1565C0' },
+                    'DESPUÉS':    { bg: 'FFFFF8E1', fg: 'FFEF6C00' },
+                    'DEMORA':     { bg: 'FFFFEBEE', fg: 'FFC62828' },
+                };
+                const st = styleMap[estado];
+                const out = { value: estado || '-' };
+                if (st) { out.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: st.bg } }; out.fontColor = st.fg; out.bold = true; }
+                return out;
+            }
+            case 'num': {
+                const s = String(rawVal).trim();
+                if (s === '') return { value: '', align: { vertical: 'middle', horizontal: 'right' } };
+                const n = parseFloat(s.replace(/,/g, ''));
+                return Number.isFinite(n)
+                    ? { value: n, align: { vertical: 'middle', horizontal: 'right' } }
+                    : { value: s, align: { vertical: 'middle', horizontal: 'right' } };
+            }
+            case 'textwrap':
+                return { value: String(rawVal || ''), align: { vertical: 'middle', horizontal: 'left', wrapText: true } };
+            default:
+                return { value: String(rawVal || '') };
+        }
+    };
+
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet(isCarga ? 'Carga' : 'Pasajeros', {
+        views: [{ state: 'frozen', ySplit: 1 }],
+    });
+    const headers = defs.map(d => d.h.trim());
+    ws.columns = headers.map(h => ({ header: h, key: h }));
+    const maxLen = headers.map(h => h.length);
+    const thin = { style: 'thin', color: { argb: 'FFBFBFBF' } };
+    const border = { top: thin, left: thin, bottom: thin, right: thin };
+    const baseFont = { name: 'Noto Sans', size: 10 };
+
+    // Header
+    const headerRow = ws.getRow(1);
+    headerRow.height = 34;
+    headerRow.eachCell((cell) => {
+        cell.font = { name: 'Noto Sans', size: 10, bold: true, color: { argb: 'FFFFFFFF' } };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF15683F' } };
+        cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+        cell.border = border;
+    });
+
+    // Data
+    dataRows.forEach((row) => {
+        const tipoRaw = String(get(row, ['TIPO DE MANIFIESTO']) || '').toLowerCase();
+        const isArr = /lleg|arr/.test(tipoRaw);
+        const cells = defs.map(d => computeCell(d, row, isArr));
+        const xr = ws.addRow(cells.map(c => (c.value === undefined || c.value === null) ? '' : c.value));
+        xr.eachCell((cell, colNumber) => {
+            const meta = cells[colNumber - 1] || {};
+            cell.font = { ...baseFont };
+            if (meta.bold) cell.font.bold = true;
+            if (meta.fontColor) cell.font.color = { argb: meta.fontColor };
+            cell.alignment = meta.align || { vertical: 'middle', horizontal: 'center' };
+            cell.border = border;
+            if (meta.fill) cell.fill = meta.fill;
+            const len = String(cell.value ?? '').length;
+            if (len > maxLen[colNumber - 1]) maxLen[colNumber - 1] = len;
+        });
+    });
+
+    ws.columns.forEach((col, i) => { col.width = Math.min(46, Math.max(11, maxLen[i] + 2)); });
+    ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: headers.length } };
+
+    const buf = await wb.xlsx.writeBuffer();
+    const stamp = new Date().toISOString().slice(0, 10);
+    const fname = `Conciliacion_${isCarga ? 'Carga' : 'Pasajeros'}_${stamp}.xlsx`;
+    saveAs(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), fname);
+}
+window.conciExportExcel = _conciExportToExcel;
+
 function _renderConciManifiestosTable(data, columns, fallbackYear) {
     const tableId = 'table-conci-manifiestos';
 

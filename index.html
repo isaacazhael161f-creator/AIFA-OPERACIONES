@@ -19403,17 +19403,28 @@ FF
                                                         <span class="conci-count-pill" id="conci-pill-pax" role="button" tabindex="0" title="Filtrar solo vuelos de pasajeros (clic para ver llegadas/salidas)" style="cursor:pointer;user-select:none;display:inline-flex;align-items:center;gap:4px;padding:2px 10px;border-radius:999px;font-weight:600;background:#ede7f6;color:#5e35b1;border:1px solid #d1c4e9"><i class="fas fa-users"></i> Pasajeros <span class="badge" style="background:#5e35b1" id="conci-count-pax">0</span><span id="conci-count-pax-detail" class="d-none" style="display:inline-flex;align-items:center;gap:6px;margin-left:2px;padding-left:6px;border-left:1px solid #d1c4e9;font-weight:600"><span title="Llegadas de pasajeros"><i class="fas fa-plane-arrival"></i> <span id="conci-count-pax-arr">0</span></span><span title="Salidas de pasajeros"><i class="fas fa-plane-departure"></i> <span id="conci-count-pax-dep">0</span></span></span></span>
                                                         <span class="conci-count-pill" id="conci-pill-carga" role="button" tabindex="0" title="Filtrar solo vuelos de carga (clic para ver llegadas/salidas)" style="cursor:pointer;user-select:none;display:inline-flex;align-items:center;gap:4px;padding:2px 10px;border-radius:999px;font-weight:600;background:#fff3e0;color:#e65100;border:1px solid #ffe0b2"><i class="fas fa-box-open"></i> Carga <span class="badge" style="background:#e65100" id="conci-count-carga">0</span><span id="conci-count-carga-detail" class="d-none" style="display:inline-flex;align-items:center;gap:6px;margin-left:2px;padding-left:6px;border-left:1px solid #ffe0b2;font-weight:600"><span title="Llegadas de carga"><i class="fas fa-plane-arrival"></i> <span id="conci-count-carga-arr">0</span></span><span title="Salidas de carga"><i class="fas fa-plane-departure"></i> <span id="conci-count-carga-dep">0</span></span></span></span>
                                                     </div>
-                                                    <div class="dropdown">
-                                                        <button class="btn btn-sm btn-primary shadow-sm dropdown-toggle" type="button" id="dropdownCapturarManifiestos" data-bs-toggle="dropdown" aria-expanded="false">
-                                                            <i class="fas fa-plus me-1"></i>Capturar Manifiesto
-                                                        </button>
-                                                        <ul class="dropdown-menu dropdown-menu-end shadow-sm" aria-labelledby="dropdownCapturarManifiestos" style="font-size:0.85rem;">
-                                                            <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#modalManifiestoLlegada"><i class="fas fa-plane-arrival text-primary me-2"></i>Llegada (Pasajeros)</a></li>
-                                                            <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#modalManifiestoSalida"><i class="fas fa-plane-departure text-warning me-2"></i>Salida (Pasajeros)</a></li>
-                                                            <li><hr class="dropdown-divider"></li>
-                                                            <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#modalManifiestoLlegadaCarga"><i class="fas fa-box-open text-success me-2"></i>Llegada (Carga)</a></li>
-                                                            <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#modalManifiestoSalidaCarga"><i class="fas fa-truck-loading text-info me-2"></i>Salida (Carga)</a></li>
-                                                        </ul>
+                                                    <div class="d-flex gap-2 align-items-center">
+                                                        <div class="dropdown">
+                                                            <button class="btn btn-sm btn-outline-success shadow-sm dropdown-toggle" type="button" id="dropdownExportConci" data-bs-toggle="dropdown" aria-expanded="false">
+                                                                <i class="fas fa-file-excel me-1"></i>Exportar Excel
+                                                            </button>
+                                                            <ul class="dropdown-menu dropdown-menu-end shadow-sm" aria-labelledby="dropdownExportConci" style="font-size:0.85rem;">
+                                                                <li><a class="dropdown-item" href="#" onclick="window.conciExportExcel &amp;&amp; window.conciExportExcel('pax'); return false;"><i class="fas fa-users text-primary me-2"></i>Pasajeros</a></li>
+                                                                <li><a class="dropdown-item" href="#" onclick="window.conciExportExcel &amp;&amp; window.conciExportExcel('carga'); return false;"><i class="fas fa-box-open text-warning me-2"></i>Carga</a></li>
+                                                            </ul>
+                                                        </div>
+                                                        <div class="dropdown">
+                                                            <button class="btn btn-sm btn-primary shadow-sm dropdown-toggle" type="button" id="dropdownCapturarManifiestos" data-bs-toggle="dropdown" aria-expanded="false">
+                                                                <i class="fas fa-plus me-1"></i>Capturar Manifiesto
+                                                            </button>
+                                                            <ul class="dropdown-menu dropdown-menu-end shadow-sm" aria-labelledby="dropdownCapturarManifiestos" style="font-size:0.85rem;">
+                                                                <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#modalManifiestoLlegada"><i class="fas fa-plane-arrival text-primary me-2"></i>Llegada (Pasajeros)</a></li>
+                                                                <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#modalManifiestoSalida"><i class="fas fa-plane-departure text-warning me-2"></i>Salida (Pasajeros)</a></li>
+                                                                <li><hr class="dropdown-divider"></li>
+                                                                <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#modalManifiestoLlegadaCarga"><i class="fas fa-box-open text-success me-2"></i>Llegada (Carga)</a></li>
+                                                                <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#modalManifiestoSalidaCarga"><i class="fas fa-truck-loading text-info me-2"></i>Salida (Carga)</a></li>
+                                                            </ul>
+                                                        </div>
                                                     </div>
                                                 </div>
                                                 <div class="card-body p-0">
