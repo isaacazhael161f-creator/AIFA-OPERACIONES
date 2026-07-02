@@ -17816,7 +17816,13 @@ function _renderConciManifiestosTable(data, columns, fallbackYear) {
                     const hrsNum = parseFloat(hrs);
                     if (Number.isFinite(hrsNum)) {
                         td.style.fontWeight = '700';
-                        td.style.color = hrsNum < 30 ? '#2e7d32' : '#c62828';
+                        if (hrsNum < 30) {
+                            td.style.color = '#2e7d32';
+                            td.style.backgroundColor = '#e8f5e9';
+                        } else if (hrsNum > 30) {
+                            td.style.color = '#c62828';
+                            td.style.backgroundColor = '#ffebee';
+                        }
                     }
                 } else if (meta.isEvidencia) {
                     // Si es la columna de evidencia de PDF y trae link
