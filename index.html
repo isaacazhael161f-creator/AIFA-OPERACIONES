@@ -12,6 +12,79 @@
     <title>Operaciones AIFA</title>
     <meta name="theme-color" content="#f5f7fb" />
     <script>
+        // ── Arranque seguro / auto-recuperación ────────────────────────────────
+        // Motivo: una PWA instalada puede "quedar inservible" tras semanas si el
+        // Service Worker queda atorado o el estado local se corrompe/llena, de modo
+        // que el acceso directo ya no abre. Este guard detecta arranques que nunca
+        // llegan a mostrar la interfaz y, tras intentos fallidos repetidos, limpia
+        // Service Workers + cachés automáticamente para que la app vuelva a abrir.
+        // Recuperación manual: abrir la app con  ?recover=1  o  #recover
+        (function safeBoot() {
+            function get(k, d) { try { var v = localStorage.getItem(k); return v == null ? d : v; } catch (_) { return d; } }
+            function set(k, v) { try { localStorage.setItem(k, v); } catch (_) { } }
+            function del(k) { try { localStorage.removeItem(k); } catch (_) { } }
+
+            var params;
+            try { params = new URLSearchParams(location.search); } catch (_) { params = { get: function () { return null; } }; }
+            var manualRecover = (params.get && params.get('recover') === '1') || location.hash === '#recover';
+
+            function purge(hard) {
+                var tasks = [];
+                try {
+                    if ('serviceWorker' in navigator) {
+                        tasks.push(navigator.serviceWorker.getRegistrations()
+                            .then(function (regs) { return Promise.all((regs || []).map(function (r) { return r.unregister().catch(function () { }); })); })
+                            .catch(function () { }));
+                    }
+                } catch (_) { }
+                try {
+                    if (window.caches && caches.keys) {
+                        tasks.push(caches.keys()
+                            .then(function (keys) { return Promise.all(keys.map(function (k) { return caches.delete(k); })); })
+                            .catch(function () { }));
+                    }
+                } catch (_) { }
+                if (hard) {
+                    // Último recurso: limpia datos locales que pueden crecer o corromperse.
+                    // NO se toca la sesión de Supabase (sb-*-auth-token) para no forzar re-login.
+                    ['aifa.manifests', 'aifa.reload.guard', 'aifa.app.signature'].forEach(del);
+                }
+                return Promise.all(tasks);
+            }
+
+            function recover(hard) {
+                del('aifa.boot.fails');
+                purge(hard).then(function () {
+                    location.replace(location.origin + location.pathname);
+                });
+            }
+
+            if (manualRecover) { recover(true); return; }
+
+            var fails = parseInt(get('aifa.boot.fails', '0'), 10) || 0;
+            if (fails >= 2) { recover(fails >= 4); return; }
+
+            // Marca este intento; se limpiará en cuanto la interfaz aparezca.
+            set('aifa.boot.fails', String(fails + 1));
+
+            var done = false;
+            function markReady() { if (done) return; done = true; set('aifa.boot.fails', '0'); }
+            window.__aifaBootOK = markReady;
+
+            function check() {
+                if (done) return;
+                var login = document.getElementById('login-screen');
+                var main = document.getElementById('main-app');
+                var loginVisible = login && !login.classList.contains('hidden');
+                var mainVisible = main && !main.classList.contains('hidden');
+                if (loginVisible || mainVisible) markReady();
+            }
+            document.addEventListener('DOMContentLoaded', function () { setTimeout(check, 0); });
+            var iv = setInterval(function () { check(); if (done) clearInterval(iv); }, 500);
+            setTimeout(function () { clearInterval(iv); }, 15000);
+        })();
+    </script>
+    <script>
         // Aplica tema claro por defecto antes de que el CSS pinte (evita parpadeo oscuro).
         // Si el usuario tiene preferencia explícita "dark" guardada, se respeta.
         (function () {

@@ -138,11 +138,40 @@ function registerServiceWorkerIfNeeded() {
     }
 }
 
+// Rompe-bucles: evita que la app se quede en un ciclo infinito de recargas
+// (p. ej. si el host devuelve una firma/etag distinta en cada petición). Si se
+// detectan demasiadas recargas automáticas en una ventana corta de tiempo, se
+// aborta la recarga para que la app quede utilizable en lugar de "no abrir".
+const APP_RELOAD_GUARD_KEY = 'aifa.reload.guard';
+const APP_RELOAD_MAX = 3;                 // máximo de recargas automáticas...
+const APP_RELOAD_WINDOW_MS = 60 * 1000;   // ...dentro de esta ventana de tiempo
+
+function appReloadLoopDetected() {
+    try {
+        const now = Date.now();
+        let info = {};
+        try { info = JSON.parse(sessionStorage.getItem(APP_RELOAD_GUARD_KEY) || '{}'); } catch (_) { info = {}; }
+        if (!info || typeof info !== 'object' || (now - (info.first || 0)) > APP_RELOAD_WINDOW_MS) {
+            info = { first: now, count: 0 };
+        }
+        info.count = (info.count || 0) + 1;
+        try { sessionStorage.setItem(APP_RELOAD_GUARD_KEY, JSON.stringify(info)); } catch (_) { }
+        return info.count > APP_RELOAD_MAX;
+    } catch (_) {
+        return false;
+    }
+}
+
 function scheduleAppReload(reason) {
     if (appReloadScheduled) return;
     if (shouldDeferAutoReload()) {
         appReloadDeferred = true;
         try { console.info('App reload deferred while session is active:', reason); } catch (_) { }
+        return;
+    }
+    if (appReloadLoopDetected()) {
+        try { console.warn('App reload loop detected — abortando recarga automática para no dejar la app inservible:', reason); } catch (_) { }
+        try { hideGlobalLoader(); } catch (_) { }
         return;
     }
     appReloadScheduled = true;
