@@ -17872,8 +17872,10 @@ function _renderConciManifiestosTable(data, columns, fallbackYear) {
                         ? (isArr ? parts[0] : parts[parts.length - 1])
                         : (parts[0] || '');
                     const city = code ? iataToCity(code) : rawStr;
-                    td.textContent = city || rawStr;
-                    if (rawStr) td.title = rawStr;
+                    const shown = city || rawStr;
+                    td.textContent = shown;
+                    td.dataset.raw = shown;
+                    if (rawStr && rawStr.toUpperCase() !== String(shown).toUpperCase()) td.title = rawStr;
                 } else if (meta.isOptype) {
                     const routingRaw = _routingCol ? String(row[_routingCol] || '') : '';
                     const tipoRaw = _tipoCol ? String(row[_tipoCol] || '') : '';
