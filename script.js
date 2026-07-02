@@ -17712,6 +17712,8 @@ function _renderConciManifiestosTable(data, columns, fallbackYear) {
     const _slotAsignadoCol = displayCols.find(c => /slot\s*asignad/i.test(c)) || null;
     const _puntualidadCol  = displayCols.find(c => /puntualidad|cancelaci/i.test(c)) || null;
     const _hrMaxEntregaCol = displayCols.find(c => /hr\.?\s*m[aá]xima\s*de\s*entrega/i.test(c)) || null;
+    // Columna "MES": muestra el nombre del mes en español en vez del número (1-12).
+    const _mesCol = displayCols.find(c => /^mes$/i.test(c)) || null;
     const _fechaCol   = displayCols.find(c => /(^|\b)fecha(\b|$)/i.test(c)) || null;
     _conciEditFallbackYear = fallbackYear;
     _conciEditFechaCol     = _fechaCol;
@@ -17799,6 +17801,7 @@ function _renderConciManifiestosTable(data, columns, fallbackYear) {
         isHrsCumplidas: c === _hrsCumplidasCol && !!_hrOperacionCol && !!_hrRecepcionCol,
         isPuntualidad: c === _puntualidadCol && !!_slotAsignadoCol && !!_hrOperacionCol,
         isHrMaxEntrega: c === _hrMaxEntregaCol && !!_hrOperacionCol,
+        isMes: c === _mesCol,
         isEvidencia: /evidencia/i.test(c),
     }));
 
@@ -17928,6 +17931,13 @@ function _renderConciManifiestosTable(data, columns, fallbackYear) {
                     const maxEntrega = _conciHrMaximaEntrega(opRaw, row, _fechaCol, fallbackYear);
                     td.textContent = maxEntrega;
                     td.dataset.raw = maxEntrega;
+                } else if (meta.isMes) {
+                    const mesNum = parseInt(rawStr, 10);
+                    const mesName = (Number.isFinite(mesNum) && mesNum >= 1 && mesNum <= 12)
+                        ? capitalizeFirst(SPANISH_MONTH_NAMES[mesNum - 1])
+                        : rawStr;
+                    td.textContent = mesName;
+                    td.dataset.raw = mesName;
                 } else if (meta.isEvidencia) {
                     // Si es la columna de evidencia de PDF y trae link
                     if (rawStr && (rawStr.startsWith('http') || rawStr.endsWith('.pdf'))) {
