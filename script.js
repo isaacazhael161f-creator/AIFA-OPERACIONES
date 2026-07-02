@@ -18508,6 +18508,25 @@ function _renderConciManifiestosTable(data, columns, fallbackYear) {
         }
         scrollWrap._conciLazyHandler = onLazyScroll;
         scrollWrap.addEventListener('scroll', onLazyScroll, { passive: true });
+
+        // Suaviza el scroll: mientras el usuario se desplaza, marca el contenedor
+        // como "is-scrolling" para desactivar transiciones/hover (evita jank) y
+        // lo quita ~140 ms después de que se detiene el desplazamiento.
+        if (!scrollWrap._conciSmoothHandler) {
+            const smoothHandler = () => {
+                if (!scrollWrap.classList.contains('is-scrolling')) {
+                    scrollWrap.classList.add('is-scrolling');
+                }
+                if (scrollWrap._conciScrollIdleTimer) {
+                    clearTimeout(scrollWrap._conciScrollIdleTimer);
+                }
+                scrollWrap._conciScrollIdleTimer = setTimeout(() => {
+                    scrollWrap.classList.remove('is-scrolling');
+                }, 140);
+            };
+            scrollWrap._conciSmoothHandler = smoothHandler;
+            scrollWrap.addEventListener('scroll', smoothHandler, { passive: true });
+        }
     }
 
     _conciRefreshEditToolbar();

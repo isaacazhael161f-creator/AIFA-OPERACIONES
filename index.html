@@ -733,7 +733,39 @@ FF
             /* Aísla los repintados del scroll a este contenedor para evitar lag
                al desplazarse horizontalmente. */
             contain: paint;
-            overscroll-behavior-x: contain;
+            overscroll-behavior: contain;
+            /* Sugiere al navegador optimizar el desplazamiento para un scroll
+               más fluido, tanto horizontal como vertical. */
+            will-change: scroll-position;
+            /* Barra de scroll ancha estilo Excel (Firefox). */
+            scrollbar-width: auto;
+            scrollbar-color: #a6a6a6 #f0f0f0;
+        }
+        /* Barras de scroll anchas estilo Excel (Chromium/WebKit). */
+        #conci-manifiestos-scroll::-webkit-scrollbar {
+            width: 17px;
+            height: 17px;
+            background: #f0f0f0;
+        }
+        #conci-manifiestos-scroll::-webkit-scrollbar-track {
+            background: #f0f0f0;
+            border: 1px solid #dcdcdc;
+        }
+        #conci-manifiestos-scroll::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border: 3px solid #f0f0f0;
+            border-radius: 8px;
+            min-height: 40px;
+            min-width: 40px;
+        }
+        #conci-manifiestos-scroll::-webkit-scrollbar-thumb:hover {
+            background: #a6a6a6;
+        }
+        #conci-manifiestos-scroll::-webkit-scrollbar-thumb:active {
+            background: #808080;
+        }
+        #conci-manifiestos-scroll::-webkit-scrollbar-corner {
+            background: #f0f0f0;
         }
         #table-conci-manifiestos {
             border-collapse: separate;
@@ -757,6 +789,14 @@ FF
         #table-conci-manifiestos tbody tr {
             cursor: pointer;
             transition: background-color .15s ease;
+        }
+        /* Durante el desplazamiento activo se desactivan las transiciones y el
+           hover para eliminar repintados que causan tirones (jank) en el scroll. */
+        #conci-manifiestos-scroll.is-scrolling #table-conci-manifiestos tbody tr {
+            transition: none;
+        }
+        #conci-manifiestos-scroll.is-scrolling #table-conci-manifiestos tbody tr:hover > td {
+            background: inherit !important;
         }
         #table-conci-manifiestos tbody tr.conci-row-tone-0 > td { background: #ffffff; }
         #table-conci-manifiestos tbody tr.conci-row-tone-1 > td { background: #f2f4f7; }
