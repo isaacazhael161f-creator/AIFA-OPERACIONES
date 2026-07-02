@@ -17813,6 +17813,11 @@ function _renderConciManifiestosTable(data, columns, fallbackYear) {
                     const hrs = _conciHrsCumplidas(opRaw, recRaw, fallbackYear);
                     td.textContent = hrs;
                     td.dataset.raw = hrs;
+                    const hrsNum = parseFloat(hrs);
+                    if (Number.isFinite(hrsNum)) {
+                        td.style.fontWeight = '700';
+                        td.style.color = hrsNum < 30 ? '#2e7d32' : '#c62828';
+                    }
                 } else if (meta.isEvidencia) {
                     // Si es la columna de evidencia de PDF y trae link
                     if (rawStr && (rawStr.startsWith('http') || rawStr.endsWith('.pdf'))) {
