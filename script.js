@@ -17024,6 +17024,24 @@ function _conciHrsCumplidas(opRaw, recRaw, fallbackYear) {
     return hours.toFixed(2);
 }
 
+// PUNTUALIDAD / CANCELACIÓN — reproduce la fórmula de Excel:
+// =SI.ERROR(SI((P-L)>=$A$1,"DEMORA",SI(L=P,"EN TIEMPO",SI(P>L,"DESPUÉS",
+//   SI((L-P)>=$A$1,"ANTICIPADO","ANTES")))),"-")
+// P = HR. DE OPERACIÓN, L = SLOT ASIGNADO, $A$1 = tolerancia de 15 min.
+const _CONCI_PUNTUALIDAD_TOLERANCIA_MS = 15 * 60 * 1000;
+function _conciPuntualidad(slotRaw, opRaw, fallbackYear) {
+    const slotDate = _conciPartsToDate(_conciParseDateTimeParts(slotRaw, fallbackYear));
+    const opDate = _conciPartsToDate(_conciParseDateTimeParts(opRaw, fallbackYear));
+    if (!slotDate || !opDate) return '-';
+    const diff = opDate.getTime() - slotDate.getTime(); // (P - L)
+    if (!Number.isFinite(diff)) return '-';
+    if (diff >= _CONCI_PUNTUALIDAD_TOLERANCIA_MS) return 'DEMORA';
+    if (diff === 0) return 'EN TIEMPO';
+    if (diff > 0) return 'DESPUÉS';
+    if (-diff >= _CONCI_PUNTUALIDAD_TOLERANCIA_MS) return 'ANTICIPADO';
+    return 'ANTES';
+}
+
 function _conciFormatDateParts(parts) {
     if (!parts || !Number.isFinite(parts.day) || !Number.isFinite(parts.month) || !Number.isFinite(parts.year)) return '';
     return `${_conciPad2(parts.day)}/${_conciPad2(parts.month)}/${parts.year}`;
@@ -17637,6 +17655,8 @@ function _renderConciManifiestosTable(data, columns, fallbackYear) {
     const _hrsCumplidasCol = displayCols.find(c => /hrs?\.?\s*cumplidas/i.test(c)) || null;
     const _hrOperacionCol  = displayCols.find(c => /hr\.?\s*de\s*oper/i.test(c)) || null;
     const _hrRecepcionCol  = displayCols.find(c => /hr\.?\s*de\s*recep/i.test(c)) || null;
+    const _slotAsignadoCol = displayCols.find(c => /slot\s*asignad/i.test(c)) || null;
+    const _puntualidadCol  = displayCols.find(c => /puntualidad|cancelaci/i.test(c)) || null;
     const _fechaCol   = displayCols.find(c => /(^|\b)fecha(\b|$)/i.test(c)) || null;
     _conciEditFallbackYear = fallbackYear;
     _conciEditFechaCol     = _fechaCol;
@@ -17722,6 +17742,7 @@ function _renderConciManifiestosTable(data, columns, fallbackYear) {
         isRouting:   c === _routingCol && hasIataMap,
         isOptype:    c === _optypeCol,
         isHrsCumplidas: c === _hrsCumplidasCol && !!_hrOperacionCol && !!_hrRecepcionCol,
+        isPuntualidad: c === _puntualidadCol && !!_slotAsignadoCol && !!_hrOperacionCol,
         isEvidencia: /evidencia/i.test(c),
     }));
 
@@ -17823,6 +17844,28 @@ function _renderConciManifiestosTable(data, columns, fallbackYear) {
                             td.style.color = '#c62828';
                             td.style.backgroundColor = '#ffebee';
                         }
+                    }
+                } else if (meta.isPuntualidad) {
+                    const slotRaw = _slotAsignadoCol ? row[_slotAsignadoCol] : '';
+                    const opRaw = _hrOperacionCol ? row[_hrOperacionCol] : '';
+                    const estado = _conciPuntualidad(slotRaw, opRaw, fallbackYear);
+                    td.dataset.raw = estado;
+                    if (estado && estado !== '-') {
+                        const styleMap = {
+                            'EN TIEMPO':  { bg: '#e8f5e9', bd: '#8bc34a', fg: '#2e7d32', icon: 'fa-check' },
+                            'ANTES':      { bg: '#e8f5e9', bd: '#8bc34a', fg: '#2e7d32', icon: 'fa-arrow-left' },
+                            'ANTICIPADO': { bg: '#e3f2fd', bd: '#64b5f6', fg: '#1565c0', icon: 'fa-forward' },
+                            'DESPUÉS':    { bg: '#fff8e1', bd: '#ffb300', fg: '#ef6c00', icon: 'fa-clock' },
+                            'DEMORA':     { bg: '#ffebee', bd: '#e57373', fg: '#c62828', icon: 'fa-exclamation-triangle' },
+                        };
+                        const st = styleMap[estado] || { bg: '#eceff1', bd: '#b0bec5', fg: '#455a64', icon: 'fa-circle-info' };
+                        const badge = document.createElement('span');
+                        badge.style.cssText = `display:inline-block;padding:2px 10px;border-radius:999px;font-size:0.72rem;font-weight:700;line-height:1.2;border:1px solid ${st.bd};background:${st.bg};color:${st.fg};`;
+                        badge.innerHTML = `<i class="fas ${st.icon} me-1"></i>${estado}`;
+                        td.appendChild(badge);
+                    } else {
+                        td.textContent = '-';
+                        td.dataset.raw = '-';
                     }
                 } else if (meta.isEvidencia) {
                     // Si es la columna de evidencia de PDF y trae link
