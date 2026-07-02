@@ -17853,11 +17853,13 @@ function _renderConciManifiestosTable(data, columns, fallbackYear) {
                 if (meta.isAirline) {
                     const airlineMeta = resolveAirlineMeta(rawStr);
                     if (airlineMeta) {
-                        const badge = document.createElement('span');
-                        badge.style.cssText = `display:inline-block;padding:2px 10px;border-radius:999px;font-size:0.74rem;font-weight:700;line-height:1.2;background:${airlineMeta.color || '#6c757d'};color:${airlineMeta.textColor || '#ffffff'};border:1px solid rgba(0,0,0,.15);`;
-                        badge.textContent = String(airlineMeta.name || rawStr).toUpperCase();
-                        td.style.borderLeft = `3px solid ${airlineMeta.color || '#6c757d'}`;
-                        td.appendChild(badge);
+                        const bg = airlineMeta.color || '#6c757d';
+                        const fg = airlineMeta.textColor || '#ffffff';
+                        td.style.setProperty('background', bg, 'important');
+                        td.style.setProperty('color', fg, 'important');
+                        td.style.fontWeight = '700';
+                        td.style.textAlign = 'center';
+                        td.textContent = String(airlineMeta.name || rawStr).toUpperCase();
                         if (rawStr && rawStr.toUpperCase() !== String(airlineMeta.name || '').toUpperCase()) td.title = rawStr;
                     } else {
                         td.textContent = rawStr;
