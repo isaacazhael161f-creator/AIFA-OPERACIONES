@@ -17185,6 +17185,50 @@ function _conciBuildSortDate(row, columns, fallbackYear) {
     return null;
 }
 
+// Determina si una fila corresponde al día seleccionado, priorizando la HR. DE
+// OPERACIÓN. Si esa columna no tiene un valor con fecha, cae a SLOT ASIGNADO y luego
+// a FECHA. Cuando ninguna columna aporta una fecha parseable, la fila se conserva
+// (para no ocultar manifiestos sin hora de operación capturada).
+function _conciRowMatchesOperationDay(row, columns, year, month, day) {
+    if (!day) return true;
+    const keys = Array.isArray(columns) && columns.length ? columns : Object.keys(row || {});
+    const opCol    = keys.find(c => /hr\.?\s*de\s*oper/i.test(c));
+    const slotCol  = keys.find(c => /slot\s*asignad/i.test(c));
+    const fechaCol = keys.find(c => /(^|\b)fecha(\b|$)/i.test(c));
+    for (const col of [opCol, slotCol, fechaCol]) {
+        if (!col) continue;
+        const val = row[col];
+        if (val === null || val === undefined || String(val).trim() === '') continue;
+        const parts = _conciParseDateTimeParts(val, year);
+        if (parts && Number.isFinite(parts.day)) {
+            if (parts.day !== day) return false;
+            if (month && Number.isFinite(parts.month) && parts.month !== month) return false;
+            return true;
+        }
+    }
+    return true;
+}
+
+// Clasifica una fila como 'carga' o 'pasajeros'. Usa el Service Type IATA del vuelo
+// (F/H = carga; el resto pasajeros) y, como respaldo, el catálogo de aerolíneas de
+// carga conocidas.
+function _conciRowIsCargo(row, optypeCol, airlineCol) {
+    const st = String(optypeCol ? row[optypeCol] : '').trim().toUpperCase();
+    if (st) {
+        if (/^[FH]/.test(st)) return true;
+        if (/^[JSUVGTWKZLMNPQXY]/.test(st)) return false;
+    }
+    if (airlineCol) {
+        try {
+            const meta = (typeof _conciResolveAirlineMeta === 'function') ? _conciResolveAirlineMeta(row[airlineCol]) : null;
+            const name = meta && meta.name ? meta.name : row[airlineCol];
+            if (typeof normalizeAirlineName === 'function' && typeof cargoAirlinesNormalized !== 'undefined'
+                && cargoAirlinesNormalized.has(normalizeAirlineName(name))) return true;
+        } catch (_) {}
+    }
+    return false;
+}
+
 // Build a synthetic manifest row from a vuelos row, given 'LLEGADA' or 'SALIDA'
 function _conciVueloToRow(vRow, tipo, outputCols, colm, hasManifestSchema) {
     const isArr = tipo === 'LLEGADA';
@@ -17592,11 +17636,26 @@ async function loadConciliacionManifiestos(options = {}) {
 
         if (config.forceRefresh) _conciRenderCache.clear();
 
-        // Filter vuelos by selected month/day in JS (vuelos dates are embedded strings, no server-side filter)
+        // Filter vuelos by selected month/day in JS (vuelos dates are embedded strings, no server-side filter).
+        // Se incluye un vuelo si su día PROGRAMADO (SIBT/SOBT) o su día de OPERACIÓN real
+        // (AIBT/AOBT) coincide con el día seleccionado. Esto evita perder vuelos que operan
+        // tras el cruce de medianoche (p. ej. programado 27 pero operado 28). El filtro fino
+        // por HR. DE OPERACIÓN se aplica más abajo sobre las filas ya enriquecidas.
         const filteredVuelos = vuelosRows.filter(r => {
-            if (month && _conciParseVueloMonth(r) !== month) return false;
-            if (day && _conciParseVueloDay(r) !== day) return false;
-            return true;
+            if (!month && !day) return true;
+            for (const isArr of [true, false]) {
+                const dp = _conciExtractVueloDateParts(r, isArr);
+                if (dp) {
+                    const dd = parseInt(dp.day, 10);
+                    const mm = parseInt(dp.month, 10);
+                    if ((!month || mm === month) && (!day || dd === day)) return true;
+                }
+                const op = _conciParseDateTimeParts(_conciGetOperationHour(r, isArr), year);
+                if (op && Number.isFinite(op.day)) {
+                    if ((!month || op.month === month) && (!day || op.day === day)) return true;
+                }
+            }
+            return false;
         });
 
         // manifestRows is already filtered server-side; use directly
@@ -17623,8 +17682,16 @@ async function loadConciliacionManifiestos(options = {}) {
 
         const { rows, columns } = _conciBuildEnriched(filteredManifest, filteredVuelos, schemaRows);
 
+        // Filtro fino por día: se conserva la fila solo si su HR. DE OPERACIÓN cae en el
+        // día seleccionado (con respaldo a SLOT ASIGNADO / FECHA cuando no hay hora de
+        // operación). Esto corrige el caso en que un vuelo programado un día opera en otro
+        // tras el cruce de medianoche y aparecía en el día equivocado.
+        const dayFilteredRows = day
+            ? rows.filter(r => _conciRowMatchesOperationDay(r, columns, year, month, day))
+            : rows;
+
         // Decorate-sort-undecorate: compute sort key once per row instead of n·log(n) times.
-        const decorated = rows.map((r) => {
+        const decorated = dayFilteredRows.map((r) => {
             const d = _conciBuildSortDate(r, columns, year);
             return { r, t: d ? d.getTime() : Number.MAX_SAFE_INTEGER };
         });
@@ -17662,24 +17729,39 @@ async function loadConciliacionManifiestos(options = {}) {
     }
 }
 
-function _conciUpdateResumen(data) {
+function _conciUpdateResumen(data, columns) {
     let empate = 0, soloManifiesto = 0, soloVuelos = 0;
+    let llegadas = 0, salidas = 0, pax = 0, carga = 0;
+    const cols = (Array.isArray(columns) && columns.length)
+        ? columns
+        : (data && data.length ? Object.keys(data[0]) : []);
+    const tipoCol    = cols.find(c => /tipo.*manif/i.test(c)) || null;
+    const optypeCol  = cols.find(c => /tipo.*oper|service\s*type/i.test(c)) || null;
+    const airlineCol = cols.find(c => /aerol[ií]nea|airline/i.test(c)) || null;
     for (const r of (data || [])) {
         const f = String(r && r._fuente || '');
         if (f === 'Manifiestos + Vuelos') empate++;
         else if (f === 'Solo Manifiestos') soloManifiesto++;
         else if (f === 'Solo Vuelos') soloVuelos++;
+        const tipo = String(tipoCol ? r[tipoCol] : '').toLowerCase();
+        if (/lleg|arr/.test(tipo)) llegadas++;
+        else if (/sal|dep/.test(tipo)) salidas++;
+        if (_conciRowIsCargo(r, optypeCol, airlineCol)) carga++; else pax++;
     }
     const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = String(val); };
     set('conci-resumen-empate', empate);
     set('conci-resumen-solo-manifiesto', soloManifiesto);
     set('conci-resumen-solo-vuelos', soloVuelos);
+    set('conci-count-llegadas', llegadas);
+    set('conci-count-salidas', salidas);
+    set('conci-count-pax', pax);
+    set('conci-count-carga', carga);
 }
 
 function _renderConciManifiestosTable(data, columns, fallbackYear) {
     const tableId = 'table-conci-manifiestos';
 
-    _conciUpdateResumen(data);
+    _conciUpdateResumen(data, columns);
 
     if (_conciManifiestosDataTable) {
         try { _conciManifiestosDataTable.destroy(); } catch(_) {}
