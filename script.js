@@ -3321,6 +3321,25 @@ async function ensureRoleInSessionStorage(userId) {
     }
 }
 
+async function isPortalOnlyAccount(u) {
+    try {
+        if (!u) return false;
+        const meta = u.user_metadata || {};
+        // Señales de que la cuenta se creó en el Portal de Manifiestos
+        const portalSignals = String(meta.app || '') === 'portal'
+            || String(meta.company || '').trim() !== '';
+        if (!portalSignals) return false;
+        // Si además tiene rol interno en user_roles, es un usuario de
+        // Operaciones legítimo (no se bloquea).
+        try {
+            const { data: rr } = await window.supabaseClient
+                .from('user_roles').select('user_id').eq('user_id', u.id).maybeSingle();
+            if (rr) return false;
+        } catch (_) { /* si falla la consulta, no bloquear por seguridad */ return false; }
+        return true;
+    } catch (_) { return false; }
+}
+
 async function restoreSessionFromSupabase() {
     try {
         if (typeof window.ensureSupabaseClient === 'function') {
@@ -3329,6 +3348,13 @@ async function restoreSessionFromSupabase() {
         if (!window.supabaseClient) return false;
         const { data: { session }, error } = await window.supabaseClient.auth.getSession();
         if (error || !session) return false;
+        // BLOQUEO CRUZADO: si una sesión restaurada corresponde a una cuenta
+        // del Portal de Manifiestos, cerrarla (no pertenece a Operaciones).
+        if (await isPortalOnlyAccount(session.user)) {
+            try { await window.supabaseClient.auth.signOut(); } catch (_) {}
+            try { sessionStorage.clear(); } catch (_) {}
+            return false;
+        }
         cacheSupabaseSession(session);
         try {
             if (!sessionStorage.getItem('user_fullname')) {
@@ -3651,6 +3677,18 @@ async function handleLogin(e) {
         clearTimeout(slowTimer);
 
         if (error) throw error;
+
+        // BLOQUEO CRUZADO: rechazar cuentas que pertenecen al Portal de
+        // Manifiestos (aerolíneas/prestadores). Estas no deben entrar a AIFA
+        // Operaciones. Se identifican por metadatos de portal y por NO tener
+        // rol interno en `user_roles`.
+        if (await isPortalOnlyAccount(data.user)) {
+            await window.supabaseClient.auth.signOut();
+            try { sessionStorage.clear(); } catch (_) {}
+            if (errorDiv) errorDiv.textContent = 'Esta cuenta pertenece al Portal de Manifiestos. Ingresa desde el portal de aerolíneas.';
+            if (loginButton) loginButton.classList.remove('loading');
+            return;
+        }
 
         // Éxito
         sessionStorage.setItem(SESSION_USER, data.user.email);

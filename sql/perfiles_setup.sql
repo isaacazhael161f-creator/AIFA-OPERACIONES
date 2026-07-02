@@ -48,20 +48,21 @@ select u.id,
 from auth.users u
 where coalesce(u.raw_user_meta_data->>'app','') = 'portal'
    or coalesce(u.raw_user_meta_data->>'company','') <> ''
-   or coalesce(u.raw_user_meta_data->>'role','') in ('aerolinea','aifa','afac','admin')
 on conflict (id) do nothing;
 
 -- 3) LIMPIEZA — quitar de `perfiles` a los usuarios INTERNOS de Operaciones
---    que una versión anterior de este script pudo haber insertado.
---    Solo borra filas "aerolinea" sin datos de portal; conserva cualquier
---    cuenta que ya hayas promovido manualmente (admin/aifa/afac).
+--    que una versión anterior de este script insertó por error.
+--    Un usuario del portal SIEMPRE tiene `company` (el registro lo exige) o la
+--    marca `app='portal'`. Los internos no tienen ninguna de las dos, aunque su
+--    metadato `role` sea 'aerolinea' (valor por defecto). Por eso la limpieza
+--    ya NO mira el rol de metadatos: se basa solo en company/app.
+--    Se conservan las cuentas que ya promoviste en el panel (admin/aifa/afac).
 delete from public.perfiles p
 using auth.users u
 where p.id = u.id
   and coalesce(p.role, 'aerolinea') = 'aerolinea'
   and coalesce(u.raw_user_meta_data->>'app','') <> 'portal'
-  and coalesce(u.raw_user_meta_data->>'company','') = ''
-  and coalesce(u.raw_user_meta_data->>'role','') not in ('aerolinea','aifa','afac','admin');
+  and coalesce(u.raw_user_meta_data->>'company','') = '';
 
 -- 4) Disparador: crea el perfil automáticamente SOLO para usuarios del portal
 create or replace function public.handle_new_user()
@@ -72,9 +73,9 @@ set search_path = public
 as $$
 begin
     -- Solo se registra en `perfiles` si el alta viene del portal
+    -- (marca app='portal' o trae company). NO se usa el rol por defecto.
     if coalesce(new.raw_user_meta_data->>'app','') = 'portal'
        or coalesce(new.raw_user_meta_data->>'company','') <> ''
-       or coalesce(new.raw_user_meta_data->>'role','') in ('aerolinea','aifa','afac','admin')
     then
         insert into public.perfiles (id, email, company, full_name, role, origen)
         values (new.id,

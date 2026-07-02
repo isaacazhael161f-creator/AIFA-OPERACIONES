@@ -236,14 +236,32 @@
         const meta = user.user_metadata || {};
 
         // Intentar leer el rol/estado desde la tabla `perfiles` (fuente que
-        // administra el panel de Usuarios). Si no existe la tabla, se usa el
-        // rol derivado del user_metadata / correo como respaldo.
-        let perfil = null;
+        // administra el panel de Usuarios y que SOLO contiene usuarios del
+        // portal). Distinguimos "tabla inexistente" de "sin fila" para no
+        // bloquear a nadie antes de correr el script SQL.
+        let perfil = null, tablaOk = true;
         try {
-            const { data } = await sb.from('perfiles')
+            const { data, error } = await sb.from('perfiles')
                 .select('role,activo').eq('id', user.id).maybeSingle();
-            perfil = data || null;
-        } catch (_e) { perfil = null; }
+            if (error) tablaOk = false;
+            else perfil = data || null;
+        } catch (_e) { tablaOk = false; }
+
+        // Señales de que la cuenta pertenece al portal (aerolínea/prestador).
+        // Se basa SOLO en company/app: el rol 'aerolinea' es el valor por
+        // defecto y también lo tienen cuentas internas, así que no sirve.
+        const portalSignals = String(meta.app || '') === 'portal'
+            || String(meta.company || '').trim() !== '';
+
+        // BLOQUEO CRUZADO: una cuenta interna de AIFA Operaciones (sin perfil
+        // de portal y sin señales de portal) no puede entrar al portal.
+        if (tablaOk && !perfil && !portalSignals) {
+            hide('screen-app');
+            show('screen-login');
+            loginAlert('Esta cuenta pertenece a AIFA — Operaciones, no al Portal de Manifiestos.', 'danger');
+            await sb.auth.signOut();
+            return;
+        }
 
         // Cuenta desactivada por un administrador → cerrar sesión
         if (perfil && perfil.activo === false) {
