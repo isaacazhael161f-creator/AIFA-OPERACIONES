@@ -234,7 +234,27 @@
 
         // Detectar rol y permisos de aprobación
         const meta = user.user_metadata || {};
-        userRole   = resolveRole(user);
+
+        // Intentar leer el rol/estado desde la tabla `perfiles` (fuente que
+        // administra el panel de Usuarios). Si no existe la tabla, se usa el
+        // rol derivado del user_metadata / correo como respaldo.
+        let perfil = null;
+        try {
+            const { data } = await sb.from('perfiles')
+                .select('role,activo').eq('id', user.id).maybeSingle();
+            perfil = data || null;
+        } catch (_e) { perfil = null; }
+
+        // Cuenta desactivada por un administrador → cerrar sesión
+        if (perfil && perfil.activo === false) {
+            hide('screen-app');
+            show('screen-login');
+            loginAlert('Tu cuenta ha sido desactivada. Contacta a AIFA — Operaciones.', 'danger');
+            await sb.auth.signOut();
+            return;
+        }
+
+        userRole   = (perfil && perfil.role) ? String(perfil.role).toLowerCase() : resolveRole(user);
         isAdmin    = userRole === 'admin';
         canAifa    = userRole === 'admin' || userRole === 'aifa';
         canAfac    = userRole === 'admin' || userRole === 'afac';
@@ -256,6 +276,11 @@
         if (isReviewer) {
             const sw = $('btn-switch-view');
             if (sw) sw.classList.remove('d-none');
+        }
+        // Solo los administradores ven el panel de gestión de usuarios
+        if (isAdmin) {
+            const bu = $('btn-users-view');
+            if (bu) bu.classList.remove('d-none');
         }
 
         wireGlobal();
@@ -285,6 +310,14 @@
         $('btn-switch-view')?.addEventListener('click', toggleAdminView);
         $('btn-admin-ref')?.addEventListener('click', loadAdminManifests);
         $('btn-admin-exp')?.addEventListener('click', exportAdminCSV);
+
+        // Users panel (solo admin)
+        $('btn-users-view')?.addEventListener('click', showUsersView);
+        $('btn-users-ref')?.addEventListener('click', loadUsers);
+        ['uf-search','uf-role','uf-status'].forEach(id => {
+            $( id )?.addEventListener('input',  renderUsersTable);
+            $( id )?.addEventListener('change', renderUsersTable);
+        });
 
         // Admin filters
         ['af-from','af-to','af-airline','af-company','af-tipo','af-status'].forEach(id => {
@@ -317,7 +350,7 @@
     ────────────────────────────────────────── */
     function showProviderView() {
         viewMode = 'provider';
-        show('view-provider'); hide('view-admin');
+        show('view-provider'); hide('view-admin'); hide('view-users');
         const sw = $('btn-switch-view');
         if (sw) { $('switch-lbl').textContent = 'Vista Admin'; }
         loadProviderManifests();
@@ -325,7 +358,7 @@
 
     function showAdminView() {
         viewMode = 'admin';
-        hide('view-provider'); show('view-admin');
+        hide('view-provider'); show('view-admin'); hide('view-users');
         if ($('switch-lbl')) $('switch-lbl').textContent = 'Mis manifiestos';
         loadAdminManifests();
     }
@@ -333,6 +366,151 @@
     function toggleAdminView() {
         if (viewMode === 'provider') showAdminView();
         else showProviderView();
+    }
+
+    /* ──────────────────────────────────────────
+       USUARIOS (administración) — solo admin
+    ────────────────────────────────────────── */
+    let usersRows = [];
+    const ROLE_LABELS = { admin:'Admin AIFA', aifa:'AIFA · Aeropuerto', afac:'AFAC · Autoridad', aerolinea:'Prestador' };
+
+    function showUsersView() {
+        if (!isAdmin) return;
+        viewMode = 'users';
+        hide('view-provider'); hide('view-admin'); show('view-users');
+        if ($('switch-lbl')) $('switch-lbl').textContent = 'Vista Admin';
+        loadUsers();
+    }
+
+    async function loadUsers() {
+        show('users-loading');
+        hide('users-empty'); hide('users-setup');
+        const tb = $('users-tbody'); if (tb) tb.innerHTML = '';
+        try {
+            const { data, error } = await sb.from('perfiles')
+                .select('id,email,company,full_name,role,activo,created_at')
+                .order('created_at', { ascending: true });
+            if (error) throw error;
+            usersRows = data || [];
+            hide('users-loading');
+            renderUsersKpis();
+            renderUsersTable();
+        } catch (err) {
+            hide('users-loading');
+            usersRows = [];
+            renderUsersKpis();
+            // Tabla no existe todavía → mostrar instrucciones de configuración
+            const code = err && (err.code || '');
+            const msg  = String(err && err.message || '').toLowerCase();
+            if (code === '42P01' || msg.includes('does not exist') || msg.includes('perfiles')) {
+                $('users-tbl-wrap')?.classList.add('d-none');
+                show('users-setup');
+            } else {
+                $('users-tbl-wrap')?.classList.remove('d-none');
+                show('users-empty');
+                console.error('Error cargando usuarios:', err);
+            }
+        }
+    }
+
+    function renderUsersKpis() {
+        const total = usersRows.length;
+        const by = r => usersRows.filter(u => String(u.role||'').toLowerCase() === r).length;
+        setT('us-total', total);
+        setT('us-admin', by('admin'));
+        setT('us-aifa',  by('aifa'));
+        setT('us-afac',  by('afac'));
+        setT('us-prov',  by('aerolinea'));
+        setT('us-inact', usersRows.filter(u => u.activo === false).length);
+    }
+
+    function renderUsersTable() {
+        const tb = $('users-tbody'); if (!tb) return;
+        $('users-tbl-wrap')?.classList.remove('d-none');
+        const q      = val('uf-search').trim().toLowerCase();
+        const fRole  = val('uf-role');
+        const fState = val('uf-status');
+
+        const rows = usersRows.filter(u => {
+            const role = String(u.role||'').toLowerCase();
+            if (fRole && role !== fRole) return false;
+            if (fState === 'activo'   && u.activo === false) return false;
+            if (fState === 'inactivo' && u.activo !== false) return false;
+            if (q) {
+                const hay = `${u.email||''} ${u.company||''} ${u.full_name||''}`.toLowerCase();
+                if (!hay.includes(q)) return false;
+            }
+            return true;
+        });
+
+        setT('users-cnt', rows.length);
+        if (!rows.length) { tb.innerHTML = ''; show('users-empty'); return; }
+        hide('users-empty');
+
+        tb.innerHTML = rows.map(u => {
+            const role   = String(u.role||'aerolinea').toLowerCase();
+            const active = u.activo !== false;
+            const name   = u.full_name || u.company || (u.email||'').split('@')[0] || '—';
+            const isSelf = u.id === user.id;
+            const opts   = ['aerolinea','aifa','afac','admin'].map(r =>
+                `<option value="${r}" ${r===role?'selected':''}>${esc(ROLE_LABELS[r])}</option>`).join('');
+            const badge  = active
+                ? '<span class="nav-badge nb-prov" style="font-size:.68rem">Activo</span>'
+                : '<span class="nav-badge" style="font-size:.68rem;background:rgba(198,40,40,.18);color:#c62828;border:1px solid rgba(198,40,40,.3)">Inactivo</span>';
+            const toggleBtn = isSelf ? '' :
+                (active
+                    ? `<button class="btn-sm" data-uact="off" data-uid="${esc(u.id)}" title="Desactivar" style="color:#c62828"><i class="fas fa-user-slash"></i></button>`
+                    : `<button class="btn-sm" data-uact="on" data-uid="${esc(u.id)}" title="Activar" style="color:#2e7d32"><i class="fas fa-user-check"></i></button>`);
+            return `<tr>
+                <td><div style="font-weight:600">${esc(name)}</div><div class="small text-muted">${esc(u.email||'—')}</div></td>
+                <td>${esc(u.company||'—')}</td>
+                <td><select class="fl-sel" data-urole data-uid="${esc(u.id)}" style="padding:.3rem .5rem;min-width:150px" ${isSelf?'disabled title="No puedes cambiar tu propio rol"':''}>${opts}</select></td>
+                <td>${badge}</td>
+                <td class="small">${u.created_at ? fmtTS(u.created_at) : '—'}</td>
+                <td>${toggleBtn || '<span class="small text-muted">—</span>'}</td>
+            </tr>`;
+        }).join('');
+
+        tb.querySelectorAll('select[data-urole]').forEach(sel => {
+            sel.addEventListener('change', () => changeUserRole(sel.getAttribute('data-uid'), sel.value));
+        });
+        tb.querySelectorAll('button[data-uact]').forEach(btn => {
+            btn.addEventListener('click', () => setUserActive(btn.getAttribute('data-uid'), btn.getAttribute('data-uact') === 'on'));
+        });
+    }
+
+    async function changeUserRole(id, role) {
+        if (!id || !role) return;
+        try {
+            const { error } = await sb.from('perfiles')
+                .update({ role, updated_at: new Date().toISOString() }).eq('id', id);
+            if (error) throw error;
+            const row = usersRows.find(u => u.id === id);
+            if (row) row.role = role;
+            renderUsersKpis();
+        } catch (err) {
+            console.error('Error al cambiar rol:', err);
+            alert('No se pudo actualizar el rol. Verifica que tengas permisos de administrador.');
+            loadUsers();
+        }
+    }
+
+    async function setUserActive(id, activo) {
+        if (!id) return;
+        if (!activo && !confirm('¿Desactivar esta cuenta? El usuario no podrá iniciar sesión hasta reactivarla.')) return;
+        try {
+            const { error } = await sb.from('perfiles')
+                .update({ activo, updated_at: new Date().toISOString() }).eq('id', id);
+            if (error) throw error;
+            const row = usersRows.find(u => u.id === id);
+            if (row) row.activo = activo;
+            renderUsersKpis();
+            renderUsersTable();
+        } catch (err) {
+            console.error('Error al cambiar estado:', err);
+            alert('No se pudo actualizar el estado. Verifica que tengas permisos de administrador.');
+            loadUsers();
+        }
     }
 
     /* ──────────────────────────────────────────
