@@ -17071,6 +17071,31 @@ function _conciPuntualidad(slotRaw, opRaw, fallbackYear) {
     return 'ANTES';
 }
 
+// HR. MÁXIMA DE ENTREGA — reproduce la fórmula de Excel =SI.ERROR(P+30/24,"-"):
+// P = SLOT ASIGNADO. En Excel 1 = 1 día, así que 30/24 equivale a 30 horas; la
+// hora máxima de entrega es el slot asignado + 30 horas. Si el slot no es una
+// fecha/hora válida, devuelve "-".
+function _conciHrMaximaEntrega(slotRaw, row, fechaCol, fallbackYear) {
+    let slotDate = _conciPartsToDate(_conciParseDateTimeParts(slotRaw, fallbackYear));
+    if (!slotDate) {
+        const timeOnly = _conciParseTimeOnly(slotRaw);
+        const rowDateParts = _conciGetRowDateParts(row, fechaCol, fallbackYear);
+        if (timeOnly && rowDateParts) {
+            slotDate = _conciPartsToDate({ ...rowDateParts, ...timeOnly });
+        }
+    }
+    if (!slotDate) return '-';
+    const maxDate = new Date(slotDate.getTime() + 30 * 3600000);
+    if (!Number.isFinite(maxDate.getTime())) return '-';
+    return _conciFormatDateTimeParts({
+        day: maxDate.getDate(),
+        month: maxDate.getMonth() + 1,
+        year: maxDate.getFullYear(),
+        hour: maxDate.getHours(),
+        minute: maxDate.getMinutes(),
+    });
+}
+
 function _conciFormatDateParts(parts) {
     if (!parts || !Number.isFinite(parts.day) || !Number.isFinite(parts.month) || !Number.isFinite(parts.year)) return '';
     return `${_conciPad2(parts.day)}/${_conciPad2(parts.month)}/${parts.year}`;
@@ -17686,6 +17711,7 @@ function _renderConciManifiestosTable(data, columns, fallbackYear) {
     const _hrRecepcionCol  = displayCols.find(c => /hr\.?\s*de\s*recep/i.test(c)) || null;
     const _slotAsignadoCol = displayCols.find(c => /slot\s*asignad/i.test(c)) || null;
     const _puntualidadCol  = displayCols.find(c => /puntualidad|cancelaci/i.test(c)) || null;
+    const _hrMaxEntregaCol = displayCols.find(c => /hr\.?\s*m[aá]xima\s*de\s*entrega/i.test(c)) || null;
     const _fechaCol   = displayCols.find(c => /(^|\b)fecha(\b|$)/i.test(c)) || null;
     _conciEditFallbackYear = fallbackYear;
     _conciEditFechaCol     = _fechaCol;
@@ -17772,6 +17798,7 @@ function _renderConciManifiestosTable(data, columns, fallbackYear) {
         isOptype:    c === _optypeCol,
         isHrsCumplidas: c === _hrsCumplidasCol && !!_hrOperacionCol && !!_hrRecepcionCol,
         isPuntualidad: c === _puntualidadCol && !!_slotAsignadoCol && !!_hrOperacionCol,
+        isHrMaxEntrega: c === _hrMaxEntregaCol && !!_slotAsignadoCol,
         isEvidencia: /evidencia/i.test(c),
     }));
 
@@ -17896,6 +17923,11 @@ function _renderConciManifiestosTable(data, columns, fallbackYear) {
                         td.textContent = '-';
                         td.dataset.raw = '-';
                     }
+                } else if (meta.isHrMaxEntrega) {
+                    const slotRaw = _slotAsignadoCol ? row[_slotAsignadoCol] : '';
+                    const maxEntrega = _conciHrMaximaEntrega(slotRaw, row, _fechaCol, fallbackYear);
+                    td.textContent = maxEntrega;
+                    td.dataset.raw = maxEntrega;
                 } else if (meta.isEvidencia) {
                     // Si es la columna de evidencia de PDF y trae link
                     if (rawStr && (rawStr.startsWith('http') || rawStr.endsWith('.pdf'))) {
