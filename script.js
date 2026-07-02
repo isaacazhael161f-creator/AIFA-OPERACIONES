@@ -18030,8 +18030,54 @@ function _conciEnsureEditStyles() {
             font-size: 0.8rem;
             padding: 2px 4px;
         }
+        #table-conci-manifiestos .conci-cell-dt {
+            display: inline-flex;
+            gap: 4px;
+            align-items: center;
+            white-space: nowrap;
+        }
+        #table-conci-manifiestos .conci-cell-dt input {
+            border: 1px solid #0d6efd;
+            border-radius: 4px;
+            box-shadow: none;
+            font-size: 0.78rem;
+            padding: 2px 4px;
+            background: #ffffff;
+            color: #212529;
+        }
+        #table-conci-manifiestos .conci-cell-dt input.conci-dt-time {
+            width: 58px;
+            text-align: center;
+            letter-spacing: 0.5px;
+        }
     `;
     document.head.appendChild(style);
+}
+
+// ¿La columna es de solo fecha? (ej. "FECHA")
+function _conciColIsDate(col) {
+    return /(^|\b)fecha(\b|$)/i.test(String(col || ''));
+}
+
+// ¿La columna es de fecha + hora? (slots, horas de operación/recepción, SIBT, etc.)
+function _conciColIsDateTime(col) {
+    return /(hora|hr\.?\s*de|slot|sibt|aibt|aldt|sobt|aobt|atot|attt|entrega|pernocta|embarque|desembarque)/i.test(String(col || ''));
+}
+
+// Normaliza la hora tecleada por el usuario a formato 24h "HH:MM".
+// Acepta "2030", "930", "20:30", "23:59", "8", etc. Devuelve '' si es inválida.
+function _conciNormalizeTimeInput(value) {
+    const raw = String(value || '').trim();
+    if (!raw) return '';
+    const digits = raw.replace(/[^\d]/g, '');
+    if (!digits) return '';
+    let h, m;
+    if (digits.length <= 2) { h = parseInt(digits, 10); m = 0; }
+    else if (digits.length === 3) { h = parseInt(digits.slice(0, 1), 10); m = parseInt(digits.slice(1), 10); }
+    else if (digits.length === 4) { h = parseInt(digits.slice(0, 2), 10); m = parseInt(digits.slice(2), 10); }
+    else return '';
+    if (!Number.isFinite(h) || !Number.isFinite(m) || h > 23 || m > 59) return '';
+    return `${_conciPad2(h)}:${_conciPad2(m)}`;
 }
 
 function _conciGetNextEditableCell(td) {
@@ -18049,11 +18095,25 @@ function _conciGetNextEditableCell(td) {
 }
 
 function _conciActivateCellEditor(td) {
-    if (!td || td.querySelector('.conci-cell-input')) return;
+    if (!td || td.querySelector('.conci-cell-input, .conci-cell-dt')) return;
 
+    const col = td.dataset.col || '';
     const currentRaw = _conciNormalizeEditableCellText(
         td.dataset.pendingRaw !== undefined ? td.dataset.pendingRaw : (td.dataset.raw || '')
     );
+
+    // Editor amigable para columnas de fecha / fecha+hora: calendario + hora 24h.
+    const isDateCol = _conciColIsDate(col);
+    const isDateTimeCol = !isDateCol && _conciColIsDateTime(col);
+    if (isDateCol || isDateTimeCol) {
+        const parts = currentRaw ? _conciParseDateTimeParts(currentRaw, _conciEditFallbackYear) : null;
+        const parseOk = !currentRaw || (parts && Number.isFinite(parts.day) && Number.isFinite(parts.month) && Number.isFinite(parts.year));
+        if (parseOk) {
+            _conciActivateDateTimeEditor(td, { withTime: isDateTimeCol, parts });
+            return;
+        }
+    }
+
     const input = document.createElement('input');
     input.type = 'text';
     input.className = 'form-control form-control-sm conci-cell-input';
@@ -18067,34 +18127,15 @@ function _conciActivateCellEditor(td) {
     const closeEditor = (accept, moveNext) => {
         if (closed) return;
         closed = true;
+        td._conciCloseEditor = null;
 
         const fallbackRaw = _conciNormalizeEditableCellText(
             td.dataset.pendingRaw !== undefined ? td.dataset.pendingRaw : (td.dataset.raw || '')
         );
         const nextRaw = accept ? _conciNormalizeEditableCellText(input.value) : fallbackRaw;
-        td.dataset.pendingRaw = nextRaw;
-        td.dataset.raw = nextRaw;
-
-        const origRaw = _conciNormalizeEditableCellText(td.dataset.origRaw || '');
-        if (nextRaw !== origRaw) td.dataset.dirty = '1';
-        else td.removeAttribute('data-dirty');
-
-        const tr = td.closest('tr');
-        if (tr) {
-            const rowDirty = !!tr.querySelector('td[data-dirty="1"]');
-            if (rowDirty) tr.dataset.dirty = '1';
-            else tr.removeAttribute('data-dirty');
-        }
-
-        td.classList.remove('conci-cell-active');
-        td.textContent = nextRaw;
-        td.title = 'Clic para editar';
-
-        if (moveNext) {
-            const nextCell = _conciGetNextEditableCell(td);
-            if (nextCell) _conciActivateCellEditor(nextCell);
-        }
+        _conciCommitCellRaw(td, nextRaw, moveNext, nextRaw);
     };
+    td._conciCloseEditor = closeEditor;
 
     input.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
@@ -18111,6 +18152,124 @@ function _conciActivateCellEditor(td) {
     input.select();
 }
 
+// Aplica el nuevo valor a la celda: marca dirty, actualiza fila, re-renderiza y
+// opcionalmente pasa a la siguiente celda editable.
+function _conciCommitCellRaw(td, nextRaw, moveNext, displayText) {
+    nextRaw = _conciNormalizeEditableCellText(nextRaw);
+    td.dataset.pendingRaw = nextRaw;
+    td.dataset.raw = nextRaw;
+
+    const origRaw = _conciNormalizeEditableCellText(td.dataset.origRaw || '');
+    if (nextRaw !== origRaw) td.dataset.dirty = '1';
+    else td.removeAttribute('data-dirty');
+
+    const tr = td.closest('tr');
+    if (tr) {
+        const rowDirty = !!tr.querySelector('td[data-dirty="1"]');
+        if (rowDirty) tr.dataset.dirty = '1';
+        else tr.removeAttribute('data-dirty');
+    }
+
+    td.classList.remove('conci-cell-active');
+    td.textContent = displayText !== undefined ? displayText : nextRaw;
+    td.title = 'Clic para editar';
+
+    if (moveNext) {
+        const nextCell = _conciGetNextEditableCell(td);
+        if (nextCell) _conciActivateCellEditor(nextCell);
+    }
+}
+
+// Editor de fecha (calendario nativo) + hora en formato 24h ("HH:MM").
+function _conciActivateDateTimeEditor(td, { withTime, parts }) {
+    const wrap = document.createElement('span');
+    wrap.className = 'conci-cell-dt';
+
+    const dateInput = document.createElement('input');
+    dateInput.type = 'date';
+    dateInput.className = 'conci-dt-date';
+    if (parts && Number.isFinite(parts.day) && Number.isFinite(parts.month) && Number.isFinite(parts.year)) {
+        dateInput.value = `${parts.year}-${_conciPad2(parts.month)}-${_conciPad2(parts.day)}`;
+    }
+    wrap.appendChild(dateInput);
+
+    let timeInput = null;
+    if (withTime) {
+        timeInput = document.createElement('input');
+        timeInput.type = 'text';
+        timeInput.className = 'conci-dt-time';
+        timeInput.inputMode = 'numeric';
+        timeInput.maxLength = 5;
+        timeInput.placeholder = 'HH:MM';
+        if (parts && Number.isFinite(parts.hour) && Number.isFinite(parts.minute)) {
+            timeInput.value = `${_conciPad2(parts.hour)}:${_conciPad2(parts.minute)}`;
+        }
+        wrap.appendChild(timeInput);
+    }
+
+    td.classList.add('conci-cell-active');
+    td.textContent = '';
+    td.appendChild(wrap);
+
+    const buildRaw = () => {
+        const dv = dateInput.value;
+        let out = '';
+        if (dv) {
+            const [y, mo, da] = dv.split('-');
+            out = `${da}/${mo}/${y}`;
+        }
+        if (withTime && timeInput) {
+            const tv = _conciNormalizeTimeInput(timeInput.value);
+            if (tv && out) out += ` ${tv}`;
+        }
+        return out;
+    };
+
+    let closed = false;
+    const closeEditor = (accept, moveNext) => {
+        if (closed) return;
+        closed = true;
+        td._conciCloseEditor = null;
+
+        const fallbackRaw = _conciNormalizeEditableCellText(
+            td.dataset.pendingRaw !== undefined ? td.dataset.pendingRaw : (td.dataset.raw || '')
+        );
+        const nextRaw = accept ? buildRaw() : fallbackRaw;
+        _conciCommitCellRaw(td, nextRaw, moveNext, nextRaw);
+    };
+    td._conciCloseEditor = closeEditor;
+
+    const onKeydown = (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            closeEditor(true, true);
+        } else if (e.key === 'Escape') {
+            e.preventDefault();
+            closeEditor(false, false);
+        }
+    };
+    const onBlur = (e) => {
+        // No cerrar si el foco se mueve al otro input dentro de la misma celda.
+        if (e.relatedTarget && td.contains(e.relatedTarget)) return;
+        closeEditor(true, false);
+    };
+
+    dateInput.addEventListener('keydown', onKeydown);
+    dateInput.addEventListener('blur', onBlur);
+    if (timeInput) {
+        timeInput.addEventListener('keydown', onKeydown);
+        timeInput.addEventListener('blur', onBlur);
+    }
+
+    // Enfoca hora si la fecha ya está puesta (caso típico: solo ajustar la hora).
+    if (withTime && timeInput && dateInput.value) {
+        timeInput.focus();
+        timeInput.select();
+    } else {
+        dateInput.focus();
+    }
+}
+
 function _conciSetTableEditableState(enabled) {
     const table = document.getElementById('table-conci-manifiestos');
     const tbody = table ? table.querySelector('tbody') : null;
@@ -18122,7 +18281,7 @@ function _conciSetTableEditableState(enabled) {
         if (!_conciCellClickHandler) {
             _conciCellClickHandler = (ev) => {
                 if (!_conciEditMode) return;
-                if (ev.target.closest('.conci-cell-input')) return;
+                if (ev.target.closest('.conci-cell-input, .conci-cell-dt')) return;
                 const td = ev.target.closest('td[data-col]');
                 if (!td || !tbody.contains(td)) return;
                 _conciActivateCellEditor(td);
@@ -18142,13 +18301,7 @@ function _conciSetTableEditableState(enabled) {
         if (_conciCellClickHandler) tbody.removeEventListener('click', _conciCellClickHandler);
 
         tbody.querySelectorAll('td[data-col]').forEach(td => {
-            const liveInput = td.querySelector('.conci-cell-input');
-            if (liveInput) {
-                const committed = _conciNormalizeEditableCellText(liveInput.value);
-                td.dataset.pendingRaw = committed;
-                td.dataset.raw = committed;
-                td.textContent = committed;
-            }
+            if (typeof td._conciCloseEditor === 'function') td._conciCloseEditor(true, false);
             td.classList.remove('conci-cell-active');
             td.removeAttribute('data-orig-raw');
             td.removeAttribute('data-pending-raw');
@@ -18284,7 +18437,9 @@ async function _conciSaveBulkEdits() {
         if (!tbody) throw new Error('No se encontró la tabla de conciliación.');
 
         // Commit active editor before collecting changes
-        tbody.querySelectorAll('.conci-cell-input').forEach(inp => inp.blur());
+        tbody.querySelectorAll('td[data-col]').forEach(td => {
+            if (typeof td._conciCloseEditor === 'function') td._conciCloseEditor(true, false);
+        });
 
         const updates = [];
         const inserts = [];
