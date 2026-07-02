@@ -17732,6 +17732,7 @@ async function loadConciliacionManifiestos(options = {}) {
 function _conciUpdateResumen(data, columns) {
     let empate = 0, soloManifiesto = 0, soloVuelos = 0;
     let llegadas = 0, salidas = 0, pax = 0, carga = 0;
+    let paxArr = 0, paxDep = 0, cargaArr = 0, cargaDep = 0;
     const cols = (Array.isArray(columns) && columns.length)
         ? columns
         : (data && data.length ? Object.keys(data[0]) : []);
@@ -17744,9 +17745,18 @@ function _conciUpdateResumen(data, columns) {
         else if (f === 'Solo Manifiestos') soloManifiesto++;
         else if (f === 'Solo Vuelos') soloVuelos++;
         const tipo = String(tipoCol ? r[tipoCol] : '').toLowerCase();
-        if (/lleg|arr/.test(tipo)) llegadas++;
-        else if (/sal|dep/.test(tipo)) salidas++;
-        if (_conciRowIsCargo(r, optypeCol, airlineCol)) carga++; else pax++;
+        const isArr = /lleg|arr/.test(tipo);
+        const isDep = /sal|dep/.test(tipo);
+        if (isArr) llegadas++;
+        else if (isDep) salidas++;
+        const isCargo = _conciRowIsCargo(r, optypeCol, airlineCol);
+        if (isCargo) {
+            carga++;
+            if (isArr) cargaArr++; else if (isDep) cargaDep++;
+        } else {
+            pax++;
+            if (isArr) paxArr++; else if (isDep) paxDep++;
+        }
     }
     const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = String(val); };
     set('conci-resumen-empate', empate);
@@ -17756,12 +17766,140 @@ function _conciUpdateResumen(data, columns) {
     set('conci-count-salidas', salidas);
     set('conci-count-pax', pax);
     set('conci-count-carga', carga);
+    set('conci-count-pax-arr', paxArr);
+    set('conci-count-pax-dep', paxDep);
+    set('conci-count-carga-arr', cargaArr);
+    set('conci-count-carga-dep', cargaDep);
+    _conciCountBreakdown = { paxArr, paxDep, cargaArr, cargaDep };
+}
+
+// Estado de los filtros por pill (clase pax/carga y dirección arr/dep). Se aplican
+// de forma independiente y combinada (AND) sobre las filas visibles de la tabla.
+let _conciClassFilter = null; // 'pax' | 'carga' | null
+let _conciDirFilter = null;   // 'arr' | 'dep' | null
+let _conciCountBreakdown = { paxArr: 0, paxDep: 0, cargaArr: 0, cargaDep: 0 };
+
+// Determina si una fila (tr) es visible bajo los filtros activos.
+function _conciRowPassesPillFilter(tr) {
+    if (_conciClassFilter) {
+        const isCargo = tr.dataset.rowCargo === '1';
+        if (_conciClassFilter === 'carga' && !isCargo) return false;
+        if (_conciClassFilter === 'pax' && isCargo) return false;
+    }
+    if (_conciDirFilter) {
+        if (tr.dataset.rowDir !== _conciDirFilter) return false;
+    }
+    return true;
+}
+
+// Aplica los filtros a todas las filas ya renderizadas del tbody y muestra un aviso
+// si ninguna coincide.
+function _conciApplyPillFilter() {
+    const table = document.getElementById('table-conci-manifiestos');
+    if (!table) return;
+    const tbody = table.querySelector('tbody');
+    if (!tbody) return;
+    let visible = 0;
+    tbody.querySelectorAll('tr[data-row-index]').forEach((tr) => {
+        const ok = _conciRowPassesPillFilter(tr);
+        tr.style.display = ok ? '' : 'none';
+        if (ok) visible++;
+    });
+    let emptyRow = tbody.querySelector('tr.conci-filter-empty');
+    const anyFilter = !!(_conciClassFilter || _conciDirFilter);
+    if (anyFilter && visible === 0) {
+        if (!emptyRow) {
+            emptyRow = document.createElement('tr');
+            emptyRow.className = 'conci-filter-empty';
+            const td = document.createElement('td');
+            td.colSpan = 100;
+            td.className = 'text-center text-muted py-4';
+            td.textContent = 'No hay vuelos que coincidan con el filtro seleccionado.';
+            emptyRow.appendChild(td);
+            tbody.appendChild(emptyRow);
+        }
+        emptyRow.style.display = '';
+    } else if (emptyRow) {
+        emptyRow.style.display = 'none';
+    }
+    _conciUpdatePillActiveStyles();
+}
+
+// Refleja visualmente qué pills están activos (borde/sombra) y muestra el desglose
+// llegadas/salidas del pill de clase activo.
+function _conciUpdatePillActiveStyles() {
+    const map = {
+        'conci-pill-llegadas': _conciDirFilter === 'arr',
+        'conci-pill-salidas':  _conciDirFilter === 'dep',
+        'conci-pill-pax':      _conciClassFilter === 'pax',
+        'conci-pill-carga':    _conciClassFilter === 'carga',
+    };
+    Object.keys(map).forEach((id) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (map[id]) {
+            el.style.boxShadow = '0 0 0 2px currentColor inset';
+            el.style.opacity = '1';
+        } else {
+            el.style.boxShadow = 'none';
+            el.style.opacity = '';
+        }
+    });
+    // Muestra el desglose del pill de clase que esté activo; si ninguno está activo,
+    // conserva el último desglose mostrado sólo si el usuario lo abrió por clic.
+}
+
+// Vincula (una sola vez) los clics en los pills de conteo para filtrar/mostrar
+// desglose. Pax/Carga filtran por clase y despliegan su desglose arr/dep;
+// Llegadas/Salidas filtran por dirección.
+function _conciBindCountPills() {
+    if (window._conciCountPillsBound) return;
+    window._conciCountPillsBound = true;
+    const bind = (id, handler) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.addEventListener('click', handler);
+        el.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handler(); }
+        });
+    };
+    const toggleDetail = (detailId, show) => {
+        const el = document.getElementById(detailId);
+        if (el) el.classList.toggle('d-none', !show);
+    };
+    bind('conci-pill-pax', () => {
+        _conciClassFilter = (_conciClassFilter === 'pax') ? null : 'pax';
+        toggleDetail('conci-count-pax-detail', _conciClassFilter === 'pax');
+        toggleDetail('conci-count-carga-detail', false);
+        _conciApplyPillFilter();
+    });
+    bind('conci-pill-carga', () => {
+        _conciClassFilter = (_conciClassFilter === 'carga') ? null : 'carga';
+        toggleDetail('conci-count-carga-detail', _conciClassFilter === 'carga');
+        toggleDetail('conci-count-pax-detail', false);
+        _conciApplyPillFilter();
+    });
+    bind('conci-pill-llegadas', () => {
+        _conciDirFilter = (_conciDirFilter === 'arr') ? null : 'arr';
+        _conciApplyPillFilter();
+    });
+    bind('conci-pill-salidas', () => {
+        _conciDirFilter = (_conciDirFilter === 'dep') ? null : 'dep';
+        _conciApplyPillFilter();
+    });
 }
 
 function _renderConciManifiestosTable(data, columns, fallbackYear) {
     const tableId = 'table-conci-manifiestos';
 
     _conciUpdateResumen(data, columns);
+    _conciBindCountPills();
+    // Restaura la visibilidad del desglose y el resaltado según el filtro activo.
+    const _paxDet = document.getElementById('conci-count-pax-detail');
+    if (_paxDet) _paxDet.classList.toggle('d-none', _conciClassFilter !== 'pax');
+    const _cargaDet = document.getElementById('conci-count-carga-detail');
+    if (_cargaDet) _cargaDet.classList.toggle('d-none', _conciClassFilter !== 'carga');
+    _conciUpdatePillActiveStyles();
 
     if (_conciManifiestosDataTable) {
         try { _conciManifiestosDataTable.destroy(); } catch(_) {}
@@ -17923,6 +18061,11 @@ function _renderConciManifiestosTable(data, columns, fallbackYear) {
             tr.dataset.rowFuente = _rowFuente;
             tr.dataset.rowIndex = String(idx);
 
+            // Etiqueta la fila para los filtros por pill (clase pax/carga y dirección).
+            const _tipoRaw = _tipoCol ? String(row[_tipoCol] || '').toLowerCase() : '';
+            tr.dataset.rowDir = /lleg|arr/.test(_tipoRaw) ? 'arr' : (/sal|dep/.test(_tipoRaw) ? 'dep' : '');
+            tr.dataset.rowCargo = _conciRowIsCargo(row, _optypeCol, _airlineCol) ? '1' : '0';
+
             displayCols.forEach((c, ci) => {
                 const meta = colMeta[ci];
                 const td = document.createElement('td');
@@ -18051,6 +18194,9 @@ function _renderConciManifiestosTable(data, columns, fallbackYear) {
         }
 
         tbody.appendChild(frag);
+
+        // Re-aplica los filtros por pill a las filas recién agregadas (lazy append).
+        if (_conciClassFilter || _conciDirFilter) _conciApplyPillFilter();
 
         if (idx >= data.length) {
             if (scrollWrap && scrollWrap._conciLazyHandler) {
