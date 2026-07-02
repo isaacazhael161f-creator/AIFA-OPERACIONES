@@ -146,7 +146,7 @@
             const { data, error } = await sb.auth.signUp({
                 email,
                 password: pwd,
-                options: { data: { company, full_name: company, role: 'aerolinea' } }
+                options: { data: { company, full_name: company, role: 'aerolinea', app: 'portal' } }
             });
             if (error) throw error;
 

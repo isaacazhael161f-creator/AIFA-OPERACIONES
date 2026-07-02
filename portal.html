@@ -528,7 +528,7 @@
       <div class="admin-banner" style="border-color:rgba(30,136,229,.35)">
         <div class="admin-banner-txt">
           <h4><i class="fas fa-users-cog me-2" style="color:#7cc4ff"></i>Administración de Usuarios</h4>
-          <p>Gestiona los roles y el acceso de las cuentas registradas en el portal.</p>
+          <p>Cuentas de <strong>prestadores del Portal</strong> (aparte de los usuarios internos de AIFA Operaciones).</p>
         </div>
         <div class="admin-acts">
           <button class="btn-aifa-ol" id="btn-users-ref" style="background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.3);color:#fff">
@@ -567,9 +567,11 @@
           <div class="empty-sub" style="max-width:640px;margin:.5rem auto 0">
             Para activar este panel, ejecuta una sola vez el script
             <code>sql/perfiles_setup.sql</code> (incluido en el proyecto) en el
-            <strong>SQL Editor</strong> de Supabase. Crea la tabla <code>perfiles</code>,
-            un disparador que registra automáticamente cada cuenta nueva y las políticas
-            de seguridad para que solo los administradores puedan gestionar usuarios.
+            <strong>SQL Editor</strong> de Supabase. Crea la tabla <code>perfiles</code>
+            <strong>solo para usuarios del Portal</strong> (separada de los usuarios
+            internos de AIFA Operaciones), un disparador que registra automáticamente
+            cada cuenta nueva y las políticas de seguridad para que solo los
+            administradores puedan gestionar usuarios.
           </div>
         </div>
         <div id="users-empty" class="empty-st d-none">
