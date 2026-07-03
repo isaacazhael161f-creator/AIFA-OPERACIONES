@@ -697,10 +697,15 @@ function renderOpsTable(data) {
         if (idNorm === 'no' || idNorm === 'n' || idNorm === 'num' || idNorm === '') return '52px';
         // Hora Programada / Hora Actual muestran fecha+hora completa → ancho mayor
         if (/hora.{0,10}programada|hora.{0,10}actual|hora.{0,10}real/i.test(columnKey)) return '180px';
-        if (/fecha|hora|aterrizaje|despegue/.test(columnKey)) return '145px';
-        if (/codigo|motivo|observacion|descripcion/.test(columnKey)) return '240px';
-        if (/ruta|matricula|vuelo|aerolinea|equipo|avion/.test(columnKey)) return '150px';
-        if (/pasajeros|tiempo|demora|minimo|maximo|monto/.test(columnKey)) return '140px';
+        // Encabezados largos: dar espacio suficiente para el nombre completo
+        if (/domestic|international/.test(idNorm)) return '210px';
+        if (/puntualidad/.test(idNorm)) return '190px';
+        if (/aterrizaje|despegue/.test(idNorm)) return '175px';
+        if (/fecha|hora/.test(idNorm)) return '145px';
+        if (/codigo|motivo|observacion|descripcion/.test(idNorm)) return '240px';
+        if (/pasajeros/.test(idNorm)) return '155px';
+        if (/ruta|matricula|vuelo|aerolinea|equipo|avion/.test(idNorm)) return '160px';
+        if (/tiempo|demora|minimo|maximo|monto/.test(idNorm)) return '140px';
         return '140px';
     };
 
@@ -756,17 +761,30 @@ function renderOpsTable(data) {
     const columns = [consecutiveColumn].concat(
         Object.keys(data[0]).filter(key => !_isIndexCol(key)).map(key => {
             const title = formatHeader(key);
-            return {
+            const editType = _OPS_EDITABLE_TYPES[_normTitle(title)];
+            const isDemorasCol = _normTitle(title) === 'demoras';
+            const col = {
                 title: title,
                 data: function (row) {
                     const value = row ? row[key] : '';
                     return formatOpsValue(key, value);
                 },
                 defaultContent: '',
-                className: 'text-center align-middle',
+                className: 'text-center align-middle' + (editType ? ' ops-editable' : ''),
                 width: getOpsColumnWidth(key),
                 visible: !HIDDEN_BY_DEFAULT.has(_normTitle(title))
             };
+            if (editType) {
+                col.createdCell = function (td) {
+                    td.setAttribute('data-ops-edit', editType);
+                    td.setAttribute('title', 'Clic para editar y guardar');
+                };
+            } else if (isDemorasCol) {
+                col.createdCell = function (td) {
+                    td.setAttribute('data-ops-col', 'demoras');
+                };
+            }
+            return col;
         })
     );
 
@@ -839,6 +857,10 @@ function renderOpsTable(data) {
             }
         }, 60);
     });
+
+    // Edición en línea (Código de Demora, Motivo, Estatus) con guardado inmediato en BD.
+    _opsBindCellEditors();
+    _loadDemorasCatalog().catch(() => {});
 }
 
 // ── Encabezado fijo (tabla única, thead sticky) + ColVis ("Campos") + resize ──
@@ -1085,6 +1107,363 @@ function formatHeader(key) {
         .join(' ');
 }
 
+// ════════════════════════════════════════════════════════════════════════
+//  EDICIÓN EN LÍNEA CON GUARDADO INMEDIATO A BD (tabla Demoras)
+//  Campos editables: Código de Demora, Motivo, Estatus. Al cambiar el valor
+//  se persiste de inmediato en Supabase (update por PK "No").
+//  Código de Demora: multiselección desde catalogo_demoras filtrada por
+//  Llegada/Salida; al elegir se llena el campo "Demoras" con los "motivo"
+//  del catálogo. Varios códigos/motivos se concatenan con ', '.
+// ════════════════════════════════════════════════════════════════════════
+
+const _OPS_EDITABLE_TYPES = { codigodedemora: 'codigo', motivo: 'motivo', estatus: 'estatus' };
+const _OPS_STATUS_OPTIONS = ['A Tiempo', 'Demora', 'Cancelado', 'Alterno', 'Regreso a posición'];
+
+let _demorasCatalogCache = null;
+
+function _opsNormId(k) {
+    return String(k || '')
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase().replace(/[^a-z0-9]+/g, '');
+}
+
+// Resuelve las claves reales (con acentos/espacios) de las columnas de la BD.
+function _opsColKeys() {
+    const sample = (opsRawData && opsRawData[0]) || {};
+    const keys = Object.keys(sample);
+    const find = (norm) => keys.find(k => _opsNormId(k) === norm);
+    return {
+        pk: find('no') || 'No',
+        codigo: find('codigodedemora'),
+        motivo: find('motivo'),
+        estatus: find('estatus'),
+        demoras: find('demoras'),
+        llegadaSalida: keys.find(k => /llegada.{0,5}salida|salida.{0,5}llegada/i.test(k))
+    };
+}
+
+// Carga (y cachea) el catálogo de códigos de demora agrupado por tipo de movimiento.
+async function _loadDemorasCatalog() {
+    if (_demorasCatalogCache) return _demorasCatalogCache;
+    let client = window.supabaseClient;
+    if (!client && window.ensureSupabaseClient) client = await window.ensureSupabaseClient();
+    const empty = { LLEGADAS: [], SALIDAS: [], GENERAL: [], all: [] };
+    if (!client) return empty;
+    const { data, error } = await client
+        .from('catalogo_demoras')
+        .select('codigo, causa, descripcion, motivo, tipo_movimiento, activo')
+        .eq('activo', true)
+        .order('codigo', { ascending: true });
+    if (error) { console.warn('catalogo_demoras error:', error); return empty; }
+    const groups = { LLEGADAS: [], SALIDAS: [], GENERAL: [], all: data || [] };
+    (data || []).forEach(r => {
+        const mov = String(r.tipo_movimiento || '').trim().toUpperCase();
+        if (groups[mov]) groups[mov].push(r);
+    });
+    _demorasCatalogCache = groups;
+    return _demorasCatalogCache;
+}
+
+// Devuelve las opciones del catálogo aplicables según Llegada/Salida de la fila.
+function _demorasOptionsForDirection(catalog, llegadaSalida) {
+    const ls = String(llegadaSalida || '').trim().toUpperCase();
+    if (ls.startsWith('LLEG')) return (catalog.LLEGADAS || []).concat(catalog.GENERAL || []);
+    if (ls.startsWith('SAL')) return (catalog.SALIDAS || []).concat(catalog.GENERAL || []);
+    return catalog.all || [];
+}
+
+// Persiste en Supabase y, sólo si tiene éxito, refleja el cambio en memoria e
+// invalida la caché de sesión. (Si falla, el registro en memoria queda intacto.)
+async function _opsPersistEdit(pkKey, pkValue, updates) {
+    let client = window.supabaseClient;
+    if (!client && window.ensureSupabaseClient) client = await window.ensureSupabaseClient();
+    if (!client) throw new Error('Sin conexión con la base de datos.');
+    const { error } = await client.from('Demoras').update(updates).eq(pkKey, pkValue);
+    if (error) throw error;
+    const row = (opsRawData || []).find(r => String(r[pkKey]) === String(pkValue));
+    if (row) Object.assign(row, updates);
+    // Invalidar caché de sesión del periodo actual para evitar datos obsoletos.
+    try {
+        const mesNumero = OPS_MONTHS.indexOf(currentMonthOps) + 1;
+        sessionStorage.removeItem(`${OPS_CACHE_KEY}${currentYearOps}_${mesNumero}`);
+    } catch (_) { }
+}
+
+// ── Resaltado animado + tooltip de la celda modificada ─────────────────────
+// Marca la(s) celda(s) recién modificada(s) con una animación azul→verde→azul.
+// Mientras dura la animación, al pasar el mouse aparece un cuadro con el dato
+// que se guardó; al terminar la animación se limpia todo (clase + atributo).
+function _opsMarkCellChanged(cell, changedValue) {
+    if (!cell) return;
+    cell.classList.remove('ops-cell-changed');
+    // Reiniciar la animación si la celda ya estaba marcada.
+    void cell.offsetWidth;
+    cell.setAttribute('data-ops-changed', changedValue == null ? '' : String(changedValue));
+    cell.classList.add('ops-cell-changed');
+    let fallback;
+    const cleanup = () => {
+        cell.classList.remove('ops-cell-changed');
+        cell.removeAttribute('data-ops-changed');
+        cell.removeEventListener('animationend', cleanup);
+        clearTimeout(fallback);
+        _opsHideChangeTip();
+    };
+    cell.addEventListener('animationend', cleanup);
+    fallback = setTimeout(cleanup, 122000); // red de seguridad si no dispara animationend
+}
+
+function _opsHideChangeTip() {
+    const tip = document.getElementById('ops-change-tip');
+    if (tip) tip.style.display = 'none';
+}
+
+// Reconstruye la fila desde el objeto (mutado) y anima las celdas cambiadas.
+// changedCols: [{ selector, value }] — selector CSS del td dentro de la fila.
+function _opsFinishEdit(rowIdx, changedCols) {
+    if (!opsDataTable) return;
+    try { opsDataTable.row(rowIdx).invalidate().draw(false); } catch (_) { }
+    let trNode = null;
+    try { trNode = opsDataTable.row(rowIdx).node(); } catch (_) { }
+    if (!trNode) return;
+    (changedCols || []).forEach(c => {
+        const cell = trNode.querySelector(c.selector);
+        if (cell) _opsMarkCellChanged(cell, c.value);
+    });
+}
+
+// Aviso breve tipo toast en la esquina inferior derecha.
+function _opsEditToast(message, isError) {
+    let host = document.getElementById('ops-edit-toast');
+    if (!host) {
+        host = document.createElement('div');
+        host.id = 'ops-edit-toast';
+        host.style.cssText = 'position:fixed;bottom:20px;right:20px;z-index:20000;padding:10px 16px;border-radius:8px;color:#fff;font-size:.85rem;box-shadow:0 4px 12px rgba(0,0,0,.2);transition:opacity .3s;opacity:0;';
+        document.body.appendChild(host);
+    }
+    host.style.background = isError ? '#dc3545' : '#198754';
+    host.textContent = message;
+    host.style.opacity = '1';
+    clearTimeout(host._t);
+    host._t = setTimeout(() => { host.style.opacity = '0'; }, 2200);
+}
+
+// Restaura el render normal de la fila (cierra el editor y refleja el nuevo valor).
+function _opsRerenderRow(td) {
+    try { opsDataTable.row(td).invalidate().draw(false); } catch (_) { }
+}
+
+// Editor de texto (Motivo).
+function _openMotivoEditor(td) {
+    const keys = _opsColKeys();
+    const rowData = opsDataTable.row(td).data();
+    if (!keys.motivo) return;
+    const cur = rowData[keys.motivo] == null ? '' : String(rowData[keys.motivo]);
+    const $inp = $('<textarea class="form-control form-control-sm ops-inline-editor" rows="2"></textarea>').val(cur);
+    $(td).empty().append($inp);
+    $inp.trigger('focus');
+    let done = false;
+    const commit = async () => {
+        if (done) return; done = true;
+        const val = $inp.val();
+        if (val === cur) { _opsRerenderRow(td); return; }
+        const rowIdx = opsDataTable.row(td).index();
+        try {
+            await _opsPersistEdit(keys.pk, rowData[keys.pk], { [keys.motivo]: val });
+            _opsEditToast('Motivo guardado.');
+            _opsFinishEdit(rowIdx, [{ selector: 'td[data-ops-edit="motivo"]', value: cur }]);
+        } catch (err) {
+            _opsEditToast('Error: ' + err.message, true);
+            _opsRerenderRow(td);
+        }
+    };
+    $inp.on('blur', commit);
+    $inp.on('keydown', e => {
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); $inp.trigger('blur'); }
+        else if (e.key === 'Escape') { done = true; _opsRerenderRow(td); }
+    });
+}
+
+// Editor de lista (Estatus).
+function _openEstatusEditor(td) {
+    const keys = _opsColKeys();
+    const rowData = opsDataTable.row(td).data();
+    if (!keys.estatus) return;
+    const cur = rowData[keys.estatus] == null ? '' : String(rowData[keys.estatus]);
+    const opts = _OPS_STATUS_OPTIONS.slice();
+    if (cur && !opts.includes(cur)) opts.unshift(cur);
+    const $sel = $('<select class="form-select form-select-sm ops-inline-editor"></select>');
+    opts.forEach(o => $sel.append($('<option></option>').val(o).text(o).prop('selected', o === cur)));
+    $(td).empty().append($sel);
+    $sel.trigger('focus');
+    let done = false;
+    const commit = async () => {
+        if (done) return; done = true;
+        const val = $sel.val();
+        if (val === cur) { _opsRerenderRow(td); return; }
+        const rowIdx = opsDataTable.row(td).index();
+        try {
+            await _opsPersistEdit(keys.pk, rowData[keys.pk], { [keys.estatus]: val });
+            _opsEditToast('Estatus guardado.');
+            _opsFinishEdit(rowIdx, [{ selector: 'td[data-ops-edit="estatus"]', value: cur }]);
+        } catch (err) {
+            _opsEditToast('Error: ' + err.message, true);
+            _opsRerenderRow(td);
+        }
+    };
+    $sel.on('change', commit);
+    $sel.on('blur', () => setTimeout(() => { if (!done) _opsRerenderRow(td); }, 150));
+    $sel.on('keydown', e => { if (e.key === 'Escape') { done = true; _opsRerenderRow(td); } });
+}
+
+// Editor multiselección (Código de Demora) desde catalogo_demoras.
+async function _openCodigoDemoraEditor(td) {
+    const keys = _opsColKeys();
+    if (!keys.codigo) return;
+    const rowData = opsDataTable.row(td).data();
+    $('.ops-codigo-dropdown').remove();
+
+    const catalog = await _loadDemorasCatalog();
+    const lsVal = keys.llegadaSalida ? String(rowData[keys.llegadaSalida] || '').trim() : '';
+    const options = _demorasOptionsForDirection(catalog, lsVal);
+    const currentCodes = String(rowData[keys.codigo] || '')
+        .split(',').map(s => s.trim()).filter(Boolean);
+
+    const rect = td.getBoundingClientRect();
+    const menu = $('<div class="ops-codigo-dropdown bg-white shadow rounded border p-2"></div>').css({
+        position: 'absolute',
+        top: window.scrollY + rect.bottom + 4,
+        left: Math.max(10, Math.min(window.scrollX + rect.left, window.scrollX + window.innerWidth - 340)),
+        zIndex: 20000, width: '330px', maxHeight: '380px', display: 'flex',
+        flexDirection: 'column', fontSize: '.85rem'
+    });
+
+    menu.append(`<div class="fw-bold mb-1 small text-secondary">Código de Demora${lsVal ? ' · ' + lsVal : ''}</div>`);
+
+    if (!options.length) {
+        menu.append('<div class="text-muted small py-2">No hay códigos en el catálogo para esta dirección.</div>');
+    }
+
+    const search = $('<input type="text" class="form-control form-control-sm mb-2" placeholder="Buscar código, causa o motivo...">');
+    if (options.length) menu.append(search);
+
+    const list = $('<div class="overflow-auto border rounded p-1 mb-2 bg-light" style="max-height:230px;"></div>');
+    menu.append(list);
+
+    options.forEach((opt, i) => {
+        const codigo = String(opt.codigo || '').trim();
+        const causa = String(opt.causa || '').trim();
+        const motivo = String(opt.motivo || '').trim();
+        const desc = String(opt.descripcion || '').trim();
+        const label = motivo || desc || causa;
+        const item = $('<div class="form-check ms-1 mb-1 ops-cod-item"></div>');
+        const chk = $('<input class="form-check-input ops-cod-chk" type="checkbox">')
+            .attr('id', 'ops-cod-' + i)
+            .prop('checked', currentCodes.includes(codigo))
+            .data('opt', { codigo, motivo: motivo || label });
+        const lbl = $('<label class="form-check-label" style="cursor:pointer;"></label>')
+            .attr('for', 'ops-cod-' + i)
+            .html(`<strong>${codigo}</strong>${causa ? ' · <span class="text-secondary">' + causa + '</span>' : ''}<br><span class="small text-muted">${label}</span>`);
+        item.append(chk).append(lbl);
+        list.append(item);
+    });
+
+    search.on('keyup', function () {
+        const v = $(this).val().toLowerCase();
+        list.find('.ops-cod-item').each(function () {
+            $(this).toggle($(this).text().toLowerCase().indexOf(v) > -1);
+        });
+    });
+
+    const footer = $('<div class="d-flex justify-content-end gap-2 pt-1 border-top"></div>');
+    const cancelBtn = $('<button type="button" class="btn btn-sm btn-light border">Cancelar</button>');
+    const okBtn = $('<button type="button" class="btn btn-sm btn-primary">Aceptar</button>');
+    footer.append(cancelBtn).append(okBtn);
+    menu.append(footer);
+
+    cancelBtn.on('click', () => menu.remove());
+    okBtn.on('click', async () => {
+        const selected = [];
+        list.find('.ops-cod-chk:checked').each(function () { selected.push($(this).data('opt')); });
+        const codigoStr = selected.map(s => s.codigo).join(', ');
+        const demorasStr = selected.map(s => s.motivo).filter(Boolean).join(', ');
+        const updates = { [keys.codigo]: codigoStr };
+        if (keys.demoras) updates[keys.demoras] = demorasStr;
+        okBtn.prop('disabled', true).text('Guardando...');
+        const rowIdx = opsDataTable.row(td).index();
+        const oldCodigo = String(rowData[keys.codigo] || '');
+        const oldDemoras = keys.demoras ? String(rowData[keys.demoras] || '') : '';
+        try {
+            await _opsPersistEdit(keys.pk, rowData[keys.pk], updates);
+            _opsEditToast('Código de demora guardado.');
+            menu.remove();
+            const cols = [{ selector: 'td[data-ops-edit="codigo"]', value: oldCodigo }];
+            if (keys.demoras) cols.push({ selector: 'td[data-ops-col="demoras"]', value: oldDemoras });
+            _opsFinishEdit(rowIdx, cols);
+        } catch (err) {
+            _opsEditToast('Error: ' + err.message, true);
+            menu.remove();
+            _opsRerenderRow(td);
+        }
+    });
+
+    $('body').append(menu);
+    setTimeout(() => search.trigger('focus'), 30);
+}
+
+// Vincula (una sola vez, vía delegación) la apertura de editores al hacer clic.
+function _opsBindCellEditors() {
+    $(document).off('click.opsCellEdit').on('click.opsCellEdit', '#ops-datatable tbody td.ops-editable', function (e) {
+        const td = this;
+        if ($(td).find('.ops-inline-editor').length) return; // editor ya abierto
+        if ($(e.target).closest('.ops-inline-editor').length) return;
+        if (!opsDataTable) return;
+        const type = td.getAttribute('data-ops-edit');
+        if (type === 'motivo') _openMotivoEditor(td);
+        else if (type === 'estatus') _openEstatusEditor(td);
+        else if (type === 'codigo') _openCodigoDemoraEditor(td);
+    });
+    // Cerrar el dropdown de código al hacer clic fuera de él y de su celda.
+    $(document).off('click.opsCodigoClose').on('click.opsCodigoClose', function (e) {
+        if (!$(e.target).closest('.ops-codigo-dropdown').length &&
+            !$(e.target).closest('td.ops-editable[data-ops-edit="codigo"]').length) {
+            $('.ops-codigo-dropdown').remove();
+        }
+    });
+    // Tooltip con el dato modificado: SÓLO mientras la celda tiene la animación
+    // activa (clase .ops-cell-changed). Al terminar la animación deja de mostrarse.
+    $(document).off('mouseenter.opsChangeTip', '#ops-datatable tbody td.ops-cell-changed')
+        .on('mouseenter.opsChangeTip', '#ops-datatable tbody td.ops-cell-changed', function () {
+            const val = this.getAttribute('data-ops-changed');
+            if (val == null) return;
+            let tip = document.getElementById('ops-change-tip');
+            if (!tip) {
+                tip = document.createElement('div');
+                tip.id = 'ops-change-tip';
+                document.body.appendChild(tip);
+            }
+            tip.innerHTML = '';
+            const title = document.createElement('div');
+            title.className = 'ops-change-tip-title';
+            title.textContent = 'Valor anterior';
+            const body = document.createElement('div');
+            body.className = 'ops-change-tip-body';
+            body.textContent = val === '' ? '(vacío)' : val;
+            tip.appendChild(title);
+            tip.appendChild(body);
+            const r = this.getBoundingClientRect();
+            tip.style.display = 'block';
+            const tw = tip.offsetWidth || 220;
+            let left = r.left + (r.width / 2) - (tw / 2);
+            left = Math.max(8, Math.min(left, window.innerWidth - tw - 8));
+            let top = r.bottom + 6;
+            if (top + (tip.offsetHeight || 60) > window.innerHeight) top = r.top - (tip.offsetHeight || 60) - 6;
+            tip.style.left = left + 'px';
+            tip.style.top = top + 'px';
+        })
+        .off('mouseleave.opsChangeTip', '#ops-datatable tbody td.ops-cell-changed')
+        .on('mouseleave.opsChangeTip', '#ops-datatable tbody td.ops-cell-changed', _opsHideChangeTip);
+}
+
 window.toggleViewMode = function(mode) {
     const tableWrap = document.getElementById('ops-table-wrapper');
     const chartsWrap = document.getElementById('ops-charts-wrapper');
@@ -1194,7 +1573,7 @@ function _infMatrixTableHtml(title, m) {
     return `
     <div class="col-12 col-xl-6 mb-3">
         <div class="card border-0 shadow-sm h-100">
-            <div class="card-header bg-primary text-white fw-semibold py-2">${title}</div>
+            <div class="card-header fw-bold py-2" style="background:linear-gradient(135deg,#1e3a8a,#2563eb) !important;color:#ffffff !important;font-size:.95rem;border-bottom:2px solid #16307a;">${title}</div>
             <div class="table-responsive">
                 <table class="table table-sm table-bordered mb-0 align-middle text-center" style="font-size:.85rem">
                     <thead class="table-light">
@@ -3260,8 +3639,51 @@ window.loadOperationsYear = function(year) {
 };
 
 window.exportCurrentTable = function() {
-    if (opsDataTable) {
-        opsDataTable.button('.buttons-excel').trigger();
+    if (!opsDataTable) {
+        alert('No hay una tabla cargada para exportar.');
+        return;
+    }
+    if (typeof XLSX === 'undefined') {
+        alert('La librería Excel aún no ha cargado. Espera un momento e intenta de nuevo.');
+        return;
+    }
+
+    // Sólo las filas que pasan los filtros activos (búsqueda global + filtros de
+    // encabezado tipo Excel). NO se exporta el total del dataset.
+    const filteredRows = opsDataTable.rows({ search: 'applied' }).data().toArray();
+    if (!filteredRows.length) {
+        alert('No hay registros filtrados para exportar.');
+        return;
+    }
+
+    // Reproducir las columnas visibles de la tabla (excluye el consecutivo "No.")
+    const _isIndexKey = (key) => {
+        const norm = String(key || '')
+            .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase().replace(/[^a-z0-9]+/g, '');
+        return norm === 'no' || norm === 'n' || norm === 'num' || norm === '';
+    };
+    const keys = Object.keys(filteredRows[0]).filter(k => !_isIndexKey(k));
+    const headers = keys.map(k => (typeof formatHeader === 'function' ? formatHeader(k) : k));
+
+    const aoa = [headers].concat(
+        filteredRows.map(row => keys.map(k => {
+            const v = row ? row[k] : '';
+            return (v === null || v === undefined) ? '' : v;
+        }))
+    );
+
+    try {
+        const ws = XLSX.utils.aoa_to_sheet(aoa);
+        const wb = XLSX.utils.book_new();
+        const sheetName = `${currentMonthOps || ''} ${currentYearOps || ''}`.trim().slice(0, 31) || 'Operaciones';
+        XLSX.utils.book_append_sheet(wb, ws, sheetName);
+        const fileName = `Analisis_Operaciones_${currentMonthOps || ''}_${currentYearOps || ''}.xlsx`
+            .replace(/\s+/g, '_').replace(/_+/g, '_');
+        XLSX.writeFile(wb, fileName);
+    } catch (e) {
+        console.error('Error al exportar a Excel:', e);
+        alert('Ocurrió un error al exportar a Excel.');
     }
 };
 

@@ -2,6 +2,7 @@
   "name": "Operaciones AIFA",
   "short_name": "AIFA Ops",
   "description": "Dashboard operativo del Aeropuerto Internacional Felipe Ángeles.",
+  "version": "2026.07.03-1",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

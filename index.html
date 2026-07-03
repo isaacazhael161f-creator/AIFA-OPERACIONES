@@ -150,7 +150,7 @@
     <link rel="preload" as="script" href="script.js?v=20260616n" fetchpriority="high">
     <link rel="preload" as="script" href="js/manifiestos.js">
     <link rel="preload" as="script" href="js/data-management.js">
-    <link rel="preload" as="script" href="js/analisis-operaciones.js?v=38">
+    <link rel="preload" as="script" href="js/analisis-operaciones.js?v=44">
     <link rel="preload" as="script" href="js/manifiestos-analisis.js">
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -213,10 +213,10 @@
            Es el único elemento que hace scroll vertical y horizontal. */
         .ops-scroll {
             position: relative;
-            max-height: calc(100vh - 360px);
-            /* Alto mínimo para mostrar ~15 filas antes de necesitar scroll
-               (encabezado sticky ~48px + 15 filas ≈ 46px c/u). */
-            min-height: 740px;
+            max-height: calc(100vh - 498px);
+            /* Alto mínimo para mostrar ~12 filas antes de necesitar scroll
+               (encabezado sticky ~48px + 12 filas ≈ 46px c/u). */
+            min-height: 602px;
             overflow: auto;
             border: 1px solid #dee2e6;
             border-radius: 6px;
@@ -24349,6 +24349,35 @@ FF
                             #ops-table-wrapper .ops-scroll::-webkit-scrollbar-track { background:#eceff1; border-radius:6px; }
                             #ops-table-wrapper .ops-scroll::-webkit-scrollbar-thumb { background:#90a4ae; border-radius:6px; }
                             #ops-table-wrapper .ops-scroll::-webkit-scrollbar-thumb:hover { background:#607d8b; }
+                            /* Celdas editables (Código de Demora, Motivo, Estatus) con guardado inmediato */
+                            #ops-table-wrapper td.ops-editable { cursor: pointer; }
+                            #ops-table-wrapper td.ops-editable:hover { background:#fff8e1 !important; outline:1px dashed #f0ad4e; outline-offset:-2px; }
+                            #ops-table-wrapper td.ops-editable .ops-inline-editor { min-width: 90px; }
+                            .ops-codigo-dropdown label { line-height: 1.2; }
+                            /* Resaltado animado de la celda modificada: azul fuerte -> azul medio -> verde -> blanco */
+                            @keyframes opsCellFlash {
+                                0%   { background-color:#084298; color:#fff; }
+                                30%  { background-color:#3d8bfd; color:#fff; }
+                                65%  { background-color:#198754; color:#fff; }
+                                100% { background-color:#ffffff; color:#212529; }
+                            }
+                            #ops-table-wrapper td.ops-cell-changed {
+                                animation: opsCellFlash 120s ease-in-out 1;
+                                cursor: help;
+                            }
+                            /* Cuadro (tooltip) con el dato modificado, sólo durante la animación */
+                            #ops-change-tip {
+                                position: fixed; z-index: 20001; display: none;
+                                max-width: 260px; padding: 8px 12px; border-radius: 8px;
+                                background: #0d2440; color: #fff; font-size: .8rem; line-height: 1.3;
+                                box-shadow: 0 6px 18px rgba(0,0,0,.28); pointer-events: none;
+                                word-break: break-word;
+                            }
+                            #ops-change-tip .ops-change-tip-title {
+                                font-weight: 700; font-size: .72rem; text-transform: uppercase;
+                                letter-spacing: .04em; opacity: .75; margin-bottom: 2px;
+                            }
+                            #ops-change-tip .ops-change-tip-body { font-weight: 500; }
                             /* Manija para ajustar el ancho de columnas (dentro del th del encabezado) */
                             #ops-table-wrapper .ops-col-resizer {
                                 position:absolute; top:0; right:0; width:7px; height:100%;
@@ -31903,7 +31932,7 @@ FF
     <script src="js/itinerario.js?v=4"></script>
     <script src="js/demoras.js"></script>
     <script src="js/aerolineas.js"></script>
-    <script src="js/analisis-operaciones.js?v=38"></script>
+    <script src="js/analisis-operaciones.js?v=44"></script>
     <script src="js/demoras-upload.js?v=9"></script>
     <script src="js/manifiestos-upload.js?v=1"></script>
     <script src="js/manifiestos-carga-upload.js?v=1"></script>
@@ -34610,8 +34639,7 @@ window.AeropuertosModule = (function () {
                 <p class="text-muted mb-0" style="font-size:.75rem;">
                     Mueve el cursor o presiona cualquier tecla para continuar.
                 </p>
-            </div>
-
+            </div>            
             <!-- Estado: Sesión expirada (sto-state-expired) -->
             <div class="sto-expired-body p-4 text-center d-none">
                 <div class="sto-icon-wrap mb-3">
@@ -34633,9 +34661,7 @@ window.AeropuertosModule = (function () {
         </div>
     </div>
 </div>
-
 <script src="js/mapa-interactivo.js?v=20260616m" defer></script>
-
 </body>
 </html>
 
