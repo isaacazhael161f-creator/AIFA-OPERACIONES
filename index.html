@@ -5136,6 +5136,25 @@ FF
                     return null;
                 }
 
+                // ── Fecha cargada por pestaña ─────────────────────────────────
+                // Cada tabla (llegadas/salidas/sin vuelo) puede tener su propia
+                // fecha más reciente, por eso el badge se ajusta a la pestaña activa.
+                var _bhsTabDate = { arr:null, dep:null, bwf:null };
+                function bhsCurrentTab(){
+                    var active=document.querySelector('.bhs-tab-btn.active');
+                    if(active){
+                        var m=(active.getAttribute('onclick')||'').match(/'(arr|dep|bwf)'/);
+                        if(m) return m[1];
+                    }
+                    return 'arr';
+                }
+                function bhsUpdateDateBadge(){
+                    var badge=document.getElementById('bhs-loaded-date');
+                    if(!badge) return;
+                    var d=_bhsTabDate[bhsCurrentTab()];
+                    badge.textContent = d ? ('\uD83D\uDCC5 '+fmtDate(d)) : 'Sin datos';
+                }
+
                 // ── dates panel ───────────────────────────────────────────────
                 window.bhsToggleDates=function(){
                     var panel=document.getElementById('bhs-dates-panel');
@@ -5181,6 +5200,7 @@ FF
                         b.classList.remove('active');
                     });
                     if(btn){ btn.classList.add('active'); }
+                    bhsUpdateDateBadge();
                 };
 
                 // ── drag & drop ───────────────────────────────────────────────
@@ -5245,10 +5265,10 @@ FF
                         client.from('bhs_departures').select('*').eq('fecha',fecha),
                         client.from('bhs_bags_without_flight').select('*').eq('fecha',fecha)
                     ]).then(function(results){
-                        if(!results[0].error) bhsRenderArrivals(results[0].data||[]);
-                        if(!results[1].error) bhsRenderDepartures(results[1].data||[]);
-                        if(!results[2].error) bhsRenderBWF(results[2].data||[]);
-                        document.getElementById('bhs-loaded-date').textContent='📅 '+fmtDate(fecha);
+                        if(!results[0].error){ bhsRenderArrivals(results[0].data||[]); _bhsTabDate.arr=fecha; }
+                        if(!results[1].error){ bhsRenderDepartures(results[1].data||[]); _bhsTabDate.dep=fecha; }
+                        if(!results[2].error){ bhsRenderBWF(results[2].data||[]); _bhsTabDate.bwf=fecha; }
+                        bhsUpdateDateBadge();
                     }).catch(function(err){
                         console.error('BHS load error',err);
                     });
@@ -6041,23 +6061,37 @@ FF
                         if(retries>0) setTimeout(function(){ bhsAutoLoadLatest(retries-1); }, 500);
                         return;
                     }
-                    Promise.all([
-                        client.from('bhs_arrivals').select('fecha').order('fecha',{ascending:false}).limit(1),
-                        client.from('bhs_departures').select('fecha').order('fecha',{ascending:false}).limit(1),
-                        client.from('bhs_bags_without_flight').select('fecha').order('fecha',{ascending:false}).limit(1)
-                    ]).then(function(res){
-                        var dates = res
-                            .map(function(r){ return (r && r.data && r.data[0]) ? r.data[0].fecha : null; })
-                            .filter(Boolean)
-                            .sort()
-                            .reverse();
-                        var latest = dates[0];
-                        if(!latest){
+                    // Cada tabla puede tener su propia fecha más reciente; cargamos
+                    // por tabla su último día con datos para que ninguna pestaña
+                    // quede vacía (p. ej. Salidas al 21 y Llegadas al 19).
+                    var specs = [
+                        { tab:'arr', table:'bhs_arrivals',            render:bhsRenderArrivals },
+                        { tab:'dep', table:'bhs_departures',          render:bhsRenderDepartures },
+                        { tab:'bwf', table:'bhs_bags_without_flight', render:bhsRenderBWF }
+                    ];
+                    Promise.all(specs.map(function(s){
+                        return client.from(s.table).select('fecha').order('fecha',{ascending:false}).limit(1)
+                            .then(function(r){ return (r && r.data && r.data[0]) ? r.data[0].fecha : null; })
+                            .catch(function(){ return null; });
+                    })).then(function(latests){
+                        var overall = latests.filter(Boolean).sort().reverse()[0];
+                        if(!overall){
                             if(!df.value) df.value = today();
+                            _bhsTabDate = { arr:null, dep:null, bwf:null };
+                            bhsUpdateDateBadge();
                             return;
                         }
-                        df.value = latest;
-                        bhsLoadFromDB(latest);
+                        // El selector de fecha se ancla al día más reciente global.
+                        df.value = overall;
+                        specs.forEach(function(s, i){
+                            var fecha = latests[i];
+                            if(!fecha){ _bhsTabDate[s.tab] = null; s.render([]); bhsUpdateDateBadge(); return; }
+                            client.from(s.table).select('*').eq('fecha',fecha).then(function(res){
+                                if(!res.error){ s.render(res.data||[]); _bhsTabDate[s.tab] = fecha; }
+                                bhsUpdateDateBadge();
+                            }).catch(function(err){ console.warn('[BHS] load '+s.table+' failed', err); });
+                        });
+                        bhsUpdateDateBadge();
                     }).catch(function(err){
                         console.warn('[BHS] auto-load latest failed', err);
                         if(!df.value) df.value = today();
