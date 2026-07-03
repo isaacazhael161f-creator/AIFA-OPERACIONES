@@ -2154,11 +2154,15 @@
         const filename = `itinerario_AIFA_${dateVal}.png`;
         const file = new File([blob], filename, { type: 'image/png' });
 
-        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-          // Mobile: native share sheet — includes WhatsApp, Telegram, etc.
+        const isMobile = /Android|iPhone|iPad|iPod|Mobi/i.test(navigator.userAgent)
+          || (navigator.userAgentData && navigator.userAgentData.mobile);
+
+        if (isMobile && navigator.canShare && navigator.canShare({ files: [file] })) {
+          // Mobile: native share sheet — includes WhatsApp, Telegram, etc. (adjunta la imagen)
           await navigator.share({ files: [file], title: `Itinerario AIFA — ${dateDisplay}` });
         } else {
-          // Desktop fallback: trigger a download; user can then attach it to WhatsApp Web
+          // Desktop: descarga la imagen y abre WhatsApp Web para que el usuario la adjunte.
+          // (No se puede adjuntar un archivo automáticamente vía URL de WhatsApp.)
           const url = URL.createObjectURL(blob);
           const anchor = document.createElement('a');
           anchor.href = url;
@@ -2167,6 +2171,7 @@
           anchor.click();
           document.body.removeChild(anchor);
           setTimeout(() => URL.revokeObjectURL(url), 8000);
+          try { window.open('https://web.whatsapp.com/', '_blank', 'noopener'); } catch (_) {}
           showDownloadMsg = true;
         }
       } catch (err) {
@@ -2184,9 +2189,9 @@
           el.style.height = height;
         });
         if (showDownloadMsg) {
-          shareItBtn.innerHTML = '<i class="fas fa-check me-2"></i><span class="btn-text">Imagen descargada</span>';
+          shareItBtn.innerHTML = '<i class="fas fa-check me-2"></i><span class="btn-text">Imagen lista — adjúntala en WhatsApp</span>';
           shareItBtn.disabled = false;
-          setTimeout(() => { shareItBtn.innerHTML = originalHTML; }, 2500);
+          setTimeout(() => { shareItBtn.innerHTML = originalHTML; }, 3500);
         } else {
           shareItBtn.innerHTML = originalHTML;
           shareItBtn.disabled = false;

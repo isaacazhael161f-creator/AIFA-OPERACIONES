@@ -164,6 +164,8 @@
     <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script>
     <!-- html2pdf: genera PDF desde HTML (incluye html2canvas + jsPDF) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <!-- jsPDF UMD independiente: expone window.jspdf.jsPDF (html2pdf.bundle NO lo expone globalmente) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <!-- html2canvas independiente para captura de imagen de tarjeta de cumpleaños -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" crossorigin="anonymous"></script>
@@ -31898,7 +31900,7 @@ FF
     <script src="js/core.js"></script>
     <script src="js/navigation.js?v=20260614c"></script>
     <script src="js/inicio.js"></script>
-    <script src="js/itinerario.js?v=3"></script>
+    <script src="js/itinerario.js?v=4"></script>
     <script src="js/demoras.js"></script>
     <script src="js/aerolineas.js"></script>
     <script src="js/analisis-operaciones.js?v=38"></script>
