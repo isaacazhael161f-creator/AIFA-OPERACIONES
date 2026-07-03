@@ -4705,6 +4705,39 @@ FF
 
                 /* Badge de fecha cargada */
                 #bhs-loaded-date{background:linear-gradient(135deg,#eef2ff 0%,#e0e7ff 100%) !important;color:#4338ca !important;border:1px solid #c7d2fe;padding:6px 12px !important;border-radius:999px;font-weight:600;letter-spacing:.02em;}
+
+                /* ── Capacidades máximas del Sistema BHS ─────────────────── */
+                .bhs-cap-panel{border-radius:18px;overflow:hidden;background:#fff;box-shadow:0 12px 34px rgba(15,23,42,.12),0 2px 6px rgba(15,23,42,.06);border:1px solid #eef2f7;}
+                .bhs-cap-head{display:flex;align-items:center;gap:14px;padding:18px 22px;background:linear-gradient(120deg,#0f2444 0%,#1e3a5f 55%,#2a4a7a 100%);position:relative;overflow:hidden;}
+                .bhs-cap-head::after{content:"";position:absolute;right:-50px;top:-70px;width:220px;height:220px;background:radial-gradient(circle,rgba(99,132,241,.38),transparent 70%);pointer-events:none;}
+                .bhs-cap-head-icon{width:46px;height:46px;border-radius:12px;background:rgba(255,255,255,.14);display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.25rem;flex-shrink:0;z-index:1;}
+                .bhs-cap-title{color:#fff;font-weight:700;font-size:1.05rem;letter-spacing:.01em;line-height:1.15;z-index:1;}
+                .bhs-cap-sub{color:rgba(255,255,255,.72);font-size:.74rem;margin-top:2px;}
+                .bhs-cap-badge{margin-left:auto;background:rgba(255,255,255,.16);color:#fff;font-size:.7rem;font-weight:600;padding:6px 12px;border-radius:999px;white-space:nowrap;z-index:1;}
+                .bhs-cap-badge i{color:#fbbf24;margin-right:4px;}
+                .bhs-cap-body{padding:18px 22px 22px;display:flex;flex-direction:column;gap:16px;}
+                .bhs-cap-row{display:flex;align-items:center;gap:18px;flex-wrap:wrap;padding:16px 18px;border-radius:14px;position:relative;overflow:hidden;background:#f8fafc;border:1px solid #eef2f7;}
+                .bhs-cap-row--dep{background:linear-gradient(120deg,#fff7ed 0%,#ffffff 62%);border-color:#fde3c7;}
+                .bhs-cap-row--arr{background:linear-gradient(120deg,#eff6ff 0%,#ffffff 62%);border-color:#cfe2fd;}
+                .bhs-cap-row::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;}
+                .bhs-cap-row--dep::before{background:linear-gradient(180deg,#fb923c,#ea580c);}
+                .bhs-cap-row--arr::before{background:linear-gradient(180deg,#3b82f6,#2563eb);}
+                .bhs-cap-rowlabel{display:flex;align-items:center;gap:12px;min-width:210px;flex:0 0 auto;}
+                .bhs-cap-rowicon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.15rem;flex-shrink:0;}
+                .bhs-cap-row--dep .bhs-cap-rowicon{background:linear-gradient(135deg,#fb923c,#ea580c);box-shadow:0 6px 14px rgba(234,88,12,.35);}
+                .bhs-cap-row--arr .bhs-cap-rowicon{background:linear-gradient(135deg,#3b82f6,#2563eb);box-shadow:0 6px 14px rgba(37,99,235,.35);}
+                .bhs-cap-rowname{font-weight:700;color:#1e293b;font-size:.95rem;line-height:1.1;}
+                .bhs-cap-rownote{font-size:.72rem;color:#94a3b8;margin-top:2px;}
+                .bhs-cap-metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;flex:1 1 420px;}
+                .bhs-cap-metric{background:#fff;border-radius:12px;padding:12px 10px;text-align:center;border:1px solid #eef2f7;box-shadow:0 1px 3px rgba(15,23,42,.05);transition:transform .2s ease,box-shadow .2s ease;}
+                .bhs-cap-metric:hover{transform:translateY(-3px);box-shadow:0 8px 18px rgba(15,23,42,.12);}
+                .bhs-cap-num{font-size:1.35rem;font-weight:800;color:#0f2444;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-.01em;}
+                .bhs-cap-unit{font-size:.66rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#94a3b8;margin-top:5px;}
+                .bhs-cap-row--dep .bhs-cap-metric--year{background:linear-gradient(135deg,#ea580c,#c2410c);border-color:transparent;}
+                .bhs-cap-row--arr .bhs-cap-metric--year{background:linear-gradient(135deg,#2563eb,#1d4ed8);border-color:transparent;}
+                .bhs-cap-metric--year .bhs-cap-num{color:#fff;}
+                .bhs-cap-metric--year .bhs-cap-unit{color:rgba(255,255,255,.82);}
+                @media (max-width:575px){.bhs-cap-metrics{grid-template-columns:repeat(2,1fr);}.bhs-cap-rowlabel{min-width:100%;}}
                 </style>
 
                 <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
@@ -4717,6 +4750,52 @@ FF
                         <label for="bhs-date-filter" class="small fw-semibold text-secondary mb-0">Fecha:</label>
                         <input type="date" id="bhs-date-filter" class="form-control form-control-sm" style="width:160px;">
                         <button class="btn btn-sm btn-outline-primary" onclick="bhsLoadDate()"><i class="fas fa-sync-alt me-1"></i>Cargar</button>
+                    </div>
+                </div>
+
+                <!-- ══ Capacidades máximas del Sistema BHS (datos clave) ══ -->
+                <div class="bhs-cap-panel mb-4">
+                    <div class="bhs-cap-head">
+                        <div class="bhs-cap-head-icon"><i class="fas fa-gauge-high"></i></div>
+                        <div>
+                            <div class="bhs-cap-title">Capacidades Máximas del Sistema BHS</div>
+                            <div class="bhs-cap-sub">Baggage Handling System · Aeropuerto Internacional Felipe Ángeles</div>
+                        </div>
+                        <span class="bhs-cap-badge"><i class="fas fa-bolt"></i>Datos clave</span>
+                    </div>
+                    <div class="bhs-cap-body">
+                        <!-- SALIDA -->
+                        <div class="bhs-cap-row bhs-cap-row--dep">
+                            <div class="bhs-cap-rowlabel">
+                                <span class="bhs-cap-rowicon"><i class="fas fa-plane-departure"></i></span>
+                                <div>
+                                    <div class="bhs-cap-rowname">Equipajes de Salida</div>
+                                    <div class="bhs-cap-rownote">Manejo máximo · Departures</div>
+                                </div>
+                            </div>
+                            <div class="bhs-cap-metrics">
+                                <div class="bhs-cap-metric"><div class="bhs-cap-num" data-bhs-count="5269">5,269</div><div class="bhs-cap-unit">por hora</div></div>
+                                <div class="bhs-cap-metric"><div class="bhs-cap-num" data-bhs-count="126456">126,456</div><div class="bhs-cap-unit">por día</div></div>
+                                <div class="bhs-cap-metric"><div class="bhs-cap-num" data-bhs-count="3793680">3,793,680</div><div class="bhs-cap-unit">al mes</div></div>
+                                <div class="bhs-cap-metric bhs-cap-metric--year"><div class="bhs-cap-num" data-bhs-count="46156440">46,156,440</div><div class="bhs-cap-unit">por año</div></div>
+                            </div>
+                        </div>
+                        <!-- LLEGADA -->
+                        <div class="bhs-cap-row bhs-cap-row--arr">
+                            <div class="bhs-cap-rowlabel">
+                                <span class="bhs-cap-rowicon"><i class="fas fa-plane-arrival"></i></span>
+                                <div>
+                                    <div class="bhs-cap-rowname">Equipajes de Llegada</div>
+                                    <div class="bhs-cap-rownote">Manejo máximo · Arrivals</div>
+                                </div>
+                            </div>
+                            <div class="bhs-cap-metrics">
+                                <div class="bhs-cap-metric"><div class="bhs-cap-num" data-bhs-count="4389">4,389</div><div class="bhs-cap-unit">por hora</div></div>
+                                <div class="bhs-cap-metric"><div class="bhs-cap-num" data-bhs-count="105336">105,336</div><div class="bhs-cap-unit">por día</div></div>
+                                <div class="bhs-cap-metric"><div class="bhs-cap-num" data-bhs-count="3160080">3,160,080</div><div class="bhs-cap-unit">al mes</div></div>
+                                <div class="bhs-cap-metric bhs-cap-metric--year"><div class="bhs-cap-num" data-bhs-count="38447640">38,447,640</div><div class="bhs-cap-unit">por año</div></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -5985,10 +6064,33 @@ FF
                     });
                 }
 
+                // Animación count-up para el panel de capacidades máximas.
+                function bhsAnimateCapacities(){
+                    var nums = document.querySelectorAll('#bhs-section [data-bhs-count]');
+                    if(!nums.length) return;
+                    var fmt = function(n){ return Math.round(n).toLocaleString('es-MX'); };
+                    nums.forEach(function(el){
+                        var target = parseInt(el.getAttribute('data-bhs-count'), 10) || 0;
+                        if(el.__bhsAnimating) return;
+                        el.__bhsAnimating = true;
+                        var dur = 1100, start = null;
+                        var ease = function(t){ return 1 - Math.pow(1 - t, 3); };
+                        var step = function(ts){
+                            if(start === null) start = ts;
+                            var p = Math.min((ts - start) / dur, 1);
+                            el.textContent = fmt(target * ease(p));
+                            if(p < 1){ requestAnimationFrame(step); }
+                            else { el.textContent = fmt(target); el.__bhsAnimating = false; }
+                        };
+                        requestAnimationFrame(step);
+                    });
+                }
+
                 document.addEventListener('DOMContentLoaded',function(){
                     var df=document.getElementById('bhs-date-filter');
                     if(df && !df.value) df.value=today();
                     bhsAutoLoadLatest();
+                    bhsAnimateCapacities();
 
                     // Re-cargar al entrar a la sección BHS (por si el cliente Supabase
                     // tarda más que DOMContentLoaded o si hay datos nuevos).
@@ -5996,7 +6098,7 @@ FF
                     if(typeof origShow === 'function' && !origShow.__bhsAutoLatestPatched){
                         window.showSection = function(id){
                             var ret = origShow.apply(this, arguments);
-                            if(id === 'bhs') bhsAutoLoadLatest();
+                            if(id === 'bhs'){ bhsAutoLoadLatest(); bhsAnimateCapacities(); }
                             return ret;
                         };
                         window.showSection.__bhsAutoLatestPatched = true;
