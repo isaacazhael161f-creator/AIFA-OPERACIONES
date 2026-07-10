@@ -368,6 +368,10 @@ function renderMonthPills() {
 async function loadOpsMonthData(month, force = false) {
     currentMonthOps = month;
 
+    // El historial de "Deshacer" es por periodo: al cambiar de mes/año se limpia.
+    _opsUndoStack = [];
+    _opsUpdateUndoBtn();
+
     // Sincronizar selectores de Año / Mes
     const yearSel = document.getElementById('ops-filter-year');
     if (yearSel && yearSel.value !== String(currentYearOps)) yearSel.value = String(currentYearOps);
@@ -758,10 +762,25 @@ function renderOpsTable(data) {
         'anio'                // Anio
     ]);
 
+    // Todas las columnas que aparecen DESPUÉS de "Tiempo de Demora" son editables
+    // con guardado inmediato en BD (excepto las claves de periodo Mes/Año).
+    const _dataKeys = Object.keys(data[0]).filter(key => !_isIndexCol(key));
+    const _tiempoIdx = _dataKeys.findIndex(k => _opsNormId(k) === 'tiempodedemora');
+    const _NON_EDITABLE_AFTER = new Set(['mes', 'anio', 'ano']);
+
     const columns = [consecutiveColumn].concat(
-        Object.keys(data[0]).filter(key => !_isIndexCol(key)).map(key => {
+        _dataKeys.map((key, idx) => {
             const title = formatHeader(key);
-            const editType = _OPS_EDITABLE_TYPES[_normTitle(title)];
+            const normId = _opsNormId(key);
+            const specialType = _OPS_EDITABLE_TYPES[_normTitle(title)];
+            const isAfterDemora = _tiempoIdx >= 0 && idx > _tiempoIdx && !_NON_EDITABLE_AFTER.has(normId);
+            let editType = specialType || (isAfterDemora ? 'text' : null);
+            // Combos restringidos para Domestic/International y Llegada/Salida.
+            if (isAfterDemora && !specialType) {
+                if (normId === 'domesticinternational') editType = 'domint';
+                else if (normId === 'llegadasalida') editType = 'llegsal';
+                else if (normId === 'tipodeservicio') editType = 'servicio';
+            }
             const isDemorasCol = _normTitle(title) === 'demoras';
             const col = {
                 title: title,
@@ -777,7 +796,10 @@ function renderOpsTable(data) {
             if (editType) {
                 col.createdCell = function (td) {
                     td.setAttribute('data-ops-edit', editType);
+                    td.setAttribute('data-ops-keyid', normId);
+                    td.setAttribute('data-ops-key', key);
                     td.setAttribute('title', 'Clic para editar y guardar');
+                    if (isDemorasCol) td.setAttribute('data-ops-col', 'demoras');
                 };
             } else if (isDemorasCol) {
                 col.createdCell = function (td) {
@@ -858,9 +880,10 @@ function renderOpsTable(data) {
         }, 60);
     });
 
-    // Edición en línea (Código de Demora, Motivo, Estatus) con guardado inmediato en BD.
+    // Edición en línea (Código de Demora, Motivo, Estatus, Tipo de Servicio) con guardado inmediato en BD.
     _opsBindCellEditors();
     _loadDemorasCatalog().catch(() => {});
+    _loadServiceTypeCatalog().catch(() => {});
 }
 
 // ── Encabezado fijo (tabla única, thead sticky) + ColVis ("Campos") + resize ──
@@ -885,6 +908,22 @@ function _opsInitScrollTable(api) {
             $(colvis.container()).appendTo(host);
         }
     } catch (e) { console.warn('ColVis init', e); }
+
+    // Botón "Deshacer" a un costado del cuadro de buscar (deshace hasta 10 cambios)
+    try {
+        const wrapper = api.table().container();
+        const filterLabel = wrapper ? wrapper.querySelector('.dataTables_filter') : null;
+        if (filterLabel && !filterLabel.querySelector('.ops-undo-btn')) {
+            const undoBtn = document.createElement('button');
+            undoBtn.type = 'button';
+            undoBtn.className = 'btn btn-sm btn-outline-secondary ops-undo-btn ms-2';
+            undoBtn.innerHTML = '<i class="fas fa-rotate-left me-1"></i>Deshacer';
+            undoBtn.title = 'Deshacer el último cambio guardado (hasta 10)';
+            undoBtn.addEventListener('click', () => _opsUndoLast());
+            filterLabel.appendChild(undoBtn);
+            _opsUpdateUndoBtn();
+        }
+    } catch (e) { console.warn('Undo btn', e); }
 
     // Botón "Borrar filtros" a la derecha del buscador
     try {
@@ -1118,8 +1157,80 @@ function formatHeader(key) {
 
 const _OPS_EDITABLE_TYPES = { codigodedemora: 'codigo', motivo: 'motivo', estatus: 'estatus' };
 const _OPS_STATUS_OPTIONS = ['A Tiempo', 'Demora', 'Cancelado', 'Alterno', 'Regreso a posición'];
+// Opciones fijas para las columnas con combo restringido.
+const _OPS_DOMINT_OPTIONS = ['Domestic', 'International'];
+const _OPS_LLEGSAL_OPTIONS = ['Llegada', 'Salida'];
+
+// ── Historial de "Deshacer" (máximo 10 acciones, por periodo) ─────────────
+const _OPS_UNDO_MAX = 10;
+let _opsUndoStack = [];
+
+// Registra un cambio para poder deshacerlo. `prev` = valores a restaurar,
+// `cur` = valores que quedaron (se muestran como "valor anterior" al deshacer).
+function _opsPushUndo(pkKey, pkValue, prev, cur) {
+    _opsUndoStack.push({ pkKey, pkValue, prev, cur });
+    if (_opsUndoStack.length > _OPS_UNDO_MAX) _opsUndoStack.shift();
+    _opsUpdateUndoBtn();
+}
+
+// Refleja en el botón cuántas acciones quedan por deshacer.
+function _opsUpdateUndoBtn() {
+    const btn = document.querySelector('.ops-undo-btn');
+    if (!btn) return;
+    btn.disabled = _opsUndoStack.length === 0;
+    btn.innerHTML = '<i class="fas fa-rotate-left me-1"></i>Deshacer';
+}
+
+// Localiza el índice de fila de la tabla a partir del valor de la PK.
+function _opsRowIdxByPk(pkKey, pkValue) {
+    let idx = -1;
+    if (!opsDataTable) return idx;
+    opsDataTable.rows().every(function () {
+        if (idx < 0 && String(this.data()[pkKey]) === String(pkValue)) idx = this.index();
+    });
+    return idx;
+}
+
+// Deshace el último cambio guardado: revierte los valores en BD y anima la fila.
+async function _opsUndoLast() {
+    if (!_opsUndoStack.length || !opsDataTable) return;
+    const entry = _opsUndoStack.pop();
+    _opsUpdateUndoBtn();
+    try {
+        await _opsPersistEdit(entry.pkKey, entry.pkValue, entry.prev);
+        _opsEditToast('Cambio deshecho.');
+        const rowIdx = _opsRowIdxByPk(entry.pkKey, entry.pkValue);
+        if (rowIdx >= 0) {
+            const cols = Object.keys(entry.prev || {}).map(k => ({
+                selector: `td[data-ops-keyid="${_opsNormId(k)}"]`,
+                value: entry.cur ? entry.cur[k] : entry.prev[k]
+            }));
+            _opsFinishEdit(rowIdx, cols);
+        }
+    } catch (err) {
+        _opsEditToast('Error al deshacer: ' + err.message, true);
+        _opsUndoStack.push(entry); // devolver a la pila si falló
+        _opsUpdateUndoBtn();
+    }
+}
 
 let _demorasCatalogCache = null;
+let _serviceTypeCatalogCache = null;
+
+// Carga (y cachea) el catálogo de tipos de servicio de vuelo (flight_service_type).
+async function _loadServiceTypeCatalog() {
+    if (_serviceTypeCatalogCache) return _serviceTypeCatalogCache;
+    let client = window.supabaseClient;
+    if (!client && window.ensureSupabaseClient) client = await window.ensureSupabaseClient();
+    if (!client) return [];
+    const { data, error } = await client
+        .from('flight_service_type')
+        .select('codigo, tipo_operacion, descripcion, categoria')
+        .order('codigo', { ascending: true });
+    if (error) { console.warn('flight_service_type error:', error); return []; }
+    _serviceTypeCatalogCache = data || [];
+    return _serviceTypeCatalogCache;
+}
 
 function _opsNormId(k) {
     return String(k || '')
@@ -1217,17 +1328,28 @@ function _opsHideChangeTip() {
     if (tip) tip.style.display = 'none';
 }
 
-// Reconstruye la fila desde el objeto (mutado) y anima las celdas cambiadas.
-// changedCols: [{ selector, value }] — selector CSS del td dentro de la fila.
+// Anima las celdas cambiadas y restaura su contenido renderizado SIN redibujar
+// toda la tabla (así las animaciones de otras celdas en curso no se reinician).
+// changedCols: [{ selector, value, key }] — selector CSS del td; value = valor
+// anterior (para el tooltip); key = clave real de la columna (para re-render).
 function _opsFinishEdit(rowIdx, changedCols) {
     if (!opsDataTable) return;
-    try { opsDataTable.row(rowIdx).invalidate().draw(false); } catch (_) { }
+    // Actualiza el cache interno de DataTables (búsqueda/orden) sin tocar el DOM.
+    try { opsDataTable.row(rowIdx).invalidate('data'); } catch (_) { }
     let trNode = null;
     try { trNode = opsDataTable.row(rowIdx).node(); } catch (_) { }
     if (!trNode) return;
+    const rowData = (() => { try { return opsDataTable.row(rowIdx).data() || {}; } catch (_) { return {}; } })();
     (changedCols || []).forEach(c => {
         const cell = trNode.querySelector(c.selector);
-        if (cell) _opsMarkCellChanged(cell, c.value);
+        if (!cell) return;
+        // Restaurar el contenido de la celda (elimina el editor y refleja el valor
+        // nuevo). Las columnas editables nunca son fechas, así que basta String().
+        if (c.key !== undefined && c.key !== null) {
+            const v = rowData[c.key];
+            cell.textContent = (v == null) ? '' : String(v);
+        }
+        _opsMarkCellChanged(cell, c.value);
     });
 }
 
@@ -1247,9 +1369,22 @@ function _opsEditToast(message, isError) {
     host._t = setTimeout(() => { host.style.opacity = '0'; }, 2200);
 }
 
-// Restaura el render normal de la fila (cierra el editor y refleja el nuevo valor).
+// Restaura el render normal de UNA celda (cierra el editor) sin redibujar la
+// tabla, para no reiniciar las animaciones de otras celdas en curso.
 function _opsRerenderRow(td) {
-    try { opsDataTable.row(td).invalidate().draw(false); } catch (_) { }
+    if (!td || !opsDataTable) return;
+    try {
+        const rowData = opsDataTable.row(td).data() || {};
+        const key = td.getAttribute('data-ops-key');
+        if (key) {
+            const v = rowData[key];
+            td.textContent = (v == null) ? '' : String(v);
+        } else {
+            opsDataTable.cell(td).invalidate('data');
+            const disp = opsDataTable.cell(td).render('display');
+            if (disp != null) td.innerHTML = disp;
+        }
+    } catch (_) { }
 }
 
 // Editor de texto (Motivo).
@@ -1269,8 +1404,9 @@ function _openMotivoEditor(td) {
         const rowIdx = opsDataTable.row(td).index();
         try {
             await _opsPersistEdit(keys.pk, rowData[keys.pk], { [keys.motivo]: val });
+            _opsPushUndo(keys.pk, rowData[keys.pk], { [keys.motivo]: cur }, { [keys.motivo]: val });
             _opsEditToast('Motivo guardado.');
-            _opsFinishEdit(rowIdx, [{ selector: 'td[data-ops-edit="motivo"]', value: cur }]);
+            _opsFinishEdit(rowIdx, [{ selector: 'td[data-ops-edit="motivo"]', value: cur, key: keys.motivo }]);
         } catch (err) {
             _opsEditToast('Error: ' + err.message, true);
             _opsRerenderRow(td);
@@ -1303,8 +1439,9 @@ function _openEstatusEditor(td) {
         const rowIdx = opsDataTable.row(td).index();
         try {
             await _opsPersistEdit(keys.pk, rowData[keys.pk], { [keys.estatus]: val });
+            _opsPushUndo(keys.pk, rowData[keys.pk], { [keys.estatus]: cur }, { [keys.estatus]: val });
             _opsEditToast('Estatus guardado.');
-            _opsFinishEdit(rowIdx, [{ selector: 'td[data-ops-edit="estatus"]', value: cur }]);
+            _opsFinishEdit(rowIdx, [{ selector: 'td[data-ops-edit="estatus"]', value: cur, key: keys.estatus }]);
         } catch (err) {
             _opsEditToast('Error: ' + err.message, true);
             _opsRerenderRow(td);
@@ -1394,10 +1531,14 @@ async function _openCodigoDemoraEditor(td) {
         const oldDemoras = keys.demoras ? String(rowData[keys.demoras] || '') : '';
         try {
             await _opsPersistEdit(keys.pk, rowData[keys.pk], updates);
+            const prev = { [keys.codigo]: oldCodigo };
+            const cur = { [keys.codigo]: codigoStr };
+            if (keys.demoras) { prev[keys.demoras] = oldDemoras; cur[keys.demoras] = demorasStr; }
+            _opsPushUndo(keys.pk, rowData[keys.pk], prev, cur);
             _opsEditToast('Código de demora guardado.');
             menu.remove();
-            const cols = [{ selector: 'td[data-ops-edit="codigo"]', value: oldCodigo }];
-            if (keys.demoras) cols.push({ selector: 'td[data-ops-col="demoras"]', value: oldDemoras });
+            const cols = [{ selector: 'td[data-ops-edit="codigo"]', value: oldCodigo, key: keys.codigo }];
+            if (keys.demoras) cols.push({ selector: 'td[data-ops-col="demoras"]', value: oldDemoras, key: keys.demoras });
             _opsFinishEdit(rowIdx, cols);
         } catch (err) {
             _opsEditToast('Error: ' + err.message, true);
@@ -1408,6 +1549,135 @@ async function _openCodigoDemoraEditor(td) {
 
     $('body').append(menu);
     setTimeout(() => search.trigger('focus'), 30);
+}
+
+// Editor de texto genérico para las columnas posteriores a "Tiempo de Demora".
+function _openGenericEditor(td) {
+    const key = td.getAttribute('data-ops-key');
+    if (!key) return;
+    const keys = _opsColKeys();
+    const rowData = opsDataTable.row(td).data();
+    const cur = rowData[key] == null ? '' : String(rowData[key]);
+    const $inp = $('<input type="text" class="form-control form-control-sm ops-inline-editor">').val(cur);
+    $(td).empty().append($inp);
+    $inp.trigger('focus').trigger('select');
+    let done = false;
+    const commit = async () => {
+        if (done) return; done = true;
+        const val = $inp.val();
+        if (val === cur) { _opsRerenderRow(td); return; }
+        const rowIdx = opsDataTable.row(td).index();
+        const keyid = _opsNormId(key);
+        try {
+            await _opsPersistEdit(keys.pk, rowData[keys.pk], { [key]: val });
+            _opsPushUndo(keys.pk, rowData[keys.pk], { [key]: cur }, { [key]: val });
+            _opsEditToast('Cambio guardado.');
+            _opsFinishEdit(rowIdx, [{ selector: `td[data-ops-keyid="${keyid}"]`, value: cur, key }]);
+        } catch (err) {
+            _opsEditToast('Error: ' + err.message, true);
+            _opsRerenderRow(td);
+        }
+    };
+    $inp.on('blur', commit);
+    $inp.on('keydown', e => {
+        if (e.key === 'Enter') { e.preventDefault(); $inp.trigger('blur'); }
+        else if (e.key === 'Escape') { done = true; _opsRerenderRow(td); }
+    });
+}
+
+// Editor de lista con opciones fijas (Domestic/International, Llegada/Salida).
+function _openFixedSelectEditor(td, options) {
+    const key = td.getAttribute('data-ops-key');
+    if (!key) return;
+    const keys = _opsColKeys();
+    const rowData = opsDataTable.row(td).data();
+    const cur = rowData[key] == null ? '' : String(rowData[key]);
+    const opts = options.slice();
+    if (cur && !opts.some(o => o.toUpperCase() === cur.toUpperCase())) opts.unshift(cur);
+    const $sel = $('<select class="form-select form-select-sm ops-inline-editor"></select>');
+    opts.forEach(o => $sel.append(
+        $('<option></option>').val(o).text(o).prop('selected', o.toUpperCase() === cur.toUpperCase())
+    ));
+    $(td).empty().append($sel);
+    $sel.trigger('focus');
+    let done = false;
+    const commit = async () => {
+        if (done) return; done = true;
+        const val = $sel.val();
+        if (val === cur) { _opsRerenderRow(td); return; }
+        const rowIdx = opsDataTable.row(td).index();
+        const keyid = _opsNormId(key);
+        try {
+            await _opsPersistEdit(keys.pk, rowData[keys.pk], { [key]: val });
+            _opsPushUndo(keys.pk, rowData[keys.pk], { [key]: cur }, { [key]: val });
+            _opsEditToast('Cambio guardado.');
+            _opsFinishEdit(rowIdx, [{ selector: `td[data-ops-keyid="${keyid}"]`, value: cur, key }]);
+        } catch (err) {
+            _opsEditToast('Error: ' + err.message, true);
+            _opsRerenderRow(td);
+        }
+    };
+    $sel.on('change', commit);
+    $sel.on('blur', () => setTimeout(() => { if (!done) _opsRerenderRow(td); }, 150));
+    $sel.on('keydown', e => { if (e.key === 'Escape') { done = true; _opsRerenderRow(td); } });
+}
+
+// Editor de lista (Tipo de Servicio) alimentado por la tabla flight_service_type.
+// El valor guardado es el "codigo"; al pasar el mouse sobre cada opción se muestra
+// el "tipo_operacion" como leyenda (atributo title del <option>).
+async function _openServicioEditor(td) {
+    const key = td.getAttribute('data-ops-key');
+    if (!key) return;
+    const keys = _opsColKeys();
+    const rowData = opsDataTable.row(td).data();
+    const cur = rowData[key] == null ? '' : String(rowData[key]).trim();
+    const keyid = _opsNormId(key);
+
+    const $sel = $('<select class="form-select form-select-sm ops-inline-editor"></select>');
+    $sel.append($('<option></option>').val('').text('— Cargando… —'));
+    $(td).empty().append($sel);
+
+    const catalog = await _loadServiceTypeCatalog();
+    $sel.empty();
+    $sel.append($('<option></option>').val('').text('— Sin especificar —'));
+    let matched = false;
+    catalog.forEach(c => {
+        const codigo = String(c.codigo || '').trim();
+        const tipo = String(c.tipo_operacion || '').trim();
+        const desc = String(c.descripcion || '').trim();
+        const isSel = codigo.toUpperCase() === cur.toUpperCase();
+        if (isSel) matched = true;
+        $sel.append($('<option></option>')
+            .val(codigo)
+            .text(desc ? `${codigo} · ${desc}` : codigo)
+            .attr('title', tipo)
+            .prop('selected', isSel));
+    });
+    // Conservar el valor actual aunque no esté en el catálogo.
+    if (cur && !matched) {
+        $sel.append($('<option></option>').val(cur).text(cur).prop('selected', true));
+    }
+    $sel.trigger('focus');
+
+    let done = false;
+    const commit = async () => {
+        if (done) return; done = true;
+        const val = $sel.val();
+        if (val === cur) { _opsRerenderRow(td); return; }
+        const rowIdx = opsDataTable.row(td).index();
+        try {
+            await _opsPersistEdit(keys.pk, rowData[keys.pk], { [key]: val });
+            _opsPushUndo(keys.pk, rowData[keys.pk], { [key]: cur }, { [key]: val });
+            _opsEditToast('Tipo de servicio guardado.');
+            _opsFinishEdit(rowIdx, [{ selector: `td[data-ops-keyid="${keyid}"]`, value: cur, key }]);
+        } catch (err) {
+            _opsEditToast('Error: ' + err.message, true);
+            _opsRerenderRow(td);
+        }
+    };
+    $sel.on('change', commit);
+    $sel.on('blur', () => setTimeout(() => { if (!done) _opsRerenderRow(td); }, 150));
+    $sel.on('keydown', e => { if (e.key === 'Escape') { done = true; _opsRerenderRow(td); } });
 }
 
 // Vincula (una sola vez, vía delegación) la apertura de editores al hacer clic.
@@ -1421,6 +1691,10 @@ function _opsBindCellEditors() {
         if (type === 'motivo') _openMotivoEditor(td);
         else if (type === 'estatus') _openEstatusEditor(td);
         else if (type === 'codigo') _openCodigoDemoraEditor(td);
+        else if (type === 'domint') _openFixedSelectEditor(td, _OPS_DOMINT_OPTIONS);
+        else if (type === 'llegsal') _openFixedSelectEditor(td, _OPS_LLEGSAL_OPTIONS);
+        else if (type === 'servicio') _openServicioEditor(td);
+        else _openGenericEditor(td);
     });
     // Cerrar el dropdown de código al hacer clic fuera de él y de su celda.
     $(document).off('click.opsCodigoClose').on('click.opsCodigoClose', function (e) {
