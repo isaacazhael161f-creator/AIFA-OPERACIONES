@@ -270,8 +270,11 @@ class DataManager {
     }
 
     async getWeeklyFrequenciesInt(weekLabel) {
+        // ZLO (Manzanillo) y TRC (Torreon) son destinos nacionales que por error
+        // pueden estar cargados en la tabla internacional — se excluyen en la query.
         let query = this.client.from('weekly_frequencies_int')
             .select('*')
+            .not('iata', 'in', '("ZLO","TRC")')
             .order('valid_from', { ascending: false })
             .order('route_id', { ascending: true })
             .order('airline', { ascending: true });
