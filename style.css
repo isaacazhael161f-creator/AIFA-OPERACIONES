@@ -19378,16 +19378,21 @@ body.sec-access-read .requires-capture { display: none !important; }
     border-right: none;
 }
 
-/* ── Zebra striping ── */
-#table-ops-flights-csv tbody > tr:nth-child(odd) > td {
+/* ── Zebra striping (excluye celdas de status para no tapar su color) ── */
+#table-ops-flights-csv tbody > tr:nth-child(odd) > td:not(.csv-status-blue):not(.csv-status-green):not(.csv-status-red) {
     background-color: #f5f5f5 !important;
 }
-#table-ops-flights-csv tbody > tr:nth-child(even) > td {
+#table-ops-flights-csv tbody > tr:nth-child(even) > td:not(.csv-status-blue):not(.csv-status-green):not(.csv-status-red) {
     background-color: #ffffff !important;
 }
 
+/* ── Colores de celda Status — siempre encima del zebra ── */
+#table-ops-flights-csv tbody td.csv-status-blue  { background-color: #1565c0 !important; color: #ffffff !important; }
+#table-ops-flights-csv tbody td.csv-status-green { background-color: #2e7d32 !important; color: #ffffff !important; }
+#table-ops-flights-csv tbody td.csv-status-red   { background-color: #c62828 !important; color: #ffffff !important; }
+
 /* ── Hover: verde muy pálido (como Amadeus) ── */
-#table-ops-flights-csv tbody > tr:hover > td {
+#table-ops-flights-csv tbody > tr:hover > td:not(.csv-status-blue):not(.csv-status-green):not(.csv-status-red) {
     background-color: #dcedc8 !important;
     cursor: default;
 }
@@ -19433,28 +19438,13 @@ body.sec-access-read .requires-capture { display: none !important; }
 #table-ops-flights-csv tbody tr.row-has-obs > td.csv-status-green { background-color: #2e7d32 !important; color: #fff !important; }
 #table-ops-flights-csv tbody tr.row-has-obs > td.csv-status-red   { background-color: #c62828 !important; color: #fff !important; }
 
-/* ── STATUS cell — colores Amadeus ── */
+/* ── STATUS cell — tipografía ── */
 #table-ops-flights-csv tbody td.csv-status {
     font-size: 11px;
     font-weight: bold;
     text-align: center;
     white-space: nowrap;
     padding: 0.3em 0.5em;
-}
-/* Take off / In flight → fondo azul */
-#table-ops-flights-csv tbody td.csv-status-blue {
-    background-color: #1565c0 !important;
-    color: #ffffff !important;
-}
-/* In block / Activated → fondo verde */
-#table-ops-flights-csv tbody td.csv-status-green {
-    background-color: #2e7d32 !important;
-    color: #ffffff !important;
-}
-/* Cancelled → fondo rojo */
-#table-ops-flights-csv tbody td.csv-status-red {
-    background-color: #c62828 !important;
-    color: #ffffff !important;
 }
 
 /* ── Flight Designator: negrita ── */
