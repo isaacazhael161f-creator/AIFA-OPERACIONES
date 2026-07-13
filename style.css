@@ -19407,11 +19407,16 @@ body.sec-access-read .requires-capture { display: none !important; }
 #table-ops-flights-csv tbody > tr:hover > td.csv-status-red     { background-color: #e53935 !important; color: #ffffff !important; }
 #table-ops-flights-csv tbody > tr:hover > td.csv-status-darkred { background-color: #b71c1c !important; color: #ffffff !important; }
 
-/* ── Fila seleccionada ── */
-#table-ops-flights-csv tbody tr.csv-row-selected > td {
-    background-color: #c8e6c9 !important;
-    box-shadow: inset 0 1px 0 #a5d6a7, inset 0 -1px 0 #a5d6a7;
+/* ── Fila seleccionada — amarillo pálido como en AODB, status conserva su color ── */
+#table-ops-flights-csv tbody tr.csv-row-selected > td:not(.csv-status-cyan):not(.csv-status-green):not(.csv-status-red):not(.csv-status-darkred) {
+    background-color: #fff9c4 !important;   /* amarillo pálido AODB */
+    box-shadow: inset 0 1px 0 #ffe082, inset 0 -1px 0 #ffe082;
 }
+/* Status cell se oscurece ligeramente al seleccionar para contrastar con el amarillo */
+#table-ops-flights-csv tbody tr.csv-row-selected > td.csv-status-cyan    { background-color: #00838f !important; color: #fff !important; box-shadow: inset 0 1px 0 #ffe082, inset 0 -1px 0 #ffe082; }
+#table-ops-flights-csv tbody tr.csv-row-selected > td.csv-status-green   { background-color: #2e7d32 !important; color: #fff !important; box-shadow: inset 0 1px 0 #ffe082, inset 0 -1px 0 #ffe082; }
+#table-ops-flights-csv tbody tr.csv-row-selected > td.csv-status-red     { background-color: #c62828 !important; color: #fff !important; box-shadow: inset 0 1px 0 #ffe082, inset 0 -1px 0 #ffe082; }
+#table-ops-flights-csv tbody tr.csv-row-selected > td.csv-status-darkred { background-color: #7f0000 !important; color: #fff !important; box-shadow: inset 0 1px 0 #ffe082, inset 0 -1px 0 #ffe082; }
 
 /* ── Fila validada — borde izquierdo verde + tinte muy suave (texto siempre oscuro) ── */
 #table-ops-flights-csv tbody tr.row-validated > td:first-child,
