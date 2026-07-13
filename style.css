@@ -1,4 +1,4 @@
-#login-sky.dawn {
+﻿#login-sky.dawn {
    background: radial-gradient(1000px 520px at 20% 14%, rgba(255, 214, 176, 0.18), rgba(255, 214, 176, 0)), linear-gradient(180deg, #ffe8c8 0%, #ffe0d4 28%, #f3ecff 58%, #c7dcff 100%);
 }
 
@@ -80,8 +80,7 @@
    filter: blur(1.2px) saturate(1.05);
 }
 
-/* ==========================================================================
-   Variables de Tema y Estilos Base
+/* ===================================================================   Variables de Tema y Estilos Base
    ========================================================================== */
 :root {
    --sidebar-width: 240px;
@@ -311,8 +310,7 @@ body.dark-mode .section-title small {
    color: var(--text-color);
 }
 
-/* ==========================================================================
-   Login
+/* ===================================================================   Login
    ========================================================================== */
 .login-screen {
    position: fixed;
@@ -635,8 +633,7 @@ body.dark-mode .section-title small {
    }
 }
 
-/* ==========================================================================
-   Login Sky - Animated Planes Base CSS
+/* ===================================================================   Login Sky - Animated Planes Base CSS
    ========================================================================== */
 
 /* Plane container — flies across the sky */
@@ -1087,8 +1084,7 @@ body.dark-mode .section-title small {
    }
 }
 
-/* ==========================================================================
-   AnimaciÃ³n de AviÃ³n CSS con Estela
+/* ===================================================================   AnimaciÃ³n de AviÃ³n CSS con Estela
    ========================================================================== */
 #flying-plane {
    position: absolute;
@@ -1629,8 +1625,7 @@ body.dark-mode .header-right-content {
    }
 }
 
-/* ==========================================================================
-   Tablas de Inicio "Glassmorphism"
+/* ===================================================================   Tablas de Inicio "Glassmorphism"
    ========================================================================== */
 .table-container-tech {
    background-color: var(--tech-table-bg);
@@ -2779,8 +2774,7 @@ body.dark-mode .floating-table-header--itinerary-detail .floating-header-table t
    display: none;
 }
 
-/* ==========================================================================
-   Barra Lateral Plegable
+/* ===================================================================   Barra Lateral Plegable
    ========================================================================== */
 .app-body {
    position: relative;
@@ -2977,8 +2971,7 @@ body.dark-mode .orientation-quick-toggle {
    }
 }
 
-/* ==========================================================================
-   Animaciones Generales
+/* ===================================================================   Animaciones Generales
    ========================================================================== */
 .animated-row {
    opacity: 0;
@@ -3013,8 +3006,7 @@ body.dark-mode .orientation-quick-toggle {
    }
 }
 
-/* ==========================================================================
-   Resto de Estilos
+/* ===================================================================   Resto de Estilos
    ========================================================================== */
 body.dark-mode .card h1,
 body.dark-mode .card h2,
@@ -9678,8 +9670,7 @@ body.dark-mode #fauna-section .fauna-active-filter-total {
    background: var(--bs-light-bg-subtle, rgba(0, 0, 0, 0.03));
 }
 
-/* ================================================
-   Time inputs: force 24h UI (hide AM/PM on WebKit)
+/* =========================================   Time inputs: force 24h UI (hide AM/PM on WebKit)
    ================================================ */
 /* Prefer a 24-hour UI by hiding the AM/PM subfield in Chromium-based browsers */
 input[type="time"]::-webkit-datetime-edit-ampm-field {
@@ -12556,8 +12547,7 @@ body.dark-mode .fb-img-name { color: #94a3b8; }
    /* Subtle shadow to separate from airline list */
 }
 
-/* ==========================================================================
-   Biblioteca Section
+/* ===================================================================   Biblioteca Section
    ========================================================================== */
 .section-heading {
    font-weight: 700;
@@ -13074,8 +13064,7 @@ body.dark-mode .fb-img-name { color: #94a3b8; }
    font-size: 0.9rem;
    z-index: 1;
 }
-/* ==========================================================================
-   Fauna Tables - Vertical Scroll (Sticky Header)
+/* ===================================================================   Fauna Tables - Vertical Scroll (Sticky Header)
    ========================================================================== */
 #fauna-section .table-container-tech.h-scroll-area, 
 #fauna-rescate-table .table-container-tech.h-scroll-area {
@@ -13431,8 +13420,7 @@ body.dark-mode .itinerary-airline-table table tbody tr:nth-child(even) {
 .tab-pane:not(.active) { display: none !important; }
 
 .d-none-auth { display: none !important; }
-/* =========================================
-   Recent Additions (Split View & Analysis)
+/* ==================================   Recent Additions (Split View & Analysis)
    ========================================= */
 
 /* Split View */
@@ -13462,8 +13450,7 @@ body.dark-mode .itinerary-airline-table table tbody tr:nth-child(even) {
     max-height: 400px; 
     overflow: auto;
 }
-/* =========================================
-   Vista General — Split 50/50 layout
+/* ==================================   Vista General — Split 50/50 layout
    ========================================= */
 .general-split-controls {
     border-bottom: 1px solid #e2e8f0;
@@ -13534,8 +13521,7 @@ body.dark-mode .itinerary-airline-table table tbody tr:nth-child(even) {
     margin-top: 1.25rem;
 }
 
-/* =========================================
-   Range Report Card (Vista General)
+/* ==================================   Range Report Card (Vista General)
    ========================================= */
 
 /* Responsive: stack on small screens */
@@ -13865,8 +13851,7 @@ body.dark-mode .th-badge-dep {
     margin-top: 0.1rem;
     text-transform: uppercase;
     letter-spacing: 0.06em;
-}/* ============================================
-   Improved YoY Comparativa Chart Styling
+}/* =====================================   Improved YoY Comparativa Chart Styling
    ============================================ */
 
 /* Enhanced Chart Container */
@@ -14380,8 +14365,7 @@ body.navdeck-mode #mapa-interactivo-section.active {
     .ag-tb-day-block { flex-basis: 100%; padding: 2px 0; }
 }
 
-/* ================================================================
-   FIDS – Flight Information Display System
+/* =========================================================   FIDS – Flight Information Display System
    ================================================================ */
 
 /* Wrapper general */
@@ -16102,8 +16086,9 @@ body:not(.dark-mode) .ndw-card-icon {
 
     body.navdeck-mode.navdeck-active .navdeck-back-btn {
         position: fixed;
-        left: 18px;
+        right: 18px;
         bottom: 18px;
+        left: auto;
         z-index: 1060;
         display: inline-flex;
         align-items: center;
@@ -16127,6 +16112,16 @@ body:not(.dark-mode) .ndw-card-icon {
     }
     body.navdeck-mode.navdeck-active .navdeck-back-btn i { font-size: .9rem; }
 }
+
+/* Ocultar botón de Sugerencias cuando el usuario está dentro de una sección */
+body.navdeck-mode.navdeck-active #fb-fab-wrap {
+    display: none !important;
+}
+
+/* ══════════════════════════════════════════════════════
+   BARRA DE CONTEO DE VUELOS (estilo AODB — inferior)
+   ══════════════════════════════════════════════════════ */
+/* .ops-flights-count-footer — SUPERSEDED by AODB block at end of file */
 
 /* ══════════════════════════════════════════════════════
    NAV DECK — Móvil: hoja desplegable con hamburguesa
@@ -17205,8 +17200,7 @@ body.dark-mode .theme-toggle-btn:hover {
 }
 
 
-/* ==========================================================================
-   DARK MODE SAFETY NET (v=20260617a)
+/* ===================================================================   DARK MODE SAFETY NET (v=20260617a)
    Garantiza visibilidad y legibilidad de elementos con backgrounds y colores
    hardcoded (cards, tablas, filtros, modales, dropdowns, etc.) cuando el tema
    oscuro es el predeterminado de la app. Las reglas usan `body.dark-mode` y
@@ -17391,15 +17385,7 @@ body.dark-mode .excel-filter-list {
 body.dark-mode .excel-filter-item { color: var(--text-color); }
 body.dark-mode .excel-filter-item:hover { background-color: rgba(77,171,247,.14) !important; }
 
-/* -- Tablas con striping inline (Parte de Operaciones CSV, Conciliación) -- */
-body.dark-mode #table-ops-flights-csv tbody tr:nth-child(4n+1) > td { background-color: rgba(255,255,255,.02) !important; color: var(--text-color); }
-body.dark-mode #table-ops-flights-csv tbody tr:nth-child(4n+2) > td { background-color: rgba(77,171,247,.06) !important; color: var(--text-color); }
-body.dark-mode #table-ops-flights-csv tbody tr:nth-child(4n+3) > td { background-color: rgba(46,204,113,.06) !important; color: var(--text-color); }
-body.dark-mode #table-ops-flights-csv tbody tr:nth-child(4n+4) > td { background-color: rgba(243,156,18,.06) !important; color: var(--text-color); }
-body.dark-mode #table-ops-flights-csv tbody tr:hover > td { background-color: rgba(77,171,247,.18) !important; }
-body.dark-mode #table-ops-flights-csv tbody tr.csv-row-selected > td { background-color: rgba(77,171,247,.30) !important; box-shadow: inset 0 1px 0 rgba(147,197,253,.6), inset 0 -1px 0 rgba(147,197,253,.6); }
-body.dark-mode #table-ops-flights-csv tbody tr.row-validated > td { background-color: rgba(40,167,69,.16) !important; }
-body.dark-mode #table-ops-flights-csv tbody tr.row-validated.csv-row-selected > td { background-color: rgba(40,167,69,.32) !important; }
+/* -- Striping inline para #table-ops-flights-csv — SUPERSEDED by AODB block */
 
 body.dark-mode #table-conci-manifiestos thead th {
     background-color: #0f172a !important;
@@ -17729,12 +17715,10 @@ body.dark-mode .leaflet-popup-tip {
     box-shadow: 0 4px 14px rgba(0,0,0,.45);
 }
 
-/* ==========================================================================
-   FIN DARK MODE SAFETY NET
+/* ===================================================================   FIN DARK MODE SAFETY NET
    ========================================================================== */
 
-/* ==========================================================================
-   DARK MODE SAFETY NET v2 (v=20260617b) — ATAQUE DE INLINE STYLES
+/* ===================================================================   DARK MODE SAFETY NET v2 (v=20260617b) — ATAQUE DE INLINE STYLES
    Sobreescribe estilos hardcoded en atributo `style="..."` (regla no usa
    !important pero gana con `!important` aqui) que dejan fondos blancos o
    pasteles con texto oscuro ilegible al cambiar a tema oscuro.
@@ -18082,12 +18066,10 @@ body.dark-mode .text-uppercase.text-muted {
     color: rgba(232,234,237,.7) !important;
 }
 
-/* ==========================================================================
-   FIN SAFETY NET v2
+/* ===================================================================   FIN SAFETY NET v2
    ========================================================================== */
 
-/* ==========================================================================
-   FIX accordion-button con pasteles inline en operaciones-totales
+/* ===================================================================   FIX accordion-button con pasteles inline en operaciones-totales
    Estos botones tienen background:#eff6ff/#f0fdf4/#fff7ed inline con
    border-left de color. La regla genérica .accordion-button:not(.collapsed)
    tiene mayor especificidad que la regla [style*="..."]. Forzamos la
@@ -18142,8 +18124,7 @@ body.dark-mode code[style*="background:#f5f5f5"] {
     color: var(--text-color) !important;
 }
 
-/* ==========================================================================
-   FONDOS BLANCO-AZULOSOS faltantes (#f8fbff, #f8faff, #f7faff, #e0eaff)
+/* ===================================================================   FONDOS BLANCO-AZULOSOS faltantes (#f8fbff, #f8faff, #f7faff, #e0eaff)
    ========================================================================== */
 body.dark-mode [style*="background:#f8fbff"],
 body.dark-mode [style*="background: #f8fbff"],
@@ -18207,8 +18188,7 @@ body.dark-mode .summary-card[style*="background:#fff"] {
     background-color: var(--card-bg) !important;
 }
 
-/* ==========================================================================
-   FIX: títulos demoras (Análisis de Demoras / Demoras mensuales) usan
+/* ===================================================================   FIX: títulos demoras (Análisis de Demoras / Demoras mensuales) usan
    #b45309 (ámbar oscuro) que casi no contrasta en dark.
    ========================================================================== */
 body.dark-mode #demoras-section[data-demoras-scope="monthly"] #demoras-table-title,
@@ -18229,8 +18209,7 @@ body.dark-mode #demoras-section[data-demoras-scope="current"] .table thead th {
     background: linear-gradient(135deg, #c2410c, #ea580c) !important;
 }
 
-/* ==========================================================================
-   FIX: clases con fondos blancos definidos por CSS (no inline)
+/* ===================================================================   FIX: clases con fondos blancos definidos por CSS (no inline)
    - .library-doc-chip / .library-action-btn / .library-item-title (biblioteca)
    - .ops-month-pill (analisis-operaciones)
    - .col-cvs-status / DataTable headers (conciliacion)
@@ -18275,15 +18254,7 @@ body.dark-mode .ops-month-pill:hover:not(.active):not(:disabled) {
     color: #93c5fd !important;
 }
 
-/* Datatables col-cvs-* fixed headers / sticky cells */
-body.dark-mode #container-ops-flights-csv th,
-body.dark-mode #container-ops-flights-csv .col-cvs-status,
-body.dark-mode #container-ops-flights-csv .col-cvs-arr-airline,
-body.dark-mode #container-ops-flights-csv [class^="col-cvs-"] {
-    background-color: rgba(255,255,255,.04) !important;
-    color: var(--text-color) !important;
-    border-color: var(--border-color) !important;
-}
+/* Datatables col-cvs-* fixed headers / sticky cells — SUPERSEDED by AODB block below */
 
 /* Card-header utilizando .bg-white o .bg-light vía Bootstrap (clase, no inline) */
 body.dark-mode .card-header.border-bottom.bg-white,
@@ -18295,8 +18266,7 @@ body.dark-mode .card .card-header.bg-light {
     border-bottom-color: var(--border-color) !important;
 }
 
-/* ==========================================================================
-   FONDOS adicionales encontrados en auditoría progresiva
+/* ===================================================================   FONDOS adicionales encontrados en auditoría progresiva
    ========================================================================== */
 
 /* #f0f9ff (alice-blue) y bordes #bae6fd / #b3e5fc */
@@ -18384,8 +18354,7 @@ body.dark-mode .ls-none {
     color: rgba(232,234,237,.8) !important;
 }
 
-/* ==========================================================================
-   FIX: textos oscuros faltantes
+/* ===================================================================   FIX: textos oscuros faltantes
    - color:#495057 (Bootstrap text-secondary)
    - color:#0a1f44 (navy del Portal)
    - .text-body en alertas .alert.bg-transparent
@@ -18431,8 +18400,7 @@ body.dark-mode .iata-badge {
     color: var(--text-color) !important;
 }
 
-/* ==========================================================================
-   FIX yoy-data-table en dark: Bootstrap usa box-shadow inset desde
+/* ===================================================================   FIX yoy-data-table en dark: Bootstrap usa box-shadow inset desde
    --bs-table-bg, --bs-table-hover-bg, --bs-table-bg-state. Las reglas
    background-color: NO sobreescriben el inset shadow. Hay que mapear las
    variables de Bootstrap al valor oscuro deseado.
@@ -18470,8 +18438,7 @@ body.dark-mode #yoy-data-table tbody tr:hover > * {
     color: #ffffff !important;
 }
 
-/* ==========================================================================
-   FIX TOTAL POR AÑO + ACUMULADO HISTÓRICO en #yoy-data-table
+/* ===================================================================   FIX TOTAL POR AÑO + ACUMULADO HISTÓRICO en #yoy-data-table
    - Bootstrap aplica .table-light y .table-secondary que setean
      --bs-table-bg / --bs-table-color a valores claros (box-shadow inset).
    - Override explícito de las CSS vars en dark mode.
@@ -18530,8 +18497,7 @@ body.dark-mode #yoy-data-table tr.table-secondary:hover > * {
     color: #ffffff !important;
 }
 
-/* ==========================================================================
-   Mismo tratamiento dark para #gen-yoy-table (Aviación General) y
+/* ===================================================================   Mismo tratamiento dark para #gen-yoy-table (Aviación General) y
    #cargo-yoy-table (Aviación Carga). Antes el fix vivía solo en
    #yoy-data-table (Aviación Comercial).
    ========================================================================== */
@@ -18637,8 +18603,7 @@ body.dark-mode #cargo-yoy-table tr.table-secondary:hover > * {
     color: #ffffff !important;
 }
 
-/* ==========================================================================
-   POLISH PRO — INICIO LIGHT THEME (v=20260617L)
+/* ===================================================================   POLISH PRO — INICIO LIGHT THEME (v=20260617L)
    Mejora la presentación de:
    - Hero "PERIODO ACTIVO" (torre): overlay translúcido y elegante
    - Tarjetas de subdirección: glassmorphism con acento de color superior
@@ -18646,8 +18611,7 @@ body.dark-mode #cargo-yoy-table tr.table-secondary:hover > * {
    - Tarjetas de gerencias internas: chips finos con sombra sutil
    ========================================================================== */
 
-/* === HERO PERIODO ACTIVO ================================================
-   El overlay anterior usaba blancos puros (88-72-35). Ahora usamos un blanco
+/* === HERO PERIODO ACTIVO =========================================   El overlay anterior usaba blancos puros (88-72-35). Ahora usamos un blanco
    apenas teñido de azul navy con caída más suave para que la torre y el
    amanecer se vean con sus colores reales. */
 body:not(.dark-mode) .ndw-hero {
@@ -18704,8 +18668,7 @@ body:not(.dark-mode) .ndw-view-btn.is-active { color: #fff; background: #1d4ed8;
 body:not(.dark-mode) .ndw-period-chip { color: rgba(20, 33, 61, .6); background: rgba(20, 33, 61, .06); border-color: rgba(20, 33, 61, .15); }
 body:not(.dark-mode) .ndw-period-chip:hover { color: #1d4ed8; background: rgba(13, 110, 253, .1); border-color: rgba(13, 110, 253, .3); }
 body:not(.dark-mode) .ndw-period-chip.is-active { color: #1d4ed8; background: rgba(13, 110, 253, .15); border-color: rgba(13, 110, 253, .55); box-shadow: 0 0 0 2px rgba(13, 110, 253, .12); }
-/* === TARJETAS DE SUBDIRECCIÓN (Operación, Sgd. Operacional, etc.) ========
-   Glassmorphism con acento color de marca arriba (border-top-color),
+/* === TARJETAS DE SUBDIRECCIÓN (Operación, Sgd. Operacional, etc.) =   Glassmorphism con acento color de marca arriba (border-top-color),
    fondo casi blanco translúcido y elevación más fina. */
 body.navdeck-mode:not(.dark-mode) .si-group--sub {
     background:
@@ -18796,8 +18759,7 @@ body.navdeck-mode:not(.dark-mode) .si-group--gpyc:hover {
         0 14px 24px -16px rgba(15, 23, 42, .15);
 }
 
-/* === GERENCIAS internas (chips dentro de subdirección) ===================
-   Más finas, con border discreto y subtle-hover de marca. */
+/* === GERENCIAS internas (chips dentro de subdirección) ============   Más finas, con border discreto y subtle-hover de marca. */
 body.navdeck-mode:not(.dark-mode) .si-group--ger {
     background: rgba(248, 250, 252, .9);
     border: 1px solid rgba(20, 33, 61, .08);
@@ -18893,22 +18855,19 @@ body:not(.dark-mode) .ndw-card-icon {
         inset 0 0 0 1.5px rgba(255, 255, 255, .85);
 }
 
-/* ==========================================================================
-   POLISH PRO — INICIO LIGHT THEME (v=20260617M)
+/* ===================================================================   POLISH PRO — INICIO LIGHT THEME (v=20260617M)
    - Quitar el "look bloqueado" en .si-group--pend (todas con color)
    - Rediseño de "Próximamente" como badge limpio
    - Mejorar contraste de la barra de agenda en modo claro
    ========================================================================== */
 
-/* === DESBLOQUEAR .si-group--pend ========================================
-   Aplica a cards de subdireccion + gerencias internas. Se mantiene la
+/* === DESBLOQUEAR .si-group--pend =================================   Aplica a cards de subdireccion + gerencias internas. Se mantiene la
    semantica del data attribute, pero visualmente se ven 100% activas. */
 .si-group--pend > .si-grp-btn { opacity: 1 !important; }
 .si-group--pend > .si-grp-btn:hover { opacity: 1 !important; }
 body.navdeck-mode .si-group--sub.si-group--pend { opacity: 1 !important; }
 
-/* === BADGE "PRÓXIMAMENTE" ===============================================
-   Antes era texto italic gris al 28% — invisible. Ahora es un pill
+/* === BADGE "PRÓXIMAMENTE" ========================================   Antes era texto italic gris al 28% — invisible. Ahora es un pill
    con borde y color que se reconoce como estado de feature pendiente. */
 .si-coming {
     display: inline-flex !important;
@@ -19266,3 +19225,348 @@ body.sec-access-capture .requires-edit,
 body.sec-access-capture .requires-full-edit { display: none !important; }
 /* En un modulo donde el usuario es lector: ocultar tambien captura. */
 body.sec-access-read .requires-capture { display: none !important; }
+/* ===================================================================   TABLA AMADEUS AODB — Itinerario de Vuelos del Día
+   Estilos fieles al sistema Amadeus AODB real:
+   cabecera gris #e0e0e0, Verdana 12px, zebra #f5f5f5, hover verde pálido.
+   ========================================================================== */
+
+/* ── Reset Bootstrap y contenedor ── */
+#container-ops-flights-csv {
+    font-family: Verdana, sans-serif;
+    font-size: 12px;
+    line-height: 12px;
+    color: #333333;
+    background-color: #ffffff;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    user-select: none;
+    border: 1px solid #e5e5e5;
+    border-radius: .25rem;
+    overflow: hidden;
+}
+
+/* ── Tabla principal ── */
+#table-ops-flights-csv {
+    font-family: Verdana, sans-serif;
+    font-size: 12px;
+    line-height: 12px;
+    color: #333333;
+    width: 100%;
+    background-color: #ffffff;
+    border-collapse: collapse;
+    border-spacing: 0;
+    table-layout: auto;
+    border: 1px solid #e5e5e5;
+    /* Cancelar vars Bootstrap que pisan background */
+    --bs-table-bg: transparent;
+    --bs-table-striped-bg: transparent;
+    --bs-table-hover-bg: transparent;
+    --bs-table-color: #333333;
+}
+
+/* ── CABECERA — gris Amadeus ── */
+#table-ops-flights-csv thead tr:first-child th {
+    /* Cancelar Bootstrap variables */
+    --bs-table-bg: #e0e0e0 !important;
+    --bs-table-color: #333333 !important;
+    --bs-table-striped-bg: #e0e0e0 !important;
+    --bs-table-hover-bg: #e0e0e0 !important;
+    background-color: #e0e0e0 !important;
+    background: #e0e0e0 !important;
+    color: #333333 !important;
+    font-family: Verdana, sans-serif;
+    font-size: 12px;
+    font-weight: bold;
+    line-height: 12px;
+    text-transform: none;
+    letter-spacing: 0;
+    padding: 0.5em;
+    border-bottom: 2px solid #cccccc !important;
+    border-right: 1px solid #e5e5e5 !important;
+    white-space: nowrap;
+    overflow: hidden;
+    vertical-align: middle;
+    position: sticky;
+    top: 0;
+    z-index: 3;
+}
+#table-ops-flights-csv thead tr:first-child th:last-child {
+    border-right: none !important;
+}
+/* Texto interno de cada th también negro */
+#table-ops-flights-csv thead tr:first-child th,
+#table-ops-flights-csv thead tr:first-child th span,
+#table-ops-flights-csv thead tr:first-child th div,
+#table-ops-flights-csv thead tr:first-child th button,
+#table-ops-flights-csv thead tr:first-child th i {
+    color: #333333 !important;
+}
+/* Botón de filtro Excel: mantenerlo oscuro pero discreto */
+#table-ops-flights-csv .csv-ef-btn {
+    background: none;
+    border: none;
+    color: #666666 !important;
+    cursor: pointer;
+    padding: 0 2px;
+    font-size: 10px;
+    line-height: 1;
+    opacity: .7;
+    transition: opacity .15s, color .15s;
+    flex-shrink: 0;
+}
+#table-ops-flights-csv .csv-ef-btn:hover,
+#table-ops-flights-csv .csv-ef-btn.csv-ef-btn-active {
+    opacity: 1;
+    color: #0055aa !important;
+}
+#table-ops-flights-csv .csv-th-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 3px;
+}
+
+/* ── Fila de filtros (segunda fila thead) ── */
+#table-ops-flights-csv thead tr.csv-filter-row th {
+    --bs-table-bg: #eeeeee !important;
+    background-color: #eeeeee !important;
+    background: #eeeeee !important;
+    color: #333333 !important;
+    padding: 3px 4px;
+    border-bottom: 1px solid #cccccc !important;
+    border-right: 1px solid #e5e5e5 !important;
+    position: sticky;
+    top: var(--csv-head-row1-height, 28px);
+    z-index: 2;
+}
+#table-ops-flights-csv thead tr.csv-filter-row input {
+    background: #ffffff !important;
+    color: #333333 !important;
+    border: 1px solid #cccccc !important;
+    border-radius: 2px;
+    font-size: 10px;
+    font-family: Verdana, sans-serif;
+    padding: 1px 4px;
+    width: 100%;
+    min-width: 40px;
+}
+#table-ops-flights-csv thead tr.csv-filter-row input:focus {
+    border-color: #0055aa !important;
+    outline: none;
+    box-shadow: 0 0 0 1px rgba(0,85,170,.25);
+}
+#table-ops-flights-csv thead tr.csv-filter-row input::placeholder { color: #aaaaaa; }
+
+/* ── CELDAS de datos ── */
+#table-ops-flights-csv tbody td {
+    font-family: Verdana, sans-serif;
+    font-size: 12px;
+    line-height: 12px;
+    color: #333333;
+    padding: 0.5em;
+    text-align: left;
+    vertical-align: middle;
+    white-space: nowrap;
+    overflow: hidden;
+    box-sizing: border-box;
+    border-right: 1px solid #e5e5e5;
+    border-bottom: none;
+    /* cancelar Bootstrap */
+    --bs-table-bg: transparent !important;
+}
+#table-ops-flights-csv tbody td:last-child {
+    border-right: none;
+}
+
+/* ── Zebra striping ── */
+#table-ops-flights-csv tbody > tr:nth-child(odd) > td {
+    background-color: #f5f5f5 !important;
+}
+#table-ops-flights-csv tbody > tr:nth-child(even) > td {
+    background-color: #ffffff !important;
+}
+
+/* ── Hover: verde muy pálido (como Amadeus) ── */
+#table-ops-flights-csv tbody > tr:hover > td {
+    background-color: #dcedc8 !important;
+    cursor: default;
+}
+
+/* ── Fila seleccionada ── */
+#table-ops-flights-csv tbody tr.csv-row-selected > td {
+    background-color: #c8e6c9 !important;
+    box-shadow: inset 0 1px 0 #a5d6a7, inset 0 -1px 0 #a5d6a7;
+}
+
+/* ── Fila validada — especificidad alta para ganar sobre zebra ── */
+#table-ops-flights-csv tbody tr.row-validated > td,
+#container-ops-flights-csv #table-ops-flights-csv tbody tr.row-validated > td {
+    background-color: #c8e6c9 !important;  /* verde suave */
+    border-bottom-color: #a5d6a7 !important;
+}
+#table-ops-flights-csv tbody tr.row-validated:hover > td,
+#container-ops-flights-csv #table-ops-flights-csv tbody tr.row-validated:hover > td {
+    background-color: #a5d6a7 !important;
+}
+#table-ops-flights-csv tbody tr.row-validated.csv-row-selected > td {
+    background-color: #81c784 !important;
+}
+/* Status cell no pierde su color aunque la fila esté validada */
+#table-ops-flights-csv tbody tr.row-validated > td.csv-status-blue  { background-color: #1565c0 !important; color: #fff !important; }
+#table-ops-flights-csv tbody tr.row-validated > td.csv-status-green { background-color: #2e7d32 !important; color: #fff !important; }
+#table-ops-flights-csv tbody tr.row-validated > td.csv-status-red   { background-color: #c62828 !important; color: #fff !important; }
+
+/* ── Fila con observación — ámbar/amarillo pálido, distinto del verde ── */
+#table-ops-flights-csv tbody tr.row-has-obs > td,
+#container-ops-flights-csv #table-ops-flights-csv tbody tr.row-has-obs > td {
+    background-color: #fff8e1 !important;  /* ámbar muy pálido */
+    border-bottom-color: #ffe082 !important;
+}
+#table-ops-flights-csv tbody tr.row-has-obs:hover > td {
+    background-color: #ffecb3 !important;
+}
+#table-ops-flights-csv tbody tr.row-has-obs.csv-row-selected > td {
+    background-color: #ffe082 !important;
+}
+/* Status cell no pierde su color aunque la fila tenga observación */
+#table-ops-flights-csv tbody tr.row-has-obs > td.csv-status-blue  { background-color: #1565c0 !important; color: #fff !important; }
+#table-ops-flights-csv tbody tr.row-has-obs > td.csv-status-green { background-color: #2e7d32 !important; color: #fff !important; }
+#table-ops-flights-csv tbody tr.row-has-obs > td.csv-status-red   { background-color: #c62828 !important; color: #fff !important; }
+
+/* ── STATUS cell — colores Amadeus ── */
+#table-ops-flights-csv tbody td.csv-status {
+    font-size: 11px;
+    font-weight: bold;
+    text-align: center;
+    white-space: nowrap;
+    padding: 0.3em 0.5em;
+}
+/* Take off / In flight → fondo azul */
+#table-ops-flights-csv tbody td.csv-status-blue {
+    background-color: #1565c0 !important;
+    color: #ffffff !important;
+}
+/* In block / Activated → fondo verde */
+#table-ops-flights-csv tbody td.csv-status-green {
+    background-color: #2e7d32 !important;
+    color: #ffffff !important;
+}
+/* Cancelled → fondo rojo */
+#table-ops-flights-csv tbody td.csv-status-red {
+    background-color: #c62828 !important;
+    color: #ffffff !important;
+}
+
+/* ── Flight Designator: negrita ── */
+#table-ops-flights-csv tbody td.col-cvs-arr-flight strong,
+#table-ops-flights-csv tbody td.col-cvs-dep-flight strong,
+#table-ops-flights-csv tbody td.col-cvs-arr-flight,
+#table-ops-flights-csv tbody td.col-cvs-dep-flight {
+    font-weight: bold;
+    color: #111111;
+}
+
+/* ── Matrícula / Registration destaca ligeramente ── */
+#table-ops-flights-csv tbody td.col-cvs-reg {
+    font-weight: bold;
+    color: #1a237e;
+}
+
+/* ── Sentinel (virtual render) ── */
+#table-ops-flights-csv tbody tr.vr-sentinel > td {
+    background: #f9f9f9 !important;
+    color: #888888;
+    font-size: 11px;
+    padding: 8px;
+    border: none;
+    text-align: center;
+}
+
+/* ── Footer contador ── */
+.ops-flights-count-footer {
+    display: flex;
+    align-items: center;
+    background: #e0e0e0;
+    color: #333333;
+    font-family: Verdana, sans-serif;
+    font-size: 11px;
+    font-weight: bold;
+    padding: .3rem 1rem;
+    border-top: 2px solid #cccccc;
+    letter-spacing: .01em;
+    user-select: none;
+    gap: 0;
+}
+.ops-flights-count-footer i {
+    color: #1565c0;
+    font-size: .8rem;
+    margin-right: .4rem;
+}
+
+/* ── DARK MODE ── */
+body.dark-mode #container-ops-flights-csv {
+    background: #1a1f2b;
+    border-color: #2d3748;
+    color: #d1dce8;
+}
+body.dark-mode #table-ops-flights-csv {
+    background-color: #1a1f2b;
+    color: #d1dce8;
+    --bs-table-color: #d1dce8;
+}
+body.dark-mode #table-ops-flights-csv thead tr:first-child th {
+    --bs-table-bg: #0d1a2b !important;
+    background-color: #0d1a2b !important;
+    background: #0d1a2b !important;
+    color: #c9d6e3 !important;
+    border-bottom-color: #0a1420 !important;
+    border-right-color: #162133 !important;
+}
+body.dark-mode #table-ops-flights-csv thead tr:first-child th,
+body.dark-mode #table-ops-flights-csv thead tr:first-child th span,
+body.dark-mode #table-ops-flights-csv thead tr:first-child th div,
+body.dark-mode #table-ops-flights-csv thead tr:first-child th button,
+body.dark-mode #table-ops-flights-csv thead tr:first-child th i {
+    color: #c9d6e3 !important;
+}
+body.dark-mode #table-ops-flights-csv thead tr.csv-filter-row th {
+    --bs-table-bg: #111f30 !important;
+    background-color: #111f30 !important;
+    background: #111f30 !important;
+    color: #94b4cc !important;
+}
+body.dark-mode #table-ops-flights-csv thead tr.csv-filter-row input {
+    background: #1a2d42 !important;
+    color: #c9d6e3 !important;
+    border-color: #364e66 !important;
+}
+body.dark-mode #table-ops-flights-csv tbody > tr:nth-child(odd)  > td { background-color: #0f1a27 !important; color: #d1dce8; }
+body.dark-mode #table-ops-flights-csv tbody > tr:nth-child(even) > td { background-color: #132031 !important; color: #d1dce8; }
+body.dark-mode #table-ops-flights-csv tbody > tr:hover > td { background-color: rgba(56,189,248,.12) !important; }
+body.dark-mode #table-ops-flights-csv tbody td { border-right-color: #192a3e; color: #d1dce8; }
+body.dark-mode #table-ops-flights-csv tbody td.col-cvs-arr-flight,
+body.dark-mode #table-ops-flights-csv tbody td.col-cvs-dep-flight { color: #e2f0ff; }
+body.dark-mode #table-ops-flights-csv tbody td.col-cvs-reg { color: #7dd3fc; }
+body.dark-mode .ops-flights-count-footer {
+    background: #0d1a2b;
+    color: #94b4cc;
+    border-top-color: #0a1420;
+}
+body.dark-mode .ops-flights-count-footer i { color: #38bdf8; }
+
+/* Dark mode: fila validada */
+body.dark-mode #table-ops-flights-csv tbody tr.row-validated > td {
+    background-color: #1b4332 !important;
+    color: #d1fae5 !important;
+}
+body.dark-mode #table-ops-flights-csv tbody tr.row-validated:hover > td {
+    background-color: #166534 !important;
+}
+/* Dark mode: fila con observación */
+body.dark-mode #table-ops-flights-csv tbody tr.row-has-obs > td {
+    background-color: #3b2800 !important;
+    color: #fef3c7 !important;
+}
+body.dark-mode #table-ops-flights-csv tbody tr.row-has-obs:hover > td {
+    background-color: #4a3300 !important;
+}

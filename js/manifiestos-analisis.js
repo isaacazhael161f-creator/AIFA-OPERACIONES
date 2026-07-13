@@ -8,9 +8,10 @@
   'use strict';
 
   const TABLES = {
-    '2025':      { name: 'Base de datos Manifiestos 2025',          label: 'Manifiestos 2025 � Datos anuales' },
-    'feb2026':   { name: 'Base de Datos Manifiestos Febrero 2026',   label: 'Febrero 2026 � Datos mensuales' },
-    'abr2026':   { name: 'Manifiestos',                              label: 'Abril 2026 � Datos mensuales' }
+    '2025':      { name: 'Base de datos Manifiestos 2025',          label: 'Manifiestos 2025 — Datos anuales' },
+    'feb2026':   { name: 'Base de Datos Manifiestos Febrero 2026',   label: 'Febrero 2026 — Datos mensuales' },
+    'abr2026':   { name: 'Manifiestos',                              label: 'Abril 2026 — Datos mensuales' },
+    'jun2026':   { name: 'Manifiestos Junio 2026',                   label: 'Junio 2026 — Datos mensuales' }
   };
   let _activeTableKey = '2025';
   const getTableName  = () => TABLES[_activeTableKey].name;
@@ -187,7 +188,7 @@
 
   const getDir      = r => col(r, 'TIPO DE MANIFIESTO') || '';
   const getAirline  = r => col(r, 'AEROLINEA', 'aerolinea') || '(Sin nombre)';
-  const getOpType   = r => col(r, 'TIPO DE OPERACION', 'TIPO DE OPERACION ') || col(r, 'TIPO DE OPERACI\u00d3N') || '';
+  const getOpType   = r => col(r, 'TIPO DE OPERACION', 'TIPO DE OPERACION ') || col(r, 'TIPO DE OPERACI\u00d3N') || col(r, 'TIPO DE OPERACI\u00f3N') || '';
   const getFlight   = r => col(r, '# DE VUELO') || '';
   const getRoute    = r => col(r, 'DESTINO / ORIGEN') || '';
   const getFecha    = r => col(r, 'FECHA', 'fecha') || '';
@@ -263,16 +264,20 @@
   }
 
   const ni = v => parseInt(v, 10) || 0;
-  const getPaxTotal = r => ni(col(r, 'TOTAL PAX', 'TOTALPAX', 'total_pax'));
-  const getPaxTUA   = r => ni(col(r, 'PAX. QUE PAGAN TUA', 'PAXQUEPAGANTUA', 'pax_que_pagan_tua'));
-  const getPaxInf   = r => ni(col(r, 'INFANTES', 'infantes'));
-  const getPaxTrans = r => ni(col(r, 'TRANSITOS', 'transitos'));
-  const getPaxConex = r => ni(col(r, 'CONEXIONES', 'conexiones'));
-  const getPaxDip   = r => ni(col(r, 'DIPLOMATICOS', 'diplomaticos'));
-  const getPaxEnCom = r => ni(col(r, 'EN COMISION', 'ENCOMISION', 'en_comision'));
-  const getPaxOtros = r => ni(col(r, 'OTROS EXENTOS', 'OTROSEXENTOS', 'otros_exentos'));
-  const getPaxExent = r => ni(col(r, 'TOTAL EXENTOS', 'TOTALEXENTOS', 'total_exentos'));
-  const getKgs      = r => ni(col(r, 'KGS. DE EQUIPAJE', 'KGS.DEEQUIPAJE', 'kgs_de_equipaje'));
+  const getPaxTotal   = r => ni(col(r, 'TOTAL PAX', 'TOTALPAX', 'total_pax'));
+  const getPaxTUA     = r => ni(col(r, 'PAX QUE PAGAN TUA', 'PAX. QUE PAGAN TUA', 'PAXQUEPAGANTUA', 'pax_que_pagan_tua'));
+  const getPaxInf     = r => ni(col(r, 'INFANTES', 'infantes'));
+  const getPaxTrans   = r => ni(col(r, 'TRANSITOS', 'transitos'));
+  const getPaxConex   = r => ni(col(r, 'CONEXIONES', 'conexiones'));
+  const getPaxDip     = r => ni(col(r, 'DIPLOMATICOS', 'diplomaticos'));
+  const getPaxEnCom   = r => ni(col(r, 'EN COMISION', 'ENCOMISION', 'en_comision'));
+  const getPaxOtros   = r => ni(col(r, 'OTROS EXENTOS', 'OTROSEXENTOS', 'otros_exentos'));
+  const getPaxExent   = r => ni(col(r, 'TOTAL EXENTOS', 'TOTALEXENTOS', 'total_exentos'));
+  const getKgs        = r => ni(col(r, 'KGS DE EQUIPAJE', 'KGS. DE EQUIPAJE', 'KGS.DEEQUIPAJE', 'kgs_de_equipaje'));
+  const getPuntual    = r => col(r, 'PUNTUALIDAD CANCELACION', 'PUNTUALIDAD / CANCELACIÓN', 'PUNTUALIDAD / CANCELACION', 'puntualidad_cancelacion') || '';
+  const getMatricula  = r => col(r, 'MATRICULA', 'matricula') || '';
+  const getAeronave   = r => col(r, 'AERONAVE', 'aeronave') || '';
+  const getEstatus    = r => col(r, 'ESTATUS MATRICULA', 'ESTATUS MATRÍCULA', 'estatus_matricula') || '';
 
   const isArr = r => getDir(r).toLowerCase().includes('llegada');
   const isDep = r => getDir(r).toLowerCase().includes('salida');

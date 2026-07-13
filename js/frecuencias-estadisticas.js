@@ -78,8 +78,10 @@ const FreqStats = (() => {
             setLoadingText('Cargando Carga…');
             const cargo = await withTimeout(window.dataManager.getWeeklyFrequenciesCargo(null), TIMEOUT_MS);
 
+            // Domestic IATAs that must never appear in the international dataset.
+            const INT_EXCLUDED = new Set(['TRC', 'ZLO']);
             _raw.nac   = nac   || [];
-            _raw.int   = int_  || [];
+            _raw.int   = (int_ || []).filter(r => !INT_EXCLUDED.has((r?.iata || '').toString().trim().toUpperCase()));
             _raw.carga = cargo || [];
 
             // Load airline metadata for logo / alias normalization.

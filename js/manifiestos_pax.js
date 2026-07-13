@@ -1,8 +1,83 @@
 document.addEventListener('DOMContentLoaded', () => {
 
-    const parseModalData = (modalId) => {
-        const inputs = document.querySelectorAll(`${modalId} input, ${modalId} select`);
-        return Array.from(inputs).map(el => el.value);
+    // Lee todos los campos del modal indexados por su atributo data-mf.
+    const readFields = (modalId) => {
+        const out = {};
+        document.querySelectorAll(`${modalId} [data-mf]`).forEach(el => {
+            const key = el.getAttribute('data-mf');
+            if (!key) return;
+            let val;
+            if (el.type === 'checkbox' || el.type === 'radio') val = el.checked ? (el.value || 'X') : '';
+            else val = el.value;
+            out[key] = (val == null) ? '' : String(val).trim();
+        });
+        return out;
+    };
+
+    const n = (v) => parseInt(v, 10) || 0;
+
+    // Construye el payload para la tabla `manifiestos_pasajeros` a partir de los
+    // campos del formato oficial. Solo se usan columnas ya existentes en la tabla;
+    // el detalle extra (embarque por estación, desglose nac/int, destino, etc.)
+    // queda plasmado en el PDF/visual.
+    const buildPayload = (f, tipo) => {
+        const dd = f.fecha_dd || '';
+        const mm = f.fecha_mm || '';
+        const yyyy = f.fecha_yyyy || '';
+        let fecha = `${yyyy}-${mm}-${dd}`;
+        if (!yyyy || !mm || !dd || fecha.includes('AAAA') || fecha.includes('MM')) fecha = null;
+
+        const tua = n(f.pax_tua_nac) + n(f.pax_tua_int);
+        const infantes = n(f.pax_inf_nac) + n(f.pax_inf_int);
+        const exentos = n(f.pax_dip_nac) + n(f.pax_dip_int)
+            + n(f.pax_com_nac) + n(f.pax_com_int)
+            + n(f.pax_tra_nac) + n(f.pax_tra_int)
+            + n(f.pax_con_nac) + n(f.pax_con_int)
+            + n(f.pax_exe_nac) + n(f.pax_exe_int);
+        let total = n(f.pax_tot_nac) + n(f.pax_tot_int);
+        if (!total) total = tua + infantes + exentos;
+
+        return {
+            tipo: tipo,
+            folio: f.folio || null,
+            fecha: fecha,
+
+            aeropuerto_llegada_salida: f.aeropuerto || null,
+            clase_servicio: f.tipo_vuelo || null,
+            explotador: f.transportista_codigo || null,
+            aerolinea: f.transportista_nombre || null,
+            tipo_aeronave: f.equipo || null,
+            matricula: f.matricula || null,
+            vuelo: f.num_vuelo || null,
+            comandante: f.piloto || null,
+            num_licencia: f.licencia || null,
+            tripulacion_ps: f.tripulacion || null,
+
+            aeropuerto_origen: f.origen_nombre || null,
+            oaci_origen: f.origen_codigo || null,
+            aeropuerto_escala: f.escala_nombre || null,
+            oaci_escala: f.escala_codigo || null,
+
+            h_itin: f.hora_slot_asignado || null,
+            h_real: f.hora_slot_coordinado || null,
+            h_calzos: f.hora_termino_pernocta || null,
+            h_puerta: f.hora_inicio_embarque || null,
+            posicion: f.hora_salida_posicion || null,
+
+            motivo_demora: f.demora1_desc || null,
+            demora1_codigo: f.demora1_cod || null,
+            demora2_codigo: f.demora2_cod || null,
+
+            pasajeros_primera: tua,
+            pasajeros_turista: exentos,
+            pasajeros_menores: 0,
+            pasajeros_infantes: infantes,
+            pasajeros_tercera_edad: 0,
+            pasajeros_discapacitados: 0,
+            pasajeros_total: total,
+
+            firma_elaboro: f.firma_elaboro || null
+        };
     };
 
     const generateAndUploadManifestPDF = async (payload, recordId, modalSelector) => {

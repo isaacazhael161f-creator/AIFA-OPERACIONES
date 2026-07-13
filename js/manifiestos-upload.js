@@ -1,13 +1,35 @@
 // ─── MÓDULO: IMPORTACIÓN DE MANIFIESTOS DESDE XLSX ──────────────────────────
 // Solo accesible para roles: admin, superadmin, editor
-// Tabla fija: TARGET_TABLE — detecta mes/año desde FECHA,
+// Detecta mes/año del archivo, selecciona la tabla destino automáticamente,
 // borra solo las filas de ese mes y luego inserta las nuevas.
 // ─────────────────────────────────────────────────────────────────────────────
 (function () {
     'use strict';
 
-    // Tabla única donde se acumulan todos los meses
-    const TARGET_TABLE = 'Base de Datos Manifiestos Febrero 2026';
+    // Mapa mes/año → nombre de tabla Supabase.
+    // Al añadir un mes nuevo, sólo hay que agregar una entrada aquí.
+    const TABLE_MAP = {
+        '2025':      'Base de datos Manifiestos 2025',
+        '1-2026':    'Base de Datos Manifiestos Febrero 2026',   // Enero 2026 (mismo contenedor)
+        '2-2026':    'Base de Datos Manifiestos Febrero 2026',
+        '3-2026':    'Base de Datos Manifiestos Febrero 2026',   // Marzo (si se añade)
+        '4-2026':    'Manifiestos',
+        '5-2026':    'Manifiestos',
+        '6-2026':    'Manifiestos Junio 2026',
+        '7-2026':    'Manifiestos Junio 2026',
+        '8-2026':    'Manifiestos Junio 2026',
+        '9-2026':    'Manifiestos Junio 2026',
+        '10-2026':   'Manifiestos Junio 2026',
+        '11-2026':   'Manifiestos Junio 2026',
+        '12-2026':   'Manifiestos Junio 2026',
+    };
+    // Tabla por defecto cuando no hay coincidencia
+    const DEFAULT_TABLE = 'Manifiestos Junio 2026';
+
+    function resolveTable(mesNum, anio) {
+        const key = mesNum + '-' + anio;
+        return TABLE_MAP[key] || TABLE_MAP[String(anio)] || DEFAULT_TABLE;
+    }
 
     const UPLOAD_ROLES = ['admin', 'superadmin', 'editor'];
     const AUTOGEN_COLS = new Set(['id', 'created_at', 'no']);
@@ -83,27 +105,27 @@
     }
 
     /**
-     * Borra solo las filas del mes/año detectado.
+     * Borra solo las filas del mes/año detectado en la tabla correcta.
      * Intenta en orden: columna MES (nombre español), columna MES (número), rango FECHA ISO.
      */
-    async function deleteMonthRows(mesNum, anio) {
+    async function deleteMonthRows(tableName, mesNum, anio) {
         const client = window.supabaseClient;
-        const mesNombre = MES_NOMBRES[mesNum]; // 'Abril'
-        const isoPrefix = anio + '-' + String(mesNum).padStart(2, '0'); // '2026-04'
+        const mesNombre = MES_NOMBRES[mesNum]; // 'Junio'
+        const isoPrefix = anio + '-' + String(mesNum).padStart(2, '0'); // '2026-06'
 
-        // 1. MES = nombre en español (ej. 'Abril')
+        // 1. MES = nombre en español (ej. 'Junio')
         const { error: e1 } = await client
-            .from(TARGET_TABLE).delete().eq('MES', mesNombre);
+            .from(tableName).delete().eq('MES', mesNombre);
         if (!e1) return;
 
         // 2. MES = número
         const { error: e2 } = await client
-            .from(TARGET_TABLE).delete().eq('MES', mesNum);
+            .from(tableName).delete().eq('MES', mesNum);
         if (!e2) return;
 
         // 3. FECHA empieza con 'YYYY-MM' (formato ISO)
         const { error: e3 } = await client
-            .from(TARGET_TABLE).delete().like('FECHA', isoPrefix + '%');
+            .from(tableName).delete().like('FECHA', isoPrefix + '%');
         if (!e3) return;
 
         // Si ninguno eliminó filas (probablemente primer mes), continuar sin error
@@ -203,8 +225,9 @@
                 }
             }
 
-            const mesStr  = (mesDato && mesDato >= 1 && mesDato <= 12) ? MES_NOMBRES[mesDato] : '?';
-            const anioStr = anioDato || '?';
+            const mesStr   = (mesDato && mesDato >= 1 && mesDato <= 12) ? MES_NOMBRES[mesDato] : '?';
+            const anioStr  = anioDato || '?';
+            const tableName = (mesDato && anioDato) ? resolveTable(mesDato, anioDato) : DEFAULT_TABLE;
 
             // 3. Preview de columnas
             const visibleHeaders = headers.filter(h => {
@@ -230,6 +253,7 @@
                                 <span class="fw-semibold">' + mesStr + ' ' + anioStr + '</span>\
                             </div>\
                         </div>\
+                        <div class="mb-1 small text-muted">Tabla destino: <strong class="text-primary">' + escHtml(tableName) + '</strong></div>\
                         <div class="mb-1 small text-muted">Columnas detectadas:</div>\
                         <div class="mb-0">' + colHtml + '</div>\
                     </div>';
@@ -242,7 +266,7 @@
 
             setStatus('<i class="fas fa-file-excel text-success me-1"></i>Archivo listo: <strong>' +
                 dataRows.length.toLocaleString() + ' filas</strong> · <strong>' + mesStr + ' ' + anioStr +
-                '</strong>. Confirma para importar.');
+                '</strong> → <strong>' + escHtml(tableName) + '</strong>. Confirma para importar.');
             if (btnImport) btnImport.disabled = false;
 
             // 5. Callback del botón Importar
@@ -257,20 +281,94 @@
                         if (!client) throw new Error('Supabase no disponible. Inicia sesión primero.');
 
                         // Borrar filas del mismo mes (por si se re-sube)
-                        setStatus('<i class="fas fa-spinner fa-spin me-1"></i>Limpiando registros anteriores de <strong>' + mesStr + ' ' + anioStr + '</strong>…');
-                        await deleteMonthRows(mesDato, anioDato);
+                        setStatus('<i class="fas fa-spinner fa-spin me-1"></i>Limpiando registros anteriores de <strong>' + mesStr + ' ' + anioStr + '</strong> en <em>' + escHtml(tableName) + '</em>…');
+                        await deleteMonthRows(tableName, mesDato, anioDato);
 
-                        // Construir filas
+                        // Construir filas — convertir seriales Excel a ISO para columnas de fecha/hora
                         const headerMap = headers
                             .map((h, i) => ({ h: String(h || '').trim(), i }))
                             .filter(({ h }) => h && !AUTOGEN_COLS.has(normCol(h)));
+
+                        // Detectar índices de columnas de fecha/hora para convertir seriales
+                        const DATE_COL_KEYWORDS = ['fecha', 'hr.', 'hora', 'slot', 'pernocta'];
+                        const dateColIdxSet = new Set(
+                            headerMap
+                                .filter(({ h }) => DATE_COL_KEYWORDS.some(k => normCol(h).startsWith(k) || normCol(h).includes(k)))
+                                .map(({ i }) => i)
+                        );
+
+                        // Columnas que son claramente texto aunque suenen numéricas
+                        const TEXT_COL_KEYWORDS = ['vuelo', 'matricula', 'aeronave', 'aerolinea',
+                                                   'destino', 'origen', 'ruta', 'mes', 'estatus',
+                                                   'puntualidad', 'tipo', 'manifiesto'];
+                        const textColIdxSet = new Set(
+                            headerMap
+                                .filter(({ h }) => TEXT_COL_KEYWORDS.some(k => normCol(h).includes(k)))
+                                .map(({ i }) => i)
+                        );
+
+                        // Detectar índices de columnas numéricas por nombre (excluyendo las de texto)
+                        const NUM_COL_KEYWORDS = ['pax', 'tua', 'exento', 'diplomatico', 'infante',
+                                                  'transito', 'conexion', 'comision', 'kgs', 'hrs'];
+                        const numColIdxSet = new Set(
+                            headerMap
+                                .filter(({ h }) => !textColIdxSet.has(
+                                    headerMap.find(x => x.h === h)?.i
+                                ) && NUM_COL_KEYWORDS.some(k => normCol(h).includes(k)))
+                                .map(({ i }) => i)
+                        );
+
+                        // Valor no numérico → null (evita error "invalid input syntax for type numeric")
+                        function sanitizeNumeric(v) {
+                            if (v === null || v === undefined || v === '' || v === '-' || v === 'N/A' || v === 'n/a') return null;
+                            if (typeof v === 'number') return v;
+                            const n = parseFloat(String(v).replace(/,/g, '.'));
+                            return isNaN(n) ? null : n;
+                        }
 
                         const dbRows = dataRows
                             .map(raw => {
                                 const obj = {};
                                 headerMap.forEach(({ h, i }) => {
-                                    const v = raw[i];
-                                    obj[h] = (v === null || v === undefined) ? null : v;
+                                    let v = raw[i];
+                                    if (v === null || v === undefined) { obj[h] = null; return; }
+
+                                    // 1. Columnas de fecha: convertir serial Excel a ISO
+                                    if (dateColIdxSet.has(i) && typeof v === 'number' && v > 40000 && v < 60000) {
+                                        const msOffset = (v - 25569) * 86400000;
+                                        const d = new Date(msOffset);
+                                        const yyyy = d.getUTCFullYear();
+                                        const mm   = String(d.getUTCMonth() + 1).padStart(2, '0');
+                                        const dd   = String(d.getUTCDate()).padStart(2, '0');
+                                        const hh   = String(d.getUTCHours()).padStart(2, '0');
+                                        const min  = String(d.getUTCMinutes()).padStart(2, '0');
+                                        v = yyyy + '-' + mm + '-' + dd + ' ' + hh + ':' + min;
+                                    }
+                                    // 2. Columnas claramente numéricas: sanear
+                                    else if (numColIdxSet.has(i)) {
+                                        v = sanitizeNumeric(v);
+                                    }
+                                    // 3. Columnas claramente de texto: dejar como están
+                                    else if (textColIdxSet.has(i)) {
+                                        v = (v === null || v === undefined) ? null : String(v).trim() || null;
+                                    }
+                                    // 4. Resto (puede ser numeric en DB): si es string no parseable → null
+                                    else if (typeof v === 'string') {
+                                        const s = v.trim();
+                                        if (s === '' || s === '-' || s === 'N/A' || s === 'n/a') {
+                                            v = null;
+                                        } else {
+                                            // Intentar convertir a número; si falla, dejar como texto
+                                            // (Supabase lo rechazará si la columna es numeric — lo hacemos null)
+                                            const n = parseFloat(s.replace(/,/g, '.'));
+                                            if (!isNaN(n) && String(n).length > 0) {
+                                                v = n; // es número válido
+                                            }
+                                            // Si tiene letras (ej. "431/A") lo dejamos como string —
+                                            // la columna en DB debe ser text (ver SQL abajo)
+                                        }
+                                    }
+                                    obj[h] = v;
                                 });
                                 return obj;
                             })
@@ -287,7 +385,7 @@
                         const colNames = headerMap.map(({ h }) => h);
                         const { data: addedCols, error: colErr } = await client.rpc(
                             'add_missing_columns',
-                            { p_table: TARGET_TABLE, p_cols: colNames }
+                            { p_table: tableName, p_cols: colNames }
                         );
                         if (colErr) {
                             // No abortar — si la función no existe o falla,
@@ -299,11 +397,11 @@
                                 'Columnas nuevas añadidas a la tabla: <strong>' +
                                 addedCols.map(escHtml).join(', ') + '</strong>. Subiendo datos…'
                             );
-                            await new Promise(r => setTimeout(r, 800)); // breve pausa para que se lea
+                            await new Promise(r => setTimeout(r, 800));
                         }
 
                         setStatus('<i class="fas fa-spinner fa-spin me-1"></i>Subiendo datos a Supabase…');
-                        await uploadInBatches(TARGET_TABLE, dbRows, (done, total) => {
+                        await uploadInBatches(tableName, dbRows, (done, total) => {
                             setProgress(done, total);
                             setStatus('<i class="fas fa-spinner fa-spin me-1"></i>Subiendo… <strong>' +
                                 done.toLocaleString() + '</strong> / ' + total.toLocaleString() + ' registros');
@@ -313,7 +411,7 @@
                         setStatus(
                             '<i class="fas fa-check-circle text-success me-1"></i><strong>' +
                             dbRows.length.toLocaleString() + ' registros de ' + mesStr + ' ' + anioStr +
-                            '</strong> importados correctamente.',
+                            '</strong> importados correctamente en <em>' + escHtml(tableName) + '</em>.',
                             'success'
                         );
 

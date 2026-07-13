@@ -19061,14 +19061,17 @@ FF
                                         <h5 class="mb-0 text-primary"><i class="fas fa-plane me-2"></i>Itinerario de
                                             Vuelos del Día</h5>
                                         <div class="d-flex gap-2 align-items-center flex-wrap">
-                                            <!-- Funnel toggle: always visible -->
-                                            <button class="btn btn-sm btn-outline-secondary" id="btn-csv-date-filter-toggle"
+
+                                        <!-- ── Ventana de Fecha (Filtro Turnaround AODB) ── -->
+                                        <div class="position-relative">
+                                            <button class="btn btn-sm btn-outline-secondary" type="button"
+                                                id="btn-csv-date-filter-toggle"
                                                 title="Filtrar por fecha"
-                                                onclick="(function(){var p=document.getElementById('csv-date-filter-panel');p.classList.toggle('d-none');document.getElementById('btn-csv-date-filter-toggle').classList.toggle('active');})()">
-                                                <i class="fas fa-filter"></i>
+                                                onclick="(function(){var p=document.getElementById('csv-date-filter-panel');var show=p.classList.toggle('d-none');document.getElementById('btn-csv-date-filter-toggle').classList.toggle('active',!show);})()">
+                                                <i class="fas fa-calendar-alt me-1"></i>Fecha
                                             </button>
                                             <!-- Collapsible date filter card -->
-                                            <div id="csv-date-filter-panel" class="d-none csv-date-filter-card">
+                                            <div id="csv-date-filter-panel" class="csv-date-filter-card">
                                                 <div class="d-flex align-items-center justify-content-between mb-2 pb-2 border-bottom">
                                                     <span class="small fw-semibold text-primary" style="letter-spacing:.03em">
                                                         <i class="fas fa-calendar-week me-1"></i>Ventana de Fecha
@@ -19076,17 +19079,23 @@ FF
                                                     <button type="button" class="btn-close" style="font-size:.65rem" title="Cerrar"
                                                         onclick="(function(){document.getElementById('csv-date-filter-panel').classList.add('d-none');document.getElementById('btn-csv-date-filter-toggle').classList.remove('active');})()"></button>
                                                 </div>
-                                                <div class="d-flex align-items-center gap-2 mb-2">
-                                                    <span class="small text-muted" style="white-space:nowrap">Modo:</span>
-                                                    <div class="btn-group btn-group-sm" role="group" aria-label="Filtro de fecha">
+                                                <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
+                                                    <button class="btn btn-sm btn-warning fw-bold" type="button" id="btn-date-reset-all"
+                                                        title="Quitar filtro — muestra TODOS los vuelos cargados"
+                                                        onclick="window.opsFlights && window.opsFlights.resetDateFilter()">
+                                                        <i class="fas fa-times-circle me-1"></i>TODOS
+                                                    </button>
+                                                    <span class="small text-muted" style="white-space:nowrap">Filtrar:</span>
+                                                    <div class="btn-group btn-group-sm" role="group" aria-label="Modo de filtro de fecha">
                                                         <button class="btn btn-outline-primary active" type="button" id="btn-date-mode-relative">Relativo</button>
                                                         <button class="btn btn-outline-primary" type="button" id="btn-date-mode-absolute">Absoluto</button>
                                                     </div>
                                                 </div>
+                                                <!-- Relative mode -->
                                                 <div class="d-flex flex-column" id="ops-date-relative">
                                                     <div class="d-flex align-items-center gap-1">
                                                         <button class="btn btn-sm btn-outline-secondary" type="button" id="rel-start-dec">-</button>
-                                                        <input type="number" class="form-control form-control-sm text-center" style="width:58px" id="rel-start" value="-4" aria-label="Inicio relativo">
+                                                        <input type="number" class="form-control form-control-sm text-center" style="width:58px" id="rel-start" value="-1" aria-label="Inicio relativo">
                                                         <button class="btn btn-sm btn-outline-secondary" type="button" id="rel-start-inc">+</button>
                                                         <span class="small text-muted px-1">a</span>
                                                         <button class="btn btn-sm btn-outline-secondary" type="button" id="rel-end-dec">-</button>
@@ -19096,29 +19105,32 @@ FF
                                                     <div class="d-flex align-items-center gap-2 small text-muted mt-1">
                                                         <i class="fas fa-calendar-day" style="opacity:.5"></i>
                                                         <span id="rel-start-label">—</span>
-                                                        <span>?</span>
+                                                        <span>→</span>
                                                         <span id="rel-end-label">—</span>
                                                     </div>
                                                 </div>
+                                                <!-- Absolute mode -->
                                                 <div class="d-flex align-items-center gap-2 d-none" id="ops-date-absolute">
                                                     <input type="date" class="form-control form-control-sm" style="width:135px" id="ops-date-start" aria-label="Fecha inicio">
-                                                    <span class="small text-muted">?</span>
+                                                    <span class="small text-muted">→</span>
                                                     <input type="date" class="form-control form-control-sm" style="width:135px" id="ops-date-end" aria-label="Fecha fin">
                                                 </div>
                                             </div><!-- /csv-date-filter-panel -->
-                                            <button class="btn btn-sm btn-outline-secondary"
-                                                onclick="window.opsFlights && window.opsFlights.refreshFlights()"><i
-                                                    class="fas fa-sync-alt me-1"></i>Actualizar</button>
-                                            <button class="btn btn-sm btn-outline-success" id="btn-import-ops-csv"
-                                                data-bs-toggle="modal" data-bs-target="#uploadOpsCsvModal"><i
-                                                    class="fas fa-file-csv me-1"></i>Importar CSV</button>
-                                            <button id="btn-conciliacion-board"
-                                                class="btn btn-sm btn-outline-primary"
-                                                onclick="toggleConciliacionBoard()"
-                                                title="Vista Llegadas / Salidas">
-                                                <i class="fas fa-plane" style="transform:rotate(-90deg);display:inline-block;"></i>
-                                            </button>
                                         </div>
+
+                                        <button class="btn btn-sm btn-outline-secondary"
+                                            onclick="window.opsFlights && window.opsFlights.refreshFlights()"><i
+                                                class="fas fa-sync-alt me-1"></i>Actualizar</button>
+                                        <button class="btn btn-sm btn-outline-success" id="btn-import-ops-csv"
+                                            data-bs-toggle="modal" data-bs-target="#uploadOpsCsvModal"><i
+                                                class="fas fa-file-csv me-1"></i>Importar CSV</button>
+                                        <button id="btn-conciliacion-board"
+                                            class="btn btn-sm btn-outline-primary"
+                                            onclick="toggleConciliacionBoard()"
+                                            title="Vista Llegadas / Salidas">
+                                            <i class="fas fa-plane" style="transform:rotate(-90deg);display:inline-block;"></i>
+                                        </button>
+                                    </div>
                                     </div>
 
                                     <!-- Charts Row -->
@@ -19261,6 +19273,11 @@ FF
                                                 </div>
                                             </div>
                                         </div>
+                                    </div>
+                                    <!-- Barra de conteo inferior (estilo AODB) -->
+                                    <div id="ops-flights-count-footer" class="ops-flights-count-footer d-none">
+                                        <i class="fas fa-plane me-2" aria-hidden="true"></i>
+                                        <span id="ops-flights-count-footer-text">0 vuelos</span>
                                     </div>
 
                                     </div><!-- /conciliacion-csv-view -->
@@ -24786,8 +24803,11 @@ FF
                                     <button type="button" class="btn btn-outline-primary mdb-period-btn" data-table="Base de Datos Manifiestos Febrero 2026" id="mdb-period-feb2026">
                                         <i class="fas fa-calendar-day me-1"></i>Febrero 2026
                                     </button>
-                                    <button type="button" class="btn btn-outline-primary mdb-period-btn" data-table="Manifiestos" id="mdb-period-abr2026">
+                                     <button type="button" class="btn btn-outline-primary mdb-period-btn" data-table="Manifiestos" id="mdb-period-abr2026">
                                         <i class="fas fa-calendar-day me-1"></i>Abril 2026
+                                    </button>
+                                    <button type="button" class="btn btn-outline-primary mdb-period-btn" data-table="Manifiestos Junio 2026" id="mdb-period-jun2026">
+                                        <i class="fas fa-calendar-day me-1"></i>Junio 2026
                                     </button>
                                 </div>
                                 <span class="badge bg-light text-secondary border fw-normal small" id="mdb-period-label">Manifiestos 2025 — Datos anuales</span>
@@ -32836,23 +32856,53 @@ FF
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Cargar Parte de Operaciones (CSV)</h5>
+                    <h5 class="modal-title"><i class="fas fa-file-csv me-2 text-success"></i>Cargar Parte de Operaciones (CSV)</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label for="ops-itinerary-csv-file" class="form-label">Cargar CSV (Software de aeropuerto)</label>
-                        <input type="file" class="form-control mb-2" id="ops-itinerary-csv-file" accept=".csv">
-                        <div class="text-muted small">El CSV debe contener exactamente los encabezados de la tabla de
-                            Vuelos del Parte de Operaciones.</div>
+                        <label for="ops-itinerary-csv-file" class="form-label fw-semibold">Archivo CSV</label>
+                        <input type="file" class="form-control" id="ops-itinerary-csv-file" accept=".csv">
+                        <div class="text-muted small mt-1">El CSV debe contener exactamente los encabezados de la tabla de Vuelos del Parte de Operaciones.</div>
                     </div>
-                    <div class="alert alert-info small">
-                        <i class="fas fa-info-circle me-1"></i> Este proceso sobrescribirá los vuelos existentes.
+                    <div class="mb-3">
+                        <label for="ops-csv-import-date" class="form-label fw-semibold">
+                            <i class="fas fa-calendar-day me-1 text-primary"></i> Filtrar por día <span class="text-muted fw-normal">(opcional)</span>
+                        </label>
+                        <input type="date" class="form-control" id="ops-csv-import-date">
+                        <div class="form-text">
+                            <i class="fas fa-info-circle me-1"></i>
+                            <strong>Dejar vacío = importar TODOS los vuelos del archivo</strong> (recomendado).<br>
+                            Si pones una fecha, solo se importarán los vuelos de ese día específico.
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold"><i class="fas fa-database me-1 text-warning"></i> Modo de importación</label>
+                        <div class="d-flex gap-2">
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="ops-import-mode" id="ops-import-mode-append" value="append" checked>
+                                <label class="form-check-label" for="ops-import-mode-append">
+                                    <strong>Agregar</strong> <span class="text-muted small">(detecta duplicados)</span>
+                                </label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="ops-import-mode" id="ops-import-mode-replace" value="replace">
+                                <label class="form-check-label" for="ops-import-mode-replace">
+                                    <strong class="text-danger">Reemplazar todo</strong> <span class="text-muted small">(borra existentes)</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="form-text text-danger" id="ops-import-replace-warn" style="display:none">
+                            <i class="fas fa-exclamation-triangle me-1"></i>
+                            ¡Atención! Esto borrará TODOS los vuelos actuales y los reemplazará con el contenido del CSV.
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn btn-primary" id="btn-save-ops-itinerary-csv">Importar CSV</button>
+                    <button type="button" class="btn btn-primary" id="btn-save-ops-itinerary-csv">
+                        <i class="fas fa-upload me-1"></i>Importar CSV
+                    </button>
                 </div>
             </div>
         </div>

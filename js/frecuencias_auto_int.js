@@ -40,7 +40,7 @@
   const AIFA_COORDS = { lat: 19.7456, lng: -99.0086 };
 
   // Domestic destinations that must never render in the international map.
-  const INTERNATIONAL_EXCLUDED_IATAS = new Set(['TRC']);
+  const INTERNATIONAL_EXCLUDED_IATAS = new Set(['TRC', 'ZLO']);
 
   // --- DESTINATION IMAGES (LOCAL FOLDER MAPPING - INT) ---
   const DESTINATION_IMAGES = {

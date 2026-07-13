@@ -79,19 +79,30 @@
     let columnFilters = {};
     let csvExcelFilters = {}; // field -> Set<string> of allowed values; absent key = no filter
     let dateMode = 'relative';
-    let relStart = -4;
-    let relEnd = 0;
-    // When false (default), the date window is NOT applied and ALL imported rows are shown.
-    // Set to true only when the user explicitly interacts with the date filter controls.
-    let _dateWindowUserActivated = false;
+    let relStart = -1;  // default: yesterday
+    let relEnd = 0;     // default: today  → active filter on load
+    // true  = user has activated the date filter; applyDateWindow will filter rows.
+    // Default true so the operational-day view is always on.
+    let _dateWindowUserActivated = true;
     let _renderDebounceTimer = null;
 
+    // RPC availability flag — set to false after a single failed call so we
+    // silently fall back to the client-side probe-cache approach.
+    let _rpcAvailable = true;
+
     // Lightweight probe cache: stores id→date mapping for all rows so we only
-    // download 3 columns once per session instead of all 24 columns every time.
-    let _flightProbeCache = null; // { dayIdMap: Map<dateKey, id[]>, totalCount, ts }
+    // download 8 columns once per session instead of all 24 columns every time.
+    let _flightProbeCache = null; // { dayIdMap: Map<dateKey, id[]>, latestDays, totalCount, ts }
     const _FLIGHT_PROBE_TTL_MS = 15 * 60 * 1000; // 15 minutes
     let _flightTotalCount = 0; // total rows across all days (shown in badge)
     let _stickySyncRaf = 0;
+
+    // Virtual render state — tracks which rows are already painted so
+    // subsequent scroll-triggered batches append without re-painting the whole table.
+    let _vrRows = [];       // full sorted+filtered array for the current render cycle
+    let _vrRendered = 0;    // how many rows have been painted so far
+    const _VR_BATCH = 80;   // rows per batch (tune: larger = fewer reflows, bigger burst)
+    let _vrObserver = null; // IntersectionObserver watching the sentinel <tr>
 
     // Schedule a debounced applyAndRender. Labels update instantly; the heavy
     // DOM work fires only once the user stops clicking (after 'delay' ms).
@@ -136,6 +147,11 @@
             loadFlights, 
             // Force-refresh clears the probe cache so the next loadFlights re-probes Supabase.
             refreshFlights: () => { _flightProbeCache = null; return loadFlights(); },
+            // Reset date filter to show ALL currently loaded rows (like Amadeus default view).
+            resetDateFilter: () => {
+                _dateWindowUserActivated = false;
+                applyAndRender();
+            },
             importCsvFromFile, 
             toggleColumn, 
             toggleValidacion,
@@ -274,7 +290,39 @@
                     alert('Selecciona un archivo CSV primero.');
                     return;
                 }
-                importCsvFromFile(fileInput.files[0]);
+                const dateInput = document.getElementById('ops-csv-import-date');
+                const selectedDate = dateInput ? dateInput.value.trim() : '';
+                const modeReplace = document.querySelector('input[name="ops-import-mode"][value="replace"]');
+                const replaceMode = modeReplace ? modeReplace.checked : false;
+                importCsvFromFile(fileInput.files[0], selectedDate, replaceMode);
+            });
+        }
+
+        // Show/hide replace warning when mode changes
+        const replaceRadio = document.getElementById('ops-import-mode-replace');
+        const replaceWarn = document.getElementById('ops-import-replace-warn');
+        if (replaceRadio && replaceWarn) {
+            document.querySelectorAll('input[name="ops-import-mode"]').forEach(radio => {
+                radio.addEventListener('change', () => {
+                    replaceWarn.style.display = replaceRadio.checked ? '' : 'none';
+                });
+            });
+        }
+
+        // Do NOT auto-fill the date — leave it empty by default so all rows are imported.
+        // The date field is optional: user can fill it manually to restrict to one day.
+        const csvModal = document.getElementById('uploadOpsCsvModal');
+        if (csvModal) {
+            csvModal.addEventListener('show.bs.modal', () => {
+                // Reset file input and date each time modal opens
+                const fileInput = document.getElementById('ops-itinerary-csv-file');
+                if (fileInput) fileInput.value = '';
+                const dateInput = document.getElementById('ops-csv-import-date');
+                if (dateInput) dateInput.value = '';
+                // Reset mode to append
+                const appendRadio = document.getElementById('ops-import-mode-append');
+                if (appendRadio) appendRadio.checked = true;
+                if (replaceWarn) replaceWarn.style.display = 'none';
             });
         }
 
@@ -298,27 +346,34 @@
         if (probeFresh) return _flightProbeCache;
 
         const year = lastImportYear || new Date().getFullYear();
-        const todayKey = (() => {
-            const t = new Date();
-            return `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
-        })();
+        const today = new Date();
+        const todayKey = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
 
-        // Fetch only id + 2 date columns (much smaller than all 24 columns)
+        // Probe all 7 date fields so cross-midnight and arrival-only rows are captured
+        const probeSelect = `id,"[Arr] SIBT","[Arr] AIBT","[Arr] ALDT","[Dep] SOBT","[Dep] AOBT","[Dep] ATOT","[Dep] ATTT"`;
         const { data: probe, error } = await supabase
             .from(TABLE_NAME)
-            .select('id,"[Arr] SIBT","[Dep] SOBT"');
+            .select(probeSelect);
         if (error) throw error;
 
-        const dayIdMap = new Map(); // 'YYYY-MM-DD' → [id, ...]
+        // dayIdMap: 'YYYY-MM-DD' → Set<id> (includes future dates for cross-midnight detection)
+        // latestDays: Set of keys ≤ today (used to compute the "latest operational date")
+        const dayIdMap = new Map();
+        const latestDays = new Set();
         (probe || []).forEach(row => {
-            const key = deriveDateKeyFromValue(row['[Arr] SIBT'], year)
-                     || deriveDateKeyFromValue(row['[Dep] SOBT'], year);
-            if (!key || key > todayKey) return;
-            if (!dayIdMap.has(key)) dayIdMap.set(key, []);
-            dayIdMap.get(key).push(row.id);
+            DATE_FIELDS.forEach(field => {
+                const key = deriveDateKeyFromValue(row[field], year);
+                if (!key) return;
+                if (!dayIdMap.has(key)) dayIdMap.set(key, new Set());
+                dayIdMap.get(key).add(row.id);
+                if (key <= todayKey) latestDays.add(key);
+            });
         });
 
-        _flightProbeCache = { dayIdMap, totalCount: (probe || []).length, ts: Date.now() };
+        // Convert Sets → Arrays for easier iteration later
+        const dayIdMapArr = new Map([...dayIdMap.entries()].map(([k, v]) => [k, [...v]]));
+
+        _flightProbeCache = { dayIdMap: dayIdMapArr, latestDays, totalCount: (probe || []).length, ts: Date.now() };
         return _flightProbeCache;
     }
 
@@ -332,35 +387,63 @@
             const supabase = window.supabaseClient;
             if (!supabase) throw new Error('Cliente Supabase no disponible');
 
-            // Phase 1: lightweight probe (3 cols) to find latest date & per-day IDs
-            const probe = await _buildFlightProbeCache(supabase);
-            _flightTotalCount = probe.totalCount;
+            // Step 1: Lightweight probe (8 columns instead of 24)
+            const cache = await _buildFlightProbeCache(supabase);
+            const { dayIdMap, latestDays, totalCount } = cache;
+            _flightTotalCount = totalCount;
 
-            const sortedKeys = [...probe.dayIdMap.keys()].sort();
-            const latestKey  = sortedKeys.length ? sortedKeys[sortedKeys.length - 1] : null;
-
-            if (!latestKey) {
+            if (dayIdMap.size === 0 || latestDays.size === 0) {
                 currentData = [];
                 _dateWindowUserActivated = false;
-                computeLatestDataDate();
+                latestDataDate = null;
                 initCsvExcelFilterButtons();
                 applyAndRender();
                 return;
             }
 
-            const latestIds = probe.dayIdMap.get(latestKey) || [];
+            // Step 2: Find latest operational date (≤ today) and build a ±2 day window.
+            // This captures the full "recent import batch" including cross-midnight flights.
+            // e.g. Visits_13JUL26 covers 11–13 JUL → window 11–14 JUL → all 135 rows loaded.
+            const latestKey = [...latestDays].sort().pop();
+            const latestD = new Date(latestKey + 'T12:00:00');
+            const toKey = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+            const wStart = toKey(new Date(latestD.getFullYear(), latestD.getMonth(), latestD.getDate() - 2));
+            const wEnd   = toKey(new Date(latestD.getFullYear(), latestD.getMonth(), latestD.getDate() + 1));
 
-            // Phase 2: fetch full rows only for the latest day
-            const { data, error } = await supabase
-                .from(TABLE_NAME)
-                .select('*')
-                .in('id', latestIds);
-            if (error) throw error;
+            // Step 3: Collect unique row IDs for all days within the window
+            const idSet = new Set();
+            for (const [day, ids] of dayIdMap.entries()) {
+                if (day >= wStart && day <= wEnd) {
+                    ids.forEach(id => idSet.add(id));
+                }
+            }
 
-            let rows = Array.isArray(data) ? data.map(normalizeRow) : [];
-            currentData = rows;
-            _dateWindowUserActivated = false; // show all currentData (= latest day)
-            latestDataDate = latestKey;       // skip full scan — we know the answer
+            if (idSet.size === 0) {
+                currentData = [];
+                _dateWindowUserActivated = false;
+                latestDataDate = null;
+                initCsvExcelFilterButtons();
+                applyAndRender();
+                return;
+            }
+
+            // Step 4: Fetch full rows for those IDs in batches of 1000
+            const idsArray = [...idSet];
+            const PAGE_SIZE = 1000;
+            let allRows = [];
+            for (let i = 0; i < idsArray.length; i += PAGE_SIZE) {
+                const batch = idsArray.slice(i, i + PAGE_SIZE);
+                const { data, error } = await supabase
+                    .from(TABLE_NAME)
+                    .select('*')
+                    .in('id', batch);
+                if (error) throw error;
+                if (data) allRows = allRows.concat(data);
+            }
+
+            currentData = allRows.map(normalizeRow);
+            _dateWindowUserActivated = false;
+            computeLatestDataDate();
             initCsvExcelFilterButtons();
             applyAndRender();
         } catch (err) {
@@ -371,7 +454,7 @@
         }
     }
 
-    async function importCsvFromFile(file) {
+    async function importCsvFromFile(file, filterDate, replaceMode) {
         try {
             const content = await file.text();
             const rows = parseCsv(content);
@@ -391,82 +474,88 @@
 
             if (mapped.length === 0) throw new Error('No hay filas de datos válidas en el CSV.');
 
-            if (mapped.length === 0) throw new Error('No hay filas de datos válidas en el CSV.');
+            // --- DATE FILTER ---
+            let dateFiltered = mapped;
+            if (filterDate) {
+                const year = lastImportYear || new Date().getFullYear();
+                dateFiltered = mapped.filter(row =>
+                    DATE_FIELDS.some(field => {
+                        const key = deriveDateKeyFromValue(row[field], year);
+                        return key === filterDate;
+                    })
+                );
+                if (dateFiltered.length === 0) {
+                    alert(`No se encontraron vuelos para el día ${filterDate} en el archivo CSV.\n\nEl archivo contiene ${mapped.length} registro(s) en total, pero ninguno coincide con esa fecha.\n\nVerifica que el archivo sea del día correcto o deja el campo de fecha vacío para importar todo.`);
+                    return;
+                }
+                if (!confirm(`Se encontraron ${dateFiltered.length} vuelo(s) para el día ${filterDate} (de ${mapped.length} registros totales en el archivo).\n\n¿Deseas continuar con la importación filtrada?`)) return;
+            }
 
-            // Preserve original CSV row order
-            const ordered = mapped;
+            // Preserve original CSV row order, using date-filtered set
+            const ordered = dateFiltered;
 
-            // --- DUPLICATE DETECTION START ---
             const supabase = window.supabaseClient;
             if (!supabase) throw new Error('Cliente Supabase no disponible');
 
-            // 1. Fetch existing flights to check against
-            // We select minimal columns to build signatures
-            const { data: existingData, error: fetchError } = await supabase
-                .from(TABLE_NAME)
-                .select('"Status", "[Arr] Flight Designator", "[Arr] SIBT", "[Dep] Flight Designator", "[Dep] SOBT"');
-            
-            if (fetchError) {
-                console.error("Error fetching existing data for duplicate check:", fetchError);
-                // Fallback: warn user but proceed? Or fail? 
-                // Let's alert failure to be safe.
-                throw new Error("No se pudierón verificar duplicados: " + fetchError.message);
-            }
+            let rowsToInsert;
 
-            const existingSignatures = new Set();
-            if (existingData) {
-                existingData.forEach(r => {
-                    // Signature format: STRICT COMBINED
-                    // We concatenate Arr|Time|Dep|Time to ensure we only skip EXACT rows.
-                    // This allows "updates" (e.g. same flight, different time) to be inserted as new rows
-                    // (which effectively updates the schedule if the user deletes the old ones, or just adds the version)
-                    
-                    const ad = (r['[Arr] Flight Designator'] || '').trim();
-                    const at = (r['[Arr] SIBT'] || '').trim();
-                    const dd = (r['[Dep] Flight Designator'] || '').trim();
-                    const dt = (r['[Dep] SOBT'] || '').trim();
-                    
-                    if (ad || dd) { // Only track if there's at least some flight info
-                         existingSignatures.add(`${ad}|${at}|${dd}|${dt}`);
+            if (replaceMode) {
+                // --- REPLACE MODE: delete everything and insert all rows ---
+                if (!confirm(`⚠️ REEMPLAZAR TODO\n\nEsto borrará TODOS los vuelos actuales de la base de datos y los reemplazará con los ${ordered.length} registros del archivo CSV.\n\n¿Estás seguro?`)) return;
+                rowsToInsert = ordered;
+                await saveToDatabase(rowsToInsert, false); // false = replace (deletes first)
+            } else {
+                // --- APPEND MODE: detect duplicates and add only new rows ---
+                const { data: existingData, error: fetchError } = await supabase
+                    .from(TABLE_NAME)
+                    .select('"[Arr] Flight Designator","[Arr] SIBT","[Dep] Flight Designator","[Dep] SOBT"');
+
+                if (fetchError) {
+                    console.error("Error fetching existing data for duplicate check:", fetchError);
+                    throw new Error("No se pudieron verificar duplicados: " + fetchError.message);
+                }
+
+                const existingSignatures = new Set();
+                if (existingData) {
+                    existingData.forEach(r => {
+                        const ad = (r['[Arr] Flight Designator'] || '').trim();
+                        const at = (r['[Arr] SIBT'] || '').trim();
+                        const dd = (r['[Dep] Flight Designator'] || '').trim();
+                        const dt = (r['[Dep] SOBT'] || '').trim();
+                        if (ad || dd) existingSignatures.add(`${ad}|${at}|${dd}|${dt}`);
+                    });
+                }
+
+                const uniqueRows = [];
+                let duplicatesCount = 0;
+                ordered.forEach(row => {
+                    const ad = (row['[Arr] Flight Designator'] || '').trim();
+                    const at = (row['[Arr] SIBT'] || '').trim();
+                    const dd = (row['[Dep] Flight Designator'] || '').trim();
+                    const dt = (row['[Dep] SOBT'] || '').trim();
+                    const rowSig = `${ad}|${at}|${dd}|${dt}`;
+                    if (existingSignatures.has(rowSig)) {
+                        duplicatesCount++;
+                    } else {
+                        existingSignatures.add(rowSig);
+                        uniqueRows.push(row);
                     }
                 });
+
+                if (uniqueRows.length === 0) {
+                    alert(`Todos los ${ordered.length} registros del CSV ya existen en la base de datos. No se importará nada.\n\nSi deseas reemplazar los datos, usa el modo "Reemplazar todo".`);
+                    return;
+                }
+
+                const confirmMsg = `Se encontraron ${ordered.length} registros en el archivo.\n` +
+                                   `• ${duplicatesCount} ya existen (se omitirán).\n` +
+                                   `• ${uniqueRows.length} son nuevos registros.\n\n` +
+                                   `¿Deseas agregar los ${uniqueRows.length} nuevos registros?`;
+                if (!confirm(confirmMsg)) return;
+
+                rowsToInsert = uniqueRows;
+                await saveToDatabase(rowsToInsert, true); // true = append
             }
-
-            const uniqueRows = [];
-            let duplicatesCount = 0;
-
-            // 2. Filter new rows
-            ordered.forEach(row => {
-               const ad = (row['[Arr] Flight Designator'] || '').trim();
-               const at = (row['[Arr] SIBT'] || '').trim();
-               const dd = (row['[Dep] Flight Designator'] || '').trim();
-               const dt = (row['[Dep] SOBT'] || '').trim();
-
-               const rowSig = `${ad}|${at}|${dd}|${dt}`;
-
-               if (existingSignatures.has(rowSig)) {
-                   duplicatesCount++;
-               } else {
-                   existingSignatures.add(rowSig); // Add to set to catch duplicates within the CSV itself
-                   uniqueRows.push(row);
-               }
-            });
-
-            if (uniqueRows.length === 0) {
-                alert(`Todos los ${ordered.length} registros del CSV ya existen en la base de datos (Duplicados). No se importará nada.`);
-                return;
-            }
-
-            const confirmMsg = `Se encontraron ${ordered.length} registros en el archivo.\n` +
-                               `- ${duplicatesCount} son duplicados (ya existen o se repiten).\n` +
-                               `- ${uniqueRows.length} son nuevos registros.\n\n` +
-                               `¿Deseas AGREGAR estos ${uniqueRows.length} nuevos registros?`;
-                               
-            if (!confirm(confirmMsg)) return;
-
-            // Pass 'true' to append instead of replace
-            await saveToDatabase(uniqueRows, true);
-            // --- DUPLICATE DETECTION END ---
 
             const modalEl = document.getElementById('uploadOpsCsvModal');
             if (modalEl) {
@@ -474,8 +563,16 @@
                 if (modal) modal.hide();
             }
 
-            _flightProbeCache = null; // new rows were inserted — invalidate probe cache
-            await loadFlights();
+            // After import: show ALL rows from this CSV (ordered = full date-filtered set from file).
+            // In replace mode this is all 135 rows; in append mode it's also the full file
+            // so the user sees what was just imported (matches Amadeus: shows full file).
+            currentData = ordered.map(r => ({ ...r }));
+            _flightTotalCount = ordered.length;
+            _dateWindowUserActivated = false;
+            computeLatestDataDate();
+            _flightProbeCache = null;
+            initCsvExcelFilterButtons();
+            applyAndRender();
         } catch (err) {
             console.error(err);
             alert(`Error al importar CSV: ${err.message}`);
@@ -616,14 +713,134 @@
 
     function updateFlightCountBadge(count) {
         const badge = document.getElementById('csv-flight-count-badge');
-        if (!badge) return;
-        if (count === 0) {
-            badge.style.display = 'none';
+        const footer = document.getElementById('ops-flights-count-footer');
+        const footerText = document.getElementById('ops-flights-count-footer-text');
+        const resetBtn = document.getElementById('btn-date-reset-all');
+
+        // Always shows all loaded rows (no date filter on view — matches Amadeus behavior)
+        const dayLabel = latestDataDate ? ` (${_formatDateKey(latestDataDate)})` : '';
+        const label = count === 1 ? `1 vuelo${dayLabel}` : `${count} vuelos${dayLabel}`;
+
+        // TODOS button is always in "active / all showing" state
+        if (resetBtn) {
+            resetBtn.classList.remove('btn-danger');
+            resetBtn.classList.add('btn-warning');
+        }
+
+        if (badge) {
+            if (count === 0) {
+                badge.style.display = 'none';
+            } else {
+                badge.style.display = '';
+                badge.textContent = label;
+            }
+        }
+        if (footer && footerText) {
+            if (count === 0) {
+                footer.classList.add('d-none');
+            } else {
+                footer.classList.remove('d-none');
+                footerText.textContent = label;
+            }
+        }
+    }
+
+    // ── VIRTUAL RENDER HELPERS ──────────────────────────────────────────────
+
+    // Build the HTML string for a single data row (shared by initial and incremental renders)
+    function _buildRowHtml(row, dataIdx) {
+        const statusClass = getStatusClass(row['Status']);
+        const cells = HEADERS.map(h => {
+            const content = escapeHtml(row[h] || '');
+            const colClass = HEADER_CLASSES[h] || '';
+            if (h === '[Arr] Flight Designator' || h === '[Dep] Flight Designator') {
+                return `<td class="fw-bold ${colClass}">${content}</td>`;
+            }
+            if (h === 'Status') {
+                return `<td class="csv-status ${statusClass} ${colClass}">${content}</td>`;
+            }
+            return `<td class="${colClass}">${content}</td>`;
+        }).join('');
+
+        const valido  = row._validado === true;
+        const valPor  = escapeHtml(row._validadoPor || '');
+        const valAt   = row._validadoAt
+            ? new Date(row._validadoAt).toLocaleString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
+            : '';
+        const validCell = valido
+            ? `<td class="col-cvs-validation text-center" style="border-left:2px solid #c8d9f8;">
+                  <span class="text-success fw-semibold" style="font-size:.78rem;" title="Validado por ${valPor}${valAt ? ' — ' + valAt : ''}">
+                      <i class="fas fa-check-circle me-1"></i>Validado
+                  </span>
+                  <div class="text-muted" style="font-size:.65rem;line-height:1.1">${valPor}</div>
+                  <button class="btn btn-link p-0 text-danger" style="font-size:.6rem;" title="Quitar validación"
+                      onclick="window.opsFlights.toggleValidacion(${dataIdx}, true)">
+                      <i class="fas fa-times-circle"></i> deshacer
+                  </button>
+               </td>`
+            : `<td class="col-cvs-validation text-center" style="border-left:2px solid #c8d9f8;">
+                  <button class="btn btn-sm btn-outline-primary" style="font-size:.72rem;padding:2px 10px;"
+                      onclick="window.opsFlights.toggleValidacion(${dataIdx}, false)" title="Marcar como validado">
+                      <i class="fas fa-check me-1"></i>Validar
+                  </button>
+               </td>`;
+
+        const obsText = escapeHtml(row._observaciones || '');
+        const obsCell = `<td class="col-cvs-observaciones obs-td" style="min-width:190px;padding:4px 6px;background:#f0fff4;border-left:2px solid #b7dfca;">
+            <div class="obs-display" onclick="window.opsFlights.editObservacion(this,${dataIdx})" title="click para editar observación">
+                ${obsText
+                    ? `<span class="obs-text">${obsText}</span>`
+                    : `<span class="obs-placeholder">Sin observación</span>`}
+                <i class="fas fa-pencil-alt obs-edit-icon"></i>
+            </div>
+        </td>`;
+
+        const rowClass = valido ? 'row-validated'
+            : (row._observaciones || '').trim() ? 'row-has-obs' : '';
+        return `<tr data-row-idx="${dataIdx}"${rowClass ? ` class="${rowClass}"` : ''}>${cells}${obsCell}${validCell}</tr>`;
+    }
+
+    // Append the next batch of rows to tbody.  Replaces the sentinel <tr> with
+    // fresh rows + a new sentinel so the observer keeps triggering until done.
+    function _vrAppendBatch(tbody) {
+        if (_vrRendered >= _vrRows.length) {
+            // All rows rendered — disconnect observer
+            if (_vrObserver) { _vrObserver.disconnect(); _vrObserver = null; }
+            return;
+        }
+
+        const dataIndexMap = new Map(currentData.map((item, idx) => [item, idx]));
+        const end = Math.min(_vrRendered + _VR_BATCH, _vrRows.length);
+        const fragment = document.createDocumentFragment();
+
+        for (let i = _vrRendered; i < end; i++) {
+            const row = _vrRows[i];
+            const dataIdx = dataIndexMap.has(row) ? dataIndexMap.get(row) : currentData.indexOf(row);
+            const tr = document.createElement('tr');
+            tr.dataset.rowIdx = dataIdx;
+            if (row._validado) tr.className = 'row-validated';
+            else if ((row._observaciones || '').trim()) tr.className = 'row-has-obs';
+            tr.innerHTML = _buildRowHtml(row, dataIdx).replace(/^<tr[^>]*>/, '').replace(/<\/tr>$/, '');
+            fragment.appendChild(tr);
+        }
+        _vrRendered = end;
+
+        // Remove old sentinel and append new rows
+        const oldSentinel = tbody.querySelector('.vr-sentinel');
+        if (oldSentinel) oldSentinel.remove();
+        tbody.appendChild(fragment);
+
+        // Add new sentinel if there are more rows to render
+        if (_vrRendered < _vrRows.length) {
+            const sentinel = document.createElement('tr');
+            sentinel.className = 'vr-sentinel';
+            sentinel.innerHTML = '<td colspan="26" class="py-1 text-center text-muted" style="font-size:.7rem">'
+                + `<i class="fas fa-spinner fa-spin me-1"></i>Cargando ${_vrRows.length - _vrRendered} filas más…</td>`;
+            tbody.appendChild(sentinel);
+            _vrObserver.observe(sentinel);
         } else {
-            badge.style.display = '';
-            const dayLabel = latestDataDate ? ` (${_formatDateKey(latestDataDate)})` : '';
-            const totalSuffix = _flightTotalCount > count ? ` · ${_flightTotalCount} total` : '';
-            badge.textContent = count === 1 ? `1 vuelo${dayLabel}${totalSuffix}` : `${count} vuelos${dayLabel}${totalSuffix}`;
+            if (_vrObserver) { _vrObserver.disconnect(); _vrObserver = null; }
+            scheduleStickySync();
         }
     }
 
@@ -631,74 +848,61 @@
         const tbody = document.getElementById('tbody-ops-flights-csv');
         if (!tbody) return;
 
+        // Disconnect any previous virtual-render observer
+        if (_vrObserver) { _vrObserver.disconnect(); _vrObserver = null; }
+
         if (!rows || rows.length === 0) {
             tbody.innerHTML = '<tr><td colspan="26" class="text-center text-muted py-4">No hay registros para mostrar.</td></tr>';
             updateFlightCountBadge(0);
+            attachRowSelection(tbody);
             return;
         }
         updateFlightCountBadge(rows.length);
 
+        // ── Virtual / incremental rendering ──────────────────────────────────
+        // Paint the first _VR_BATCH rows immediately (instant feel), then lazily
+        // append the rest as the user scrolls via IntersectionObserver.
+        // This avoids freezing the browser when hundreds of rows are visible.
+        _vrRows = rows;
+        _vrRendered = 0;
+
+        // Clear tbody and render first batch synchronously
+        tbody.innerHTML = '';
         const dataIndexMap = new Map(currentData.map((item, idx) => [item, idx]));
+        const firstBatch = document.createDocumentFragment();
+        const firstEnd = Math.min(_VR_BATCH, rows.length);
 
-        const html = rows.map(row => {
-            const statusClass = getStatusClass(row['Status']);
-            // Stable index into currentData (survives filter changes)
+        for (let i = 0; i < firstEnd; i++) {
+            const row = rows[i];
             const dataIdx = dataIndexMap.has(row) ? dataIndexMap.get(row) : currentData.indexOf(row);
-            const cells = HEADERS.map(h => {
-                const content = escapeHtml(row[h] || '');
-                const colClass = HEADER_CLASSES[h] || '';
-                
-                if (h === '[Arr] Flight Designator' || h === '[Dep] Flight Designator') {
-                    return `<td class="fw-bold ${colClass}">${content}</td>`;
+            const tr = document.createElement('tr');
+            tr.dataset.rowIdx = dataIdx;
+            if (row._validado) tr.className = 'row-validated';
+            else if ((row._observaciones || '').trim()) tr.className = 'row-has-obs';
+            tr.innerHTML = _buildRowHtml(row, dataIdx).replace(/^<tr[^>]*>/, '').replace(/<\/tr>$/, '');
+            firstBatch.appendChild(tr);
+        }
+        _vrRendered = firstEnd;
+        tbody.appendChild(firstBatch);
+
+        // If there are remaining rows, add a sentinel and wire the observer
+        if (_vrRendered < rows.length) {
+            const sentinel = document.createElement('tr');
+            sentinel.className = 'vr-sentinel';
+            sentinel.innerHTML = '<td colspan="26" class="py-1 text-center text-muted" style="font-size:.7rem">'
+                + `<i class="fas fa-spinner fa-spin me-1"></i>Cargando ${rows.length - _vrRendered} filas más…</td>`;
+            tbody.appendChild(sentinel);
+
+            _vrObserver = new IntersectionObserver(entries => {
+                if (entries[0].isIntersecting) {
+                    // Use rAF to batch DOM work outside the observer callback
+                    requestAnimationFrame(() => _vrAppendBatch(tbody));
                 }
-                if (h === 'Status') {
-                    return `<td class="csv-status ${statusClass} ${colClass}">${content}</td>`;
-                }
-                return `<td class="${colClass}">${content}</td>`;
-            }).join('');
+            }, { rootMargin: '200px' });
+            _vrObserver.observe(sentinel);
+        }
 
-            // Validation cell — uses dataIdx to reference currentData
-            const valido  = row._validado === true;
-            const valPor  = escapeHtml(row._validadoPor || '');
-            const valAt   = row._validadoAt
-                ? new Date(row._validadoAt).toLocaleString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
-                : '';
-            const validCell = valido
-                ? `<td class="col-cvs-validation text-center" style="border-left:2px solid #c8d9f8;">
-                      <span class="text-success fw-semibold" style="font-size:.78rem;" title="Validado por ${valPor}${valAt ? ' — ' + valAt : ''}">
-                          <i class="fas fa-check-circle me-1"></i>Validado
-                      </span>
-                      <div class="text-muted" style="font-size:.65rem;line-height:1.1">${valPor}</div>
-                      <button class="btn btn-link p-0 text-danger" style="font-size:.6rem;" title="Quitar validación"
-                          onclick="window.opsFlights.toggleValidacion(${dataIdx}, true)">
-                          <i class="fas fa-times-circle"></i> deshacer
-                      </button>
-                   </td>`
-                : `<td class="col-cvs-validation text-center" style="border-left:2px solid #c8d9f8;">
-                      <button class="btn btn-sm btn-outline-primary" style="font-size:.72rem;padding:2px 10px;"
-                          onclick="window.opsFlights.toggleValidacion(${dataIdx}, false)" title="Marcar como validado">
-                          <i class="fas fa-check me-1"></i>Validar
-                      </button>
-                   </td>`;
-
-            // Observations cell — locked by default, click to edit
-            const obsText = escapeHtml(row._observaciones || '');
-            const obsCell = `<td class="col-cvs-observaciones obs-td" style="min-width:190px;padding:4px 6px;background:#f0fff4;border-left:2px solid #b7dfca;">
-                <div class="obs-display" onclick="window.opsFlights.editObservacion(this,${dataIdx})" title="click para editar observación">
-                    ${obsText
-                        ? `<span class="obs-text">${obsText}</span>`
-                        : `<span class="obs-placeholder">Sin observación</span>`}
-                    <i class="fas fa-pencil-alt obs-edit-icon"></i>
-                </div>
-            </td>`;
-
-            return `<tr data-row-idx="${dataIdx}"${valido ? ' class="row-validated"' : ''}>${cells}${obsCell}${validCell}</tr>`;
-        }).join('');
-
-        tbody.innerHTML = html;
         attachRowSelection(tbody);
-        
-        // Dynamic CSS already controls column visibility; avoid full re-scan per render.
         scheduleStickySync();
     }
 
@@ -791,6 +995,12 @@
                 .eq('id', row._id);
             if (error) throw error;
             row._observaciones = trimmed;
+            // Actualizar clase de la fila en el DOM
+            const tr = document.querySelector(`#tbody-ops-flights-csv tr[data-row-idx="${dataIdx}"]`);
+            if (tr && !tr.classList.contains('row-validated')) {
+                if (trimmed) tr.classList.add('row-has-obs');
+                else tr.classList.remove('row-has-obs');
+            }
         } catch (err) {
             console.error('[saveObservacion]', err);
         }
@@ -843,9 +1053,14 @@
 
             // Apply / remove validated row highlight
             if (newState) {
+                tr.classList.remove('row-has-obs');
                 tr.classList.add('row-validated');
             } else {
                 tr.classList.remove('row-validated');
+                // Restore obs class if row has an observation
+                if ((currentData[dataIdx]._observaciones || '').trim()) {
+                    tr.classList.add('row-has-obs');
+                }
             }
 
             if (newState) {
@@ -894,7 +1109,7 @@
 
     function applyAndRender() {
         const dateRef = getReferenceDate();
-        const dateFiltered = applyDateWindow(currentData, dateRef);
+        const dateFiltered = applyDateWindow(currentData);
         const filtered = applyFilters(dateFiltered);
         const sorted = sortRows(filtered, dateRef);
         renderTable(sorted);
@@ -959,9 +1174,34 @@
         return out;
     }
 
-    // When the date window is active, the requested day(s) may not be the latest
-    // day that loadFlights() preloaded. Use the probe cache's day→id map to fetch
-    // the full rows for the days inside the active window so they actually show.
+    // Convert 'YYYY-MM-DD' → 'DDMON' (e.g. '2026-07-12' → '12JUL')
+    // Used to build the day-prefix parameter for the Supabase RPC.
+    function _isoToDayPrefix(iso) {
+        if (!iso) return '';
+        const ABBR = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+        const p = iso.split('-');
+        if (p.length !== 3) return '';
+        return String(parseInt(p[2], 10)).padStart(2, '0') + ABBR[parseInt(p[1], 10) - 1];
+    }
+
+    // Add/subtract days from an ISO date string and return a new ISO date string.
+    function _shiftIso(iso, deltaDays) {
+        const d = new Date(iso + 'T12:00:00');
+        d.setDate(d.getDate() + deltaDays);
+        return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    }
+
+    /**
+     * ensureWindowDataLoaded — DB-optimized turnaround query.
+     *
+     * Strategy (in order of preference):
+     *   1. Supabase RPC `search_turnaround_day` — UNION ALL approach, uses indexes,
+     *      evaluates Cases A, B, C server-side in milliseconds.
+     *   2. Fall back to probe-cache + .in(ids) if the RPC is not deployed yet.
+     *
+     * The result is cached in `currentData`; subsequent applyDateWindow() filters
+     * in-memory (instant, no extra network call).
+     */
     async function ensureWindowDataLoaded() {
         if (!_dateWindowUserActivated) return;
         const supabase = window.supabaseClient;
@@ -971,6 +1211,55 @@
         if (!range) return;
         const { startKey, endKey } = range;
 
+        // ── STRATEGY 1: Supabase RPC (UNION ALL — fastest) ──────────────────
+        if (_rpcAvailable) {
+            try {
+                // Collect all unique day prefixes in the window
+                const days = [];
+                let cur = startKey;
+                while (cur <= endKey) {
+                    days.push(cur);
+                    cur = _shiftIso(cur, 1);
+                }
+
+                // Build batched RPC calls per day (Case C uses prev/next of each day)
+                const idSet = new Set();
+                for (const day of days) {
+                    const p_day  = _isoToDayPrefix(day);
+                    const p_prev = _isoToDayPrefix(_shiftIso(day, -1));
+                    const p_next = _isoToDayPrefix(_shiftIso(day,  1));
+                    const { data, error } = await supabase.rpc('search_turnaround_day', {
+                        p_day, p_prev, p_next
+                    });
+                    if (error) throw error;
+                    (data || []).forEach(r => idSet.add(r.id));
+                }
+
+                if (idSet.size === 0) { currentData = []; return; }
+
+                // Skip network if currentData already has exactly these IDs
+                const loaded = new Set(currentData.map(r => r._id));
+                const needsFetch = idSet.size !== loaded.size || [...idSet].some(id => !loaded.has(id));
+                if (!needsFetch) return;
+
+                const tbody = document.getElementById('tbody-ops-flights-csv');
+                if (tbody) tbody.innerHTML = '<tr><td colspan="24" class="text-center py-4">Cargando...</td></tr>';
+
+                const rows = await _fetchRowsByIds(supabase, [...idSet]);
+                currentData = rows.map(normalizeRow);
+                return;
+            } catch (err) {
+                // RPC not deployed yet → disable and fall through to probe-cache strategy
+                if (err.message && (err.message.includes('does not exist') || err.message.includes('function') || err.code === 'PGRST202')) {
+                    console.warn('[AODB] RPC search_turnaround_day no disponible, usando probe-cache. Ejecuta supabase/migrations/001_turnaround_indexes_and_rpc.sql para activar la optimización.');
+                    _rpcAvailable = false;
+                } else {
+                    throw err;
+                }
+            }
+        }
+
+        // ── STRATEGY 2: Probe-cache + .in(ids) (fallback) ───────────────────
         const ids = [];
         _flightProbeCache.dayIdMap.forEach((idList, key) => {
             if (key >= startKey && key <= endKey) {
@@ -980,15 +1269,12 @@
 
         if (ids.length === 0) { currentData = []; return; }
 
-        // Skip the network round-trip if currentData already holds exactly these ids.
         const loaded = new Set(currentData.map(r => r._id));
         const needsFetch = ids.length !== loaded.size || ids.some(id => !loaded.has(id));
         if (!needsFetch) return;
 
         const tbody = document.getElementById('tbody-ops-flights-csv');
-        if (tbody) {
-            tbody.innerHTML = '<tr><td colspan="24" class="text-center py-4">Cargando...</td></tr>';
-        }
+        if (tbody) tbody.innerHTML = '<tr><td colspan="24" class="text-center py-4">Cargando...</td></tr>';
 
         const data = await _fetchRowsByIds(supabase, ids);
         currentData = data.map(normalizeRow);
@@ -1007,9 +1293,6 @@
 
     function computeLatestDataDate() {
         const year = lastImportYear || new Date().getFullYear();
-        // Cap at today: dates parsed as future (e.g. "31DEC" read back from Supabase
-        // without a year gets stamped with the current year, making Dec 2025 data appear
-        // as Dec 2026). We only want the most recent date that is today or in the past.
         const todayKey = (() => {
             const t = new Date();
             const y = t.getFullYear();
@@ -1025,6 +1308,18 @@
             });
         });
         latestDataDate = maxKey || null;
+
+        // Update the informational ops-date label badge
+        const labelEl = document.getElementById('csv-ops-date-label');
+        const labelText = document.getElementById('csv-ops-date-label-text');
+        if (labelEl && labelText) {
+            if (latestDataDate) {
+                labelText.textContent = _formatDateKey(latestDataDate);
+                labelEl.classList.remove('d-none');
+            } else {
+                labelEl.classList.add('d-none');
+            }
+        }
     }
 
     function getReferenceDate() {
@@ -1039,21 +1334,15 @@
     }
 
     function updateRelativeLabels() {
+        // These label elements are no longer in the DOM (date filter panel removed),
+        // but keep the function to avoid errors from any lingering references.
         const relStartLabel = document.getElementById('rel-start-label');
         const relEndLabel = document.getElementById('rel-end-label');
         if (!relStartLabel || !relEndLabel) return;
         const dateRef = getReferenceDate();
-        if (!dateRef) {
-            relStartLabel.textContent = '—';
-            relEndLabel.textContent = '—';
-            return;
-        }
-        const base = new Date(dateRef + 'T12:00:00'); // noon avoids UTC midnight offset
-        if (Number.isNaN(base.getTime())) {
-            relStartLabel.textContent = '—';
-            relEndLabel.textContent = '—';
-            return;
-        }
+        if (!dateRef) { relStartLabel.textContent = '—'; relEndLabel.textContent = '—'; return; }
+        const base = new Date(dateRef + 'T12:00:00');
+        if (Number.isNaN(base.getTime())) { relStartLabel.textContent = '—'; relEndLabel.textContent = '—'; return; }
         const start = new Date(base);
         const end = new Date(base);
         start.setDate(start.getDate() + relStart);
@@ -1304,9 +1593,8 @@
             `background:#fff;border:1px solid #ddd;box-shadow:0 4px 14px rgba(0,0,0,.18);` +
             `width:240px;border-radius:6px;padding:10px;font-size:.84rem;`;
 
-        // Build value list from date-filtered data so only relevant options appear
-        const dateRef = getReferenceDate();
-        const visibleData = applyDateWindow(currentData, dateRef);
+        // Build value list from ALL loaded data (no date filter)
+        const visibleData = applyDateWindow(currentData);
         const values = [...new Set(visibleData.map(r => String(r[field] || '')))]
             .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
         const activeSet = csvExcelFilters[field] || null;
@@ -1421,25 +1709,47 @@
         return `${y}-${m}-${d}`;
     }
 
-    // Returns true if ANY of the row's time fields falls within [startKey, endKey]
+    /**
+     * AODB Turnaround Filter — Reglas de Negocio:
+     *
+     * Una fila representa la estancia completa de una aeronave (inbound + outbound).
+     * El filtro aplica lógica OR sobre tres condiciones:
+     *   (a) Fecha de algún campo de LLEGADA cae dentro de [startKey, endKey]
+     *   (b) Fecha de algún campo de SALIDA  cae dentro de [startKey, endKey]
+     *   (c) La aeronave PERMANECIÓ EN TIERRA durante toda la ventana:
+     *       la llegada fue ANTES del inicio Y la salida fue DESPUÉS del fin
+     *       (ej: llega 11JUL, sale 13JUL → incluir para filtro de 12JUL)
+     *
+     * Rule 3: la fila siempre se muestra COMPLETA — nunca se ocultan fechas de otro día.
+     */
     function rowInDateWindow(row, startKey, endKey, year) {
-        return DATE_FIELDS.some(field => {
+        // (a) + (b): algún campo de fecha (llegada o salida) cae en la ventana
+        const anyFieldInWindow = DATE_FIELDS.some(field => {
             const key = deriveDateKeyFromValue(row[field], year);
             if (!key) return false;
             return key >= startKey && key <= endKey;
         });
+        if (anyFieldInWindow) return true;
+
+        // (c): avión estacionado — llegó ANTES del inicio de ventana Y sale DESPUÉS del fin
+        const arrKeys = ARR_TIME_FIELDS.map(f => deriveDateKeyFromValue(row[f], year)).filter(Boolean);
+        const depKeys = DEP_TIME_FIELDS.map(f => deriveDateKeyFromValue(row[f], year)).filter(Boolean);
+        if (arrKeys.length > 0 && depKeys.length > 0) {
+            const earliestArr = arrKeys.slice().sort()[0];        // llegada más temprana
+            const latestDep   = depKeys.slice().sort().reverse()[0]; // salida más tardía
+            if (earliestArr < startKey && latestDep > endKey) return true;
+        }
+        return false;
     }
 
-    function applyDateWindow(rows, dateRef) {
-        // Date window only applies when the user has explicitly activated it via
-        // the filter controls. By default ALL imported rows are shown.
+    function applyDateWindow(rows) {
+        // When no user-activated filter: show ALL loaded rows (default after import/load).
         if (!_dateWindowUserActivated) return rows;
 
-        // If we have data but couldn't determine any date from it, show everything.
+        // If we have data but couldn't determine any reference date, show everything.
         if (currentData.length > 0 && !latestDataDate && dateMode === 'relative') return rows;
-        if (!dateRef && dateMode === 'absolute' && !absStart && !absEnd) return rows;
+        if (dateMode === 'absolute' && !absStart && !absEnd) return rows;
 
-        // Use LOCAL date getters to avoid UTC offset shifting the boundary date
         const toLocalKey = d => {
             const y = d.getFullYear();
             const m = String(d.getMonth() + 1).padStart(2, '0');
@@ -1447,31 +1757,27 @@
             return `${y}-${m}-${day}`;
         };
 
+        const year = lastImportYear || new Date().getFullYear();
+
         if (dateMode === 'absolute') {
-            const start = absStart || dateRef;
-            const end = absEnd || dateRef;
+            const start = absStart || latestDataDate;
+            const end   = absEnd   || latestDataDate;
             if (!start && !end) return rows;
-            const year = parseInt((start || end).slice(0, 4), 10);
             return rows.filter(row => rowInDateWindow(row, start, end, year));
         }
 
+        // Relative mode
+        const dateRef = latestDataDate;
         if (!dateRef) return rows;
-        const base = new Date(dateRef + 'T12:00:00'); // use noon to avoid UTC edge at midnight
+        const base = new Date(dateRef + 'T12:00:00');
         if (Number.isNaN(base.getTime())) return rows;
         const start = new Date(base);
-        const end = new Date(base);
+        const end   = new Date(base);
         start.setDate(start.getDate() + relStart);
-        end.setDate(end.getDate() + relEnd);
-        if (start > end) {
-            const temp = new Date(start);
-            start.setTime(end.getTime());
-            end.setTime(temp.getTime());
-        }
+        end.setDate(end.getDate()   + relEnd);
+        if (start > end) { const tmp = new Date(start); start.setTime(end.getTime()); end.setTime(tmp.getTime()); }
         const startKey = toLocalKey(start);
-        const endKey = toLocalKey(end);
-        const year = parseInt(dateRef.slice(0, 4), 10);
-        // A row is included if ANY of its time fields falls inside the date window.
-        // This matches flights that cross midnight (e.g., SIBT on day-1 but AIBT on target day).
+        const endKey   = toLocalKey(end);
         return rows.filter(row => rowInDateWindow(row, startKey, endKey, year));
     }
 

@@ -234,12 +234,46 @@ window.opsFlightsAdmin = (function () {
         return String(d.getDate()).padStart(2,'0') + MONTHS[d.getMonth()];
     }
 
+    /**
+     * AODB Turnaround Match — mismo contrato que rowInDateWindow en parte-ops-flights.js.
+     * Regla 2 (lógica OR):
+     *   (a) Cualquier campo de LLEGADA pertenece al día indicado.
+     *   (b) Cualquier campo de SALIDA pertenece al día indicado.
+     *   (c) La aeronave PERMANECIÓ EN TIERRA: llegó ANTES del día Y salió DESPUÉS.
+     */
     function rowMatchesDay(row, dayPrefix) {
-        var fields = ['[Arr] ALDT','[Arr] SIBT','[Arr] AIBT','[Dep] SOBT','[Dep] AOBT','[Dep] ATOT'];
-        return fields.some(function (f) {
+        var ARR_FIELDS = ['[Arr] ALDT', '[Arr] SIBT', '[Arr] AIBT'];
+        var DEP_FIELDS = ['[Dep] SOBT', '[Dep] AOBT', '[Dep] ATOT', '[Dep] ATTT'];
+        var prefix = (dayPrefix || '').toUpperCase();
+
+        // (a) + (b): algún campo empieza con el prefijo del día (p.ej. "12JUL")
+        var allFields = ARR_FIELDS.concat(DEP_FIELDS);
+        if (allFields.some(function (f) {
             var v = row[f];
-            return v && String(v).toUpperCase().startsWith(dayPrefix);
-        });
+            return v && String(v).toUpperCase().startsWith(prefix);
+        })) return true;
+
+        // (c): avión estacionado — ningún campo toca el día, pero la aeronave
+        //      llegó ANTES de ese día y salió DESPUÉS (overnight/multi-day stay)
+        var dayISO = dayPrefixToISO(prefix);
+        if (!dayISO) return false;
+
+        var fieldToISO = function (f) {
+            var v = String(row[f] || '').trim().toUpperCase();
+            var m = v.match(/^(\d{2}[A-Z]{3})/);
+            return m ? (dayPrefixToISO(m[1]) || '') : '';
+        };
+
+        var arrISOs = ARR_FIELDS.map(fieldToISO).filter(Boolean);
+        var depISOs = DEP_FIELDS.map(fieldToISO).filter(Boolean);
+
+        if (arrISOs.length > 0 && depISOs.length > 0) {
+            var earliestArr = arrISOs.slice().sort()[0];
+            var latestDep   = depISOs.slice().sort().reverse()[0];
+            if (earliestArr < dayISO && latestDep > dayISO) return true;
+        }
+
+        return false;
     }
 
     async function loadData() {
