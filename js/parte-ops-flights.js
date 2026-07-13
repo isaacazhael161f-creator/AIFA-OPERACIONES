@@ -1782,10 +1782,15 @@
     }
 
     function getStatusClass(status) {
-        const normalized = String(status || '').toLowerCase();
-        if (normalized.includes('cancel')) return 'csv-status-red';
-        if (normalized.includes('in block') || normalized.includes('flight activated')) return 'csv-status-green';
-        return 'csv-status-blue';
+        const s = String(status || '').toLowerCase().trim();
+        // Rojo — vuelos cancelados
+        if (s.includes('cancel')) return 'csv-status-red';
+        // Rojo oscuro — no operando
+        if (s.includes('not operating') || s.includes('no operat')) return 'csv-status-darkred';
+        // Verde — en bloque / activado
+        if (s.includes('in block') || s.includes('flight activated') || s.includes('billing validated') || s.includes('closed')) return 'csv-status-green';
+        // Cyan — take off, off block, TOBT confirmed, cualquier otro activo
+        return 'csv-status-cyan';
     }
 
     function attachRowSelection(tbody) {

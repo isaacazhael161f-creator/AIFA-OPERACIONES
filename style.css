@@ -19379,20 +19379,25 @@ body.sec-access-read .requires-capture { display: none !important; }
 }
 
 /* ── Zebra striping (excluye celdas de status para no tapar su color) ── */
-#table-ops-flights-csv tbody > tr:nth-child(odd) > td:not(.csv-status-blue):not(.csv-status-green):not(.csv-status-red) {
+#table-ops-flights-csv tbody > tr:nth-child(odd) > td:not(.csv-status-cyan):not(.csv-status-green):not(.csv-status-red):not(.csv-status-darkred) {
     background-color: #f5f5f5 !important;
 }
-#table-ops-flights-csv tbody > tr:nth-child(even) > td:not(.csv-status-blue):not(.csv-status-green):not(.csv-status-red) {
+#table-ops-flights-csv tbody > tr:nth-child(even) > td:not(.csv-status-cyan):not(.csv-status-green):not(.csv-status-red):not(.csv-status-darkred) {
     background-color: #ffffff !important;
 }
 
-/* ── Colores de celda Status — siempre encima del zebra ── */
-#table-ops-flights-csv tbody td.csv-status-blue  { background-color: #1565c0 !important; color: #ffffff !important; }
-#table-ops-flights-csv tbody td.csv-status-green { background-color: #2e7d32 !important; color: #ffffff !important; }
-#table-ops-flights-csv tbody td.csv-status-red   { background-color: #c62828 !important; color: #ffffff !important; }
+/* ── Colores de celda Status — fieles al AODB Amadeus ── */
+/* Take off / Off block / TOBT confirmed → cyan */
+#table-ops-flights-csv tbody td.csv-status-cyan  { background-color: #00acc1 !important; color: #ffffff !important; }
+/* In block / Flight activated / Validated → verde */
+#table-ops-flights-csv tbody td.csv-status-green { background-color: #388e3c !important; color: #ffffff !important; }
+/* Cancelled → rojo */
+#table-ops-flights-csv tbody td.csv-status-red   { background-color: #e53935 !important; color: #ffffff !important; }
+/* Not operating → rojo oscuro */
+#table-ops-flights-csv tbody td.csv-status-darkred { background-color: #b71c1c !important; color: #ffffff !important; }
 
 /* ── Hover: verde muy pálido (como Amadeus) ── */
-#table-ops-flights-csv tbody > tr:hover > td:not(.csv-status-blue):not(.csv-status-green):not(.csv-status-red) {
+#table-ops-flights-csv tbody > tr:hover > td:not(.csv-status-cyan):not(.csv-status-green):not(.csv-status-red):not(.csv-status-darkred) {
     background-color: #dcedc8 !important;
     cursor: default;
 }
@@ -19417,9 +19422,10 @@ body.sec-access-read .requires-capture { display: none !important; }
     background-color: #81c784 !important;
 }
 /* Status cell no pierde su color aunque la fila esté validada */
-#table-ops-flights-csv tbody tr.row-validated > td.csv-status-blue  { background-color: #1565c0 !important; color: #fff !important; }
-#table-ops-flights-csv tbody tr.row-validated > td.csv-status-green { background-color: #2e7d32 !important; color: #fff !important; }
-#table-ops-flights-csv tbody tr.row-validated > td.csv-status-red   { background-color: #c62828 !important; color: #fff !important; }
+#table-ops-flights-csv tbody tr.row-validated > td.csv-status-cyan    { background-color: #00acc1 !important; color: #fff !important; }
+#table-ops-flights-csv tbody tr.row-validated > td.csv-status-green   { background-color: #388e3c !important; color: #fff !important; }
+#table-ops-flights-csv tbody tr.row-validated > td.csv-status-red     { background-color: #e53935 !important; color: #fff !important; }
+#table-ops-flights-csv tbody tr.row-validated > td.csv-status-darkred { background-color: #b71c1c !important; color: #fff !important; }
 
 /* ── Fila con observación — ámbar/amarillo pálido, distinto del verde ── */
 #table-ops-flights-csv tbody tr.row-has-obs > td,
@@ -19434,9 +19440,10 @@ body.sec-access-read .requires-capture { display: none !important; }
     background-color: #ffe082 !important;
 }
 /* Status cell no pierde su color aunque la fila tenga observación */
-#table-ops-flights-csv tbody tr.row-has-obs > td.csv-status-blue  { background-color: #1565c0 !important; color: #fff !important; }
-#table-ops-flights-csv tbody tr.row-has-obs > td.csv-status-green { background-color: #2e7d32 !important; color: #fff !important; }
-#table-ops-flights-csv tbody tr.row-has-obs > td.csv-status-red   { background-color: #c62828 !important; color: #fff !important; }
+#table-ops-flights-csv tbody tr.row-has-obs > td.csv-status-cyan    { background-color: #00acc1 !important; color: #fff !important; }
+#table-ops-flights-csv tbody tr.row-has-obs > td.csv-status-green   { background-color: #388e3c !important; color: #fff !important; }
+#table-ops-flights-csv tbody tr.row-has-obs > td.csv-status-red     { background-color: #e53935 !important; color: #fff !important; }
+#table-ops-flights-csv tbody tr.row-has-obs > td.csv-status-darkred { background-color: #b71c1c !important; color: #fff !important; }
 
 /* ── STATUS cell — tipografía ── */
 #table-ops-flights-csv tbody td.csv-status {
