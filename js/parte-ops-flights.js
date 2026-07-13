@@ -786,17 +786,20 @@
                </td>`;
 
         const obsText = escapeHtml(row._observaciones || '');
-        const obsCell = `<td class="col-cvs-observaciones obs-td" style="min-width:190px;padding:4px 6px;background:#f0fff4;border-left:2px solid #b7dfca;">
-            <div class="obs-display" onclick="window.opsFlights.editObservacion(this,${dataIdx})" title="click para editar observación">
+        const obsCell = `<td class="col-cvs-observaciones obs-td" style="min-width:40px;max-width:80px;padding:4px 6px;text-align:center;">
+            <div class="obs-display" onclick="window.opsFlights.editObservacion(this,${dataIdx})">
                 ${obsText
-                    ? `<span class="obs-text">${obsText}</span>`
-                    : `<span class="obs-placeholder">Sin observación</span>`}
-                <i class="fas fa-pencil-alt obs-edit-icon"></i>
+                    ? `<span class="obs-has-icon" title="${obsText}" style="cursor:pointer;display:inline-flex;align-items:center;gap:3px;background:#fff8e1;border:1px solid #ffd54f;border-radius:4px;padding:2px 6px;color:#e65100;font-size:10px;font-weight:bold;"
+                        data-bs-toggle="tooltip" data-bs-placement="left">
+                        <i class="fas fa-comment-dots"></i>
+                       </span>`
+                    : `<span class="obs-placeholder" title="Agregar observación" style="cursor:pointer;color:#ccc;font-size:11px;">
+                        <i class="fas fa-comment"></i>
+                       </span>`}
             </div>
         </td>`;
 
-        const rowClass = valido ? 'row-validated'
-            : (row._observaciones || '').trim() ? 'row-has-obs' : '';
+        const rowClass = valido ? 'row-validated' : '';
         return `<tr data-row-idx="${dataIdx}"${rowClass ? ` class="${rowClass}"` : ''}>${cells}${obsCell}${validCell}</tr>`;
     }
 
@@ -819,7 +822,6 @@
             const tr = document.createElement('tr');
             tr.dataset.rowIdx = dataIdx;
             if (row._validado) tr.className = 'row-validated';
-            else if ((row._observaciones || '').trim()) tr.className = 'row-has-obs';
             tr.innerHTML = _buildRowHtml(row, dataIdx).replace(/^<tr[^>]*>/, '').replace(/<\/tr>$/, '');
             fragment.appendChild(tr);
         }
@@ -878,7 +880,6 @@
             const tr = document.createElement('tr');
             tr.dataset.rowIdx = dataIdx;
             if (row._validado) tr.className = 'row-validated';
-            else if ((row._observaciones || '').trim()) tr.className = 'row-has-obs';
             tr.innerHTML = _buildRowHtml(row, dataIdx).replace(/^<tr[^>]*>/, '').replace(/<\/tr>$/, '');
             firstBatch.appendChild(tr);
         }
@@ -995,11 +996,16 @@
                 .eq('id', row._id);
             if (error) throw error;
             row._observaciones = trimmed;
-            // Actualizar clase de la fila en el DOM
+            // Actualizar ícono de obs en el DOM sin recolorear la fila
             const tr = document.querySelector(`#tbody-ops-flights-csv tr[data-row-idx="${dataIdx}"]`);
-            if (tr && !tr.classList.contains('row-validated')) {
-                if (trimmed) tr.classList.add('row-has-obs');
-                else tr.classList.remove('row-has-obs');
+            if (tr) {
+                const obsDisplay = tr.querySelector('.obs-display');
+                if (obsDisplay) {
+                    const safe = trimmed.replace(/"/g, '&quot;').replace(/</g, '&lt;');
+                    obsDisplay.innerHTML = trimmed
+                        ? `<span class="obs-has-icon" title="${safe}" style="cursor:pointer;display:inline-flex;align-items:center;gap:3px;background:#fff8e1;border:1px solid #ffd54f;border-radius:4px;padding:2px 6px;color:#e65100;font-size:10px;font-weight:bold;" data-bs-toggle="tooltip" data-bs-placement="left"><i class="fas fa-comment-dots"></i></span>`
+                        : `<span class="obs-placeholder" title="Agregar observación" style="cursor:pointer;color:#ccc;font-size:11px;"><i class="fas fa-comment"></i></span>`;
+                }
             }
         } catch (err) {
             console.error('[saveObservacion]', err);
@@ -1053,14 +1059,9 @@
 
             // Apply / remove validated row highlight
             if (newState) {
-                tr.classList.remove('row-has-obs');
                 tr.classList.add('row-validated');
             } else {
                 tr.classList.remove('row-validated');
-                // Restore obs class if row has an observation
-                if ((currentData[dataIdx]._observaciones || '').trim()) {
-                    tr.classList.add('row-has-obs');
-                }
             }
 
             if (newState) {
