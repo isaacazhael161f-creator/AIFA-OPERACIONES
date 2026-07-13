@@ -2485,7 +2485,7 @@
     { label:'# Vuelo',         key:'# DE VUELO' },
     { label:'Dest./Origen',    key:'DESTINO / ORIGEN' },
     { label:'Total Pax',       key:'TOTAL PAX',          num: true },
-    { label:'TUA',             key:'PAX. QUE PAGAN TUA', num: true },
+    { label:'TUA',             key:'PAX QUE PAGAN TUA', altKey:'PAX. QUE PAGAN TUA', num: true },
     { label:'Infantes',        key:'INFANTES',            num: true },
     { label:'Tr\u00e1nsitos', key:'TRANSITOS',           num: true },
     { label:'Conexiones',      key:'CONEXIONES',          num: true },
