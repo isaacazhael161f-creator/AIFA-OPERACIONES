@@ -26,6 +26,8 @@ class DataManager {
                         this.isAdmin = cache.isAdmin;
                         this.userRole = cache.userRole;
                         this.permissions = cache.permissions;
+                        this.accessLevel = cache.accessLevel || DataManager.roleToAccessLevel(cache.userRole);
+                        this.sectionLevels = cache.sectionLevels || (cache.permissions && cache.permissions.section_levels) || {};
                         this._dispatchAuthEvent(); // Update UI immediately
                     }
                 } catch (e) {
@@ -51,28 +53,27 @@ class DataManager {
 
                 if (roleData) {
                     this.permissions = roleData.permissions || { allowed_sections: [] }; // Store permissions
-                    if (['admin', 'editor', 'superadmin', 'control_fauna', 'servicio_medico'].includes(roleData.role)) {
-                        this.isAdmin = true;
-                        this.userRole = roleData.role;
-                    } else if (roleData.role === 'viewer') {
-                        this.isAdmin = false; // Viewer is not admin
-                        this.userRole = 'viewer';
-                    } else {
-                        this.isAdmin = false;
-                        this.userRole = roleData.role;
-                    }
+                    this.userRole = roleData.role;
+                    this.accessLevel = DataManager.roleToAccessLevel(roleData.role);
+                    this.sectionLevels = (this.permissions && this.permissions.section_levels) || {};
+                    // isAdmin habilita la UI de edición (body.admin-enabled). Incluye capturista
+                    // para que conserve sus controles de captura; el nivel fino se afina con accessLevel.
+                    this.isAdmin = ['admin', 'superadmin', 'editor', 'capturista', 'control_fauna', 'servicio_medico'].includes(roleData.role);
 
                     // --- 2. Update Cache ---
                     localStorage.setItem('auth_permissions_cache', JSON.stringify({
                         isAdmin: this.isAdmin,
                         userRole: this.userRole,
+                        accessLevel: this.accessLevel,
                         permissions: this.permissions,
+                        sectionLevels: this.sectionLevels,
                         timestamp: Date.now()
                     }));
 
                 } else {
                     this.isAdmin = false;
                     this.userRole = null;
+                    this.accessLevel = 'read';
                     this.permissions = {};
                     localStorage.removeItem('auth_permissions_cache');
                 }
@@ -82,11 +83,13 @@ class DataManager {
                 // Or clear it to be safe. Let's keep state as false.
                 this.isAdmin = false;
                 this.userRole = null;
+                this.accessLevel = 'read';
                 this.permissions = {};
             }
         } else {
             this.isAdmin = false;
             this.userRole = null;
+            this.accessLevel = 'read';
             this.permissions = {};
             localStorage.removeItem('auth_permissions_cache');
         }
@@ -96,20 +99,60 @@ class DataManager {
     }
 
     _dispatchAuthEvent() {
+        const level = this.accessLevel || DataManager.roleToAccessLevel(this.userRole);
+        this.accessLevel = level;
         // Apply visual state
         document.body.classList.toggle('is-admin', this.isAdmin);
-        document.body.classList.toggle('is-viewer', this.userRole === 'viewer');
+        document.body.classList.toggle('is-viewer', this.userRole === 'viewer' || this.userRole === 'lector');
+        // Nivel de acceso para CSS/JS: access-admin | access-edit | access-capture | access-read
+        ['access-admin', 'access-edit', 'access-capture', 'access-read'].forEach(c => document.body.classList.remove(c));
+        document.body.classList.add('access-' + level);
 
         // Dispatch detailed event for AdminUI
         window.dispatchEvent(new CustomEvent('admin-mode-changed', {
             detail: {
                 isAdmin: this.isAdmin,
                 role: this.userRole,
+                accessLevel: level,
                 permissions: this.permissions,
+                sectionLevels: this.sectionLevels || {},
                 timestamp: Date.now()
             }
         }));
     }
+
+    // Deriva el nivel de escritura a partir del rol global.
+    //   admin | edit | capture | read
+    static roleToAccessLevel(role) {
+        if (['admin', 'superadmin'].includes(role)) return 'admin';
+        if (['editor', 'colab_editor', 'control_fauna', 'servicio_medico'].includes(role)) return 'edit';
+        if (role === 'capturista') return 'capture';
+        return 'read'; // lector, viewer, colab_viewer, claves de área, null
+    }
+
+    // Helpers de nivel de acceso (para adopción progresiva en los módulos).
+    canEdit()    { return ['admin', 'edit'].includes(this.accessLevel || DataManager.roleToAccessLevel(this.userRole)); }
+    canCapture() { return ['admin', 'edit', 'capture'].includes(this.accessLevel || DataManager.roleToAccessLevel(this.userRole)); }
+    canView()    { return !!this.userRole; }
+
+    // Nivel EFECTIVO para un módulo (data-section) concreto, considerando el
+    // override permissions.section_levels. Devuelve: admin|edit|capture|read|none.
+    sectionLevel(section) {
+        const base = this.accessLevel || DataManager.roleToAccessLevel(this.userRole);
+        if (base === 'admin') return 'admin';           // admin/superadmin: total
+        if (!this.userRole) return 'none';
+        // Visibilidad: allowed_sections no vacío que no incluya la sección = none
+        const allowed = this.permissions?.allowed_sections;
+        if (Array.isArray(allowed) && allowed.length > 0 && !allowed.includes(section)) {
+            return 'none';
+        }
+        const ovr = (this.sectionLevels || {})[section];
+        if (ovr === 'read' || ovr === 'capture' || ovr === 'edit') return ovr;
+        return base;                                     // sin override: nivel del rol
+    }
+    canEditSection(section)    { return ['admin', 'edit'].includes(this.sectionLevel(section)); }
+    canCaptureSection(section) { return ['admin', 'edit', 'capture'].includes(this.sectionLevel(section)); }
+    canViewSection(section)    { return this.sectionLevel(section) !== 'none'; }
 
     // --- Operations Summary ---
     async getOperationsSummary(year) {
@@ -523,3 +566,30 @@ class DataManager {
 }
 
 window.dataManager = new DataManager();
+
+// ── Helpers globales de nivel de acceso (RBAC v2) ───────────────────────────
+// Derivan el nivel desde dataManager o, como respaldo, desde sessionStorage.
+// Nivel: 'admin' | 'edit' | 'capture' | 'read'.
+window.accessLevel = function () {
+    const dm = window.dataManager;
+    if (dm && dm.accessLevel) return dm.accessLevel;
+    const role = (dm && dm.userRole) || sessionStorage.getItem('user_role');
+    return DataManager.roleToAccessLevel(role);
+};
+// ¿Puede modificar/borrar registros existentes? (editor/admin/superadmin)
+window.canEdit    = function () { return ['admin', 'edit'].includes(window.accessLevel()); };
+// ¿Puede agregar/capturar? (editor + capturista + admin/superadmin)
+window.canCapture = function () { return ['admin', 'edit', 'capture'].includes(window.accessLevel()); };
+// ¿Solo lectura? (lector/viewer)
+window.isReadOnly = function () { return window.accessLevel() === 'read'; };
+
+// ── Helpers globales POR MÓDULO (consideran section_levels) ─────────────────
+// Nivel efectivo para un data-section concreto: admin|edit|capture|read|none.
+window.sectionLevel = function (section) {
+    const dm = window.dataManager;
+    if (dm && typeof dm.sectionLevel === 'function') return dm.sectionLevel(section);
+    return window.accessLevel();
+};
+window.canEditSection    = function (section) { return ['admin', 'edit'].includes(window.sectionLevel(section)); };
+window.canCaptureSection = function (section) { return ['admin', 'edit', 'capture'].includes(window.sectionLevel(section)); };
+window.canViewSection    = function (section) { return window.sectionLevel(section) !== 'none'; };

@@ -1,4 +1,7 @@
 (function() {
+    // Roles con acceso total: ignoran la lista allowed_sections.
+    const FULL_ACCESS_ROLES = ['admin', 'superadmin'];
+
     function applyViewerPermissions(detail) {
         const { role, permissions } = detail;
         
@@ -20,26 +23,26 @@
         // Also restore any groups hidden by this system
         document.querySelectorAll('#sidebar-nav .si-group').forEach(g => g.classList.remove('d-none-auth'));
 
-        // If not a viewer, we don't apply these specific restrictions
-        if (role !== 'viewer') {
+        // Admin / superadmin: acceso total, sin restricciones de vista.
+        if (FULL_ACCESS_ROLES.includes(role)) {
             return;
         }
 
-        document.body.classList.add('viewer-restricted');
-        
         const baseAllowed = permissions?.allowed_sections || [];
 
         // If allowed_sections is empty/not configured, treat as "no restrictions" (show all sections)
         if (baseAllowed.length === 0) {
-            console.log('Viewer Permissions: no allowed_sections configured — showing all sections.');
+            console.log('Permissions: no allowed_sections configured — showing all sections.');
             return;
         }
+
+        document.body.classList.add('viewer-restricted');
 
         // Always include core sections accessible to all authenticated viewers
         const alwaysVisible = ['conciliacion', 'historia', 'biblioteca'];
         const allowed = [...new Set([...baseAllowed, ...alwaysVisible])];
         
-        console.log('Applying Viewer Permissions:', allowed);
+        console.log('Applying section Permissions:', allowed);
 
         menuItems.forEach(item => {
             const section = item.dataset.section;

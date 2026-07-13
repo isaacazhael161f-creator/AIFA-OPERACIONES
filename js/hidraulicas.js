@@ -993,8 +993,41 @@
         setText('hidra-cap-ptar-total', fmt(ptarTot));
     }
 
+    // Nivel de acceso POR MÓDULO usando el sistema global existente (data-manager).
+    // 'Solo ver' (read) → no puede capturar; capture/edit/admin sí. No inventa un
+    // sistema propio: reutiliza window.canCaptureSection('hidraulicas').
+    function canCaptureHidra() {
+        try {
+            if (typeof window.canCaptureSection === 'function') return window.canCaptureSection('hidraulicas');
+            if (typeof window.canCapture === 'function') return window.canCapture();
+        } catch (_) {}
+        return true; // si el sistema de permisos no está cargado, la RLS del servidor es la barrera final
+    }
+
+    // Oculta la pestaña 'Captura de datos' y deshabilita Guardar para solo-lectura.
+    function applyAccessLevel() {
+        const canCap  = canCaptureHidra();
+        const tabEdit = $('hidra-tabbtn-edit');
+        if (tabEdit && tabEdit.parentElement) tabEdit.parentElement.style.display = canCap ? '' : 'none';
+        const saveBtn = $('hidra-cap-save');
+        if (saveBtn) saveBtn.disabled = !canCap;
+        if (!canCap) {
+            // Si el usuario estaba en la pestaña de captura, regresarlo al Dashboard.
+            const dashBtn = $('hidra-tabbtn-dash');
+            try {
+                if (dashBtn && window.bootstrap && window.bootstrap.Tab) new window.bootstrap.Tab(dashBtn).show();
+            } catch (_) {}
+        }
+    }
+
     async function saveDayEditor() {
         const status = $('hidra-cap-status');
+        // Refuerzo de permiso: bloquear el guardado si el usuario es de solo lectura
+        // en este módulo (p. ej. Hidráulicas marcado como 'Solo ver' en el admin).
+        if (!canCaptureHidra()) {
+            if (status) status.textContent = 'Modo solo lectura: no tienes permiso para capturar en Hidráulicas.';
+            return;
+        }
         const y = state.capYear, m = state.capMonth, d = state.capDay;
         if (!y || !m || !d) { if (status) status.textContent = 'Selecciona año, mes y día.'; return; }
         const client = await getClient();
@@ -1214,6 +1247,7 @@
         refreshSelects();
         updateCapQuarterBadge();
         renderDashboard();
+        applyAccessLevel();
     }
 
     window.addEventListener('hidraulicas:visible', () => {

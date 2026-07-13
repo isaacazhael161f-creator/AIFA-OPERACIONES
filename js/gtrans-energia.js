@@ -72,7 +72,12 @@
     function canEdit() {
         try {
             const role = sessionStorage.getItem('user_role') || '';
-            return ['admin','superadmin','editor'].includes(role);
+            if (role === 'admin' || role === 'superadmin') return true;
+            // Respeta el override explícito "solo ver" por módulo (section_levels)
+            const ovr = (window.dataManager && window.dataManager.sectionLevels || {})['gtrans-energia'];
+            if (ovr === 'read' || ovr === 'none') return false;
+            if (ovr === 'capture' || ovr === 'edit') return true;
+            return ['editor'].includes(role);
         } catch (_) { return false; }
     }
 

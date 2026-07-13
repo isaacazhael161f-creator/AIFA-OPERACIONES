@@ -301,8 +301,18 @@
       renderTable();
   };
 
+  function canCaptureFauna() {
+      if (typeof window.canCaptureSection === 'function') return window.canCaptureSection('fauna');
+      return true; // el RLS de Supabase es la barrera final
+  }
+  function canEditFauna() {
+      if (typeof window.canEditSection === 'function') return window.canEditSection('fauna');
+      return true;
+  }
+
   window.faunaSaveNew = async function() {
       if (!window.dataManager || !window.dataManager.client) return;
+      if (!canCaptureFauna()) { alert('Modo solo lectura: no tienes permiso para capturar en Control de Fauna.'); return; }
       
       const inputs = document.querySelectorAll('#fauna-table-container input[data-new-col]');
       const data = {};
@@ -341,6 +351,7 @@
   // Expose these for inline onclick handlers
   window.faunaEdit = function(id) {
       if (!window.dataManagement) return;
+      if (!canEditFauna()) { alert('Modo solo lectura: no tienes permiso para editar en Control de Fauna.'); return; }
       // Find item in state.raw using ._raw.id or No.
       const found = state.raw.find(r => String(r['No.']) === String(id));
       if (found && found._raw) {
@@ -352,6 +363,7 @@
 
   window.faunaDelete = function(id) {
     if (!window.dataManagement) return;
+    if (!canEditFauna()) { alert('Modo solo lectura: no tienes permiso para eliminar en Control de Fauna.'); return; }
     if (!id) {
         alert('Error: Identificador de registro inválido.');
         return;

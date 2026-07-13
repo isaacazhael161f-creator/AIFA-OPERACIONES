@@ -63,10 +63,10 @@ class AdminUI {
             }
         }
 
-        // Toggle Admin Usuarios menu — SOLO para role estrictamente 'admin'
+        // Toggle Admin Usuarios menu — para admin y superadmin
         const adminUsersMenu = document.getElementById('admin-users-menu');
         if (adminUsersMenu) {
-            if (role === 'admin') {
+            if (role === 'admin' || role === 'superadmin') {
                 adminUsersMenu.classList.remove('d-none');
                 adminUsersMenu.classList.remove('perm-hidden');
                 adminUsersMenu.style.display = 'flex';
@@ -76,10 +76,10 @@ class AdminUI {
             }
         }
 
-        // Toggle Historia menu — SOLO para role estrictamente 'admin'
+        // Toggle Historia menu — para admin y superadmin
         const historiaMenu = document.getElementById('historia-admin-menu');
         if (historiaMenu) {
-            if (role === 'admin') {
+            if (role === 'admin' || role === 'superadmin') {
                 historiaMenu.classList.remove('d-none');
                 historiaMenu.classList.remove('perm-hidden');
                 historiaMenu.style.display = 'flex';

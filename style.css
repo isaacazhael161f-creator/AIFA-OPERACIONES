@@ -15001,6 +15001,13 @@ body.navdeck-mode #mapa-interactivo-section.active {
     white-space: nowrap;
     min-width: 0;
 }
+/* El ocultamiento por permisos DEBE ganar sobre `.si-link { display:flex !important }`
+   (que se define después en este archivo y, a igual especificidad, prevalecía dejando
+   los ítems visibles). Estas reglas de 2 clases tienen mayor especificidad y ganan
+   sin importar el orden, para que el filtrado por módulo del administrador funcione. */
+.si-link.perm-hidden,
+.si-link.d-none-auth,
+.si-link.nav-hidden { display: none !important; }
 .si-link:hover {
     background: rgba(255,255,255,.07) !important;
     color: #fff !important;
@@ -19232,3 +19239,30 @@ body.navdeck-mode .si-group--sub {
     .ndw-card { min-height: 110px; }
 }
 
+
+/* ==== RBAC v2: niveles de acceso (opt-in) ================================= */
+/* El body recibe una clase segun el rol GLOBAL: access-admin | access-edit |
+   access-capture | access-read. Ademas, al navegar a un modulo el body recibe
+   el nivel EFECTIVO de ese modulo: sec-access-admin | sec-access-edit |
+   sec-access-capture | sec-access-read (considera permissions.section_levels,
+   ver js/data-manager.js y showSection en script.js).
+   Estas reglas son OPCIONALES: marca un boton/control con la clase
+   correspondiente para que se oculte automaticamente segun el nivel del
+   usuario EN EL MODULO ACTIVO. No afectan la UI existente hasta que se
+   adopten en cada modulo. */
+
+/* --- Fallback GLOBAL (solo cuando aun no hay nivel por-modulo activo) ------ */
+/* .requires-edit / .requires-full-edit: modificar o borrar registros. */
+body:not(.sec-access-admin):not(.sec-access-edit):not(.sec-access-capture):not(.sec-access-read):not(.access-admin):not(.access-edit) .requires-edit,
+body:not(.sec-access-admin):not(.sec-access-edit):not(.sec-access-capture):not(.sec-access-read):not(.access-admin):not(.access-edit) .requires-full-edit { display: none !important; }
+/* .requires-capture: agregar/capturar datos (oculto solo para lectores). */
+body:not(.sec-access-admin):not(.sec-access-edit):not(.sec-access-capture):not(.sec-access-read).access-read .requires-capture { display: none !important; }
+
+/* --- Nivel POR MODULO (autoritativo cuando hay sec-access-* activo) -------- */
+/* En un modulo donde el usuario es lector o capturista: ocultar edicion. */
+body.sec-access-read .requires-edit,
+body.sec-access-read .requires-full-edit,
+body.sec-access-capture .requires-edit,
+body.sec-access-capture .requires-full-edit { display: none !important; }
+/* En un modulo donde el usuario es lector: ocultar tambien captura. */
+body.sec-access-read .requires-capture { display: none !important; }

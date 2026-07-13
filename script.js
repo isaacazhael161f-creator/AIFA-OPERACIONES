@@ -2198,8 +2198,26 @@ function applySectionPermissions(userName) {
         return;
     }
 
-    // Roles de solo-Colaboradores: ocultar todo el menú excepto la sección de colaboradores
-    if (isColabOnly) {
+    // ¿El admin configuró una lista EXPLÍCITA de módulos? (incluye el centinela
+    // '__none__' = sin módulos). Si es así, esa lista MANDA sobre cualquier
+    // bloqueo histórico por rol (p.ej. cuentas "solo colaboradores"), para que
+    // el usuario entre únicamente a los módulos designados en el administrador.
+    let explicitWhitelist = [];
+    try {
+        const raw = sessionStorage.getItem('user_allowed_sections');
+        if (raw) {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+                explicitWhitelist = parsed.map(s => normalizeSectionKey(s)).filter(Boolean);
+            }
+        }
+    } catch (_) {}
+    const hasExplicitWhitelist = explicitWhitelist.length > 0;
+
+    // Roles de solo-Colaboradores: ocultar todo el menú excepto la sección de
+    // colaboradores — SOLO cuando NO hay lista explícita de módulos. Si el admin
+    // designó módulos concretos, se respeta esa lista (bloque de whitelist abajo).
+    if (isColabOnly && !hasExplicitWhitelist) {
         document.querySelectorAll('.menu-item[data-section]').forEach(item => {
             if (item.dataset.section !== 'colaboradores') {
                 item.classList.add('perm-hidden');
@@ -2240,17 +2258,8 @@ function applySectionPermissions(userName) {
         ? user.allowedSections.map((section) => normalizeSectionKey(section)).filter(Boolean)
         : [];
 
-    // Para usuarios Supabase: leer allowed_sections desde sessionStorage
-    let supabaseList = [];
-    try {
-        const raw = sessionStorage.getItem('user_allowed_sections');
-        if (raw) {
-            const parsed = JSON.parse(raw);
-            if (Array.isArray(parsed) && parsed.length > 0) {
-                supabaseList = parsed.map(s => normalizeSectionKey(s)).filter(Boolean);
-            }
-        }
-    } catch (_) {}
+    // Para usuarios Supabase: allowed_sections ya se leyó arriba (explicitWhitelist).
+    const supabaseList = explicitWhitelist.slice();
 
     // Preferir Supabase; caer en legacy si no hay Supabase
     const rawWhitelist = supabaseList.length ? supabaseList : legacyList;
@@ -2331,7 +2340,387 @@ function applySectionPermissions(userName) {
             }
         }
     }
+
+    // Salvaguarda final: si la sección actualmente ACTIVA quedó oculta por
+    // permisos (p.ej. tras cerrar sesión con #colaboradores en la URL y volver
+    // a entrar sin permiso para esa sección), redirigir a una permitida. Cubre
+    // tanto usuarios con whitelist como sin ella (allowed_sections vacío = todo,
+    // pero colaboradores/data-management/admin-usuarios siguen ocultos).
+    try {
+        // Helper: ¿esta clave de sección está oculta/ prohibida para el usuario?
+        const _isSectionHidden = (key) => {
+            if (!key) return false;
+            const item = document.querySelector(`.menu-item[data-section="${key}"]`);
+            const sec  = document.getElementById(`${key}-section`);
+            return (item && item.classList.contains('perm-hidden')) ||
+                   (sec && sec.classList.contains('perm-hidden')) ||
+                   !isSectionAllowed(key);
+        };
+
+        let activeSection = document.querySelector('.content-section.active');
+        // Si la sección activa quedó oculta —o no hay ninguna activa (el bloque
+        // colabGranted pudo quitar 'active' sin poner otra)— navegar a una permitida.
+        if (!activeSection || activeSection.classList.contains('perm-hidden')) {
+            const fallback = getDefaultAllowedSection() || 'operaciones-totales';
+            const fallbackLink = document.querySelector(`.menu-item[data-section="${fallback}"]`);
+            if (typeof showSection === 'function') showSection(fallback, fallbackLink);
+            activeSection = document.querySelector('.content-section.active');
+        }
+
+        // Normalizar el hash de la URL: si apunta a una sección oculta por
+        // permisos (p.ej. #colaboradores heredado de una sesión previa), o no
+        // coincide con la sección realmente activa, reemplazarlo. Esto evita el
+        // desajuste "contenido = Operaciones, pero la barra dice #colaboradores".
+        const hashKey = (location.hash || '').replace(/^#/, '');
+        const activeKey = activeSection
+            ? (activeSection.id || '').replace(/-section$/, '')
+            : (getDefaultAllowedSection() || 'operaciones-totales');
+        if (hashKey && (_isSectionHidden(hashKey) || hashKey !== activeKey)) {
+            history.replaceState(null, '', `#${activeKey}`);
+        }
+    } catch (_) {}
 }
+
+// Guardia de hash: revierte cualquier cambio de URL (barra de direcciones,
+// back/forward, ancla no interceptada) que apunte a una sección oculta por
+// permisos. showSection usa history.replaceState (no dispara 'hashchange'),
+// por lo que esta guardia NO interfiere con la navegación normal del menú.
+let _hashGuardInstalled = false;
+function installSectionHashGuard() {
+    if (_hashGuardInstalled) return;
+    _hashGuardInstalled = true;
+    window.addEventListener('hashchange', () => {
+        try {
+            // Solo con sesión activa
+            if (!sessionStorage.getItem(SESSION_USER)) return;
+            const key = (location.hash || '').replace(/^#/, '');
+            if (!key || key === 'recover') return;
+            const item = document.querySelector(`.menu-item[data-section="${key}"]`);
+            const sec  = document.getElementById(`${key}-section`);
+            const hidden = (item && item.classList.contains('perm-hidden')) ||
+                           (sec && sec.classList.contains('perm-hidden')) ||
+                           !isSectionAllowed(key);
+            if (hidden) {
+                const active = document.querySelector('.content-section.active');
+                const activeKey = active
+                    ? (active.id || '').replace(/-section$/, '')
+                    : (getDefaultAllowedSection() || 'operaciones-totales');
+                history.replaceState(null, '', `#${activeKey}`);
+            }
+        } catch (_) {}
+    });
+}
+
+// Re-lee rol/área/allowed_sections del usuario actual desde Supabase y re-aplica
+// los permisos si cambiaron. Se usa al iniciar y de forma periódica (propagación
+// en vivo), para que los cambios que hace el admin se reflejen sin recargar.
+async function refreshUserPermissionsFromServer() {
+    try {
+        if (!window.supabaseClient) return;
+        const { data: { user } } = await window.supabaseClient.auth.getUser();
+        if (!user) return;
+        const { data: roleData } = await window.supabaseClient
+            .from('user_roles').select('role, permissions').eq('user_id', user.id).single();
+        if (!roleData) return;
+        // Cambio de contraseña forzado: si un admin restableció la contraseña,
+        // permissions.must_change_password === true → obligar a cambiarla ahora.
+        try {
+            if (roleData?.permissions?.must_change_password === true
+                && typeof window.pwOpenForcedChange === 'function') {
+                window.pwOpenForcedChange();
+            }
+        } catch (_) {}
+        const name = sessionStorage.getItem('user_fullname') || sessionStorage.getItem(SESSION_USER) || '';
+        // Actualizar rol si cambió
+        if (roleData.role) sessionStorage.setItem('user_role', roleData.role);
+        // Actualizar área: override > role legacy > role=clave directa
+        const _GL = ['admin','superadmin','editor','viewer','colab_viewer','colab_editor'];
+        const _LG = { operacion:'DO', administracion:'DA', planeacion:'DPE', comercial:'DCS', seguridad_op:'GSO', transparencia:'UT', calidad:'GC' };
+        const _rr = roleData?.role;
+        const _area = roleData?.permissions?.area || _LG[_rr] || (!_GL.includes(_rr) && _rr ? _rr : null);
+        if (_area) sessionStorage.setItem('user_area', _area);
+        else sessionStorage.removeItem('user_area');
+        // Refrescar badge de área/rol en el header si cambió
+        const userEl = document.getElementById('current-user');
+        if (userEl) {
+            const _freshArea = _area || null;
+            const _freshRole = roleData.role || sessionStorage.getItem('user_role') || 'viewer';
+            const _RDISPLAY  = { admin:'Admin', superadmin:'Superadmin', editor:'Editor', viewer:'Viewer', colab_viewer:'Colaborador', colab_editor:'Colaborador Ed.' };
+            const _rdLabel   = _RDISPLAY[_freshRole] || (_freshRole.charAt(0).toUpperCase() + _freshRole.slice(1));
+            let _aHtml = '';
+            if (_freshArea) {
+                const _ac  = (typeof AG_AREA !== 'undefined' && AG_AREA[_freshArea]) || null;
+                const _bg  = _ac ? _ac.border : '#6366f1';
+                const _txt = _ac ? _ac.name   : _freshArea;
+                _aHtml = `<div style="margin-top:3px"><span style="display:inline-flex;align-items:center;gap:4px;background:${_bg}22;color:${_bg};border:1px solid ${_bg}55;border-radius:20px;padding:1px 8px;font-size:.68em;font-weight:600;letter-spacing:.3px"><span style="width:6px;height:6px;border-radius:50%;background:${_bg};display:inline-block"></span>${_txt}</span></div>`;
+            }
+            const _fn = sessionStorage.getItem('user_fullname') || name;
+            userEl.innerHTML = `<div>${_fn}</div><div style="font-size:.8em;font-weight:400;opacity:.9">${_rdLabel}</div>${_aHtml}`;
+        }
+        // Actualizar allowed_sections. Ojo: [] (acceso total) y ['__none__']
+        // (sin módulos) son estados válidos que deben propagarse, por eso se
+        // compara la representación completa, no solo "length > 0".
+        const secs = roleData?.permissions?.allowed_sections;
+        const prev = sessionStorage.getItem('user_allowed_sections');
+        const next = Array.isArray(secs) ? JSON.stringify(secs) : null;
+        if (next !== prev) {
+            if (next) sessionStorage.setItem('user_allowed_sections', next);
+            else sessionStorage.removeItem('user_allowed_sections');
+            applySectionPermissions(sessionStorage.getItem(SESSION_USER) || name);
+        }
+    } catch (_) {}
+}
+
+// Polling ligero para propagar en vivo los cambios de permisos (cada 60 s).
+let _permsAutoRefreshTimer = null;
+function startPermissionsAutoRefresh() {
+    if (_permsAutoRefreshTimer) return; // ya iniciado
+    _permsAutoRefreshTimer = setInterval(() => {
+        // Solo si hay sesión activa y la app está visible
+        if (!sessionStorage.getItem(SESSION_USER)) return;
+        if (document.hidden) return;
+        refreshUserPermissionsFromServer();
+    }, 60000);
+}
+// ============================================================================
+// Gestión de contraseñas: cambio propio + restablecimiento (admin) + cambio
+// forzado tras restablecimiento (must_change_password).
+//   • pwOpenChangeOwn()       → modal de cambio de contraseña propia.
+//   • auResetPassword(id,mail) → modal admin para fijar contraseña temporal.
+//   • pwOpenForcedChange()     → modal obligatorio (no se puede cerrar).
+// Depende de las RPC de db/admin_password_management.sql y de
+// supabaseClient.auth.updateUser({ password }).
+// ============================================================================
+(function _pwPasswordModule() {
+    let _forcedOpen = false;
+
+    function genTempPassword() {
+        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
+        let out = '';
+        const arr = new Uint32Array(10);
+        if (window.crypto && window.crypto.getRandomValues) {
+            window.crypto.getRandomValues(arr);
+        } else {
+            for (let i = 0; i < arr.length; i++) arr[i] = Math.floor(Math.random() * 1e9);
+        }
+        for (let i = 0; i < 10; i++) out += chars[arr[i] % chars.length];
+        return 'Aifa-' + out;
+    }
+
+    function ensureUI() {
+        if (document.getElementById('pw-change-modal')) return;
+        const wrap = document.createElement('div');
+        wrap.innerHTML = `
+        <div class="modal fade" id="pw-change-modal" tabindex="-1" aria-hidden="true">
+          <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-key me-2 text-primary"></i>Cambiar contraseña</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+              </div>
+              <div class="modal-body">
+                <div class="mb-3">
+                  <label class="form-label small fw-semibold">Contraseña actual</label>
+                  <input type="password" class="form-control" id="pw-current" autocomplete="current-password">
+                </div>
+                <div class="mb-3">
+                  <label class="form-label small fw-semibold">Nueva contraseña</label>
+                  <input type="password" class="form-control" id="pw-new" autocomplete="new-password">
+                  <div class="form-text">Mínimo 6 caracteres.</div>
+                </div>
+                <div class="mb-2">
+                  <label class="form-label small fw-semibold">Confirmar nueva contraseña</label>
+                  <input type="password" class="form-control" id="pw-new2" autocomplete="new-password">
+                </div>
+                <div id="pw-change-msg" class="small mt-2"></div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="pw-change-save"><i class="fas fa-save me-1"></i>Guardar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal fade" id="pw-forced-modal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+          <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+              <div class="modal-header" style="background:#fff3cd">
+                <h5 class="modal-title"><i class="fas fa-shield-alt me-2 text-warning"></i>Debes cambiar tu contraseña</h5>
+              </div>
+              <div class="modal-body">
+                <p class="small text-muted">Tu contraseña fue restablecida por un administrador. Define una nueva para continuar.</p>
+                <div class="mb-3">
+                  <label class="form-label small fw-semibold">Nueva contraseña</label>
+                  <input type="password" class="form-control" id="pwf-new" autocomplete="new-password">
+                  <div class="form-text">Mínimo 6 caracteres.</div>
+                </div>
+                <div class="mb-2">
+                  <label class="form-label small fw-semibold">Confirmar nueva contraseña</label>
+                  <input type="password" class="form-control" id="pwf-new2" autocomplete="new-password">
+                </div>
+                <div id="pw-forced-msg" class="small mt-2"></div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-outline-danger" id="pwf-logout"><i class="fas fa-sign-out-alt me-1"></i>Cerrar sesión</button>
+                <button type="button" class="btn btn-warning fw-semibold" id="pwf-save"><i class="fas fa-save me-1"></i>Guardar y continuar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal fade" id="pw-reset-modal" tabindex="-1" aria-hidden="true">
+          <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-key me-2 text-secondary"></i>Restablecer contraseña</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+              </div>
+              <div class="modal-body">
+                <p class="small text-muted mb-2">Usuario: <strong id="pw-reset-email"></strong></p>
+                <label class="form-label small fw-semibold">Contraseña temporal</label>
+                <div class="input-group">
+                  <input type="text" class="form-control" id="pw-reset-temp">
+                  <button class="btn btn-outline-secondary" type="button" id="pw-reset-gen" title="Generar otra"><i class="fas fa-dice"></i></button>
+                  <button class="btn btn-outline-secondary" type="button" id="pw-reset-copy" title="Copiar"><i class="fas fa-copy"></i></button>
+                </div>
+                <div class="form-text">El usuario deberá cambiarla al iniciar sesión. Mínimo 6 caracteres.</div>
+                <div id="pw-reset-msg" class="small mt-2"></div>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="pw-reset-save"><i class="fas fa-check me-1"></i>Restablecer</button>
+              </div>
+            </div>
+          </div>
+        </div>`;
+        document.body.appendChild(wrap);
+        wireEvents();
+    }
+
+    function bsModal(id) {
+        const el = document.getElementById(id);
+        if (!el || !window.bootstrap) return null;
+        return window.bootstrap.Modal.getOrCreateInstance(el);
+    }
+
+    function msg(id, html, cls) {
+        const el = document.getElementById(id);
+        if (el) el.innerHTML = html ? `<span class="text-${cls || 'muted'}">${html}</span>` : '';
+    }
+
+    function wireEvents() {
+        // ── Cambio propio ──────────────────────────────────────────────
+        document.getElementById('pw-change-save').addEventListener('click', async () => {
+            const cur = document.getElementById('pw-current').value || '';
+            const nw  = document.getElementById('pw-new').value || '';
+            const nw2 = document.getElementById('pw-new2').value || '';
+            if (nw.length < 6)  { msg('pw-change-msg', '<i class="fas fa-exclamation-circle me-1"></i>La nueva contraseña debe tener al menos 6 caracteres.', 'danger'); return; }
+            if (nw !== nw2)     { msg('pw-change-msg', '<i class="fas fa-exclamation-circle me-1"></i>Las contraseñas no coinciden.', 'danger'); return; }
+            const email = sessionStorage.getItem(SESSION_USER) || '';
+            const btn = document.getElementById('pw-change-save');
+            btn.disabled = true;
+            msg('pw-change-msg', '<i class="fas fa-spinner fa-spin me-1"></i>Verificando…', 'muted');
+            try {
+                // Verificar contraseña actual re-autenticando al mismo usuario.
+                const { error: authErr } = await window.supabaseClient.auth.signInWithPassword({ email, password: cur });
+                if (authErr) throw new Error('La contraseña actual es incorrecta.');
+                const { error } = await window.supabaseClient.auth.updateUser({ password: nw });
+                if (error) throw error;
+                msg('pw-change-msg', '<i class="fas fa-check-circle me-1"></i>Contraseña actualizada correctamente.', 'success');
+                setTimeout(() => { const m = bsModal('pw-change-modal'); if (m) m.hide(); }, 1200);
+            } catch (e) {
+                msg('pw-change-msg', '<i class="fas fa-times-circle me-1"></i>' + (e.message || 'No se pudo cambiar la contraseña.'), 'danger');
+            } finally {
+                btn.disabled = false;
+            }
+        });
+
+        // ── Cambio forzado (tras restablecimiento admin) ───────────────
+        document.getElementById('pwf-save').addEventListener('click', async () => {
+            const nw  = document.getElementById('pwf-new').value || '';
+            const nw2 = document.getElementById('pwf-new2').value || '';
+            if (nw.length < 6) { msg('pw-forced-msg', '<i class="fas fa-exclamation-circle me-1"></i>Mínimo 6 caracteres.', 'danger'); return; }
+            if (nw !== nw2)    { msg('pw-forced-msg', '<i class="fas fa-exclamation-circle me-1"></i>Las contraseñas no coinciden.', 'danger'); return; }
+            const btn = document.getElementById('pwf-save');
+            btn.disabled = true;
+            msg('pw-forced-msg', '<i class="fas fa-spinner fa-spin me-1"></i>Guardando…', 'muted');
+            try {
+                const { error } = await window.supabaseClient.auth.updateUser({ password: nw });
+                if (error) throw error;
+                // Limpiar la bandera must_change_password del propio usuario.
+                try { await window.supabaseClient.rpc('clear_my_must_change_password'); } catch (_) {}
+                msg('pw-forced-msg', '<i class="fas fa-check-circle me-1"></i>Contraseña actualizada. Continuando…', 'success');
+                _forcedOpen = false;
+                setTimeout(() => { const m = bsModal('pw-forced-modal'); if (m) m.hide(); }, 1000);
+            } catch (e) {
+                msg('pw-forced-msg', '<i class="fas fa-times-circle me-1"></i>' + (e.message || 'No se pudo cambiar la contraseña.'), 'danger');
+            } finally {
+                btn.disabled = false;
+            }
+        });
+        document.getElementById('pwf-logout').addEventListener('click', () => {
+            _forcedOpen = false;
+            const m = bsModal('pw-forced-modal'); if (m) m.hide();
+            try { if (typeof performLogout === 'function') performLogout(); } catch (_) {}
+        });
+
+        // ── Restablecer (admin) ────────────────────────────────────────
+        document.getElementById('pw-reset-gen').addEventListener('click', () => {
+            document.getElementById('pw-reset-temp').value = genTempPassword();
+        });
+        document.getElementById('pw-reset-copy').addEventListener('click', async () => {
+            const v = document.getElementById('pw-reset-temp').value || '';
+            try { await navigator.clipboard.writeText(v); msg('pw-reset-msg', '<i class="fas fa-check me-1"></i>Copiada al portapapeles.', 'success'); }
+            catch (_) { msg('pw-reset-msg', 'Cópiala manualmente.', 'muted'); }
+        });
+        document.getElementById('pw-reset-save').addEventListener('click', async () => {
+            const userId = document.getElementById('pw-reset-save').dataset.userId || '';
+            const temp   = document.getElementById('pw-reset-temp').value || '';
+            if (temp.length < 6) { msg('pw-reset-msg', '<i class="fas fa-exclamation-circle me-1"></i>Mínimo 6 caracteres.', 'danger'); return; }
+            const btn = document.getElementById('pw-reset-save');
+            btn.disabled = true;
+            msg('pw-reset-msg', '<i class="fas fa-spinner fa-spin me-1"></i>Restableciendo…', 'muted');
+            try {
+                const { data, error } = await window.supabaseClient
+                    .rpc('admin_reset_user_password', { p_user_id: userId, p_new_password: temp });
+                if (error) throw error;
+                if (data && data.ok === false) throw new Error(data.error || 'Error desconocido');
+                msg('pw-reset-msg', `<i class="fas fa-check-circle me-1"></i>Contraseña temporal fijada: <code>${temp}</code>. El usuario deberá cambiarla al iniciar sesión.`, 'success');
+            } catch (e) {
+                msg('pw-reset-msg', '<i class="fas fa-times-circle me-1"></i>' + (e.message || 'No se pudo restablecer.'), 'danger');
+            } finally {
+                btn.disabled = false;
+            }
+        });
+    }
+
+    window.pwOpenChangeOwn = function () {
+        ensureUI();
+        ['pw-current', 'pw-new', 'pw-new2'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+        msg('pw-change-msg', '');
+        const m = bsModal('pw-change-modal'); if (m) m.show();
+    };
+
+    window.pwOpenForcedChange = function () {
+        ensureUI();
+        if (_forcedOpen) return;
+        _forcedOpen = true;
+        ['pwf-new', 'pwf-new2'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+        msg('pw-forced-msg', '');
+        const m = bsModal('pw-forced-modal'); if (m) m.show();
+    };
+
+    window.auResetPassword = function (userId, email) {
+        ensureUI();
+        document.getElementById('pw-reset-email').textContent = email || '—';
+        document.getElementById('pw-reset-temp').value = genTempPassword();
+        document.getElementById('pw-reset-save').dataset.userId = userId;
+        msg('pw-reset-msg', '');
+        const m = bsModal('pw-reset-modal'); if (m) m.show();
+    };
+})();
+
 // Hashes de contraseñas (generados en cliente al inicio y luego se descartan passwords en claro)
 const AUTH_HASHES = Object.create(null);
 const SECRET_PW_SALT = 'aifa.ops.local.pw.v1';
@@ -3307,7 +3696,7 @@ async function ensureRoleInSessionStorage(userId) {
             //   1. permissions.area  = override explícito
             //   2. role IS clave de área (nuevo esquema v2: role='GSO', role='SD-SO', etc.)
             //   3. roles legacy descriptivos por compatibilidad
-            const _GLOBAL_ROLES = ['admin','superadmin','editor','viewer','colab_viewer','colab_editor'];
+            const _GLOBAL_ROLES = ['admin','superadmin','editor','capturista','lector','viewer','colab_viewer','colab_editor'];
             const _LEGACY_AREA  = { operacion:'DO', administracion:'DA', planeacion:'DPE', comercial:'DCS', seguridad_op:'GSO', transparencia:'UT', calidad:'GC' };
             const _r = roleData?.role;
             const roleArea = roleData?.permissions?.area
@@ -6593,6 +6982,16 @@ function showSection(sectionKey, linkEl) {
         const target = document.getElementById(targetId);
         if (target) target.classList.add('active');
         if (targetKey) currentSectionKey = targetKey;
+        // RBAC v2: fijar el nivel de acceso EFECTIVO del módulo activo en el body
+        // (sec-access-admin|edit|capture|read) para que las reglas CSS .requires-*
+        // oculten controles según el nivel del usuario EN ESE módulo.
+        try {
+            const secLvl = (typeof window.sectionLevel === 'function' && targetKey)
+                ? window.sectionLevel(targetKey) : null;
+            ['sec-access-admin','sec-access-edit','sec-access-capture','sec-access-read']
+                .forEach(c => document.body.classList.remove(c));
+            if (secLvl && secLvl !== 'none') document.body.classList.add('sec-access-' + secLvl);
+        } catch (_) {}
         // Marcar menú
         document.querySelectorAll('.menu-item').forEach(i => i.classList.remove('active'));
         if (linkEl) linkEl.classList.add('active');
@@ -6911,6 +7310,9 @@ function performLogout() {
     } catch (_) { }
     try {
         currentSectionKey = 'operaciones-totales';
+        // Limpiar el hash de la URL para no restaurar una sección restringida
+        // (p.ej. #colaboradores) al volver a iniciar sesión.
+        try { history.replaceState(null, '', location.pathname + location.search); } catch (_) { }
         orientationHintMuteUntil = 0;
         refreshOrientationHint(currentSectionKey);
     } catch (_) { }
@@ -11892,6 +12294,10 @@ function showMainApp() {
         }
         applySectionPermissions(name);
 
+        // Instalar guardia de hash (una sola vez) para revertir URLs a secciones
+        // ocultas por permisos (p.ej. #colaboradores heredado).
+        try { installSectionHashGuard(); } catch (_) { }
+
         // Populate sidebar user card
         (function() {
             const fullName = sessionStorage.getItem('user_fullname') || name || 'Usuario';
@@ -11907,49 +12313,10 @@ function showMainApp() {
 
         // Re-fetch allowed_sections desde Supabase siempre para garantizar datos frescos
         // (sessionStorage puede estar obsoleto si el admin cambió los permisos)
-        (async () => {
-            try {
-                const { data: { user } } = await window.supabaseClient.auth.getUser();
-                if (!user) return;
-                const { data: roleData } = await window.supabaseClient
-                    .from('user_roles').select('role, permissions').eq('user_id', user.id).single();
-                if (!roleData) return;
-                // Actualizar rol si cambió
-                if (roleData.role) sessionStorage.setItem('user_role', roleData.role);
-                // Actualizar área: override > role legacy > role=clave directa
-                const _GL = ['admin','superadmin','editor','viewer','colab_viewer','colab_editor'];
-                const _LG = { operacion:'DO', administracion:'DA', planeacion:'DPE', comercial:'DCS', seguridad_op:'GSO', transparencia:'UT', calidad:'GC' };
-                const _rr = roleData?.role;
-                const _area = roleData?.permissions?.area || _LG[_rr] || (!_GL.includes(_rr) && _rr ? _rr : null);
-                if (_area) sessionStorage.setItem('user_area', _area);
-                else sessionStorage.removeItem('user_area');
-                // Refrescar badge de área en el header si cambió
-                if (userEl) {
-                    const _freshArea = _area || null;
-                    const _freshRole = roleData.role || sessionStorage.getItem('user_role') || 'viewer';
-                    const _RDISPLAY  = { admin:'Admin', superadmin:'Superadmin', editor:'Editor', viewer:'Viewer', colab_viewer:'Colaborador', colab_editor:'Colaborador Ed.' };
-                    const _rdLabel   = _RDISPLAY[_freshRole] || (_freshRole.charAt(0).toUpperCase() + _freshRole.slice(1));
-                    let _aHtml = '';
-                    if (_freshArea) {
-                        const _ac  = (typeof AG_AREA !== 'undefined' && AG_AREA[_freshArea]) || null;
-                        const _bg  = _ac ? _ac.border : '#6366f1';
-                        const _txt = _ac ? _ac.name   : _freshArea;
-                        _aHtml = `<div style="margin-top:3px"><span style="display:inline-flex;align-items:center;gap:4px;background:${_bg}22;color:${_bg};border:1px solid ${_bg}55;border-radius:20px;padding:1px 8px;font-size:.68em;font-weight:600;letter-spacing:.3px"><span style="width:6px;height:6px;border-radius:50%;background:${_bg};display:inline-block"></span>${_txt}</span></div>`;
-                    }
-                    const _fn = sessionStorage.getItem('user_fullname') || name;
-                    userEl.innerHTML = `<div>${_fn}</div><div style="font-size:.8em;font-weight:400;opacity:.9">${_rdLabel}</div>${_aHtml}`;
-                }
-                // Actualizar allowed_sections
-                const secs = roleData?.permissions?.allowed_sections;
-                const prev = sessionStorage.getItem('user_allowed_sections');
-                const next = Array.isArray(secs) && secs.length > 0 ? JSON.stringify(secs) : null;
-                if (next !== prev) {
-                    if (next) sessionStorage.setItem('user_allowed_sections', next);
-                    else sessionStorage.removeItem('user_allowed_sections');
-                    applySectionPermissions(sessionStorage.getItem(SESSION_USER) || name);
-                }
-            } catch (_) {}
-        })();
+        refreshUserPermissionsFromServer();
+        // Propagación en vivo: revisa periódicamente si el admin cambió los
+        // permisos del usuario y re-aplica sin necesidad de recargar.
+        startPermissionsAutoRefresh();
 
         // Notificar cambio de rol a AdminUI para actualizar menú gestión de datos
         const currentRole = sessionStorage.getItem('user_role') || 'viewer';
@@ -19362,16 +19729,76 @@ async function _conciSaveBulkEdits() {
     let _auGerenciaMap = {};
 
     const AU_ROLE_LABELS = {
-        admin: 'Admin', editor: 'Editor', viewer: 'Viewer',
+        superadmin: 'Super Admin', admin: 'Admin', editor: 'Editor',
+        capturista: 'Capturista', lector: 'Lector',
+        viewer: 'Lector (legacy)',
         colab_viewer: 'Colab Viewer', colab_editor: 'Colab Editor',
         control_fauna: 'Control Fauna', servicio_medico: 'Serv. Médico'
     };
     const AU_ROLE_COLORS = {
-        admin: 'danger', editor: 'warning', viewer: 'secondary',
+        superadmin: 'dark', admin: 'danger', editor: 'warning',
+        capturista: 'primary', lector: 'secondary', viewer: 'secondary',
         colab_viewer: 'info', colab_editor: 'primary',
         control_fauna: 'success', servicio_medico: 'success'
     };
-    const AU_ALL_ROLES = ['admin','editor','viewer','colab_viewer','colab_editor','control_fauna','servicio_medico'];
+    // Descripción del nivel de escritura de cada rol (para tooltips/ayuda).
+    const AU_ROLE_HELP = {
+        superadmin: 'Acceso total (ve todos los módulos e ignora la lista de vistas).',
+        admin: 'Acceso total (ve todos los módulos e ignora la lista de vistas).',
+        editor: 'Agregar, modificar y borrar en los módulos visibles.',
+        capturista: 'Solo agregar / capturar en los módulos visibles.',
+        lector: 'Solo lectura en los módulos visibles.'
+    };
+    // Roles principales v2 primero; legacy al final (siguen funcionando).
+    const AU_ALL_ROLES = ['superadmin','admin','editor','capturista','lector','control_fauna','servicio_medico','colab_editor','colab_viewer'];
+
+    // Etiqueta legible de una sección (data-section) para la UI de vistas.
+    function auSectionLabel(key) {
+        const found = (typeof AU_SECTIONS !== 'undefined') ? AU_SECTIONS.find(s => s.key === key) : null;
+        if (found) return found.label;
+        // Fallback: prettify la clave (guiones → espacios, capitalizar)
+        return key.replace(/[-_]+/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    }
+
+    // Niveles de escritura por módulo (permissions.section_levels).
+    // Valor "" = hereda el nivel del rol global del usuario.
+    const AU_LEVEL_OPTIONS = [
+        { v: '',        label: 'Según rol' },
+        { v: 'read',    label: 'Solo ver'  },
+        { v: 'capture', label: 'Capturar'  },
+        { v: 'edit',    label: 'Editar'    }
+    ];
+    // Centinela para "SIN módulos" (0 seleccionados). Necesario porque
+    // allowed_sections = [] significa "acceso total"; sin este marcador,
+    // "Ninguna" y "Todas" serían indistinguibles y al reabrir mostraría todo.
+    const AU_VIEWS_NONE = '__none__';
+    // Genera el <select> compacto de nivel para una fila de módulo.
+    //   cls: clase CSS del select · section: data-section · current: nivel guardado
+    //   grp: (opcional) clave de subdirección → se agrega data-grp para poder
+    //        aplicar un nivel a todos los módulos del grupo de una sola vez.
+    function auLevelSelect(cls, section, current, grp) {
+        const grpAttr = grp ? ` data-grp="${grp}"` : '';
+        return `<select class="form-select form-select-sm ${cls}" data-sec="${section}"${grpAttr} title="Nivel en este módulo"
+            style="width:auto;min-width:88px;font-size:.66rem;padding:.05rem 1.2rem .05rem .4rem;height:auto"
+            onclick="event.preventDefault();event.stopPropagation();">
+            ${AU_LEVEL_OPTIONS.map(o => `<option value="${o.v}" ${o.v === (current || '') ? 'selected' : ''}>${o.label}</option>`).join('')}
+        </select>`;
+    }
+
+    // Genera el <select> de nivel a nivel SUBDIRECCIÓN (encabezado del grupo).
+    // Al cambiarlo, aplica ese nivel a TODOS los módulos de la subdirección de
+    // una sola vez, sin dejar de permitir ajustes individuales por módulo.
+    //   cls: clase CSS · grpKey: clave de subdirección · current: nivel común
+    //   onchange: expresión JS a ejecutar (recibe this.value)
+    function auGroupLevelSelect(cls, grpKey, current, onchange) {
+        return `<select class="form-select form-select-sm ${cls}" data-grp="${grpKey}" title="Nivel para TODA la subdirección"
+            style="width:auto;min-width:104px;font-size:.66rem;padding:.05rem 1.2rem .05rem .4rem;height:auto"
+            onclick="event.stopPropagation();"
+            onchange="event.stopPropagation();${onchange}">
+            ${AU_LEVEL_OPTIONS.map(o => `<option value="${o.v}" ${o.v === (current || '') ? 'selected' : ''}>${o.label}</option>`).join('')}
+        </select>`;
+    }
+
 
     // ── Cargar áreas ─────────────────────────────────────────────────────
     async function _auLoadAreas() {
@@ -19659,7 +20086,7 @@ async function _conciSaveBulkEdits() {
             return;
         }
 
-        const ROLE_COLORS = { admin:'danger', editor:'warning', viewer:'secondary', colab_viewer:'info', colab_editor:'primary', control_fauna:'success', servicio_medico:'success' };
+        const ROLE_COLORS = AU_ROLE_COLORS;
         const AVATAR_COLORS = ['#4361ee','#3a0ca3','#7209b7','#f72585','#4cc9f0','#06d6a0','#ef233c','#e76f51'];
 
         container.innerHTML = rows.map(u => {
@@ -19682,7 +20109,9 @@ async function _conciSaveBulkEdits() {
                 ? new Date(u.last_sign_in_at).toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' })
                 : 'Sin acceso';
             const safeEmail  = (u.email || '').replace(/'/g, '&#39;');
-            const roleOpts   = AU_ALL_ROLES.map(r =>
+            // Asegurar que el rol actual (incl. legacy/clave de área) exista en el selector.
+            const roleList   = AU_ALL_ROLES.includes(u.role) || !u.role ? AU_ALL_ROLES : [u.role, ...AU_ALL_ROLES];
+            const roleOpts   = roleList.map(r =>
                 `<option value="${r}" ${u.role === r ? 'selected' : ''}>${AU_ROLE_LABELS[r] || r}</option>`
             ).join('');
 
@@ -19705,7 +20134,7 @@ async function _conciSaveBulkEdits() {
                             </div>
                             <div class="text-muted small">${u.email || '—'}</div>
                             <div class="d-flex align-items-center gap-2 mt-1 flex-wrap">
-                                <span class="badge bg-${roleColor}" style="font-size:.72rem">${roleLabel}</span>
+                                <span class="badge bg-${roleColor}" id="au-role-badge-${shortId}" style="font-size:.72rem">${roleLabel}</span>
                                 ${dirName ? `<span class="badge bg-light text-primary border" style="font-size:.7rem"><i class="fas fa-sitemap me-1"></i>${dirName}${subName ? ' / ' + subName : ''}</span>` : ''}
                                 <span class="text-muted" style="font-size:.72rem"><i class="fas fa-clock me-1 opacity-50"></i>${lastLogin}</span>
                             </div>
@@ -19736,6 +20165,11 @@ async function _conciSaveBulkEdits() {
                                 ? `<button class="btn btn-sm btn-outline-success rounded-pill px-2 py-0" style="font-size:.75rem" onclick="auToggleBaja('${u.user_id}',true,'${shortId}')" title="Reactivar"><i class="fas fa-user-check me-1"></i>Reactivar</button>`
                                 : `<button class="btn btn-sm btn-outline-warning rounded-pill px-2 py-0" style="font-size:.75rem" onclick="auToggleBaja('${u.user_id}',false,'${shortId}')" title="Dar de baja"><i class="fas fa-user-slash me-1"></i>Baja</button>`
                             }
+                            <!-- Restablecer contraseña -->
+                            <button class="btn btn-sm btn-outline-secondary rounded-pill px-2 py-0" style="font-size:.75rem"
+                                onclick="auResetPassword('${u.user_id}','${safeEmail}')" title="Restablecer contraseña">
+                                <i class="fas fa-key me-1"></i>Contraseña
+                            </button>
                             <!-- Eliminar -->
                             <button class="btn btn-sm btn-outline-danger rounded-circle p-0 d-flex align-items-center justify-content-center"
                                 style="width:28px;height:28px" onclick="auDeleteUser('${u.user_id}','${safeEmail}')" title="Eliminar usuario">
@@ -19769,41 +20203,60 @@ async function _conciSaveBulkEdits() {
         const u = _auRows.find(x => x.user_id === userId);
         const currentSecs = Array.isArray(u?.permissions?.allowed_sections)
             ? u.permissions.allowed_sections : [];
+        const currentLevels = (u?.permissions?.section_levels && typeof u.permissions.section_levels === 'object')
+            ? u.permissions.section_levels : {};
 
         const isAllAccess = currentSecs.length === 0; // sin restricción = acceso total
-        const checkedSubs = isAllAccess
-            ? AU_SUBDIRECCIONES.filter(sd => sd.sections.length).map(sd => sd.key)
-            : auInferSubsFromSections(currentSecs);
-        const checkedSet = new Set(checkedSubs);
+        // Conjunto de módulos marcados (por sección individual)
+        const allSecs = auAllSelectableSections();
+        const isNone = currentSecs.length === 1 && currentSecs[0] === AU_VIEWS_NONE; // sin módulos (explícito)
+        const checkedSet = new Set(isNone ? [] : (isAllAccess ? allSecs : currentSecs));
 
         const sectionsHtml = `
             <div class="d-flex flex-column gap-2">
-                ${AU_SUBDIRECCIONES.map(sd => {
-                    const checked   = checkedSet.has(sd.key);
-                    const disabled  = sd.sections.length === 0;
-                    const count     = sd.sections.length;
-                    const cardBg    = checked ? `${sd.color}14` : '#fff';
-                    const borderCol = checked ? sd.color : '#dee2e6';
-                    return `<label class="d-flex align-items-start gap-2 p-2 rounded-3 border" style="cursor:${disabled?'not-allowed':'pointer'};background:${cardBg};border-color:${borderCol} !important;${disabled?'opacity:.55':''}">
-                        <input type="checkbox" class="form-check-input mt-1" id="auv-${shortId}-${sd.key}" value="${sd.key}" ${checked?'checked':''} ${disabled?'disabled':''} style="cursor:${disabled?'not-allowed':'pointer'}">
-                        <span class="d-inline-flex align-items-center justify-content-center rounded-circle flex-shrink-0" style="width:30px;height:30px;background:${sd.color}1f;color:${sd.color}">
-                            <i class="fas fa-${sd.icon}" style="font-size:.85rem"></i>
-                        </span>
-                        <div class="flex-grow-1" style="min-width:0">
-                            <div class="d-flex align-items-center gap-2 flex-wrap">
+                ${AU_SUBDIRECCIONES.filter(sd => sd.sections.length).map(sd => {
+                    const grpChecked = sd.sections.every(s => checkedSet.has(s));
+                    // Nivel común de la subdirección: si todos sus módulos comparten
+                    // el mismo nivel, se refleja aquí; si difieren, queda "Según rol".
+                    const _grpLvls = sd.sections.map(s => currentLevels[s] || '');
+                    const grpCommonLevel = _grpLvls.every(x => x === _grpLvls[0]) ? _grpLvls[0] : '';
+                    return `<div class="border rounded-3" style="border-color:${sd.color}55 !important;overflow:hidden">
+                        <div class="d-flex align-items-center gap-2 px-2 py-2 m-0" style="background:${sd.color}12;border-bottom:1px solid ${sd.color}22">
+                            <label class="d-flex align-items-center gap-2 m-0 flex-grow-1" style="cursor:pointer;min-width:0">
+                                <input type="checkbox" class="form-check-input mt-0 auv-grp-${shortId}" data-grp="${sd.key}" ${grpChecked?'checked':''}
+                                    onchange="auToggleGroup('${shortId}','${sd.key}',this.checked)" style="cursor:pointer">
+                                <span class="d-inline-flex align-items-center justify-content-center rounded-circle flex-shrink-0" style="width:26px;height:26px;background:${sd.color}1f;color:${sd.color}">
+                                    <i class="fas fa-${sd.icon}" style="font-size:.75rem"></i>
+                                </span>
                                 <span class="fw-semibold small" style="color:${sd.color}">${sd.short}</span>
-                                <span class="badge rounded-pill" style="background:${sd.color}26;color:${sd.color};font-weight:600;font-size:.62rem">${count?count+' mód.':'sin módulos'}</span>
-                            </div>
-                            <div class="text-muted" style="font-size:.68rem">${sd.desc}</div>
+                                <span class="text-muted d-none d-md-inline" style="font-size:.66rem">${sd.desc}</span>
+                            </label>
+                            <span class="badge rounded-pill" style="background:${sd.color}26;color:${sd.color};font-weight:600;font-size:.62rem">${sd.sections.length} mód.</span>
+                            ${auGroupLevelSelect('auv-grplvl-'+shortId, sd.key, grpCommonLevel, `auSetGroupLevel('${shortId}','${sd.key}',this.value)`)}
                         </div>
-                    </label>`;
+                        <div class="row g-1 px-2 py-2 m-0">
+                            ${sd.sections.map(sec => {
+                                const ck = checkedSet.has(sec);
+                                return `<div class="col-12 col-md-6">
+                                    <div class="d-flex align-items-center gap-2 px-2 py-1 rounded" style="background:${ck?sd.color+'12':'transparent'}">
+                                        <label class="d-flex align-items-center gap-2 m-0 flex-grow-1" style="cursor:pointer;min-width:0">
+                                            <input type="checkbox" class="form-check-input mt-0 auv-sec-${shortId}" data-grp="${sd.key}" value="${sec}" ${ck?'checked':''}
+                                                onchange="auSyncGroupCheckbox('${shortId}','${sd.key}')" style="cursor:pointer">
+                                            <span class="small text-truncate">${auSectionLabel(sec)}</span>
+                                        </label>
+                                        ${auLevelSelect('auv-lvl-'+shortId, sec, currentLevels[sec], sd.key)}
+                                    </div>
+                                </div>`;
+                            }).join('')}
+                        </div>
+                    </div>`;
                 }).join('')}
             </div>`;
 
         panel.style.display = 'block';
         panel.innerHTML = `<div class="border-top px-3 py-3" style="background:#f8f9ff">
             <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
-                <span class="fw-semibold small"><i class="fas fa-sitemap me-1 text-info"></i>Subdirecciones accesibles</span>
+                <span class="fw-semibold small"><i class="fas fa-eye me-1 text-info"></i>Módulos accesibles</span>
                 <div class="d-flex gap-2">
                     <button class="btn btn-outline-secondary btn-sm py-0 px-2" style="font-size:.72rem"
                         onclick="auSelectAllViews('${shortId}',true)"><i class="fas fa-check-double me-1"></i>Todas</button>
@@ -19816,38 +20269,85 @@ async function _conciSaveBulkEdits() {
                 </div>
             </div>
             <div class="small text-muted mb-2">
-                <i class="fas fa-info-circle me-1"></i>Marcar una subdirección otorga acceso a todos sus módulos. Sin selección = acceso total (Admin ignora esta lista).
+                <i class="fas fa-info-circle me-1"></i>Marca los módulos que el usuario podrá ver y elige su <strong>nivel</strong> en cada uno: <em>Según rol</em> (usa el nivel del rol global), <em>Solo ver</em>, <em>Capturar</em> o <em>Editar</em>. El combo del <strong>encabezado de cada subdirección</strong> aplica el nivel a todos sus módulos de una vez; luego puedes ajustar módulos puntuales. Así puede ser editor en un módulo y lector en otro. <strong>Todas</strong> = acceso total; <strong>Ninguna</strong> = solo módulos base (Admin/Superadmin siempre ven todo).
             </div>
             ${sectionsHtml}
         </div>`;
     };
 
+    // Lista plana de todas las secciones seleccionables (distinct) en el panel.
+    function auAllSelectableSections() {
+        const out = new Set();
+        AU_SUBDIRECCIONES.forEach(sd => sd.sections.forEach(s => out.add(s)));
+        return Array.from(out);
+    }
+
+    // Marca/desmarca todas las secciones de una subdirección al tocar su encabezado.
+    window.auToggleGroup = function (shortId, grpKey, checked) {
+        document.querySelectorAll(`.auv-sec-${shortId}[data-grp="${grpKey}"]`).forEach(cb => { cb.checked = checked; });
+    };
+
+    // Aplica un nivel a TODOS los módulos de una subdirección de una sola vez.
+    // Los selects individuales siguen editables después (override por módulo).
+    window.auSetGroupLevel = function (shortId, grpKey, value) {
+        document.querySelectorAll(`.auv-lvl-${shortId}[data-grp="${grpKey}"]`).forEach(sel => { sel.value = value; });
+    };
+
+    // Sincroniza el checkbox de encabezado según sus módulos hijos.
+    window.auSyncGroupCheckbox = function (shortId, grpKey) {
+        const secs = Array.from(document.querySelectorAll(`.auv-sec-${shortId}[data-grp="${grpKey}"]`));
+        const grp  = document.querySelector(`.auv-grp-${shortId}[data-grp="${grpKey}"]`);
+        if (!grp) return;
+        const all  = secs.length && secs.every(c => c.checked);
+        const some = secs.some(c => c.checked);
+        grp.checked = all;
+        grp.indeterminate = some && !all;
+    };
+
     window.auSelectAllViews = function (shortId, selectAll) {
-        document.querySelectorAll(`[id^="auv-${shortId}-"]`).forEach(cb => {
-            if (!cb.disabled) cb.checked = selectAll;
+        document.querySelectorAll(`.auv-sec-${shortId}, .auv-grp-${shortId}`).forEach(cb => {
+            cb.checked = selectAll;
+            cb.indeterminate = false;
         });
     };
 
     window.auSaveViews = async function (userId, shortId) {
-        const checkboxes = document.querySelectorAll(`[id^="auv-${shortId}-"]`);
-        const checkedSubs = Array.from(checkboxes).filter(c => c.checked && !c.disabled).map(c => c.value);
-        const selected   = auExpandSubsToSections(checkedSubs);
+        const secBoxes = document.querySelectorAll(`.auv-sec-${shortId}`);
+        const selectedRaw = Array.from(secBoxes).filter(c => c.checked).map(c => c.value);
+        // Distinguir los 3 casos (evita la ambigüedad "ninguna" == "todas"):
+        //   0 seleccionados      → [AU_VIEWS_NONE]  (sin módulos, explícito)
+        //   TODOS seleccionados  → []               (acceso total, compat. legado)
+        //   subconjunto          → la lista marcada
+        const allSecs  = auAllSelectableSections();
+        const isNone   = selectedRaw.length === 0;
+        const isAll    = !isNone && selectedRaw.length >= allSecs.length;
+        const selected = isNone ? [AU_VIEWS_NONE] : (isAll ? [] : selectedRaw);
+        // Niveles por módulo: solo para módulos marcados con override (≠ "Según rol").
+        const checkedSet = new Set(selectedRaw);
+        const sectionLevels = {};
+        document.querySelectorAll(`.auv-lvl-${shortId}`).forEach(sel => {
+            const sec = sel.dataset.sec;
+            if (sel.value && checkedSet.has(sec)) sectionLevels[sec] = sel.value;
+        });
         const st = document.getElementById('au-status');
         if (st) st.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Guardando vistas…';
         try {
             const { data: ur } = await window.supabaseClient
                 .from('user_roles').select('permissions').eq('user_id', userId).maybeSingle();
-            const perms = { ...(ur?.permissions || {}), allowed_sections: selected };
-            const { error } = await window.supabaseClient
-                .from('user_roles').update({ permissions: perms }).eq('user_id', userId);
+            const perms = { ...(ur?.permissions || {}), allowed_sections: selected, section_levels: sectionLevels };
+            // Guardar vía RPC SECURITY DEFINER (no depende de la política RLS de
+            // UPDATE, que puede bloquear el guardado en silencio → 0 filas).
+            const { data: res, error } = await window.supabaseClient
+                .rpc('admin_update_user_permissions', { p_user_id: userId, p_permissions: perms });
             if (error) throw error;
+            if (!res || res.ok === false) throw new Error(res?.error || 'No se pudo guardar (revisa permisos / re-ejecuta rbac_roles_v2.sql).');
             // Actualizar caché local
             const u = _auRows.find(x => x.user_id === userId);
             if (u) u.permissions = perms;
-            const subLabel = checkedSubs.length
-                ? `${checkedSubs.length} subd. (${selected.length} mód.)`
-                : 'todas';
-            if (st) st.innerHTML = `<span class="text-success"><i class="fas fa-check-circle me-1"></i>Vistas guardadas: <strong>${subLabel}</strong>.</span>`;
+            const nOvr  = Object.keys(sectionLevels).length;
+            const base  = isNone ? 'sin módulos' : (isAll ? 'acceso total' : `${selected.length} módulo(s)`);
+            const label = base + (nOvr ? ` · ${nOvr} con nivel propio` : '');
+            if (st) st.innerHTML = `<span class="text-success"><i class="fas fa-check-circle me-1"></i>Vistas guardadas: <strong>${label}</strong>.</span>`;
             // Cerrar panel y refrescar tarjeta
             auToggleViews(userId, shortId);
             auRenderRows();
@@ -19860,6 +20360,7 @@ async function _conciSaveBulkEdits() {
     window.auAssignRole = async function (userId, newRole, shortId) {
         const sel = document.getElementById(`au-sel-${shortId}`);
         const st  = document.getElementById('au-status');
+        const row = document.getElementById(`au-row-${shortId}`);
         // Guardar valor previo para revertir si falla
         const prevRole = _auRows.find(x => x.user_id === userId)?.role || (sel?.value);
         if (sel) sel.disabled = true;
@@ -19886,6 +20387,15 @@ async function _conciSaveBulkEdits() {
             // Actualizar caché local con el rol confirmado
             const u = _auRows.find(x => x.user_id === userId);
             if (u) u.role = savedRole;
+
+            // Actualizar el badge de rol en la fila sin re-renderizar todo
+            const badge = document.getElementById(`au-role-badge-${shortId}`);
+            if (badge) {
+                badge.className = `badge bg-${AU_ROLE_COLORS[savedRole] || 'secondary'}`;
+                badge.style.fontSize = '.72rem';
+                badge.textContent = AU_ROLE_LABELS[savedRole] || savedRole;
+            }
+            if (sel) sel.value = savedRole;
 
             // Feedback visual en la fila
             if (row) {
@@ -19968,9 +20478,10 @@ async function _conciSaveBulkEdits() {
             if (gerenciaId) perms.gerencia_id = gerenciaId; else delete perms.gerencia_id;
             // Guardar clave para que el módulo de Agenda pueda leerla directamente
             if (areaClave) perms.area = areaClave; else delete perms.area;
-            const { error } = await window.supabaseClient
-                .from('user_roles').update({ permissions: perms }).eq('user_id', userId);
+            const { data: res, error } = await window.supabaseClient
+                .rpc('admin_update_user_permissions', { p_user_id: userId, p_permissions: perms });
             if (error) throw error;
+            if (!res || res.ok === false) throw new Error(res?.error || 'No se pudo guardar (revisa permisos / re-ejecuta rbac_roles_v2.sql).');
             const u = _auRows.find(x => x.user_id === userId);
             if (u) u.permissions = perms;
             const panel = document.getElementById(`au-panel-${shortId}`);
@@ -19991,9 +20502,10 @@ async function _conciSaveBulkEdits() {
             const { data: ur } = await window.supabaseClient
                 .from('user_roles').select('permissions').eq('user_id', userId).single();
             const perms = { ...(ur?.permissions || {}), estado: newEstado };
-            const { error } = await window.supabaseClient
-                .from('user_roles').update({ permissions: perms }).eq('user_id', userId);
+            const { data: res, error } = await window.supabaseClient
+                .rpc('admin_update_user_permissions', { p_user_id: userId, p_permissions: perms });
             if (error) throw error;
+            if (!res || res.ok === false) throw new Error(res?.error || 'No se pudo actualizar (revisa permisos / re-ejecuta rbac_roles_v2.sql).');
             const row = _auRows.find(x => x.user_id === userId);
             if (row) row.permissions = perms;
             if (st) st.innerHTML = newEstado === 'INACTIVO'
@@ -20034,23 +20546,34 @@ async function _conciSaveBulkEdits() {
             box.classList.remove('d-none');
             const grid = document.getElementById('au-reg-views-grid');
             if (grid && !grid.querySelector('input')) {
-                grid.innerHTML = AU_SUBDIRECCIONES.map(sd => {
-                    const disabled = sd.sections.length === 0;
-                    const count    = sd.sections.length;
-                    return `<div class="col-12 col-md-6 col-lg-4">
-                        <label class="d-flex align-items-start gap-2 p-2 rounded-3 border h-100" style="cursor:${disabled?'not-allowed':'pointer'};background:#fff;${disabled?'opacity:.55':''}">
-                            <input class="form-check-input mt-1" type="checkbox" id="au-reg-vc-${sd.key}" value="${sd.key}" ${disabled?'disabled':'checked'}>
-                            <span class="d-inline-flex align-items-center justify-content-center rounded-circle flex-shrink-0" style="width:32px;height:32px;background:${sd.color}1f;color:${sd.color}">
-                                <i class="fas fa-${sd.icon}"></i>
-                            </span>
-                            <span class="flex-grow-1" style="min-width:0">
-                                <span class="d-flex align-items-center gap-2 flex-wrap">
+                grid.innerHTML = AU_SUBDIRECCIONES.filter(sd => sd.sections.length).map(sd => {
+                    return `<div class="col-12 col-lg-6">
+                        <div class="border rounded-3 h-100" style="border-color:${sd.color}55 !important;overflow:hidden">
+                            <div class="d-flex align-items-center gap-2 px-2 py-2 m-0" style="background:${sd.color}12;border-bottom:1px solid ${sd.color}22">
+                                <label class="d-flex align-items-center gap-2 m-0 flex-grow-1" style="cursor:pointer;min-width:0">
+                                    <input type="checkbox" class="form-check-input mt-0 au-reg-grp" data-grp="${sd.key}" checked
+                                        onchange="auRegToggleGroup('${sd.key}',this.checked)" style="cursor:pointer">
+                                    <span class="d-inline-flex align-items-center justify-content-center rounded-circle flex-shrink-0" style="width:26px;height:26px;background:${sd.color}1f;color:${sd.color}">
+                                        <i class="fas fa-${sd.icon}" style="font-size:.75rem"></i>
+                                    </span>
                                     <span class="fw-semibold small" style="color:${sd.color}">${sd.short}</span>
-                                    <span class="badge rounded-pill" style="background:${sd.color}26;color:${sd.color};font-weight:600;font-size:.62rem">${count?count+' mód.':'sin módulos'}</span>
-                                </span>
-                                <span class="text-muted d-block" style="font-size:.68rem">${sd.desc}</span>
-                            </span>
-                        </label>
+                                </label>
+                                <span class="badge rounded-pill" style="background:${sd.color}26;color:${sd.color};font-weight:600;font-size:.62rem">${sd.sections.length} mód.</span>
+                                ${auGroupLevelSelect('au-reg-grplvl', sd.key, '', `auRegSetGroupLevel('${sd.key}',this.value)`)}
+                            </div>
+                            <div class="row g-1 px-2 py-2 m-0">
+                                ${sd.sections.map(sec => `<div class="col-12 col-md-6">
+                                    <div class="d-flex align-items-center gap-2 px-2 py-1 rounded">
+                                        <label class="d-flex align-items-center gap-2 m-0 flex-grow-1" style="cursor:pointer;min-width:0">
+                                            <input type="checkbox" class="form-check-input mt-0 au-reg-sec" data-grp="${sd.key}" value="${sec}" checked
+                                                onchange="auRegSyncGroup('${sd.key}')" style="cursor:pointer">
+                                            <span class="small text-truncate">${auSectionLabel(sec)}</span>
+                                        </label>
+                                        ${auLevelSelect('au-reg-lvl', sec, '', sd.key)}
+                                    </div>
+                                </div>`).join('')}
+                            </div>
+                        </div>
                     </div>`;
                 }).join('');
             }
@@ -20059,9 +20582,29 @@ async function _conciSaveBulkEdits() {
         }
     };
 
+    window.auRegToggleGroup = function (grpKey, checked) {
+        document.querySelectorAll(`#au-reg-views-grid .au-reg-sec[data-grp="${grpKey}"]`).forEach(cb => { cb.checked = checked; });
+    };
+
+    // Aplica un nivel a todos los módulos de una subdirección en el formulario
+    // de creación (los selects individuales siguen editables después).
+    window.auRegSetGroupLevel = function (grpKey, value) {
+        document.querySelectorAll(`#au-reg-views-grid .au-reg-lvl[data-grp="${grpKey}"]`).forEach(sel => { sel.value = value; });
+    };
+
+    window.auRegSyncGroup = function (grpKey) {
+        const secs = Array.from(document.querySelectorAll(`#au-reg-views-grid .au-reg-sec[data-grp="${grpKey}"]`));
+        const grp  = document.querySelector(`#au-reg-views-grid .au-reg-grp[data-grp="${grpKey}"]`);
+        if (!grp) return;
+        const all  = secs.length && secs.every(c => c.checked);
+        grp.checked = all;
+        grp.indeterminate = secs.some(c => c.checked) && !all;
+    };
+
     window.auRegViewsSelectAll = function (checked) {
-        document.querySelectorAll('#au-reg-views-grid input[type="checkbox"]').forEach(cb => {
-            if (!cb.disabled) cb.checked = checked;
+        document.querySelectorAll('#au-reg-views-grid .au-reg-sec, #au-reg-views-grid .au-reg-grp').forEach(cb => {
+            cb.checked = checked;
+            cb.indeterminate = false;
         });
     };
 
@@ -20132,10 +20675,26 @@ async function _conciSaveBulkEdits() {
         const subdirId   = document.getElementById('au-reg-subdir')?.value || '';
         const gerenciaId = document.getElementById('au-reg-gerencia')?.value || '';
         const viewMode   = document.querySelector('input[name="au-reg-vmode"]:checked')?.value || 'all';
-        const checkedSubs = viewMode === 'manual'
-            ? Array.from(document.querySelectorAll('#au-reg-views-grid input[type="checkbox"]:checked')).filter(cb => !cb.disabled).map(cb => cb.value)
+        const selectedSecs = viewMode === 'manual'
+            ? Array.from(document.querySelectorAll('#au-reg-views-grid .au-reg-sec:checked')).map(cb => cb.value)
             : [];
-        const allowedSections = auExpandSubsToSections(checkedSubs);
+        // Si marcó todos los módulos (o modo "acceso completo") → [] = acceso total.
+        // Si marcó 0 en modo manual → [AU_VIEWS_NONE] = sin módulos (explícito).
+        const allSecs = auAllSelectableSections();
+        let allowedSections;
+        if (viewMode !== 'manual')                       allowedSections = [];               // acceso total
+        else if (selectedSecs.length === 0)              allowedSections = [AU_VIEWS_NONE];  // sin módulos
+        else if (selectedSecs.length >= allSecs.length)  allowedSections = [];               // todas
+        else                                             allowedSections = selectedSecs;     // subconjunto
+        // Niveles por módulo (solo módulos marcados con override ≠ "Según rol").
+        const _regCheckedSet = new Set(selectedSecs);
+        const sectionLevels = {};
+        if (viewMode === 'manual') {
+            document.querySelectorAll('#au-reg-views-grid .au-reg-lvl').forEach(sel => {
+                const sec = sel.dataset.sec;
+                if (sel.value && _regCheckedSet.has(sec)) sectionLevels[sec] = sel.value;
+            });
+        }
         const msgEl      = document.getElementById('au-reg-msg');
 
         if (!username || !password) {
@@ -20188,7 +20747,8 @@ async function _conciSaveBulkEdits() {
                     p_role:             role,
                     p_dir_id:           dirId    || null,
                     p_subdir_id:        subdirId || null,
-                    p_allowed_sections: allowedSections.length ? allowedSections : null
+                    p_allowed_sections: allowedSections.length ? allowedSections : null,
+                    p_section_levels:   Object.keys(sectionLevels).length ? sectionLevels : null
                 });
             if (re) throw re;
             if (rd && rd.ok === false) throw new Error(rd.error || 'Error asignando rol');
