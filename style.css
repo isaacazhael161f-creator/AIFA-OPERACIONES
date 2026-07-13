@@ -19401,6 +19401,11 @@ body.sec-access-read .requires-capture { display: none !important; }
     background-color: #dcedc8 !important;
     cursor: default;
 }
+/* Status cells mantienen su color en hover — Bootstrap no las pisa */
+#table-ops-flights-csv tbody > tr:hover > td.csv-status-cyan    { background-color: #00acc1 !important; color: #ffffff !important; }
+#table-ops-flights-csv tbody > tr:hover > td.csv-status-green   { background-color: #388e3c !important; color: #ffffff !important; }
+#table-ops-flights-csv tbody > tr:hover > td.csv-status-red     { background-color: #e53935 !important; color: #ffffff !important; }
+#table-ops-flights-csv tbody > tr:hover > td.csv-status-darkred { background-color: #b71c1c !important; color: #ffffff !important; }
 
 /* ── Fila seleccionada ── */
 #table-ops-flights-csv tbody tr.csv-row-selected > td {
