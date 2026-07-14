@@ -19046,80 +19046,106 @@ FF
                                     <!--  Tab: Itinerario  -->
                                     <div class="tab-pane fade show active p-4" id="pane-conci-itinerario" role="tabpanel">
 
-                                    <div class="d-flex justify-content-between align-items-center mb-3">
-                                        <h5 class="mb-0 text-primary"><i class="fas fa-plane me-2"></i>Itinerario de
-                                            Vuelos del Día</h5>
-                                        <div class="d-flex gap-2 align-items-center flex-wrap">
+                                    <!-- ═══ Toolbar compacto Itinerario ═══ -->
+                                    <div class="d-flex align-items-center gap-2 flex-wrap mb-3" id="itinerario-toolbar">
 
-                                        <!-- ── Ventana de Fecha (Filtro Turnaround AODB) ── -->
-                                        <div class="position-relative">
-                                            <button class="btn btn-sm btn-outline-secondary" type="button"
-                                                id="btn-csv-date-filter-toggle"
-                                                title="Filtrar por fecha"
-                                                onclick="(function(){var p=document.getElementById('csv-date-filter-panel');var show=p.classList.toggle('d-none');document.getElementById('btn-csv-date-filter-toggle').classList.toggle('active',!show);})()">
-                                                <i class="fas fa-calendar-alt me-1"></i>Fecha
-                                            </button>
-                                            <!-- Collapsible date filter card -->
-                                            <div id="csv-date-filter-panel" class="csv-date-filter-card">
-                                                <div class="d-flex align-items-center justify-content-between mb-2 pb-2 border-bottom">
-                                                    <span class="small fw-semibold text-primary" style="letter-spacing:.03em">
-                                                        <i class="fas fa-calendar-week me-1"></i>Ventana de Fecha
-                                                    </span>
-                                                    <button type="button" class="btn-close" style="font-size:.65rem" title="Cerrar"
-                                                        onclick="(function(){document.getElementById('csv-date-filter-panel').classList.add('d-none');document.getElementById('btn-csv-date-filter-toggle').classList.remove('active');})()"></button>
-                                                </div>
-                                                <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
-                                                    <button class="btn btn-sm btn-warning fw-bold" type="button" id="btn-date-reset-all"
-                                                        title="Quitar filtro — muestra TODOS los vuelos cargados"
-                                                        onclick="window.opsFlights && window.opsFlights.resetDateFilter()">
-                                                        <i class="fas fa-times-circle me-1"></i>TODOS
-                                                    </button>
-                                                    <span class="small text-muted" style="white-space:nowrap">Filtrar:</span>
-                                                    <div class="btn-group btn-group-sm" role="group" aria-label="Modo de filtro de fecha">
-                                                        <button class="btn btn-outline-primary active" type="button" id="btn-date-mode-relative">Relativo</button>
-                                                        <button class="btn btn-outline-primary" type="button" id="btn-date-mode-absolute">Absoluto</button>
-                                                    </div>
-                                                </div>
-                                                <!-- Relative mode -->
-                                                <div class="d-flex flex-column" id="ops-date-relative">
-                                                    <div class="d-flex align-items-center gap-1">
-                                                        <button class="btn btn-sm btn-outline-secondary" type="button" id="rel-start-dec">-</button>
-                                                        <input type="number" class="form-control form-control-sm text-center" style="width:58px" id="rel-start" value="-1" aria-label="Inicio relativo">
-                                                        <button class="btn btn-sm btn-outline-secondary" type="button" id="rel-start-inc">+</button>
-                                                        <span class="small text-muted px-1">a</span>
-                                                        <button class="btn btn-sm btn-outline-secondary" type="button" id="rel-end-dec">-</button>
-                                                        <input type="number" class="form-control form-control-sm text-center" style="width:58px" id="rel-end" value="0" aria-label="Fin relativo">
-                                                        <button class="btn btn-sm btn-outline-secondary" type="button" id="rel-end-inc">+</button>
-                                                    </div>
-                                                    <div class="d-flex align-items-center gap-2 small text-muted mt-1">
-                                                        <i class="fas fa-calendar-day" style="opacity:.5"></i>
-                                                        <span id="rel-start-label">—</span>
-                                                        <span>→</span>
-                                                        <span id="rel-end-label">—</span>
-                                                    </div>
-                                                </div>
-                                                <!-- Absolute mode -->
-                                                <div class="d-flex align-items-center gap-2 d-none" id="ops-date-absolute">
-                                                    <input type="date" class="form-control form-control-sm" style="width:135px" id="ops-date-start" aria-label="Fecha inicio">
-                                                    <span class="small text-muted">→</span>
-                                                    <input type="date" class="form-control form-control-sm" style="width:135px" id="ops-date-end" aria-label="Fecha fin">
-                                                </div>
-                                            </div><!-- /csv-date-filter-panel -->
-                                        </div>
+                                        <!-- Título + badge conteo -->
+                                        <span class="fw-semibold text-primary d-flex align-items-center gap-2" style="font-size:.85rem;white-space:nowrap;">
+                                            <i class="fas fa-plane"></i>Itinerario del Día
+                                        </span>
+                                        <span id="csv-flight-count-badge" class="badge rounded-pill bg-primary" style="font-size:.75rem;display:none"></span>
 
-                                        <button class="btn btn-sm btn-outline-secondary"
-                                            onclick="window.opsFlights && window.opsFlights.refreshFlights()"><i
-                                                class="fas fa-sync-alt me-1"></i>Actualizar</button>
+                                        <!-- Divisor -->
+                                        <span class="text-muted" style="opacity:.25;font-size:.9rem;">│</span>
+
+                                        <!-- ── Navegación de fecha inline ── -->
+                                        <button class="btn btn-sm btn-outline-secondary px-2" id="btn-day-prev" title="Día anterior">
+                                            <i class="fas fa-chevron-left" style="font-size:.7rem;"></i>
+                                        </button>
+                                        <input type="date" class="form-control form-control-sm" id="conci-date-picker" style="width:138px;" title="Filtrar por día específico">
+                                        <button class="btn btn-sm btn-outline-secondary px-2" id="btn-day-next" title="Día siguiente">
+                                            <i class="fas fa-chevron-right" style="font-size:.7rem;"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-info px-2" id="btn-day-today" title="Ir a hoy">
+                                            <i class="fas fa-crosshairs me-1" style="font-size:.75rem;"></i>Hoy
+                                        </button>
+                                        <button class="btn btn-sm btn-warning px-2 fw-bold" id="btn-date-reset-all"
+                                            title="Quitar filtro de fecha — mostrar todos los vuelos"
+                                            onclick="window.opsFlights && window.opsFlights.resetDateFilter(); (function(){var p=document.getElementById('conci-date-picker');if(p)p.value='';var b=document.getElementById('itinerario-toolbar');if(b)b.classList.remove('toolbar-date-active');})()">
+                                            <i class="fas fa-times me-1" style="font-size:.75rem;"></i>Todos
+                                        </button>
+
+                                        <!-- Spacer -->
+                                        <span class="flex-grow-1"></span>
+
+                                        <!-- Acciones -->
+                                        <button class="btn btn-sm btn-outline-secondary" title="Recargar vuelos"
+                                            onclick="window.opsFlights && window.opsFlights.refreshFlights()">
+                                            <i class="fas fa-sync-alt me-1"></i>Actualizar
+                                        </button>
                                         <button class="btn btn-sm btn-outline-success" id="btn-import-ops-csv"
-                                            data-bs-toggle="modal" data-bs-target="#uploadOpsCsvModal"><i
-                                                class="fas fa-file-csv me-1"></i>Importar CSV</button>
-                                        <button id="btn-conciliacion-board"
-                                            class="btn btn-sm btn-outline-primary"
-                                            onclick="toggleConciliacionBoard()"
-                                            title="Vista Llegadas / Salidas">
+                                            data-bs-toggle="modal" data-bs-target="#uploadOpsCsvModal" title="Importar archivo CSV de vuelos">
+                                            <i class="fas fa-file-csv me-1"></i>Importar CSV
+                                        </button>
+                                        <button id="btn-conciliacion-board" class="btn btn-sm btn-outline-primary"
+                                            onclick="toggleConciliacionBoard()" title="Vista Llegadas / Salidas">
                                             <i class="fas fa-plane" style="transform:rotate(-90deg);display:inline-block;"></i>
                                         </button>
+                                        <!-- Columnas visibles — dropdown movido al toolbar -->
+                                        <div class="dropdown">
+                                            <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" id="dropdownMenuButtonCsvColumns" data-bs-toggle="dropdown" aria-expanded="false" title="Seleccionar columnas visibles">
+                                                <i class="fas fa-columns"></i>
+                                            </button>
+                                            <ul class="dropdown-menu p-3 shadow dropdown-menu-end" aria-labelledby="dropdownMenuButtonCsvColumns" style="min-width:300px;max-height:420px;overflow-y:auto;" onclick="event.stopPropagation()">
+                                                <li><h6 class="dropdown-header text-primary fw-bold">Columnas Visibles</h6></li>
+                                                <li><hr class="dropdown-divider"></li>
+                                                <li class="form-check mb-1"><input class="form-check-input col-toggle-csv" type="checkbox" checked id="chk-csv-status" data-col="col-cvs-status" onchange="window.opsFlights.toggleColumn('col-cvs-status', this.checked)"><label class="form-check-label" for="chk-csv-status">Status</label></li>
+                                                <li class="form-check mb-1"><input class="form-check-input col-toggle-csv" type="checkbox" checked id="chk-csv-arr-airline" data-col="col-cvs-arr-airline" onchange="window.opsFlights.toggleColumn('col-cvs-arr-airline', this.checked)"><label class="form-check-label" for="chk-csv-arr-airline">[Arr] Airline</label></li>
+                                                <li class="form-check mb-1"><input class="form-check-input col-toggle-csv" type="checkbox" checked id="chk-csv-arr-flight" data-col="col-cvs-arr-flight" onchange="window.opsFlights.toggleColumn('col-cvs-arr-flight', this.checked)"><label class="form-check-label" for="chk-csv-arr-flight">[Arr] Flight</label></li>
+                                                <li class="form-check mb-1"><input class="form-check-input col-toggle-csv" type="checkbox" checked id="chk-csv-arr-aldt" data-col="col-cvs-arr-aldt" onchange="window.opsFlights.toggleColumn('col-cvs-arr-aldt', this.checked)"><label class="form-check-label" for="chk-csv-arr-aldt">[Arr] ALDT</label></li>
+                                                <li class="form-check mb-1"><input class="form-check-input col-toggle-csv" type="checkbox" checked id="chk-csv-arr-sibt" data-col="col-cvs-arr-sibt" onchange="window.opsFlights.toggleColumn('col-cvs-arr-sibt', this.checked)"><label class="form-check-label" for="chk-csv-arr-sibt">[Arr] SIBT</label></li>
+                                                <li class="form-check mb-1"><input class="form-check-input col-toggle-csv" type="checkbox" checked id="chk-csv-arr-aibt" data-col="col-cvs-arr-aibt" onchange="window.opsFlights.toggleColumn('col-cvs-arr-aibt', this.checked)"><label class="form-check-label" for="chk-csv-arr-aibt">[Arr] AIBT</label></li>
+                                                <li class="form-check mb-1"><input class="form-check-input col-toggle-csv" type="checkbox" checked id="chk-csv-arr-stand" data-col="col-cvs-arr-stand" onchange="window.opsFlights.toggleColumn('col-cvs-arr-stand', this.checked)"><label class="form-check-label" for="chk-csv-arr-stand">[Arr] Stand</label></li>
+                                                <li class="form-check mb-1"><input class="form-check-input col-toggle-csv" type="checkbox" checked id="chk-csv-arr-gates" data-col="col-cvs-arr-gates" onchange="window.opsFlights.toggleColumn('col-cvs-arr-gates', this.checked)"><label class="form-check-label" for="chk-csv-arr-gates">[Arr] Gates</label></li>
+                                                <li class="form-check mb-1"><input class="form-check-input col-toggle-csv" type="checkbox" checked id="chk-csv-arr-boarded" data-col="col-cvs-arr-boarded" onchange="window.opsFlights.toggleColumn('col-cvs-arr-boarded', this.checked)"><label class="form-check-label" for="chk-csv-arr-boarded">[Arr] Boarded</label></li>
+                                                <li class="form-check mb-1"><input class="form-check-input col-toggle-csv" type="checkbox" checked id="chk-csv-arr-belts" data-col="col-cvs-arr-belts" onchange="window.opsFlights.toggleColumn('col-cvs-arr-belts', this.checked)"><label class="form-check-label" for="chk-csv-arr-belts">[Arr] Belts</label></li>
+                                                <li class="form-check mb-1"><input class="form-check-input col-toggle-csv" type="checkbox" checked id="chk-csv-arr-type" data-col="col-cvs-arr-type" onchange="window.opsFlights.toggleColumn('col-cvs-arr-type', this.checked)"><label class="form-check-label" for="chk-csv-arr-type">[Arr] Type</label></li>
+                                                <li class="form-check mb-1"><input class="form-check-input col-toggle-csv" type="checkbox" checked id="chk-csv-routing" data-col="col-cvs-routing" onchange="window.opsFlights.toggleColumn('col-cvs-routing', this.checked)"><label class="form-check-label" for="chk-csv-routing">Routing</label></li>
+                                                <li class="form-check mb-1"><input class="form-check-input col-toggle-csv" type="checkbox" checked id="chk-csv-dep-type" data-col="col-cvs-dep-type" onchange="window.opsFlights.toggleColumn('col-cvs-dep-type', this.checked)"><label class="form-check-label" for="chk-csv-dep-type">[Dep] Type</label></li>
+                                                <li class="form-check mb-1"><input class="form-check-input col-toggle-csv" type="checkbox" checked id="chk-csv-aircraft" data-col="col-cvs-aircraft" onchange="window.opsFlights.toggleColumn('col-cvs-aircraft', this.checked)"><label class="form-check-label" for="chk-csv-aircraft">Aircraft Type</label></li>
+                                                <li class="form-check mb-1"><input class="form-check-input col-toggle-csv" type="checkbox" checked id="chk-csv-reg" data-col="col-cvs-reg" onchange="window.opsFlights.toggleColumn('col-cvs-reg', this.checked)"><label class="form-check-label" for="chk-csv-reg">Registration</label></li>
+                                                <li class="form-check mb-1"><input class="form-check-input col-toggle-csv" type="checkbox" checked id="chk-csv-dep-airline" data-col="col-cvs-dep-airline" onchange="window.opsFlights.toggleColumn('col-cvs-dep-airline', this.checked)"><label class="form-check-label" for="chk-csv-dep-airline">[Dep] Airline</label></li>
+                                                <li class="form-check mb-1"><input class="form-check-input col-toggle-csv" type="checkbox" checked id="chk-csv-dep-flight" data-col="col-cvs-dep-flight" onchange="window.opsFlights.toggleColumn('col-cvs-dep-flight', this.checked)"><label class="form-check-label" for="chk-csv-dep-flight">[Dep] Flight</label></li>
+                                                <li class="form-check mb-1"><input class="form-check-input col-toggle-csv" type="checkbox" checked id="chk-csv-dep-stand" data-col="col-cvs-dep-stand" onchange="window.opsFlights.toggleColumn('col-cvs-dep-stand', this.checked)"><label class="form-check-label" for="chk-csv-dep-stand">[Dep] Stand</label></li>
+                                                <li class="form-check mb-1"><input class="form-check-input col-toggle-csv" type="checkbox" checked id="chk-csv-dep-gates" data-col="col-cvs-dep-gates" onchange="window.opsFlights.toggleColumn('col-cvs-dep-gates', this.checked)"><label class="form-check-label" for="chk-csv-dep-gates">[Dep] Gates</label></li>
+                                                <li class="form-check mb-1"><input class="form-check-input col-toggle-csv" type="checkbox" checked id="chk-csv-dep-boarded" data-col="col-cvs-dep-boarded" onchange="window.opsFlights.toggleColumn('col-cvs-dep-boarded', this.checked)"><label class="form-check-label" for="chk-csv-dep-boarded">[Dep] Boarded</label></li>
+                                                <li class="form-check mb-1"><input class="form-check-input col-toggle-csv" type="checkbox" checked id="chk-csv-dep-sobt" data-col="col-cvs-dep-sobt" onchange="window.opsFlights.toggleColumn('col-cvs-dep-sobt', this.checked)"><label class="form-check-label" for="chk-csv-dep-sobt">[Dep] SOBT</label></li>
+                                                <li class="form-check mb-1"><input class="form-check-input col-toggle-csv" type="checkbox" checked id="chk-csv-dep-aobt" data-col="col-cvs-dep-aobt" onchange="window.opsFlights.toggleColumn('col-cvs-dep-aobt', this.checked)"><label class="form-check-label" for="chk-csv-dep-aobt">[Dep] AOBT</label></li>
+                                                <li class="form-check mb-1"><input class="form-check-input col-toggle-csv" type="checkbox" checked id="chk-csv-dep-atot" data-col="col-cvs-dep-atot" onchange="window.opsFlights.toggleColumn('col-cvs-dep-atot', this.checked)"><label class="form-check-label" for="chk-csv-dep-atot">[Dep] ATOT</label></li>
+                                                <li class="form-check mb-1"><input class="form-check-input col-toggle-csv" type="checkbox" checked id="chk-csv-dep-attt" data-col="col-cvs-dep-attt" onchange="window.opsFlights.toggleColumn('col-cvs-dep-attt', this.checked)"><label class="form-check-label" for="chk-csv-dep-attt">[Dep] ATTT</label></li>
+                                                <li class="form-check mb-1"><input class="form-check-input col-toggle-csv" type="checkbox" checked id="chk-csv-observaciones" data-col="col-cvs-observaciones" onchange="window.opsFlights.toggleColumn('col-cvs-observaciones', this.checked)"><label class="form-check-label" for="chk-csv-observaciones">Observaciones</label></li>
+                                            </ul>
+                                        </div>
                                     </div>
+
+                                    <!-- ── Elementos ocultos de compatibilidad con JS de filtro de fecha ── -->
+                                    <div aria-hidden="true" style="display:none !important;position:absolute;left:-9999px;">
+                                        <button id="btn-csv-date-filter-toggle"></button>
+                                        <button id="btn-date-mode-relative" class="active"></button>
+                                        <button id="btn-date-mode-absolute"></button>
+                                        <div id="ops-date-relative"></div>
+                                        <div id="ops-date-absolute" class="d-none"></div>
+                                        <input id="rel-start" type="number" value="-1">
+                                        <input id="rel-end" type="number" value="0">
+                                        <input id="rel-start-dec" type="button">
+                                        <input id="rel-start-inc" type="button">
+                                        <input id="rel-end-dec" type="button">
+                                        <input id="rel-end-inc" type="button">
+                                        <span id="rel-start-label"></span>
+                                        <span id="rel-end-label"></span>
+                                        <input type="date" id="ops-date-start">
+                                        <input type="date" id="ops-date-end">
+                                        <div id="csv-date-filter-panel" class="d-none"></div>
                                     </div>
 
                                     <!-- Charts Row -->
@@ -19147,49 +19173,6 @@ FF
                                     <div class="row">
                                         <div class="col-12 mb-4">
                                             <div class="card shadow-sm border-0">
-                                                <div class="card-header bg-light d-flex justify-content-between align-items-center">
-                                                    <div class="d-flex align-items-center gap-2">
-                                                        <h6 class="mb-0 text-uppercase small text-muted">Vuelos importados desde CSV</h6>
-                                                        <span id="csv-flight-count-badge" class="badge rounded-pill bg-primary" style="font-size:.75rem;display:none">0 vuelos</span>
-                                                    </div>
-                                                    
-                                                    <div class="dropdown">
-                                                        <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" id="dropdownMenuButtonCsvColumns" data-bs-toggle="dropdown" aria-expanded="false" title="Seleccionar columnas visibles">
-                                                            <i class="fas fa-columns me-1"></i>
-                                                        </button>
-                                                        <ul class="dropdown-menu p-3 shadow dropdown-menu-end" aria-labelledby="dropdownMenuButtonCsvColumns" style="min-width: 300px; max-height: 400px; overflow-y: auto;" onclick="event.stopPropagation()">
-                                                            <li><h6 class="dropdown-header text-primary fw-bold">Columnas Visibles</h6></li>
-                                                            <li><hr class="dropdown-divider"></li>
-                                                            <!-- Checkboxes generated dynamically or static -->
-                                                            <li class="form-check mb-1"><input class="form-check-input col-toggle-csv" type="checkbox" checked id="chk-csv-status" data-col="col-cvs-status" onchange="window.opsFlights.toggleColumn('col-cvs-status', this.checked)"><label class="form-check-label" for="chk-csv-status">Status</label></li>
-                                                            <li class="form-check mb-1"><input class="form-check-input col-toggle-csv" type="checkbox" checked id="chk-csv-arr-airline" data-col="col-cvs-arr-airline" onchange="window.opsFlights.toggleColumn('col-cvs-arr-airline', this.checked)"><label class="form-check-label" for="chk-csv-arr-airline">[Arr] Airline</label></li>
-                                                            <li class="form-check mb-1"><input class="form-check-input col-toggle-csv" type="checkbox" checked id="chk-csv-arr-flight" data-col="col-cvs-arr-flight" onchange="window.opsFlights.toggleColumn('col-cvs-arr-flight', this.checked)"><label class="form-check-label" for="chk-csv-arr-flight">[Arr] Flight</label></li>
-                                                            <li class="form-check mb-1"><input class="form-check-input col-toggle-csv" type="checkbox" checked id="chk-csv-arr-aldt" data-col="col-cvs-arr-aldt" onchange="window.opsFlights.toggleColumn('col-cvs-arr-aldt', this.checked)"><label class="form-check-label" for="chk-csv-arr-aldt">[Arr] ALDT</label></li>
-                                                            <li class="form-check mb-1"><input class="form-check-input col-toggle-csv" type="checkbox" checked id="chk-csv-arr-sibt" data-col="col-cvs-arr-sibt" onchange="window.opsFlights.toggleColumn('col-cvs-arr-sibt', this.checked)"><label class="form-check-label" for="chk-csv-arr-sibt">[Arr] SIBT</label></li>
-                                                            <li class="form-check mb-1"><input class="form-check-input col-toggle-csv" type="checkbox" checked id="chk-csv-arr-aibt" data-col="col-cvs-arr-aibt" onchange="window.opsFlights.toggleColumn('col-cvs-arr-aibt', this.checked)"><label class="form-check-label" for="chk-csv-arr-aibt">[Arr] AIBT</label></li>
-                                                            <li class="form-check mb-1"><input class="form-check-input col-toggle-csv" type="checkbox" checked id="chk-csv-arr-stand" data-col="col-cvs-arr-stand" onchange="window.opsFlights.toggleColumn('col-cvs-arr-stand', this.checked)"><label class="form-check-label" for="chk-csv-arr-stand">[Arr] Stand</label></li>
-                                                            <li class="form-check mb-1"><input class="form-check-input col-toggle-csv" type="checkbox" checked id="chk-csv-arr-gates" data-col="col-cvs-arr-gates" onchange="window.opsFlights.toggleColumn('col-cvs-arr-gates', this.checked)"><label class="form-check-label" for="chk-csv-arr-gates">[Arr] Gates</label></li>
-                                                            <li class="form-check mb-1"><input class="form-check-input col-toggle-csv" type="checkbox" checked id="chk-csv-arr-boarded" data-col="col-cvs-arr-boarded" onchange="window.opsFlights.toggleColumn('col-cvs-arr-boarded', this.checked)"><label class="form-check-label" for="chk-csv-arr-boarded">[Arr] Boarded</label></li>
-                                                            <li class="form-check mb-1"><input class="form-check-input col-toggle-csv" type="checkbox" checked id="chk-csv-arr-belts" data-col="col-cvs-arr-belts" onchange="window.opsFlights.toggleColumn('col-cvs-arr-belts', this.checked)"><label class="form-check-label" for="chk-csv-arr-belts">[Arr] Belts</label></li>
-                                                            <li class="form-check mb-1"><input class="form-check-input col-toggle-csv" type="checkbox" checked id="chk-csv-arr-type" data-col="col-cvs-arr-type" onchange="window.opsFlights.toggleColumn('col-cvs-arr-type', this.checked)"><label class="form-check-label" for="chk-csv-arr-type">[Arr] Type</label></li>
-                                                            <li class="form-check mb-1"><input class="form-check-input col-toggle-csv" type="checkbox" checked id="chk-csv-routing" data-col="col-cvs-routing" onchange="window.opsFlights.toggleColumn('col-cvs-routing', this.checked)"><label class="form-check-label" for="chk-csv-routing">Routing</label></li>
-                                                            <li class="form-check mb-1"><input class="form-check-input col-toggle-csv" type="checkbox" checked id="chk-csv-dep-type" data-col="col-cvs-dep-type" onchange="window.opsFlights.toggleColumn('col-cvs-dep-type', this.checked)"><label class="form-check-label" for="chk-csv-dep-type">[Dep] Type</label></li>
-                                                            <li class="form-check mb-1"><input class="form-check-input col-toggle-csv" type="checkbox" checked id="chk-csv-aircraft" data-col="col-cvs-aircraft" onchange="window.opsFlights.toggleColumn('col-cvs-aircraft', this.checked)"><label class="form-check-label" for="chk-csv-aircraft">Aircraft Type</label></li>
-                                                            <li class="form-check mb-1"><input class="form-check-input col-toggle-csv" type="checkbox" checked id="chk-csv-reg" data-col="col-cvs-reg" onchange="window.opsFlights.toggleColumn('col-cvs-reg', this.checked)"><label class="form-check-label" for="chk-csv-reg">Registration</label></li>
-                                                            <li class="form-check mb-1"><input class="form-check-input col-toggle-csv" type="checkbox" checked id="chk-csv-dep-airline" data-col="col-cvs-dep-airline" onchange="window.opsFlights.toggleColumn('col-cvs-dep-airline', this.checked)"><label class="form-check-label" for="chk-csv-dep-airline">[Dep] Airline</label></li>
-                                                            <li class="form-check mb-1"><input class="form-check-input col-toggle-csv" type="checkbox" checked id="chk-csv-dep-flight" data-col="col-cvs-dep-flight" onchange="window.opsFlights.toggleColumn('col-cvs-dep-flight', this.checked)"><label class="form-check-label" for="chk-csv-dep-flight">[Dep] Flight</label></li>
-                                                            <li class="form-check mb-1"><input class="form-check-input col-toggle-csv" type="checkbox" checked id="chk-csv-dep-stand" data-col="col-cvs-dep-stand" onchange="window.opsFlights.toggleColumn('col-cvs-dep-stand', this.checked)"><label class="form-check-label" for="chk-csv-dep-stand">[Dep] Stand</label></li>
-                                                            <li class="form-check mb-1"><input class="form-check-input col-toggle-csv" type="checkbox" checked id="chk-csv-dep-gates" data-col="col-cvs-dep-gates" onchange="window.opsFlights.toggleColumn('col-cvs-dep-gates', this.checked)"><label class="form-check-label" for="chk-csv-dep-gates">[Dep] Gates</label></li>
-                                                            <li class="form-check mb-1"><input class="form-check-input col-toggle-csv" type="checkbox" checked id="chk-csv-dep-boarded" data-col="col-cvs-dep-boarded" onchange="window.opsFlights.toggleColumn('col-cvs-dep-boarded', this.checked)"><label class="form-check-label" for="chk-csv-dep-boarded">[Dep] Boarded</label></li>
-                                                            <li class="form-check mb-1"><input class="form-check-input col-toggle-csv" type="checkbox" checked id="chk-csv-dep-sobt" data-col="col-cvs-dep-sobt" onchange="window.opsFlights.toggleColumn('col-cvs-dep-sobt', this.checked)"><label class="form-check-label" for="chk-csv-dep-sobt">[Dep] SOBT</label></li>
-                                                            <li class="form-check mb-1"><input class="form-check-input col-toggle-csv" type="checkbox" checked id="chk-csv-dep-aobt" data-col="col-cvs-dep-aobt" onchange="window.opsFlights.toggleColumn('col-cvs-dep-aobt', this.checked)"><label class="form-check-label" for="chk-csv-dep-aobt">[Dep] AOBT</label></li>
-                                                            <li class="form-check mb-1"><input class="form-check-input col-toggle-csv" type="checkbox" checked id="chk-csv-dep-atot" data-col="col-cvs-dep-atot" onchange="window.opsFlights.toggleColumn('col-cvs-dep-atot', this.checked)"><label class="form-check-label" for="chk-csv-dep-atot">[Dep] ATOT</label></li>
-                                                            <li class="form-check mb-1"><input class="form-check-input col-toggle-csv" type="checkbox" checked id="chk-csv-dep-attt" data-col="col-cvs-dep-attt" onchange="window.opsFlights.toggleColumn('col-cvs-dep-attt', this.checked)"><label class="form-check-label" for="chk-csv-dep-attt">[Dep] ATTT</label></li>
-                                                            <li class="form-check mb-1"><input class="form-check-input col-toggle-csv" type="checkbox" checked id="chk-csv-observaciones" data-col="col-cvs-observaciones" onchange="window.opsFlights.toggleColumn('col-cvs-observaciones', this.checked)"><label class="form-check-label" for="chk-csv-observaciones">Observaciones</label></li>
-                                                        </ul>
-                                                    </div>
-                                                </div>
-                                                </div>
                                                 <div class="table-responsive" id="container-ops-flights-csv">
                                                     <table
                                                         class="table table-hover table-bordered table-sm align-middle mb-0 table-csv-fixed"
@@ -33502,6 +33485,65 @@ FF
 <script src="js/ops-flights-admin.js?v=20260616m" defer></script>
 <!-- Conciliación Manifiestos table + inline editing -->
 <script src="js/conci-manifiestos-table.js?v=1" defer></script>
+<!-- Navegación inline del picker de fecha en Itinerario -->
+<script>
+(function () {
+    function pad(n) { return String(n).padStart(2,'0'); }
+    function toISO(d) { return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate()); }
+
+    function applyPickerToAbsFilter(val) {
+        var absStart = document.getElementById('ops-date-start');
+        var absEnd   = document.getElementById('ops-date-end');
+        var btnAbs   = document.getElementById('btn-date-mode-absolute');
+        if (!val) return;
+        if (absStart) absStart.value = val;
+        if (absEnd)   absEnd.value   = val;
+        // Trigger the absolute filter by firing change on ops-date-start
+        if (absStart) absStart.dispatchEvent(new Event('change', { bubbles: true }));
+        // Ensure absolute mode is active (click only if not already active)
+        if (btnAbs && !btnAbs.classList.contains('active')) btnAbs.click();
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        var picker = document.getElementById('conci-date-picker');
+        var toolbar = document.getElementById('itinerario-toolbar');
+
+        if (picker) {
+            picker.addEventListener('change', function () {
+                if (this.value) {
+                    if (toolbar) toolbar.classList.add('toolbar-date-active');
+                    applyPickerToAbsFilter(this.value);
+                }
+            });
+        }
+
+        document.getElementById('btn-day-prev') && document.getElementById('btn-day-prev').addEventListener('click', function () {
+            var p = document.getElementById('conci-date-picker');
+            if (!p) return;
+            var d = p.value ? new Date(p.value + 'T00:00:00') : new Date();
+            d.setDate(d.getDate() - 1);
+            p.value = toISO(d);
+            p.dispatchEvent(new Event('change'));
+        });
+
+        document.getElementById('btn-day-next') && document.getElementById('btn-day-next').addEventListener('click', function () {
+            var p = document.getElementById('conci-date-picker');
+            if (!p) return;
+            var d = p.value ? new Date(p.value + 'T00:00:00') : new Date();
+            d.setDate(d.getDate() + 1);
+            p.value = toISO(d);
+            p.dispatchEvent(new Event('change'));
+        });
+
+        document.getElementById('btn-day-today') && document.getElementById('btn-day-today').addEventListener('click', function () {
+            var p = document.getElementById('conci-date-picker');
+            if (!p) return;
+            p.value = toISO(new Date());
+            p.dispatchEvent(new Event('change'));
+        });
+    });
+})();
+</script>
 <script src="js/frecuencias-estadisticas.js?v=20260615c"></script>
 
 <script>
