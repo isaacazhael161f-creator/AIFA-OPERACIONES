@@ -211,9 +211,27 @@
                 <td class="text-end text-success fw-semibold">${r.cobro_realizado != null ? fmtCurrency(r.cobro_realizado) : '—'}</td>
                 <td class="text-end text-warning fw-semibold">${r.costo_operativo != null ? fmtCurrency(r.costo_operativo) : '—'}</td>
                 <td class="text-end ${ganClass}">${gan != null ? ganPrefix + fmtCurrency(gan) : '—'}</td>
-                ${canModify ? `<td class="text-center"><button type="button" class="btn btn-sm btn-outline-primary py-0 px-1 ssei-edit-record" data-id="${r.id}" title="Editar registro" aria-label="Editar registro"><i class="fas fa-pen"></i></button></td>` : ''}
+                ${canModify ? `<td class="text-center text-nowrap"><button type="button" class="btn btn-sm btn-outline-primary py-0 px-1 ssei-edit-record" data-id="${r.id}" title="Editar registro" aria-label="Editar registro"><i class="fas fa-pen"></i></button><button type="button" class="btn btn-sm btn-outline-danger py-0 px-1 ms-1 ssei-delete-record" data-id="${r.id}" title="Eliminar registro" aria-label="Eliminar registro"><i class="fas fa-trash"></i></button></td>` : ''}
             </tr>`;
         }).join('');
+    }
+
+    async function deleteRecord(id) {
+        if (!canEdit() || !id) return;
+        if (!window.confirm('¿Eliminar este registro de derrame? Esta acción no se puede deshacer.')) return;
+
+        try {
+            setStatus('<i class="fas fa-spinner fa-spin me-1"></i>Eliminando registro…', 'info');
+            const sb = await getClient();
+            const { error } = await sb.from('atencion_derrames').delete().eq('id', id);
+            if (error) throw error;
+            await populateAnios();
+            await renderAll();
+            setStatus('<i class="fas fa-check-circle me-1"></i>Registro eliminado correctamente.', 'success');
+        } catch (err) {
+            console.error('[ssei] delete error', err);
+            setStatus('<i class="fas fa-triangle-exclamation me-1"></i>' + (err.message || err), 'danger');
+        }
     }
 
     // ─── CHARTS ──────────────────────────────────────────────────────
@@ -921,10 +939,15 @@
 
         const tableBody = document.getElementById('ssei-tbl-body');
         if (tableBody) tableBody.addEventListener('click', event => {
-            const btn = event.target.closest('.ssei-edit-record');
+            const btn = event.target.closest('.ssei-edit-record, .ssei-delete-record');
             if (!btn || !canEdit()) return;
             const record = _allData.find(row => String(row.id) === btn.dataset.id);
-            if (record) openModal(record);
+            if (!record) return;
+            if (btn.classList.contains('ssei-delete-record')) {
+                deleteRecord(record.id);
+            } else {
+                openModal(record);
+            }
         });
 
         const btnSave = document.getElementById('ssei-modal-save');
