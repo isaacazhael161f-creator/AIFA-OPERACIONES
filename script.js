@@ -19803,28 +19803,40 @@ async function _conciSaveBulkEdits() {
     // "Ninguna" y "Todas" serían indistinguibles y al reabrir mostraría todo.
     const AU_VIEWS_NONE = '__none__';
     // Perfiles frecuentes para asignar accesos sin recorrer toda la lista.
-    const AU_SYSTEM_PROFILES = [
-        { key: 'all', label: 'Todos los sistemas', icon: 'check-double', sections: null },
-        { key: 'mhr', label: 'Solo MHR', icon: 'droplet', sections: ['hidraulicas'] },
-        { key: 'portal-manifiestos', label: 'Solo Portal de Manifiestos', icon: 'file-signature', sections: ['portal-digitalizacion'] },
-        { key: 'ssei', label: 'Solo SSEI', icon: 'fire-extinguisher', sections: ['ssei-derrames', 'ssei-emergencias'] }
+    const AU_APP_REGISTRY = [
+        { key: 'mhr', label: 'MHR · Reporte hidráulico', icon: 'droplet', desc: 'Sistema de reportes hidráulicos', section: 'hidraulicas' },
+        { key: 'portal-manifiestos', label: 'Portal de Manifiestos', icon: 'file-signature', desc: 'Recepción y revisión de manifiestos', section: 'portal-digitalizacion' }
     ];
+    const AU_SYSTEM_PROFILES = [
+        { key: 'all', label: 'Todos los sistemas', icon: 'check-double', sections: null, apps: AU_APP_REGISTRY.map(a => a.key) },
+        { key: 'mhr', label: 'Solo MHR', icon: 'droplet', sections: ['hidraulicas'], apps: ['mhr'] },
+        { key: 'portal-manifiestos', label: 'Solo Portal de Manifiestos', icon: 'file-signature', sections: ['portal-digitalizacion'], apps: ['portal-manifiestos'] },
+        { key: 'ssei', label: 'Solo SSEI', icon: 'fire-extinguisher', sections: ['ssei-derrames', 'ssei-emergencias'], apps: [] }
+    ];
+
+    function auUserApps(user) {
+        const explicit = user?.permissions?.app_access;
+        if (Array.isArray(explicit)) return explicit;
+        const sections = Array.isArray(user?.permissions?.allowed_sections) ? user.permissions.allowed_sections : [];
+        return AU_APP_REGISTRY.filter(app => sections.length === 0 || sections.includes(app.section)).map(app => app.key);
+    }
 
     function auAccessInfo(user) {
         const role = String(user?.role || '').toLowerCase();
         const sections = Array.isArray(user?.permissions?.allowed_sections) ? user.permissions.allowed_sections : [];
+        const apps = auUserApps(user);
         if (['admin', 'superadmin'].includes(role) || sections.length === 0) {
-            return { type: 'full', label: 'Todos los sistemas', count: auAllSelectableSections().length, icon: 'check-double', color: 'success' };
+            return { type: 'full', label: 'Todos los sistemas', count: auAllSelectableSections().length, apps, icon: 'check-double', color: 'success' };
         }
         if (sections.length === 1 && sections[0] === AU_VIEWS_NONE) {
-            return { type: 'none', label: 'Sin sistemas asignados', count: 0, icon: 'ban', color: 'secondary' };
+            return { type: 'none', label: 'Sin sistemas asignados', count: 0, apps, icon: 'ban', color: 'secondary' };
         }
         const valid = sections.filter(s => s !== AU_VIEWS_NONE);
         const profile = AU_SYSTEM_PROFILES.find(p => p.sections && p.sections.length === valid.length && p.sections.every(s => valid.includes(s)));
         return {
             type: valid.length === 1 ? 'single' : 'limited',
             label: profile?.label || `${valid.length} sistema${valid.length === 1 ? '' : 's'} asignado${valid.length === 1 ? '' : 's'}`,
-            count: valid.length, icon: profile?.icon || 'list-check', color: profile ? 'primary' : 'info'
+            count: valid.length, apps, icon: profile?.icon || 'list-check', color: profile ? 'primary' : 'info'
         };
     }
     // Genera el <select> compacto de nivel para una fila de módulo.
@@ -20173,6 +20185,10 @@ async function _conciSaveBulkEdits() {
             const roleColor  = ROLE_COLORS[u.role] || 'secondary';
             const perms      = u.permissions || {};
             const accessInfo = auAccessInfo(u);
+            const appBadges = accessInfo.apps.map(appKey => {
+                const app = AU_APP_REGISTRY.find(item => item.key === appKey);
+                return app ? `<span class="badge bg-light text-dark border" style="font-size:.67rem"><i class="fas fa-${app.icon} me-1 text-primary"></i>${app.label}</span>` : '';
+            }).join('');
             const dirId      = perms.direccion_id || '';
             const subId      = perms.subdireccion_id || '';
             const dirName    = dirId ? (_auAreas.find(a => a.id === dirId)?.clave || '?') : null;
@@ -20212,6 +20228,7 @@ async function _conciSaveBulkEdits() {
                                 <span class="badge bg-${roleColor}" id="au-role-badge-${shortId}" style="font-size:.72rem">${roleLabel}</span>
                                 ${dirName ? `<span class="badge bg-light text-primary border" style="font-size:.7rem"><i class="fas fa-sitemap me-1"></i>${dirName}${subName ? ' / ' + subName : ''}</span>` : ''}
                                 <span class="badge bg-${accessInfo.color} bg-opacity-10 text-${accessInfo.color} border" style="font-size:.7rem"><i class="fas fa-${accessInfo.icon} me-1"></i>${accessInfo.label}</span>
+                                ${appBadges}
                                 <span class="text-muted" style="font-size:.72rem"><i class="fas fa-clock me-1 opacity-50"></i>${lastLogin}</span>
                             </div>
                         </div>
@@ -20281,12 +20298,18 @@ async function _conciSaveBulkEdits() {
             ? u.permissions.allowed_sections : [];
         const currentLevels = (u?.permissions?.section_levels && typeof u.permissions.section_levels === 'object')
             ? u.permissions.section_levels : {};
+        const currentApps = new Set(auUserApps(u));
 
         const isAllAccess = currentSecs.length === 0; // sin restricción = acceso total
         // Conjunto de módulos marcados (por sección individual)
         const allSecs = auAllSelectableSections();
         const isNone = currentSecs.length === 1 && currentSecs[0] === AU_VIEWS_NONE; // sin módulos (explícito)
         const checkedSet = new Set(isNone ? [] : (isAllAccess ? allSecs : currentSecs));
+
+        const appsHtml = AU_APP_REGISTRY.map(app => `<label class="d-flex align-items-center gap-2 border rounded-3 px-2 py-2" style="cursor:pointer;min-width:230px;background:${currentApps.has(app.key) ? '#eef6ff' : '#fff'}">
+            <input type="checkbox" class="form-check-input mt-0 auv-app-${shortId}" data-app="${app.key}" ${currentApps.has(app.key) ? 'checked' : ''}>
+            <i class="fas fa-${app.icon} text-primary"></i><span><strong class="small d-block">${app.label}</strong><small class="text-muted">${app.desc}</small></span>
+        </label>`).join('');
 
         const sectionsHtml = `
             <div class="d-flex flex-column gap-2">
@@ -20347,6 +20370,10 @@ async function _conciSaveBulkEdits() {
             <div class="small text-muted mb-2">
                 <i class="fas fa-info-circle me-1"></i>Marca los módulos que el usuario podrá ver y elige su <strong>nivel</strong> en cada uno: <em>Según rol</em> (usa el nivel del rol global), <em>Solo ver</em>, <em>Capturar</em> o <em>Editar</em>. El combo del <strong>encabezado de cada subdirección</strong> aplica el nivel a todos sus módulos de una vez; luego puedes ajustar módulos puntuales. Así puede ser editor en un módulo y lector en otro. <strong>Todas</strong> = acceso total; <strong>Ninguna</strong> = solo módulos base (Admin/Superadmin siempre ven todo).
             </div>
+            <div class="mb-3 p-2 rounded-3" style="background:#fff;border:1px solid #dee2e6">
+                <div class="small fw-semibold mb-2"><i class="fas fa-cubes me-1 text-primary"></i>Aplicaciones habilitadas</div>
+                <div class="d-flex flex-wrap gap-2">${appsHtml}</div>
+            </div>
             <div class="d-flex flex-wrap align-items-center gap-2 mb-3 p-2 rounded-3" style="background:#fff;border:1px solid #dee2e6">
                 <span class="small fw-semibold text-muted"><i class="fas fa-bolt me-1 text-warning"></i>Perfil rápido:</span>
                 ${AU_SYSTEM_PROFILES.map(p => `<button type="button" class="btn btn-outline-${p.key === 'all' ? 'success' : 'primary'} btn-sm py-0" onclick="auApplySystemProfile('${shortId}','${p.key}')"><i class="fas fa-${p.icon} me-1"></i>${p.label}</button>`).join('')}
@@ -20397,6 +20424,8 @@ async function _conciSaveBulkEdits() {
     window.auApplySystemProfile = function (shortId, profileKey) {
         const profile = AU_SYSTEM_PROFILES.find(p => p.key === profileKey);
         const selected = new Set(profile?.sections || []);
+        const selectedApps = new Set(profile?.apps || []);
+        document.querySelectorAll(`.auv-app-${shortId}`).forEach(cb => { cb.checked = selectedApps.has(cb.dataset.app); });
         document.querySelectorAll(`.auv-sec-${shortId}`).forEach(cb => { cb.checked = !!profile && selected.has(cb.value); });
         document.querySelectorAll(`.auv-grp-${shortId}`).forEach(group => {
             const children = Array.from(document.querySelectorAll(`.auv-sec-${shortId}[data-grp="${group.dataset.grp}"]`));
@@ -20417,6 +20446,7 @@ async function _conciSaveBulkEdits() {
         const isNone   = selectedRaw.length === 0;
         const isAll    = !isNone && selectedRaw.length >= allSecs.length;
         const selected = isNone ? [AU_VIEWS_NONE] : (isAll ? [] : selectedRaw);
+        const appAccess = Array.from(document.querySelectorAll(`.auv-app-${shortId}:checked`)).map(cb => cb.dataset.app);
         // Niveles por módulo: solo para módulos marcados con override (≠ "Según rol").
         const checkedSet = new Set(selectedRaw);
         const sectionLevels = {};
@@ -20429,7 +20459,7 @@ async function _conciSaveBulkEdits() {
         try {
             const { data: ur } = await window.supabaseClient
                 .from('user_roles').select('permissions').eq('user_id', userId).maybeSingle();
-            const perms = { ...(ur?.permissions || {}), allowed_sections: selected, section_levels: sectionLevels };
+            const perms = { ...(ur?.permissions || {}), allowed_sections: selected, section_levels: sectionLevels, app_access: appAccess };
             // Guardar vía RPC SECURITY DEFINER (no depende de la política RLS de
             // UPDATE, que puede bloquear el guardado en silencio → 0 filas).
             const { data: res, error } = await window.supabaseClient
@@ -20874,6 +20904,16 @@ async function _conciSaveBulkEdits() {
                 await window.supabaseClient
                     .from('user_roles').update({ permissions: updatedPerms }).eq('user_id', userId);
             }
+
+            // Guardar aplicaciones externas explícitas junto con las vistas.
+            const appAccess = viewMode !== 'manual'
+                ? AU_APP_REGISTRY.map(app => app.key)
+                : AU_APP_REGISTRY.filter(app => selectedSecs.includes(app.section)).map(app => app.key);
+            const { data: urApps } = await window.supabaseClient
+                .from('user_roles').select('permissions').eq('user_id', userId).maybeSingle();
+            await window.supabaseClient.from('user_roles').update({
+                permissions: { ...(urApps?.permissions || {}), app_access: appAccess }
+            }).eq('user_id', userId);
 
             if (msgEl) msgEl.innerHTML = `<span class="text-success"><i class="fas fa-check-circle me-1"></i>Usuario <strong>${username}</strong> creado con rol <strong>${role}</strong>.</span>`;
             // Limpiar formulario

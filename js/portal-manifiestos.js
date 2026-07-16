@@ -257,7 +257,9 @@
                 .select('role, permissions').eq('user_id', user.id).maybeSingle();
             internalRole = ur?.role ? String(ur.role).toLowerCase() : null;
             const allowed = ur?.permissions?.allowed_sections;
-            internalPortalAccess = Array.isArray(allowed) && allowed.includes('portal-digitalizacion');
+            const apps = ur?.permissions?.app_access;
+            internalPortalAccess = (Array.isArray(apps) && apps.includes('portal-manifiestos'))
+                || (Array.isArray(allowed) && allowed.includes('portal-digitalizacion'));
         } catch (_) {}
 
         // Señales de que la cuenta pertenece al portal (aerolínea/prestador).
