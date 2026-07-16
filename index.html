@@ -2363,7 +2363,7 @@ FF
 
                     <!-- Stats -->
                     <div class="row g-3 mb-4">
-                        <div class="col-4">
+                    <div class="col-4">
                             <div class="card border-0 shadow-sm text-center py-3" style="border-left:4px solid #0d6efd!important">
                                 <div class="fw-bold text-primary" style="font-size:2rem;line-height:1" id="au-stat-total">—</div>
                                 <div class="text-muted small mt-1"><i class="fas fa-users me-1"></i>Total</div>
@@ -2379,9 +2379,16 @@ FF
                             <div class="card border-0 shadow-sm text-center py-3" style="border-left:4px solid #dc3545!important">
                                 <div class="fw-bold text-danger" style="font-size:2rem;line-height:1" id="au-stat-bajas">—</div>
                                 <div class="text-muted small mt-1"><i class="fas fa-user-times me-1"></i>Baja</div>
-                            </div>
                         </div>
                     </div>
+                </div>
+                <div id="au-access-summary" class="d-flex flex-wrap gap-2 align-items-center mb-4 small" aria-live="polite">
+                    <span class="text-muted fw-semibold"><i class="fas fa-shield-halved me-1 text-primary"></i>Resumen de accesos:</span>
+                    <span class="badge bg-success bg-opacity-10 text-success border" id="au-access-full">0 con acceso total</span>
+                    <span class="badge bg-info bg-opacity-10 text-info border" id="au-access-limited">0 con acceso limitado</span>
+                    <span class="badge bg-primary bg-opacity-10 text-primary border" id="au-access-single">0 con un solo sistema</span>
+                    <span class="badge bg-secondary bg-opacity-10 text-secondary border" id="au-access-none">0 sin sistemas</span>
+                </div>
 
                     <!-- Tabs: Usuarios / Organigrama -->
                     <ul class="nav nav-tabs mb-4" id="au-main-tabs" role="tablist">
@@ -2484,6 +2491,12 @@ FF
                                                     <label class="form-check-label small fw-semibold text-warning" for="au-reg-vmode-manual"><i class="fas fa-list-check me-1"></i>Elegir módulos</label>
                                                 </div>
                                             </div>
+                                            <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                                                <span class="small text-muted fw-semibold">Accesos rápidos:</span>
+                                                <button type="button" class="btn btn-outline-success btn-sm py-0" onclick="auRegApplySystemProfile('all')"><i class="fas fa-check-double me-1"></i>Todos los sistemas</button>
+                                                <button type="button" class="btn btn-outline-primary btn-sm py-0" onclick="auRegApplySystemProfile('mhr')"><i class="fas fa-droplet me-1"></i>Solo MHR</button>
+                                                <button type="button" class="btn btn-outline-info btn-sm py-0" onclick="auRegApplySystemProfile('portal-manifiestos')"><i class="fas fa-file-signature me-1"></i>Solo Portal de Manifiestos</button>
+                                            </div>
                                             <div id="au-reg-views-box" class="d-none mt-2">
                                                 <div class="d-flex justify-content-between align-items-center mb-2">
                                                     <span class="small text-muted">Marca los módulos individuales a los que tendrá acceso (el encabezado selecciona toda la subdirección)</span>
@@ -2518,6 +2531,13 @@ FF
                         </div>
                         <input type="text" class="form-control form-control-sm ms-auto" id="au-search"
                             placeholder="&#x1F50D; Buscar por nombre, email…" style="max-width:260px" onkeyup="auRenderRows()">
+                        <select class="form-select form-select-sm" id="au-access-filter" style="max-width:190px" onchange="auRenderRows()" aria-label="Filtrar por acceso">
+                            <option value="all">Todos los accesos</option>
+                            <option value="full">Acceso a todos</option>
+                            <option value="limited">Acceso limitado</option>
+                            <option value="single">Solo un sistema</option>
+                            <option value="none">Sin sistemas</option>
+                        </select>
                     </div>
                     <div id="au-status" class="small mb-2 ps-1"></div>
 

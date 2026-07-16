@@ -240,12 +240,25 @@
         // portal). Distinguimos "tabla inexistente" de "sin fila" para no
         // bloquear a nadie antes de correr el script SQL.
         let perfil = null, tablaOk = true;
+        let internalRole = null;
+        let internalPortalAccess = false;
         try {
             const { data, error } = await sb.from('perfiles')
                 .select('role,activo').eq('id', user.id).maybeSingle();
             if (error) tablaOk = false;
             else perfil = data || null;
         } catch (_e) { tablaOk = false; }
+
+        // Usuarios internos pueden recibir acceso explícito al Portal de
+        // Manifiestos desde Administración de Usuarios. Se conserva separado
+        // del perfil de prestadores, pero usa la misma sesión de Supabase.
+        try {
+            const { data: ur } = await sb.from('user_roles')
+                .select('role, permissions').eq('user_id', user.id).maybeSingle();
+            internalRole = ur?.role ? String(ur.role).toLowerCase() : null;
+            const allowed = ur?.permissions?.allowed_sections;
+            internalPortalAccess = Array.isArray(allowed) && allowed.includes('portal-digitalizacion');
+        } catch (_) {}
 
         // Señales de que la cuenta pertenece al portal (aerolínea/prestador).
         // Se basa SOLO en company/app: el rol 'aerolinea' es el valor por
@@ -255,7 +268,7 @@
 
         // BLOQUEO CRUZADO: una cuenta interna de AIFA Operaciones (sin perfil
         // de portal y sin señales de portal) no puede entrar al portal.
-        if (tablaOk && !perfil && !portalSignals) {
+        if (tablaOk && !perfil && !portalSignals && !internalPortalAccess) {
             hide('screen-app');
             show('screen-login');
             loginAlert('Esta cuenta pertenece a AIFA — Operaciones, no al Portal de Manifiestos.', 'danger');
@@ -272,7 +285,11 @@
             return;
         }
 
-        userRole   = (perfil && perfil.role) ? String(perfil.role).toLowerCase() : resolveRole(user);
+        userRole   = (perfil && perfil.role)
+            ? String(perfil.role).toLowerCase()
+            : (internalPortalAccess
+                ? (['admin', 'superadmin'].includes(internalRole) ? 'admin' : 'aifa')
+                : resolveRole(user));
         isAdmin    = userRole === 'admin';
         canAifa    = userRole === 'admin' || userRole === 'aifa';
         canAfac    = userRole === 'admin' || userRole === 'afac';

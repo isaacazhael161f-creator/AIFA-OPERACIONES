@@ -19802,6 +19802,31 @@ async function _conciSaveBulkEdits() {
     // allowed_sections = [] significa "acceso total"; sin este marcador,
     // "Ninguna" y "Todas" serían indistinguibles y al reabrir mostraría todo.
     const AU_VIEWS_NONE = '__none__';
+    // Perfiles frecuentes para asignar accesos sin recorrer toda la lista.
+    const AU_SYSTEM_PROFILES = [
+        { key: 'all', label: 'Todos los sistemas', icon: 'check-double', sections: null },
+        { key: 'mhr', label: 'Solo MHR', icon: 'droplet', sections: ['hidraulicas'] },
+        { key: 'portal-manifiestos', label: 'Solo Portal de Manifiestos', icon: 'file-signature', sections: ['portal-digitalizacion'] },
+        { key: 'ssei', label: 'Solo SSEI', icon: 'fire-extinguisher', sections: ['ssei-derrames', 'ssei-emergencias'] }
+    ];
+
+    function auAccessInfo(user) {
+        const role = String(user?.role || '').toLowerCase();
+        const sections = Array.isArray(user?.permissions?.allowed_sections) ? user.permissions.allowed_sections : [];
+        if (['admin', 'superadmin'].includes(role) || sections.length === 0) {
+            return { type: 'full', label: 'Todos los sistemas', count: auAllSelectableSections().length, icon: 'check-double', color: 'success' };
+        }
+        if (sections.length === 1 && sections[0] === AU_VIEWS_NONE) {
+            return { type: 'none', label: 'Sin sistemas asignados', count: 0, icon: 'ban', color: 'secondary' };
+        }
+        const valid = sections.filter(s => s !== AU_VIEWS_NONE);
+        const profile = AU_SYSTEM_PROFILES.find(p => p.sections && p.sections.length === valid.length && p.sections.every(s => valid.includes(s)));
+        return {
+            type: valid.length === 1 ? 'single' : 'limited',
+            label: profile?.label || `${valid.length} sistema${valid.length === 1 ? '' : 's'} asignado${valid.length === 1 ? '' : 's'}`,
+            count: valid.length, icon: profile?.icon || 'list-check', color: profile ? 'primary' : 'info'
+        };
+    }
     // Genera el <select> compacto de nivel para una fila de módulo.
     //   cls: clase CSS del select · section: data-section · current: nivel guardado
     //   grp: (opcional) clave de subdirección → se agrega data-grp para poder
@@ -19905,10 +19930,19 @@ async function _conciSaveBulkEdits() {
     function _auUpdateStats() {
         const total  = _auRows.length;
         const bajas  = _auRows.filter(u => u.permissions?.estado === 'INACTIVO').length;
+        const accessCounts = _auRows.reduce((acc, u) => {
+            const type = auAccessInfo(u).type;
+            acc[type] = (acc[type] || 0) + 1;
+            return acc;
+        }, {});
         const el = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
         el('au-stat-total',   total);
         el('au-stat-activos', total - bajas);
         el('au-stat-bajas',   bajas);
+        el('au-access-full', `${accessCounts.full || 0} con acceso total`);
+        el('au-access-limited', `${accessCounts.limited || 0} con acceso limitado`);
+        el('au-access-single', `${accessCounts.single || 0} con un solo sistema`);
+        el('au-access-none', `${accessCounts.none || 0} sin sistemas`);
     }
 
     // ── Cargar lista de usuarios ──────────────────────────────────────────
@@ -19977,12 +20011,21 @@ async function _conciSaveBulkEdits() {
         { key: 'puntualidad-agosto',   label: 'Puntualidad',             icon: 'clock',             group: 'Operaciones' },
         { key: 'demoras',              label: 'Demoras',                 icon: 'clock',             group: 'Operaciones' },
         { key: 'aerolineas',           label: 'Aerolíneas',              icon: 'plane',             group: 'Módulos' },
-        { key: 'portal-digitalizacion',label: 'Portal Digital',          icon: 'cloud-upload-alt',  group: 'Módulos' },
+        { key: 'portal-digitalizacion',label: 'Portal de Manifiestos',  icon: 'file-signature',     group: 'Módulos' },
         { key: 'fauna',                label: 'GSO',                     icon: 'shield-alt',        group: 'Módulos' },
         { key: 'medicas',              label: 'Servicio Médico',         icon: 'briefcase-medical', group: 'Módulos' },
         { key: 'abordadores-mecanicos',label: 'Abordadores Mecánicos',   icon: 'cogs',              group: 'Módulos' },
         { key: 'email-analisis',       label: 'Análisis Correos',        icon: 'envelope',          group: 'Módulos' },
         { key: 'fids',                 label: 'FIDS',                    icon: 'tv',                group: 'Módulos' },
+        { key: 'bhs',                  label: 'BHS',                     icon: 'conveyor-belt',     group: 'Módulos' },
+        { key: 'ssei-derrames',        label: 'SSEI · Derrames',         icon: 'fire-extinguisher', group: 'Módulos' },
+        { key: 'ssei-emergencias',     label: 'SSEI · Emergencias',      icon: 'triangle-exclamation', group: 'Módulos' },
+        { key: 'personal-capacitado-prestadores', label: 'Personal capacitado', icon: 'user-graduate', group: 'Módulos' },
+        { key: 'valoraciones-medicas', label: 'Valoraciones médicas',     icon: 'stethoscope',        group: 'Módulos' },
+        { key: 'catalogo-vehiculos',   label: 'Catálogo de vehículos',   icon: 'car',               group: 'Módulos' },
+        { key: 'hidraulicas',          label: 'MHR · Reporte hidráulico',icon: 'droplet',           group: 'Ingeniería' },
+        { key: 'hvac-reportes',        label: 'Reportes HVAC',           icon: 'fan',               group: 'Ingeniería' },
+        { key: 'ingenieria-civil',     label: 'Ingeniería civil',        icon: 'helmet-safety',     group: 'Ingeniería' },
         { key: 'colaboradores',        label: 'Colaboradores',           icon: 'id-badge',          group: 'Personal' },
         { key: 'coord-auditoria',      label: 'Coord. Auditoría',        icon: 'clipboard-check',   group: 'Personal' },
         { key: 'agenda',               label: 'Agenda de Comités',       icon: 'calendar-check',    group: 'Personal' },
@@ -20016,8 +20059,8 @@ async function _conciSaveBulkEdits() {
                 // Accesos directos / operaciones aéreas
                 'operaciones-totales', 'inicio', 'frecuencias-semana',
                 'itinerario-mensual', 'puntualidad-agosto', 'demoras',
-                'aerolineas', 'comparativa', 'parte-operaciones',
-                'analisis-operaciones', 'conciliacion', 'manifiestos',
+                'aerolineas', 'parte-operaciones',
+                'analisis-operaciones', 'conciliacion',
                 'historia', 'email-analisis', 'fids', 'portal-digitalizacion',
                 // GOPA
                 'abordadores-mecanicos', 'biblioteca',
@@ -20025,10 +20068,9 @@ async function _conciSaveBulkEdits() {
                 'bhs',
                 // GSO
                 'fauna', 'ssei-derrames', 'ssei-emergencias',
-                // GIC
-                'ingenieria-civil',
                 // GSM
-                'medicas'
+                'medicas', 'personal-capacitado-prestadores',
+                'valoraciones-medicas', 'catalogo-vehiculos'
             ]
         },
         {
@@ -20056,7 +20098,7 @@ async function _conciSaveBulkEdits() {
             desc: 'GOMIH · GIE · GIC',
             icon: 'hard-hat',
             color: '#198754',
-            sections: ['hidraulicas', 'hvac-reportes']
+            sections: ['hidraulicas', 'hvac-reportes', 'ingenieria-civil']
         },
         {
             key: 'SGE',
@@ -20094,6 +20136,7 @@ async function _conciSaveBulkEdits() {
         const container = document.getElementById('au-tbody');
         if (!container) return;
         const q = (document.getElementById('au-search')?.value || '').toLowerCase();
+        const accessFilter = document.getElementById('au-access-filter')?.value || 'all';
         let rows = _auFilter === 'baja'   ? _auRows.filter(u => u.permissions?.estado === 'INACTIVO') :
                    _auFilter === 'activo' ? _auRows.filter(u => u.permissions?.estado !== 'INACTIVO') :
                    _auRows;
@@ -20102,6 +20145,7 @@ async function _conciSaveBulkEdits() {
             (u.full_name || '').toLowerCase().includes(q) ||
             (u.username || '').toLowerCase().includes(q)
         );
+        if (accessFilter !== 'all') rows = rows.filter(u => auAccessInfo(u).type === accessFilter);
 
         // Ordenar: online primero, luego por último inicio de sesión (más reciente → más antiguo)
         rows = [...rows].sort((a, b) => {
@@ -20128,6 +20172,7 @@ async function _conciSaveBulkEdits() {
             const roleLabel  = AU_ROLE_LABELS[u.role] || u.role || '—';
             const roleColor  = ROLE_COLORS[u.role] || 'secondary';
             const perms      = u.permissions || {};
+            const accessInfo = auAccessInfo(u);
             const dirId      = perms.direccion_id || '';
             const subId      = perms.subdireccion_id || '';
             const dirName    = dirId ? (_auAreas.find(a => a.id === dirId)?.clave || '?') : null;
@@ -20166,6 +20211,7 @@ async function _conciSaveBulkEdits() {
                             <div class="d-flex align-items-center gap-2 mt-1 flex-wrap">
                                 <span class="badge bg-${roleColor}" id="au-role-badge-${shortId}" style="font-size:.72rem">${roleLabel}</span>
                                 ${dirName ? `<span class="badge bg-light text-primary border" style="font-size:.7rem"><i class="fas fa-sitemap me-1"></i>${dirName}${subName ? ' / ' + subName : ''}</span>` : ''}
+                                <span class="badge bg-${accessInfo.color} bg-opacity-10 text-${accessInfo.color} border" style="font-size:.7rem"><i class="fas fa-${accessInfo.icon} me-1"></i>${accessInfo.label}</span>
                                 <span class="text-muted" style="font-size:.72rem"><i class="fas fa-clock me-1 opacity-50"></i>${lastLogin}</span>
                             </div>
                         </div>
@@ -20301,6 +20347,11 @@ async function _conciSaveBulkEdits() {
             <div class="small text-muted mb-2">
                 <i class="fas fa-info-circle me-1"></i>Marca los módulos que el usuario podrá ver y elige su <strong>nivel</strong> en cada uno: <em>Según rol</em> (usa el nivel del rol global), <em>Solo ver</em>, <em>Capturar</em> o <em>Editar</em>. El combo del <strong>encabezado de cada subdirección</strong> aplica el nivel a todos sus módulos de una vez; luego puedes ajustar módulos puntuales. Así puede ser editor en un módulo y lector en otro. <strong>Todas</strong> = acceso total; <strong>Ninguna</strong> = solo módulos base (Admin/Superadmin siempre ven todo).
             </div>
+            <div class="d-flex flex-wrap align-items-center gap-2 mb-3 p-2 rounded-3" style="background:#fff;border:1px solid #dee2e6">
+                <span class="small fw-semibold text-muted"><i class="fas fa-bolt me-1 text-warning"></i>Perfil rápido:</span>
+                ${AU_SYSTEM_PROFILES.map(p => `<button type="button" class="btn btn-outline-${p.key === 'all' ? 'success' : 'primary'} btn-sm py-0" onclick="auApplySystemProfile('${shortId}','${p.key}')"><i class="fas fa-${p.icon} me-1"></i>${p.label}</button>`).join('')}
+                <button type="button" class="btn btn-outline-secondary btn-sm py-0" onclick="auApplySystemProfile('${shortId}','none')"><i class="fas fa-ban me-1"></i>Ninguno</button>
+            </div>
             ${sectionsHtml}
         </div>`;
     };
@@ -20339,6 +20390,20 @@ async function _conciSaveBulkEdits() {
             cb.checked = selectAll;
             cb.indeterminate = false;
         });
+    };
+
+    // Aplica un perfil visual al panel; el administrador todavía debe pulsar
+    // Guardar para confirmar el cambio en la base de datos.
+    window.auApplySystemProfile = function (shortId, profileKey) {
+        const profile = AU_SYSTEM_PROFILES.find(p => p.key === profileKey);
+        const selected = new Set(profile?.sections || []);
+        document.querySelectorAll(`.auv-sec-${shortId}`).forEach(cb => { cb.checked = !!profile && selected.has(cb.value); });
+        document.querySelectorAll(`.auv-grp-${shortId}`).forEach(group => {
+            const children = Array.from(document.querySelectorAll(`.auv-sec-${shortId}[data-grp="${group.dataset.grp}"]`));
+            group.checked = children.length > 0 && children.every(cb => cb.checked);
+            group.indeterminate = children.some(cb => cb.checked) && !group.checked;
+        });
+        if (profileKey === 'all') auSelectAllViews(shortId, true);
     };
 
     window.auSaveViews = async function (userId, shortId) {
@@ -20610,6 +20675,22 @@ async function _conciSaveBulkEdits() {
         } else {
             box.classList.add('d-none');
         }
+    };
+
+    window.auRegApplySystemProfile = function (profileKey) {
+        const allRadio = document.getElementById('au-reg-vmode-all');
+        const manualRadio = document.getElementById('au-reg-vmode-manual');
+        const profile = AU_SYSTEM_PROFILES.find(p => p.key === profileKey);
+        if (profileKey === 'all') {
+            if (allRadio) allRadio.checked = true;
+            auRegViewsToggle();
+            return;
+        }
+        if (manualRadio) manualRadio.checked = true;
+        auRegViewsToggle();
+        const selected = new Set(profile?.sections || []);
+        document.querySelectorAll('#au-reg-views-grid .au-reg-sec').forEach(cb => { cb.checked = selected.has(cb.value); });
+        AU_SUBDIRECCIONES.filter(sd => sd.sections.length).forEach(sd => auRegSyncGroup(sd.key));
     };
 
     window.auRegToggleGroup = function (grpKey, checked) {
