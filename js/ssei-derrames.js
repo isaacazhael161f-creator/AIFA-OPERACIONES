@@ -37,6 +37,7 @@
     let _initOnce = false;
     let _allData = [];
     let _currentAnio = null;
+    let _editingId = null;
 
     // ─── helpers ────────────────────────────────────────────────────
     async function getClient() {
@@ -183,10 +184,12 @@
     function renderTable(rows) {
         const tbody = document.getElementById('ssei-tbl-body');
         const countEl = document.getElementById('ssei-tbl-count');
+        const canModify = canEdit();
+        document.querySelectorAll('.ssei-edit-col').forEach(el => el.classList.toggle('d-none', !canModify));
         if (!tbody) return;
         if (countEl) countEl.textContent = `${rows.length} registro${rows.length === 1 ? '' : 's'}`;
         if (!rows.length) {
-            tbody.innerHTML = '<tr><td colspan="12" class="text-center text-muted py-4">Sin registros para el período seleccionado.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="13" class="text-center text-muted py-4">Sin registros para el período seleccionado.</td></tr>';
             return;
         }
         const sortedRows = [...rows].sort((a, b) => String(b.fecha || '').localeCompare(String(a.fecha || '')));
@@ -208,6 +211,7 @@
                 <td class="text-end text-success fw-semibold">${r.cobro_realizado != null ? fmtCurrency(r.cobro_realizado) : '—'}</td>
                 <td class="text-end text-warning fw-semibold">${r.costo_operativo != null ? fmtCurrency(r.costo_operativo) : '—'}</td>
                 <td class="text-end ${ganClass}">${gan != null ? ganPrefix + fmtCurrency(gan) : '—'}</td>
+                ${canModify ? `<td class="text-center"><button type="button" class="btn btn-sm btn-outline-primary py-0 px-1 ssei-edit-record" data-id="${r.id}" title="Editar registro" aria-label="Editar registro"><i class="fas fa-pen"></i></button></td>` : ''}
             </tr>`;
         }).join('');
     }
@@ -653,9 +657,10 @@
     }
 
     // ─── MODAL CAPTURA ───────────────────────────────────────────────
-    function openModal() {
+    function openModal(record = null) {
         const modal = document.getElementById('ssei-modal');
         if (!modal) return;
+        _editingId = record?.id || null;
         // Limpiar formulario
         ['ssei-f-fecha','ssei-f-mes','ssei-f-empresa','ssei-f-sitio',
          'ssei-f-quien','ssei-f-hora-act','ssei-f-hora-lleg',
@@ -667,11 +672,32 @@
         const ganPrev = document.getElementById('ssei-f-ganancia-preview');
         if (ganPrev) { ganPrev.textContent = '—'; ganPrev.className = 'fw-bold'; }
 
-        // Pre-rellenar con la fecha de hoy
-        const today = new Date().toISOString().slice(0, 10);
-        const fechaEl = document.getElementById('ssei-f-fecha');
-        if (fechaEl) fechaEl.value = today;
-        autoFillMes(today);
+        const setValue = (id, value) => {
+            const el = document.getElementById(id);
+            if (el) el.value = value ?? '';
+        };
+        if (record) {
+            setValue('ssei-f-fecha', record.fecha);
+            setValue('ssei-f-mes', record.mes || monthNameFromDate(record.fecha));
+            setValue('ssei-f-empresa', record.empresa);
+            setValue('ssei-f-sitio', record.sitio);
+            setValue('ssei-f-quien', record.quien_activo);
+            setValue('ssei-f-hora-act', record.hora_activacion ? String(record.hora_activacion).slice(0, 5) : '');
+            setValue('ssei-f-hora-lleg', record.hora_llegada ? String(record.hora_llegada).slice(0, 5) : '');
+            setValue('ssei-f-tiempo', record.tiempo_respuesta_min);
+            setValue('ssei-f-m2', record.cantidad_m2);
+            setValue('ssei-f-cobro', record.cobro_realizado);
+            setValue('ssei-f-costo', record.costo_operativo);
+            autoCalcGanancia();
+        } else {
+            const today = new Date().toISOString().slice(0, 10);
+            setValue('ssei-f-fecha', today);
+            autoFillMes(today);
+        }
+        const titleEl = document.getElementById('ssei-modal-label');
+        if (titleEl) titleEl.innerHTML = `<i class="fas fa-fire-extinguisher me-2"></i>${record ? 'Editar Derrame — SSEI' : 'Nuevo Derrame — SSEI'}`;
+        const saveEl = document.getElementById('ssei-modal-save');
+        if (saveEl) saveEl.innerHTML = `<i class="fas fa-save me-1"></i>${record ? 'Actualizar' : 'Guardar'}`;
 
         const msgEl = document.getElementById('ssei-modal-msg');
         if (msgEl) { msgEl.innerHTML = ''; msgEl.className = ''; }
@@ -847,12 +873,14 @@
             }
 
             const sb = await getClient();
-            const { error } = await sb.from('atencion_derrames').insert(payload);
+            const { error } = _editingId
+                ? await sb.from('atencion_derrames').update(payload).eq('id', _editingId)
+                : await sb.from('atencion_derrames').insert(payload);
             if (error) throw error;
 
             if (msgEl) {
                 msgEl.className = 'alert alert-success mt-2 py-2';
-                msgEl.innerHTML = '<i class="fas fa-check-circle me-1"></i>Registro guardado correctamente.';
+                msgEl.innerHTML = `<i class="fas fa-check-circle me-1"></i>Registro ${_editingId ? 'actualizado' : 'guardado'} correctamente.`;
             }
             // Cerrar modal tras 1.2 s y recargar
             setTimeout(async () => {
@@ -890,6 +918,14 @@
             btnAdd.classList.toggle('d-none', !canEdit());
             btnAdd.addEventListener('click', openModal);
         }
+
+        const tableBody = document.getElementById('ssei-tbl-body');
+        if (tableBody) tableBody.addEventListener('click', event => {
+            const btn = event.target.closest('.ssei-edit-record');
+            if (!btn || !canEdit()) return;
+            const record = _allData.find(row => String(row.id) === btn.dataset.id);
+            if (record) openModal(record);
+        });
 
         const btnSave = document.getElementById('ssei-modal-save');
         if (btnSave) btnSave.addEventListener('click', saveRecord);
