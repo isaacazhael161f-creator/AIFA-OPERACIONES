@@ -7203,6 +7203,27 @@ function handleNavigation(e) {
                 }, 200);
             } catch (_) { }
         }
+        if (section === 'personal-capacitado-prestadores') {
+            try {
+                setTimeout(() => {
+                    if (typeof window.initPersonalCapacitadoPrestadores === 'function') window.initPersonalCapacitadoPrestadores();
+                }, 200);
+            } catch (_) { }
+        }
+        if (section === 'valoraciones-medicas') {
+            try {
+                setTimeout(() => {
+                    if (typeof window.initValoracionesMedicas === 'function') window.initValoracionesMedicas();
+                }, 200);
+            } catch (_) { }
+        }
+        if (section === 'catalogo-vehiculos') {
+            try {
+                setTimeout(() => {
+                    if (typeof window.initCatalogoVehiculos === 'function') window.initCatalogoVehiculos();
+                }, 200);
+            } catch (_) { }
+        }
         if (section === 'ingenieria-civil') {
             try {
                 setTimeout(() => {
