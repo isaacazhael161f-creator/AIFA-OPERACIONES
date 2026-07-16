@@ -316,50 +316,6 @@
             });
         }
 
-        /* ── 2. Derrames por mes en el período filtrado ── */
-        const countByMes = MESES_SHORT.map((_, i) => {
-            const mesNombre = MESES_LBL[i];
-            return filtered.filter(r => {
-                const mesRow = String(r.mes || monthNameFromDate(r.fecha) || '').toUpperCase();
-                return mesRow === mesNombre;
-            }).length;
-        });
-        const lastMes = countByMes.reduce((last, v, i) => v > 0 ? i : last, -1);
-        const mesLabels = lastMes >= 0 ? MESES_SHORT.slice(0, lastMes + 1) : MESES_SHORT;
-        const mesData   = lastMes >= 0 ? countByMes.slice(0, lastMes + 1)  : countByMes;
-        const c2 = document.getElementById('ssei-chart-mensual');
-        if (c2) {
-            _charts.mensual = new Chart(c2, {
-                type: 'bar',
-                data: {
-                    labels: mesLabels,
-                    datasets: [{
-                        label: 'Derrames',
-                        data: mesData,
-                        backgroundColor: (ctx) => vGradient(ctx.chart.ctx, ctx.chart.chartArea, COL.accent, COL.accent2),
-                        hoverBackgroundColor: COL.accent,
-                        borderRadius: 8, borderSkipped: false, barPercentage: .65, categoryPercentage: .8
-                    }]
-                },
-                options: {
-                    responsive: true, maintainAspectRatio: false,
-                    layout: { padding: { top: 18 } },
-                    animation: { duration: 700, easing: 'easeOutQuart' },
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: { ...baseTooltip,
-                            callbacks: { label: ctx => `  Derrames: ${ctx.parsed.y}` }
-                        },
-                        datalabels: dlAboveBar(COL.accent2)
-                    },
-                    scales: {
-                        ...baseScales,
-                        y: { ...baseScales.y, grace: '22%', ticks: { ...baseScales.y.ticks, stepSize: 1 } }
-                    }
-                }
-            });
-        }
-
         /* ── 3. M² por empresa (doughnut) ── */
         const empresaMap = {};
         filtered.forEach(r => {
