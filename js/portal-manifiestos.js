@@ -1073,16 +1073,30 @@
             const demorasStr    = [dem1str, dem2str, dem3str].filter(Boolean).join(' | ');
             const codigosDemora = [g('dem1-cod'), g('dem2-cod'), g('dem3-cod')].filter(Boolean).join(' | ');
 
-            // Observations — pilot, license, escalas
+            // Observations — pilot, license, escalas, origen
             const extraLines = [
                 g('piloto')    ? `Piloto: ${g('piloto')}` : '',
                 g('licencia')  ? `Lic: ${g('licencia')}` : '',
-                isArrival ? (g('escala-nom') ? `Escala ant: ${g('escala-nom')} (${g('escala-cod')})` : '') : (g('escala-nom') ? `Escala sig: ${g('escala-nom')} (${g('escala-cod')})` : ''),
+                isArrival
+                    ? (g('escala-nom') ? `Escala ant: ${g('escala-nom')} (${g('escala-cod')})` : '')
+                    : (g('origen-nom')  ? `Origen: ${g('origen-nom')} (${g('origen-cod')})` : ''),
+                !isArrival && g('escala-nom') ? `Escala sig: ${g('escala-nom')} (${g('escala-cod')})` : '',
                 prefix === 'msc' ? (g('prox-escala-nom') ? `Prox escala: ${g('prox-escala-nom')} (${g('prox-escala-cod')})` : '') : '',
                 g('obs'),
             ].filter(Boolean);
 
             const observations = extraLines.join('\n');
+
+            // PAX breakdown (populated only for ms/ms-prefix Salida PAX modal)
+            const paxTua  = n('tua-nac') + n('tua-int');
+            const paxDip  = n('dip-nac') + n('dip-int');
+            const paxCom  = n('com-nac') + n('com-int');
+            const paxInf  = n('inf-nac') + n('inf-int');
+            const paxTra  = n('tra-nac') + n('tra-int');
+            const paxCon  = n('con-nac') + n('con-int');
+            const paxExe  = n('exe-nac') + n('exe-int');
+            const paxTotFromTable = n('tot-nac') + n('tot-int');
+            const paxTotalFallback = n('pax-nac') + n('pax-int');
 
             const payload = {
                 // ── Datos operacionales → columnas de "Conciliación Manifiestos"
@@ -1104,15 +1118,15 @@
                 'HR. DE RECEPCIÓN':                     isArrival ? (g('hr-posicion') || null) : null,
                 'HRS. CUMPLIDAS':                        null,
                 'PUNTUALIDAD / CANCELACIÓN':             null,
-                'TOTAL PAX':                             (n('pax-nac') + n('pax-int')) || null,
-                'DIPLOMATICOS':                          null,
-                'EN COMISION':                           null,
-                'INFANTES':                              null,
-                'TRANSITOS':                             n('pax-int') || null,
-                'CONEXIONES':                            (n('conex-nac') + n('conex-int')) || null,
-                'OTROS EXENTOS':                         null,
-                'TOTAL EXENTOS':                         null,
-                'PAX QUE PAGAN TUA':                     n('pax-nac') || null,
+                'TOTAL PAX':                             (paxTotFromTable || paxTotalFallback) || null,
+                'DIPLOMATICOS':                          paxDip || null,
+                'EN COMISION':                           paxCom || null,
+                'INFANTES':                              paxInf || null,
+                'TRANSITOS':                             paxTra || null,
+                'CONEXIONES':                            paxCon || null,
+                'OTROS EXENTOS':                         paxExe || null,
+                'TOTAL EXENTOS':                         (paxDip + paxCom + paxInf + paxTra + paxCon + paxExe) || null,
+                'PAX QUE PAGAN TUA':                     paxTua || n('pax-nac') || null,
                 'KGS. DE EQUIPAJE':                      n('equip-kg') || null,
                 'KGS. DE CARGA':                         n('carga-kg') || null,
                 'CORREO':                                n('correo-kg') || null,

@@ -16,8 +16,13 @@ CREATE TABLE IF NOT EXISTS public.atencion_derrames (
     hora_llegada        time,
     tiempo_respuesta_min numeric(6,2),
     cantidad_m2         numeric(10,2),
-    cobro_realizado     numeric(12,2)
+    cobro_realizado     numeric(12,2),
+    costo_operativo     numeric(12,2)
 );
+
+-- Compatible con instalaciones donde la tabla ya existía antes de agregar el costo.
+ALTER TABLE public.atencion_derrames
+    ADD COLUMN IF NOT EXISTS costo_operativo numeric(12,2);
 
 -- Índices para consultas frecuentes
 CREATE INDEX IF NOT EXISTS idx_derrames_fecha    ON public.atencion_derrames (fecha);

@@ -252,32 +252,15 @@
 
     /* ── Init ── */
     function init() {
-        // Wire buttons
-        $('btn-conci-refresh')?.addEventListener('click', loadData);
-        $('btn-conci-edit-mode')?.addEventListener('click', toggleEditMode);
-        $('btn-conci-save-mode')?.addEventListener('click', saveChanges);
-        $('btn-conci-cancel-mode')?.addEventListener('click', cancelChanges);
-
-        // Wire filters — reload on change
-        ['filter-conci-manifiestos-year', 'filter-conci-manifiestos-month', 'filter-conci-manifiestos-day'].forEach(id => {
-            $(id)?.addEventListener('change', loadData);
-        });
+        // NOTA: script.js maneja todos los botones (btn-conci-edit-mode, btn-conci-save-mode,
+        // btn-conci-cancel-mode, btn-conci-refresh) y la carga de datos vía
+        // loadConciliacionManifiestos(). Este módulo ya no debe registrar
+        // listeners duplicados ni llamar loadData()/renderTable() de forma independiente,
+        // pues causaría destruir la tabla renderizada por script.js cuando _data está vacío.
 
         // Show edit button based on role once auth resolves
         window.addEventListener('admin-mode-changed', () => updateEditButton());
-        // Also check immediately after a short delay (role already in sessionStorage)
         setTimeout(updateEditButton, 500);
-
-        // Load when tab shown
-        const tabBtn = document.querySelector('button[data-bs-target="#pane-conci-comercial"]');
-        if (tabBtn) {
-            tabBtn.addEventListener('shown.bs.tab', () => { if (!_data.length) loadData(); });
-        }
-        // Also try loading if already visible
-        setTimeout(() => {
-            const pane = $('pane-conci-comercial');
-            if (pane && pane.classList.contains('active') && !_data.length) loadData();
-        }, 800);
     }
 
     document.addEventListener('DOMContentLoaded', init);

@@ -18957,6 +18957,15 @@ function _renderConciManifiestosTable(data, columns, fallbackYear) {
 
     _conciRefreshEditToolbar();
     scheduleAppend();
+
+    // Auto-activar modo editar para usuarios con rol de edición
+    // sin necesidad de hacer clic en el botón "Editar".
+    if (_conciCanCurrentUserEdit() && !_conciEditMode) {
+        _conciEnsureEditStyles();
+        _conciEditMode = true;
+        _conciSetTableEditableState(true);
+        _conciRefreshEditToolbar();
+    }
 }
 
 // ─── Conciliation global-edit helpers ──────────────────────────────────────

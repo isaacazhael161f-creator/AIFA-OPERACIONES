@@ -22479,7 +22479,7 @@ FF
                             <div class="ssei-kpi-icon"><i class="fas fa-dollar-sign"></i></div>
                             <div>
                                 <div class="ssei-kpi-val" id="ssei-kpi-cobro">—</div>
-                                <div class="ssei-kpi-lbl">Total cobrado</div>
+                                <div class="ssei-kpi-lbl">Importe</div>
                             </div>
                         </div>
                     </div>
@@ -22488,7 +22488,7 @@ FF
                             <div class="ssei-kpi-icon"><i class="fas fa-tools"></i></div>
                             <div>
                                 <div class="ssei-kpi-val" id="ssei-kpi-costo">—</div>
-                                <div class="ssei-kpi-lbl">Costo operativo</div>
+                                <div class="ssei-kpi-lbl">Costo de operación</div>
                             </div>
                         </div>
                     </div>
@@ -22497,7 +22497,7 @@ FF
                             <div class="ssei-kpi-icon"><i class="fas fa-chart-line"></i></div>
                             <div>
                                 <div class="ssei-kpi-val" id="ssei-kpi-ganancia">—</div>
-                                <div class="ssei-kpi-lbl">Ganancia neta</div>
+                                <div class="ssei-kpi-lbl">Margen operativo</div>
                             </div>
                         </div>
                     </div>
@@ -22556,7 +22556,7 @@ FF
                     <div class="col-12 col-lg-6">
                         <div class="card border-0 bg-light rounded-4 p-3">
                             <div class="fw-semibold text-uppercase" style="font-size:.72rem;letter-spacing:.05em;color:#475569;margin-bottom:.5rem;">
-                                <i class="fas fa-balance-scale me-1 text-success"></i>Cobro vs Costo Operativo por empresa
+                                <i class="fas fa-balance-scale me-1 text-success"></i>Importe vs Costo de operación por empresa
                             </div>
                             <div class="ssei-chart-wrap">
                                 <canvas id="ssei-chart-finanzas"></canvas>
@@ -22566,7 +22566,7 @@ FF
                     <div class="col-12 col-lg-6">
                         <div class="card border-0 bg-light rounded-4 p-3">
                             <div class="fw-semibold text-uppercase" style="font-size:.72rem;letter-spacing:.05em;color:#475569;margin-bottom:.5rem;">
-                                <i class="fas fa-chart-line me-1" style="color:#0d9488;"></i>Ganancia neta por empresa
+                                <i class="fas fa-chart-line me-1" style="color:#0d9488;"></i>Margen operativo por empresa
                             </div>
                             <div class="ssei-chart-wrap">
                                 <canvas id="ssei-chart-ganancia"></canvas>
@@ -22597,9 +22597,9 @@ FF
                                         <th class="text-end">Hora llegada</th>
                                         <th class="text-end">Tiempo resp.</th>
                                         <th class="text-end">M²</th>
-                                        <th class="text-end">Cobro</th>
-                                        <th class="text-end">Costo Op.</th>
-                                        <th class="text-end">Ganancia</th>
+                                        <th class="text-end">Importe</th>
+                                        <th class="text-end">Costo de operación</th>
+                                        <th class="text-end">Margen operativo</th>
                                     </tr>
                                 </thead>
                                 <tbody id="ssei-tbl-body">
@@ -22674,24 +22674,24 @@ FF
                                 <label class="form-label small fw-semibold" for="ssei-f-tiempo">Tiempo respuesta (min)</label>
                                 <input type="number" id="ssei-f-tiempo" class="form-control form-control-sm" min="0" step="0.1" placeholder="Auto si llenas horas" />
                             </div>
-                            <!-- M² / Cobro / Costo / Ganancia -->
+                            <!-- M² / Importe / Costo / Margen -->
                             <div class="col-sm-4">
                                 <label class="form-label small fw-semibold" for="ssei-f-m2">Superficie afectada (m²)</label>
                                 <input type="number" id="ssei-f-m2" class="form-control form-control-sm" min="0" step="0.01" />
                             </div>
                             <div class="col-sm-4">
-                                <label class="form-label small fw-semibold" for="ssei-f-cobro">Cobro realizado ($)</label>
+                                <label class="form-label small fw-semibold" for="ssei-f-cobro">Importe ($)</label>
                                 <input type="number" id="ssei-f-cobro" class="form-control form-control-sm" min="0" step="1" placeholder="0" />
                             </div>
                             <div class="col-sm-4">
-                                <label class="form-label small fw-semibold" for="ssei-f-costo">Costo operativo ($)</label>
+                                <label class="form-label small fw-semibold" for="ssei-f-costo">Costo de operación ($)</label>
                                 <input type="number" id="ssei-f-costo" class="form-control form-control-sm" min="0" step="0.01" placeholder="0" />
                             </div>
-                            <!-- Preview ganancia (read-only, auto-calculada) -->
+                            <!-- Preview de margen (solo lectura, calculado automáticamente) -->
                             <div class="col-12">
                                 <div class="d-flex align-items-center gap-2 px-2 py-2 rounded-3" style="background:#f8fafc;border:1px solid #e2e8f0;">
                                     <i class="fas fa-chart-line text-muted" style="font-size:.85rem;"></i>
-                                    <span class="small text-muted fw-semibold text-uppercase" style="letter-spacing:.04em;font-size:.7rem;">Ganancia neta (auto)</span>
+                                    <span class="small text-muted fw-semibold text-uppercase" style="letter-spacing:.04em;font-size:.7rem;">Margen operativo (auto)</span>
                                     <span id="ssei-f-ganancia-preview" class="fw-bold ms-auto">—</span>
                                 </div>
                             </div>

@@ -681,6 +681,46 @@
     .modal-body.print-target { position:absolute; left:0; top:0; margin:0; padding:0; width:100%; }
   }
 </style>
+<!-- Yellow-pastel overrides — Salida modals only -->
+<style>
+  #modalPortalSalida .modal-header,
+  #modalPortalSalidaCarga .modal-header { background:#fef3c7!important; border-bottom:2px solid #d97706!important; }
+  #modalPortalSalida .modal-title,
+  #modalPortalSalidaCarga .modal-title { color:#92400e!important; }
+  #modalPortalSalida .modal-title i,
+  #modalPortalSalidaCarga .modal-title i { color:#d97706!important; }
+  #modalPortalSalida .modal-body,
+  #modalPortalSalidaCarga .modal-body { background-color:#fffdf0!important; }
+  #modalPortalSalida .manifest-container,
+  #modalPortalSalidaCarga .manifest-container { background-color:#fefce8!important; border-color:#d97706!important; }
+  #modalPortalSalida .section-box,
+  #modalPortalSalidaCarga .section-box { border-color:#b45309!important; }
+  #modalPortalSalida .header-title,
+  #modalPortalSalidaCarga .header-title,
+  #modalPortalSalida .section-title,
+  #modalPortalSalidaCarga .section-title,
+  #modalPortalSalida .form-label,
+  #modalPortalSalidaCarga .form-label { color:#92400e!important; }
+  #modalPortalSalida .form-control,
+  #modalPortalSalidaCarga .form-control { border-bottom-color:#d97706!important; }
+  #modalPortalSalida .form-control:focus,
+  #modalPortalSalidaCarga .form-control:focus { border-bottom-color:#b45309!important; }
+  #modalPortalSalida .signature-box,
+  #modalPortalSalidaCarga .signature-box { border-color:#b45309!important; }
+  #modalPortalSalida .signature-line,
+  #modalPortalSalidaCarga .signature-line { border-top-color:#b45309!important; }
+  #modalPortalSalida .sub-label,
+  #modalPortalSalidaCarga .sub-label { color:#78350f!important; }
+  #modalPortalSalida .modal-footer,
+  #modalPortalSalidaCarga .modal-footer { background:#fef3c7!important; border-top:2px solid #d97706!important; }
+  #modalPortalSalida .pax-breakdown-table { width:100%; font-size:.75rem; border-collapse:collapse; }
+  #modalPortalSalida .pax-breakdown-table th { text-align:center; border-bottom:2px solid #b45309; padding:4px 6px; color:#92400e; font-weight:bold; }
+  #modalPortalSalida .pax-breakdown-table th:first-child { text-align:left; }
+  #modalPortalSalida .pax-breakdown-table td { padding:3px 6px; border-bottom:1px solid #e7c98a; }
+  #modalPortalSalida .pax-breakdown-table td:not(:first-child) { text-align:center; border-left:1px solid #b45309; }
+  #modalPortalSalida .pax-breakdown-table tr.total-row td { background:rgba(253,246,178,.7); font-weight:bold; color:#92400e; }
+  #modalPortalSalida .pax-breakdown-table .form-control { font-size:.75rem; padding:.1rem .2rem; }
+</style>
 
 <!-- =========================================================
      MODAL: MANIFIESTO DE LLEGADA (Pasajeros)
@@ -962,12 +1002,12 @@
 <div class="modal fade portal-manifest" id="modalPortalSalida" tabindex="-1" aria-labelledby="modalPortalSalidaLabel" aria-hidden="true">
   <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
     <div class="modal-content">
-      <div class="modal-header bg-light">
-        <h5 class="modal-title" id="modalPortalSalidaLabel"><i class="fas fa-plane-departure me-2 text-primary"></i>Manifiesto de Salida — Pasajeros</h5>
+      <div class="modal-header" style="background:#fef3c7;border-bottom:2px solid #d97706;">
+        <h5 class="modal-title" id="modalPortalSalidaLabel" style="color:#92400e;"><i class="fas fa-plane-departure me-2" style="color:#d97706;"></i>Manifiesto de Salida — Pasajeros</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
       </div>
-      <div class="modal-body print-target" style="background-color:#eff6ff;">
-        <div class="manifest-container" style="background-color:#e0f2fe; border:2px solid #2a4365;">
+      <div class="modal-body print-target" style="background-color:#fffdf0;">
+        <div class="manifest-container" style="background-color:#fefce8; border:2px solid #d97706;">
 
           <!-- ENCABEZADO -->
           <div class="row align-items-center mb-4 g-2">
@@ -1059,6 +1099,28 @@
               <div class="col-md-6 border-end border-dark">
                 <h6 class="section-title text-center text-md-start">MOVIMIENTO DE OPERACIONES</h6>
                 <div class="row align-items-center mb-3">
+                  <div class="col-4"><label class="form-label text-start" style="font-size:.7rem;" for="ms-origen-nom">ORIGEN DEL VUELO</label></div>
+                  <div class="col-6">
+                    <input type="text" id="ms-origen-nom" class="form-control" placeholder="Nombre del aeropuerto" aria-label="Nombre origen">
+                    <span class="sub-label">Registrar nombre completo del aeropuerto</span>
+                  </div>
+                  <div class="col-2">
+                    <input type="text" id="ms-origen-cod" class="form-control" placeholder="NLU" aria-label="Código origen">
+                    <span class="sub-label">Código 3 letras</span>
+                  </div>
+                </div>
+                <div class="row align-items-center mb-3">
+                  <div class="col-4"><label class="form-label text-start" style="font-size:.7rem;" for="ms-escala-nom">PRÓXIMA ESCALA</label></div>
+                  <div class="col-6">
+                    <input type="text" id="ms-escala-nom" class="form-control" placeholder="Nombre del aeropuerto" aria-label="Nombre próxima escala">
+                    <span class="sub-label">Registrar nombre completo del aeropuerto</span>
+                  </div>
+                  <div class="col-2">
+                    <input type="text" id="ms-escala-cod" class="form-control" placeholder="GDL" aria-label="Código próxima escala">
+                    <span class="sub-label">Código 3 letras</span>
+                  </div>
+                </div>
+                <div class="row align-items-center">
                   <div class="col-4"><label class="form-label text-start" style="font-size:.7rem;" for="ms-destino-nom">DESTINO DEL VUELO</label></div>
                   <div class="col-6">
                     <input type="text" id="ms-destino-nom" class="form-control" placeholder="Nombre del aeropuerto" aria-label="Nombre destino">
@@ -1066,17 +1128,6 @@
                   </div>
                   <div class="col-2">
                     <input type="text" id="ms-destino-cod" class="form-control" placeholder="MEX" aria-label="Código destino">
-                    <span class="sub-label">Código 3 letras</span>
-                  </div>
-                </div>
-                <div class="row align-items-center">
-                  <div class="col-4"><label class="form-label text-start" style="font-size:.7rem;" for="ms-escala-nom">ESCALA SIGUIENTE</label></div>
-                  <div class="col-6">
-                    <input type="text" id="ms-escala-nom" class="form-control" placeholder="Nombre del aeropuerto" aria-label="Nombre escala siguiente">
-                    <span class="sub-label">Registrar nombre completo del aeropuerto</span>
-                  </div>
-                  <div class="col-2">
-                    <input type="text" id="ms-escala-cod" class="form-control" placeholder="GDL" aria-label="Código escala siguiente">
                     <span class="sub-label">Código 3 letras</span>
                   </div>
                 </div>
@@ -1094,23 +1145,23 @@
                   </div>
                 </div>
                 <div class="row mb-2 align-items-center">
-                  <div class="col-8"><label class="form-label text-start mt-1" for="ms-hr-salida-pos">HORA DE SALIDA DE POSICIÓN / EMPUJE</label></div>
+                  <div class="col-8"><label class="form-label text-start mt-1" for="ms-hr-pernocta">HORA DE TÉRMINO DE PERNOCTA</label></div>
                   <div class="col-4">
-                    <input type="text" id="ms-hr-salida-pos" class="form-control" placeholder="HH:MM" aria-label="Hora salida posición">
+                    <input type="text" id="ms-hr-pernocta" class="form-control" placeholder="N/A" aria-label="Hora término pernocta">
                     <span class="sub-label">Hora local</span>
                   </div>
                 </div>
                 <div class="row mb-2 align-items-center">
-                  <div class="col-8"><label class="form-label text-start mt-1" style="font-size:.65rem;">HORA DE CIERRE DE PUERTAS / TÉRMINO DE EMBARQUE</label></div>
+                  <div class="col-8"><label class="form-label text-start mt-1" style="font-size:.65rem;">HORA DE INICIO DE MANIOBRAS DE EMBARQUE</label></div>
                   <div class="col-4">
-                    <input type="text" id="ms-hr-cierre" class="form-control" placeholder="HH:MM" aria-label="Hora cierre puertas">
+                    <input type="text" id="ms-hr-embarque" class="form-control" placeholder="HH:MM" aria-label="Hora inicio maniobras embarque">
                     <span class="sub-label">Hora local</span>
                   </div>
                 </div>
                 <div class="row align-items-center">
-                  <div class="col-8"><label class="form-label text-start mt-1" for="ms-hr-despegue">HORA REAL DE DESPEGUE</label></div>
+                  <div class="col-8"><label class="form-label text-start mt-1" for="ms-hr-salida-pos">HORA DE SALIDA DE LA POSICIÓN</label></div>
                   <div class="col-4">
-                    <input type="text" id="ms-hr-despegue" class="form-control" placeholder="HH:MM" aria-label="Hora real despegue">
+                    <input type="text" id="ms-hr-salida-pos" class="form-control" placeholder="HH:MM" aria-label="Hora salida posición">
                     <span class="sub-label">Hora local</span>
                   </div>
                 </div>
@@ -1168,11 +1219,74 @@
               <div class="col"><input type="number" id="ms-carga-kg" class="form-control" value="0" min="0" aria-label="Carga kg"></div>
               <div class="col"><input type="number" id="ms-correo-kg" class="form-control" value="0" min="0" aria-label="Correo kg"></div>
             </div>
-            <div class="row align-items-center mt-3 g-2">
-              <div class="col-md-2 text-start"><label class="form-label mt-1">CONEXIÓN</label></div>
-              <div class="col"><input type="number" id="ms-conex-nac" class="form-control" value="0" min="0" aria-label="Conexión nacional"></div>
-              <div class="col"><input type="number" id="ms-conex-int" class="form-control" value="0" min="0" aria-label="Conexión internacional"></div>
-              <div class="col"></div><div class="col"></div><div class="col"></div>
+          </div>
+
+          <!-- SECCIÓN 5: DESGLOSE DE PASAJEROS -->
+          <div class="section-box">
+            <h6 class="section-title text-center mb-2">DESGLOSE DE PASAJEROS</h6>
+            <table class="pax-breakdown-table">
+              <thead>
+                <tr>
+                  <th style="width:40%;">TIPO DE PASAJERO</th>
+                  <th>NACIONAL</th>
+                  <th>INTERNACIONAL</th>
+                  <th>SUBTOTAL</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="fw-bold">PAGAN TUA</td>
+                  <td><input type="number" id="ms-tua-nac" class="form-control" value="0" min="0" aria-label="TUA Nacional" data-pax-row="tua"></td>
+                  <td><input type="number" id="ms-tua-int" class="form-control" value="0" min="0" aria-label="TUA Internacional" data-pax-row="tua"></td>
+                  <td><input type="number" id="ms-tua-sub" class="form-control" value="0" min="0" readonly aria-label="TUA Subtotal" style="background:rgba(254,243,199,.5);"></td>
+                </tr>
+                <tr>
+                  <td class="fw-bold">DIPLOMÁTICOS</td>
+                  <td><input type="number" id="ms-dip-nac" class="form-control" value="0" min="0" aria-label="Diplomáticos Nacional" data-pax-row="dip"></td>
+                  <td><input type="number" id="ms-dip-int" class="form-control" value="0" min="0" aria-label="Diplomáticos Internacional" data-pax-row="dip"></td>
+                  <td><input type="number" id="ms-dip-sub" class="form-control" value="0" min="0" readonly aria-label="Diplomáticos Subtotal" style="background:rgba(254,243,199,.5);"></td>
+                </tr>
+                <tr>
+                  <td class="fw-bold">EN COMISIÓN</td>
+                  <td><input type="number" id="ms-com-nac" class="form-control" value="0" min="0" aria-label="Comisión Nacional" data-pax-row="com"></td>
+                  <td><input type="number" id="ms-com-int" class="form-control" value="0" min="0" aria-label="Comisión Internacional" data-pax-row="com"></td>
+                  <td><input type="number" id="ms-com-sub" class="form-control" value="0" min="0" readonly aria-label="Comisión Subtotal" style="background:rgba(254,243,199,.5);"></td>
+                </tr>
+                <tr>
+                  <td class="fw-bold">INFANTES</td>
+                  <td><input type="number" id="ms-inf-nac" class="form-control" value="0" min="0" aria-label="Infantes Nacional" data-pax-row="inf"></td>
+                  <td><input type="number" id="ms-inf-int" class="form-control" value="0" min="0" aria-label="Infantes Internacional" data-pax-row="inf"></td>
+                  <td><input type="number" id="ms-inf-sub" class="form-control" value="0" min="0" readonly aria-label="Infantes Subtotal" style="background:rgba(254,243,199,.5);"></td>
+                </tr>
+                <tr>
+                  <td class="fw-bold">TRÁNSITOS</td>
+                  <td><input type="number" id="ms-tra-nac" class="form-control" value="0" min="0" aria-label="Tránsitos Nacional" data-pax-row="tra"></td>
+                  <td><input type="number" id="ms-tra-int" class="form-control" value="0" min="0" aria-label="Tránsitos Internacional" data-pax-row="tra"></td>
+                  <td><input type="number" id="ms-tra-sub" class="form-control" value="0" min="0" readonly aria-label="Tránsitos Subtotal" style="background:rgba(254,243,199,.5);"></td>
+                </tr>
+                <tr>
+                  <td class="fw-bold">CONEXIONES</td>
+                  <td><input type="number" id="ms-con-nac" class="form-control" value="0" min="0" aria-label="Conexiones Nacional" data-pax-row="con"></td>
+                  <td><input type="number" id="ms-con-int" class="form-control" value="0" min="0" aria-label="Conexiones Internacional" data-pax-row="con"></td>
+                  <td><input type="number" id="ms-con-sub" class="form-control" value="0" min="0" readonly aria-label="Conexiones Subtotal" style="background:rgba(254,243,199,.5);"></td>
+                </tr>
+                <tr>
+                  <td class="fw-bold">OTROS EXENTOS</td>
+                  <td><input type="number" id="ms-exe-nac" class="form-control" value="0" min="0" aria-label="Exentos Nacional" data-pax-row="exe"></td>
+                  <td><input type="number" id="ms-exe-int" class="form-control" value="0" min="0" aria-label="Exentos Internacional" data-pax-row="exe"></td>
+                  <td><input type="number" id="ms-exe-sub" class="form-control" value="0" min="0" readonly aria-label="Exentos Subtotal" style="background:rgba(254,243,199,.5);"></td>
+                </tr>
+                <tr class="total-row">
+                  <td>TOTAL</td>
+                  <td><input type="number" id="ms-tot-nac" class="form-control" value="0" min="0" readonly aria-label="Total Nacional"></td>
+                  <td><input type="number" id="ms-tot-int" class="form-control" value="0" min="0" readonly aria-label="Total Internacional"></td>
+                  <td><input type="number" id="ms-tot-sub" class="form-control" value="0" min="0" readonly aria-label="Total General" style="background:rgba(253,224,100,.5);font-weight:bold;"></td>
+                </tr>
+              </tbody>
+            </table>
+            <div class="row mt-2 g-2 align-items-center">
+              <div class="col-auto"><label class="form-label mt-1" for="ms-dni" style="white-space:nowrap;">PAX DNI / NO MUESTRAN ID</label></div>
+              <div class="col-2"><input type="number" id="ms-dni" class="form-control" value="0" min="0" aria-label="PAX DNI"></div>
             </div>
           </div>
 
@@ -1220,10 +1334,10 @@
 
         </div><!-- /manifest-container -->
       </div><!-- /modal-body -->
-      <div class="modal-footer d-print-none bg-light">
+      <div class="modal-footer d-print-none">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
         <button type="button" class="btn btn-outline-secondary" onclick="printManifest('modalPortalSalida')"><i class="fas fa-print me-1"></i>Imprimir/PDF</button>
-        <button type="button" class="btn btn-primary" id="btn-save-portal-salida"><i class="fas fa-save me-1"></i>Guardar y Enviar</button>
+        <button type="button" class="btn" id="btn-save-portal-salida" style="background:#d97706;color:white;"><i class="fas fa-save me-1"></i>Guardar y Enviar</button>
       </div>
     </div>
   </div>
@@ -1507,18 +1621,18 @@
 <div class="modal fade portal-manifest" id="modalPortalSalidaCarga" tabindex="-1" aria-labelledby="modalPortalSalidaCargaLabel" aria-hidden="true">
   <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
     <div class="modal-content">
-      <div class="modal-header bg-light">
-        <h5 class="modal-title" id="modalPortalSalidaCargaLabel"><i class="fas fa-truck-loading me-2 text-info"></i>Manifiesto de Salida — Carga</h5>
+      <div class="modal-header" style="background:#fef3c7;border-bottom:2px solid #d97706;">
+        <h5 class="modal-title" id="modalPortalSalidaCargaLabel" style="color:#92400e;"><i class="fas fa-truck-loading me-2" style="color:#d97706;"></i>Manifiesto de Salida — Carga</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
       </div>
-      <div class="modal-body print-target" style="background-color:#eff6ff;">
-        <div class="manifest-container" style="background-color:#e0f2fe; border:2px solid #2a4365;">
+      <div class="modal-body print-target" style="background-color:#fffdf0;">
+        <div class="manifest-container" style="background-color:#fefce8; border:2px solid #d97706;">
 
           <!-- ENCABEZADO -->
           <div class="row align-items-center mb-4 g-2">
             <div class="col-md-5">
               <h1 class="header-title mb-0">MANIFIESTO DE SALIDA</h1>
-              <div class="fw-bold" style="font-size:.75rem;color:#1e40af;">CARGA</div>
+              <div class="fw-bold" style="font-size:.75rem;color:#92400e;">CARGA</div>
             </div>
             <div class="col-md-4 text-center">
               <div class="d-flex align-items-end justify-content-center">
@@ -1758,10 +1872,10 @@
 
         </div><!-- /manifest-container -->
       </div><!-- /modal-body -->
-      <div class="modal-footer d-print-none bg-light">
+      <div class="modal-footer d-print-none">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
         <button type="button" class="btn btn-outline-secondary" onclick="printManifest('modalPortalSalidaCarga')"><i class="fas fa-print me-1"></i>Imprimir/PDF</button>
-        <button type="button" class="btn btn-primary" id="btn-save-portal-salida-carga"><i class="fas fa-save me-1"></i>Guardar y Enviar</button>
+        <button type="button" class="btn" id="btn-save-portal-salida-carga" style="background:#d97706;color:white;"><i class="fas fa-save me-1"></i>Guardar y Enviar</button>
       </div>
     </div>
   </div>
@@ -1803,6 +1917,32 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="js/supabase-client.js"></script>
 <script src="js/portal-manifiestos.js?v=20260701"></script>
+<script>
+// Auto-sum PAX breakdown table in #modalPortalSalida
+(function() {
+  const ROWS = ['tua','dip','com','inf','tra','con','exe'];
+  function recalc() {
+    let totNac = 0, totInt = 0;
+    ROWS.forEach(r => {
+      const nac = parseFloat(document.getElementById(`ms-${r}-nac`)?.value) || 0;
+      const int = parseFloat(document.getElementById(`ms-${r}-int`)?.value) || 0;
+      const sub = document.getElementById(`ms-${r}-sub`);
+      if (sub) sub.value = nac + int;
+      totNac += nac;
+      totInt += int;
+    });
+    const elN = document.getElementById('ms-tot-nac');
+    const elI = document.getElementById('ms-tot-int');
+    const elS = document.getElementById('ms-tot-sub');
+    if (elN) elN.value = totNac;
+    if (elI) elI.value = totInt;
+    if (elS) elS.value = totNac + totInt;
+  }
+  document.addEventListener('input', function(e) {
+    if (e.target?.dataset?.paxRow) recalc();
+  });
+})();
+</script>
 </body>
 </html>
 

@@ -57,6 +57,8 @@ document.addEventListener('DOMContentLoaded', () => {
             oaci_origen: f.origen_codigo || null,
             aeropuerto_escala: f.escala_nombre || null,
             oaci_escala: f.escala_codigo || null,
+            aeropuerto_destino: f.destino_nombre || null,
+            oaci_destino: f.destino_codigo || null,
 
             h_itin: f.hora_slot_asignado || null,
             h_real: f.hora_slot_coordinado || null,
@@ -68,6 +70,27 @@ document.addEventListener('DOMContentLoaded', () => {
             demora1_codigo: f.demora1_cod || null,
             demora2_codigo: f.demora2_cod || null,
 
+            kgs_equipaje: parseFloat(f.embarque_kgs_equipaje) || 0,
+            kgs_carga: parseFloat(f.embarque_kgs_carga) || 0,
+            kgs_correo: parseFloat(f.embarque_kgs_correo) || 0,
+
+            pax_tua_nac: n(f.pax_tua_nac),
+            pax_tua_int: n(f.pax_tua_int),
+            pax_dip_nac: n(f.pax_dip_nac),
+            pax_dip_int: n(f.pax_dip_int),
+            pax_com_nac: n(f.pax_com_nac),
+            pax_com_int: n(f.pax_com_int),
+            pax_inf_nac: n(f.pax_inf_nac),
+            pax_inf_int: n(f.pax_inf_int),
+            pax_tra_nac: n(f.pax_tra_nac),
+            pax_tra_int: n(f.pax_tra_int),
+            pax_con_nac: n(f.pax_con_nac),
+            pax_con_int: n(f.pax_con_int),
+            pax_exe_nac: n(f.pax_exe_nac),
+            pax_exe_int: n(f.pax_exe_int),
+            pax_tot_nac: n(f.pax_tot_nac),
+            pax_tot_int: n(f.pax_tot_int),
+
             pasajeros_primera: tua,
             pasajeros_turista: exentos,
             pasajeros_menores: 0,
@@ -75,6 +98,9 @@ document.addEventListener('DOMContentLoaded', () => {
             pasajeros_tercera_edad: 0,
             pasajeros_discapacitados: 0,
             pasajeros_total: total,
+
+            pax_dni: n(f.pax_dni),
+            observaciones: f.observaciones || null,
 
             firma_elaboro: f.firma_elaboro || null
         };
@@ -350,58 +376,8 @@ document.addEventListener('DOMContentLoaded', () => {
             btnLlegada.disabled = true;
             
             try {
-                const vals = parseModalData('#modalManifiestoLlegada');
-                
-                const yyyy = vals[2] || new Date().getFullYear();
-                const mm = vals[1] || '01';
-                const dd = vals[0] || '01';
-                let fecha = `${yyyy}-${mm}-${dd}`;
-                if (fecha.includes('AAAA') || fecha.includes('MM')) fecha = null;
-
-                const payload = {
-                    tipo: 'Llegada',
-                    folio: vals[3] || null,
-                    fecha: fecha,
-
-                    aeropuerto_llegada_salida: vals[4] || null,
-                    clase_servicio: vals[5] || null,
-                    explotador: vals[6] || null,
-                    aerolinea: vals[7] || null,
-                    tipo_aeronave: vals[8] || null,
-                    matricula: vals[9] || null,
-                    vuelo: vals[10] || null,
-                    comandante: vals[11] || null,
-                    num_licencia: vals[12] || null,
-                    tripulacion_ps: vals[13] || null,
-
-                    aeropuerto_origen: vals[14] || null,
-                    oaci_origen: vals[15] || null,
-                    aeropuerto_escala: vals[16] || null,
-                    oaci_escala: vals[17] || null,
-
-                    h_itin: vals[18] || null,
-                    h_real: vals[19] || null,
-                    h_calzos: vals[20] || null,
-                    h_puerta: vals[21] || null,
-                    posicion: vals[22] || null,
-                    motivo_demora: vals[23] || null,
-                    fbo: vals[24] || null,
-
-                    demora1_codigo: vals[25] || null,
-                    demora1_tiempo: vals[26] || null,
-                    demora2_codigo: vals[27] || null,
-                    demora2_tiempo: vals[28] || null,
-
-                    pasajeros_primera: parseInt(vals[29]) || 0,
-                    pasajeros_turista: parseInt(vals[30]) || 0,
-                    pasajeros_menores: parseInt(vals[31]) || 0,
-                    pasajeros_infantes: parseInt(vals[32]) || 0,
-                    pasajeros_tercera_edad: parseInt(vals[33]) || 0,
-                    pasajeros_discapacitados: parseInt(vals[34]) || 0,
-                    pasajeros_total: parseInt(vals[35]) || 0,
-
-                    firma_elaboro: vals[36] || null
-                };
+                const f = readFields('#modalManifiestoLlegada');
+                const payload = buildPayload(f, 'Llegada');
                 
                 const { data, error } = await window.supabaseClient
                     .from('manifiestos_pasajeros')
@@ -432,7 +408,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- SALIDAS ---
+    // --- SALIDAS (PAX) ---
     const btnSalida = document.getElementById('btn-save-manifiesto-salida');
     if (btnSalida) {
         btnSalida.addEventListener('click', async () => {
@@ -446,58 +422,8 @@ document.addEventListener('DOMContentLoaded', () => {
             btnSalida.disabled = true;
             
             try {
-                const vals = parseModalData('#modalManifiestoSalida');
-                
-                const yyyy = vals[2] || new Date().getFullYear();
-                const mm = vals[1] || '01';
-                const dd = vals[0] || '01';
-                let fecha = `${yyyy}-${mm}-${dd}`;
-                if (fecha.includes('AAAA') || fecha.includes('MM')) fecha = null;
-
-                const payload = {
-                    tipo: 'Salida',
-                    folio: vals[3] || null,
-                    fecha: fecha,
-
-                    aeropuerto_llegada_salida: vals[4] || null,
-                    clase_servicio: vals[5] || null,
-                    explotador: vals[6] || null,
-                    aerolinea: vals[7] || null,
-                    tipo_aeronave: vals[8] || null,
-                    matricula: vals[9] || null,
-                    vuelo: vals[10] || null,
-                    comandante: vals[11] || null,
-                    num_licencia: vals[12] || null,
-                    tripulacion_ps: vals[13] || null,
-
-                    aeropuerto_origen: vals[14] || null,
-                    oaci_origen: vals[15] || null,
-                    aeropuerto_escala: vals[16] || null,
-                    oaci_escala: vals[17] || null,
-
-                    h_itin: vals[18] || null,
-                    h_real: vals[19] || null,
-                    h_calzos: vals[20] || null,
-                    h_puerta: vals[21] || null,
-                    posicion: vals[22] || null,
-                    motivo_demora: vals[23] || null,
-                    fbo: vals[24] || null,
-
-                    demora1_codigo: vals[25] || null,
-                    demora1_tiempo: vals[26] || null,
-                    demora2_codigo: vals[27] || null,
-                    demora2_tiempo: vals[28] || null,
-
-                    pasajeros_primera: parseInt(vals[29]) || 0,
-                    pasajeros_turista: parseInt(vals[30]) || 0,
-                    pasajeros_menores: parseInt(vals[31]) || 0,
-                    pasajeros_infantes: parseInt(vals[32]) || 0,
-                    pasajeros_tercera_edad: parseInt(vals[33]) || 0,
-                    pasajeros_discapacitados: parseInt(vals[34]) || 0,
-                    pasajeros_total: parseInt(vals[35]) || 0,
-
-                    firma_elaboro: vals[36] || null
-                };
+                const f = readFields('#modalManifiestoSalida');
+                const payload = buildPayload(f, 'Salida');
                 
                 const { data, error } = await window.supabaseClient
                     .from('manifiestos_pasajeros')
@@ -524,6 +450,52 @@ document.addEventListener('DOMContentLoaded', () => {
             } finally {
                 btnSalida.innerHTML = btnOriginalText;
                 btnSalida.disabled = false;
+            }
+        });
+    }
+
+    // --- SALIDAS (CARGA) ---
+    const btnSalidaCarga = document.getElementById('btn-save-manifiesto-salida-carga');
+    if (btnSalidaCarga) {
+        btnSalidaCarga.addEventListener('click', async () => {
+            if (!window.supabaseClient) {
+                alert("Error: Supabase no está inicializado.");
+                return;
+            }
+            
+            const btnOriginalText = btnSalidaCarga.innerHTML;
+            btnSalidaCarga.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Guardando...';
+            btnSalidaCarga.disabled = true;
+            
+            try {
+                const f = readFields('#modalManifiestoSalidaCarga');
+                const payload = buildPayload(f, 'Salida Carga');
+                
+                const { data, error } = await window.supabaseClient
+                    .from('manifiestos_pasajeros')
+                    .insert([payload])
+                    .select('id, vuelo');
+                    
+                if (error) throw error;
+
+                let pdfUrl = null;
+                if (data && data.length > 0) {
+                    pdfUrl = await generateAndUploadManifestPDF(payload, data[0].id, '#modalManifiestoSalidaCarga');
+                }
+
+                await syncToConciliacion(payload, pdfUrl);
+
+                if(window.bootstrap) {
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('modalManifiestoSalidaCarga'));
+                    if(modal) modal.hide();
+                }
+                
+            } catch (err) {
+                console.error("Error guardando manifiesto salida carga:", err);
+                alert("Ocurrió un error al guardar el manifiesto: " + err.message);
+            } finally {
+                btnSalidaCarga.innerHTML = btnOriginalText;
+                btnSalidaCarga.disabled = false;
             }
         });
     }

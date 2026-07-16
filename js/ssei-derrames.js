@@ -499,7 +499,7 @@
                     labels: empSet5.map(e => e.length > 18 ? e.slice(0, 16) + '…' : e),
                     datasets: [
                         {
-                            label: 'Cobro realizado',
+                        label: 'Importe',
                             data: cobroByEmp,
                             backgroundColor: COL.green + 'cc',
                             borderColor: COL.green2, borderWidth: 1.5,
@@ -507,7 +507,7 @@
                             barPercentage: .75, categoryPercentage: .8
                         },
                         {
-                            label: 'Costo operativo',
+                        label: 'Costo de operación',
                             data: costoByEmp,
                             backgroundColor: COL.accent + 'cc',
                             borderColor: COL.accent2, borderWidth: 1.5,
@@ -557,7 +557,7 @@
                 data: {
                     labels: empSet5.map(e => e.length > 18 ? e.slice(0, 16) + '…' : e),
                     datasets: [{
-                        label: 'Ganancia neta',
+                        label: 'Margen operativo',
                         data: ganByEmp,
                         backgroundColor: ganByEmp.map(v => v >= 0 ? COL.teal + 'cc' : COL.primary + 'cc'),
                         borderColor:     ganByEmp.map(v => v >= 0 ? COL.teal2       : COL.primary2),
@@ -577,7 +577,7 @@
                                 label: ctx => {
                                     const v = ctx.parsed.y;
                                     const prefix = v > 0 ? '+' : '';
-                                    return `  Ganancia: ${prefix}${fmtCurrency(v)}`;
+                                    return `  Margen operativo: ${prefix}${fmtCurrency(v)}`;
                                 }
                             }
                         },
