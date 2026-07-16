@@ -2,7 +2,7 @@
 //  GSO — Catálogo de Vehículos
 //  Tabla: public.catalogo_vehiculos (Supabase)
 //
-//  Columnas: id, numero_economico, marca, tipo_vehiculo, color,
+//  Columnas: id, codigo_aifa, numero_economico, marca, tipo_vehiculo, color,
 //            estado, numero_serie, notas, combustible, placas,
 //            transmision, created_at, updated_at
 //
@@ -24,7 +24,8 @@
 
     const COMBUSTIBLES = ['Gasolina', 'Diésel', 'Gas LP', 'Eléctrico', 'Híbrido', 'Otro'];
     const TRANSMISIONES = ['Automática', 'Manual', 'CVT', 'Otro'];
-    const ESTADOS = ['Activo', 'Inactivo', 'En mantenimiento', 'Baja'];
+    // Debe coincidir con el CHECK de public.catalogo_vehiculos.
+    const ESTADOS = ['Activo', 'Mantenimiento', 'Baja'];
 
     // ─── PALETA ─────────────────────────────────────────────────────
     const COL = {
@@ -110,8 +111,7 @@
     function estadoBadge(estado) {
         const map = {
             'Activo':            'bg-success',
-            'Inactivo':          'bg-secondary',
-            'En mantenimiento':  'bg-warning text-dark',
+            'Mantenimiento':     'bg-warning text-dark',
             'Baja':              'bg-danger',
         };
         const cls = map[estado] || 'bg-light text-dark';
@@ -140,7 +140,7 @@
             if (marca  !== 'all' && r.marca        !== marca)  return false;
             if (tipo   !== 'all' && r.tipo_vehiculo !== tipo)  return false;
             if (estado !== 'all' && r.estado        !== estado) return false;
-            if (buscar && ![r.numero_economico, r.marca, r.tipo_vehiculo, r.placas,
+            if (buscar && ![r.codigo_aifa, r.numero_economico, r.marca, r.tipo_vehiculo, r.placas,
                             r.color, r.numero_serie, r.notas, r.estado]
                 .some(v => String(v || '').toLowerCase().includes(buscar))) return false;
             return true;
@@ -222,7 +222,7 @@
         const deletable = canDelete();
 
         tbody.innerHTML = page.map(r => `
-            <tr class="${r.estado === 'Inactivo' || r.estado === 'Baja' ? 'opacity-60' : ''}">
+            <tr class="${r.estado === 'Baja' ? 'opacity-60' : ''}">
                 <td class="fw-semibold text-nowrap">${r.numero_economico || '—'}</td>
                 <td>${r.marca || '—'}</td>
                 <td class="small text-muted">${r.tipo_vehiculo || '—'}</td>
@@ -402,7 +402,7 @@
             const counts = {};
             ESTADOS.forEach(e => { counts[e] = 0; });
             rows.forEach(r => { const k = r.estado || 'Sin estado'; counts[k] = (counts[k] || 0) + 1; });
-            const colorMap = { 'Activo': COL.green, 'Inactivo': COL.slate, 'En mantenimiento': COL.amber, 'Baja': COL.red };
+            const colorMap = { 'Activo': COL.green, 'Mantenimiento': COL.amber, 'Baja': COL.red };
             const labels = Object.keys(counts).filter(k => counts[k] > 0);
             _charts.estado = new Chart(c4, {
                 type: 'bar',
@@ -455,13 +455,24 @@
 
     // ─── VALIDACIONES ────────────────────────────────────────────────
     function validateForm() {
+        const codigo  = document.getElementById(`${PREFIX}-f-codigo`)?.value?.trim();
         const numEco  = document.getElementById(`${PREFIX}-f-numeco`)?.value?.trim();
         const marca   = document.getElementById(`${PREFIX}-f-marca`)?.value?.trim();
+        const tipo    = document.getElementById(`${PREFIX}-f-tipo`)?.value;
         const estado  = document.getElementById(`${PREFIX}-f-estado`)?.value;
 
+        if (!codigo) return '⚠ El código AIFA es obligatorio.';
         if (!numEco) return '⚠ El número económico es obligatorio.';
         if (!marca)  return '⚠ La marca es obligatoria.';
+        if (!tipo)   return '⚠ El tipo de vehículo es obligatorio.';
         if (!estado) return '⚠ El estado del vehículo es obligatorio.';
+
+        // codigo_aifa tiene una restricción UNIQUE en la base de datos.
+        const dupCodigo = _allData.find(r =>
+            r.codigo_aifa?.trim().toLowerCase() === codigo.toLowerCase() &&
+            String(r.id) !== String(_editId)
+        );
+        if (dupCodigo) return `⚠ Ya existe un vehículo con código AIFA "${codigo}".`;
 
         // Verificar duplicado (por numero_economico), excepto al editar el mismo
         const dup = _allData.find(r =>
@@ -480,7 +491,7 @@
     }
 
     function clearModal() {
-        [`${PREFIX}-f-numeco`, `${PREFIX}-f-marca`, `${PREFIX}-f-tipo`,
+        [`${PREFIX}-f-codigo`, `${PREFIX}-f-numeco`, `${PREFIX}-f-marca`, `${PREFIX}-f-tipo`,
          `${PREFIX}-f-placas`, `${PREFIX}-f-color`, `${PREFIX}-f-serie`,
          `${PREFIX}-f-combustible`, `${PREFIX}-f-transmision`,
          `${PREFIX}-f-estado`, `${PREFIX}-f-notas`
@@ -516,6 +527,7 @@
                 const el = document.getElementById(elId);
                 if (el) el.value = val ?? '';
             };
+            set(`${PREFIX}-f-codigo`,      rec.codigo_aifa);
             set(`${PREFIX}-f-numeco`,      rec.numero_economico);
             set(`${PREFIX}-f-marca`,       rec.marca);
             set(`${PREFIX}-f-placas`,      rec.placas);
@@ -556,6 +568,7 @@
             if (err) { setModalMsg(err, 'warning'); return; }
 
             const payload = {
+                codigo_aifa:      document.getElementById(`${PREFIX}-f-codigo`)?.value?.trim().toUpperCase() || null,
                 numero_economico: document.getElementById(`${PREFIX}-f-numeco`)?.value?.trim()  || null,
                 marca:            document.getElementById(`${PREFIX}-f-marca`)?.value?.trim()   || null,
                 tipo_vehiculo:    document.getElementById(`${PREFIX}-f-tipo`)?.value           || null,
@@ -578,7 +591,15 @@
             } else {
                 ({ error: dbErr } = await sb.from('catalogo_vehiculos').insert(payload));
             }
-            if (dbErr) throw dbErr;
+            if (dbErr) {
+                if (dbErr.code === '23505' && String(dbErr.message || '').includes('codigo_aifa')) {
+                    throw new Error('Ya existe un vehículo con ese código AIFA. Usa un código diferente.');
+                }
+                if (dbErr.code === '23514' && String(dbErr.message || '').includes('estado')) {
+                    throw new Error('El estado seleccionado no es válido. Elige Activo, Mantenimiento o Baja.');
+                }
+                throw dbErr;
+            }
 
             setModalMsg('<i class="fas fa-check-circle me-1"></i>Guardado correctamente.', 'success');
             setTimeout(async () => {
