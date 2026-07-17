@@ -174,9 +174,10 @@
     <script src="js/realtime.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> 
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1"></script>
     <!-- Chart.js for visualizations -->
 
     <!-- jQuery (Required for DataTables & PivotTable.js) -->
@@ -1473,6 +1474,9 @@ FF
                                         <div class="si-body si-body--ger">
                                             <a class="menu-item si-link si-link--l2" href="#" data-section="bhs">
                                                 <i class="fas fa-suitcase-rolling si-ico"></i><span class="si-txt">BHS — Manejo de Maletas</span>
+                                            </a>
+                                            <a class="menu-item si-link si-link--l2" href="#" data-section="bhs-estadisticas-equipaje">
+                                                <i class="fas fa-chart-line si-ico"></i><span class="si-txt">Estadísticas de Equipaje del BHS</span>
                                             </a>
                                         </div>
                                     </div>
@@ -5129,10 +5133,53 @@ FF
                 }
                 function fmtNum(n){ return n==null?'—':new Intl.NumberFormat('es-MX').format(n); }
                 function today(){ return new Date().toISOString().slice(0,10); }
+                function pad2(n){ return String(n).padStart(2,'0'); }
+                function bhsNormalizeDate(value){
+                    if(value == null || value === '') return null;
+                    if(value instanceof Date && !isNaN(value.getTime())){
+                        return value.toISOString().slice(0,10);
+                    }
+                    if(typeof value === 'number' && isFinite(value)){
+                        var excelEpoch = new Date(Date.UTC(1899,11,30));
+                        var ms = excelEpoch.getTime() + (value * 86400000);
+                        var dNum = new Date(ms);
+                        if(!isNaN(dNum.getTime())) return dNum.toISOString().slice(0,10);
+                    }
+                    var raw = String(value).trim();
+                    if(!raw) return null;
+                    if(/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
+                    var compact = raw.replace(/[.\/]/g,'-').replace(/\s+/g,'');
+                    var m;
+                    if((m = compact.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/))){
+                        return m[1]+'-'+pad2(m[2])+'-'+pad2(m[3]);
+                    }
+                    if((m = compact.match(/^(\d{1,2})-(\d{1,2})-(\d{2,4})$/))){
+                        var year = m[3].length === 2 ? ('20'+m[3]) : m[3];
+                        return year+'-'+pad2(m[2])+'-'+pad2(m[1]);
+                    }
+                    var parsed = new Date(raw);
+                    if(!isNaN(parsed.getTime())) return parsed.toISOString().slice(0,10);
+                    return null;
+                }
+                function bhsNormalizeDateInput(el){
+                    if(!el) return null;
+                    var normalized = bhsNormalizeDate(el.value);
+                    if(normalized) el.value = normalized;
+                    return normalized;
+                }
+                function bhsToInt(v){
+                    if(v == null || v === '') return 0;
+                    if(typeof v === 'number') return Math.trunc(v);
+                    var cleaned = String(v).replace(/[^\d-]/g,'').trim();
+                    if(!cleaned || cleaned === '-') return 0;
+                    var n = parseInt(cleaned,10);
+                    return isNaN(n) ? 0 : n;
+                }
                 // YYYY-MM-DD → DD-MM-YY
                 function fmtDate(iso){
                     if(!iso) return '—';
-                    var p=String(iso).split('-');
+                    var normalized = bhsNormalizeDate(iso) || String(iso);
+                    var p=String(normalized).split('-');
                     if(p.length!==3) return iso;
                     return p[2]+'-'+p[1]+'-'+p[0].slice(2);
                 }
@@ -5259,10 +5306,11 @@ FF
                     var okBtn=document.getElementById('bhs-date-modal-ok');
                     if(okBtn) okBtn.addEventListener('click',function(){
                         var inp=document.getElementById('bhs-date-modal-input');
-                        if(!inp||!inp.value){alert('Selecciona una fecha');return;}
+                        var normalizedDate = bhsNormalizeDateInput(inp);
+                        if(!inp||!normalizedDate){alert('Selecciona una fecha válida');return;}
                         // sync main date filter
                         var df=document.getElementById('bhs-date-filter');
-                        if(df) df.value=inp.value;
+                        if(df) df.value=normalizedDate;
                         var modal=bootstrap.Modal.getInstance(document.getElementById('bhs-date-modal'));
                         if(modal) modal.hide();
                         if(_bhsPendingFile) bhsProcess(_bhsPendingFile,_bhsPendingType);
@@ -5286,17 +5334,24 @@ FF
 
                 // ── date loader (from Supabase) ───────────────────────────────
                 window.bhsLoadDate=function(){
-                    var d=document.getElementById('bhs-date-filter').value;
-                    if(!d){ alert('Selecciona una fecha'); return; }
+                    var d=bhsNormalizeDateInput(document.getElementById('bhs-date-filter'));
+                    if(!d){ alert('Selecciona una fecha válida'); return; }
                     bhsLoadFromDB(d);
                 };
 
                 function bhsLoadFromDB(fecha){
                     var client=window.supabaseClient;
                     if(!client) return;
+                    fecha = bhsNormalizeDate(fecha);
+                    if(!fecha){
+                        console.error('[BHS] Fecha inválida para consulta:', fecha);
+                        return Promise.reject(new Error('Fecha inválida'));
+                    }
+                    var df=document.getElementById('bhs-date-filter');
+                    if(df) df.value = fecha;
                     document.getElementById('bhs-loaded-date').textContent='Cargando '+fmtDate(fecha)+'…';
 
-                    Promise.all([
+                    return Promise.all([
                         client.from('bhs_arrivals').select('*').eq('fecha',fecha),
                         client.from('bhs_departures').select('*').eq('fecha',fecha),
                         client.from('bhs_bags_without_flight').select('*').eq('fecha',fecha)
@@ -5305,8 +5360,14 @@ FF
                         if(!results[1].error){ bhsRenderDepartures(results[1].data||[]); _bhsTabDate.dep=fecha; }
                         if(!results[2].error){ bhsRenderBWF(results[2].data||[]); _bhsTabDate.bwf=fecha; }
                         bhsUpdateDateBadge();
+                        return {
+                            arrivals: (results[0] && !results[0].error) ? (results[0].data||[]) : [],
+                            departures: (results[1] && !results[1].error) ? (results[1].data||[]) : [],
+                            bwf: (results[2] && !results[2].error) ? (results[2].data||[]) : []
+                        };
                     }).catch(function(err){
                         console.error('BHS load error',err);
+                        throw err;
                     });
                 }
 
@@ -5347,19 +5408,38 @@ FF
                             var diagTxt=document.getElementById('bhs-col-diag-text');
                             if(diagEl&&diagTxt){diagEl.classList.remove('d-none');diagTxt.textContent=' '+colNames;}
                             if(status) status.innerHTML='<small style="color:#0891b2">Detectadas: '+colNames+'</small>';
-                            var fecha=document.getElementById('bhs-date-filter').value || today();
+                            var fecha=bhsNormalizeDate(document.getElementById('bhs-date-filter').value) || today();
                             var records;
                             if(type==='arrivals')        records=bhsParseArrivals(rows,fecha);
                             else if(type==='departures') records=bhsParseDepartures(rows,fecha);
                             else                         records=bhsParseBWF(rows,fecha);
                             console.log('[BHS] Records:',records.length,type,records.length?records[0]:'');
                             if(!records.length){if(card)card.classList.remove('loading');if(status)status.innerHTML='<span style="color:#dc2626">0 registros. Cols: '+colNames+'</span>';return;}
-                            bhsSaveToDB(type,fecha,records,function(err){
+                            bhsSaveToDB(type,fecha,records,function(err,meta){
                                 if(card) card.classList.remove('loading');
-                                if(err){if(card)card.classList.remove('ok');if(status)status.innerHTML='<span style="color:#dc2626">Error: '+(err.message||JSON.stringify(err))+'</span>';console.error('[BHS] Save error:',err);}
-                                else{if(card)card.classList.add('ok');if(status)status.innerHTML='<span style="color:#16a34a">&#x2713; '+records.length+' registros guardados</span>';
-                                    if(type==='arrivals')bhsRenderArrivals(records);else if(type==='departures')bhsRenderDepartures(records);else bhsRenderBWF(records);
-                                    document.getElementById('bhs-loaded-date').textContent='&#x1F4C5; '+fmtDate(fecha);}
+                                if(err){
+                                    if(card)card.classList.remove('ok');
+                                    if(status)status.innerHTML='<span style="color:#dc2626">Error: '+(err.message||JSON.stringify(err))+'</span>';
+                                    console.error('[BHS] Save error:',err);
+                                    return;
+                                }
+                                bhsLoadFromDB(fecha).then(function(loaded){
+                                    var loadedRows = type==='arrivals' ? loaded.arrivals : (type==='departures' ? loaded.departures : loaded.bwf);
+                                    if(!loadedRows.length){
+                                        if(card)card.classList.remove('ok');
+                                        if(status)status.innerHTML='<span style="color:#dc2626">Se leyeron '+meta.rowsRead+' filas y se intentaron guardar '+meta.validRows+', pero la consulta devolvió 0 registros para '+fmtDate(fecha)+'. Revisa la fecha o el esquema de datos.</span>';
+                                        console.error('[BHS] Import mismatch', { type:type, fecha:fecha, meta:meta, loadedRows:loadedRows.length });
+                                        return;
+                                    }
+                                    if(card)card.classList.add('ok');
+                                    if(status)status.innerHTML='<span style="color:#16a34a">&#x2713; '+loadedRows.length+' registros guardados y verificados</span>';
+                                    bhsLoadAvailableDates();
+                                    document.getElementById('bhs-loaded-date').textContent='&#x1F4C5; '+fmtDate(fecha);
+                                }).catch(function(loadErr){
+                                    if(card)card.classList.remove('ok');
+                                    if(status)status.innerHTML='<span style="color:#dc2626">Guardado incompleto: '+(loadErr.message||loadErr)+'</span>';
+                                    console.error('[BHS] Post-save reload error', loadErr, meta);
+                                });
                             });
                         }catch(err2){
                             if(card) card.classList.remove('loading');
@@ -5393,6 +5473,7 @@ FF
 
                 function bhsParseArrivals(rows,fecha){
                     var user=sessionStorage.getItem('user_fullname')||sessionStorage.getItem('currentUser')||'';
+                    var unique = new Set();
                     return rows.map(function(r){
                         var cComp=findCol(r,['compania','company','aerolinea','airline','cia']);
                         var cProc=findCol(r,['procedencia','origen','origin','proc']);
@@ -5403,18 +5484,30 @@ FF
                         var cTras=findCol(r,['tras','transito','transit','transfer']);
                         var cHora=findCol(r,['hora','sta','eta','arrival','llegada','hora_llegada','hora llegada','arr','scheduled']);
                         var horaVal=cHora?cellTime(r[cHora]):null;
-                        return {
+                        var compania = cComp ? String(r[cComp]).trim().toUpperCase() : '';
+                        var vuelo = cVuelo ? String(r[cVuelo]).trim() : '';
+                        var procedencia = cProc ? String(r[cProc]).trim().toUpperCase() : '';
+                        var plat = cPlat ? String(r[cPlat]).trim() : '';
+                        var rec = {
                             fecha:fecha, uploaded_by:user,
-                            vuelo:      cVuelo?String(r[cVuelo]).trim():'',
-                            compania:   cComp ?String(r[cComp]).trim().toUpperCase():'',
-                            procedencia:cProc ?String(r[cProc]).trim().toUpperCase():'',
-                            plat:       cPlat ?String(r[cPlat]).trim():'',
-                            total_maletas: parseInt(r[cTotal])||0,
-                            terminacion:   parseInt(r[cTerm])||0,
-                            tras:          parseInt(r[cTras])||0,
+                            vuelo:      vuelo,
+                            compania:   compania,
+                            procedencia:procedencia,
+                            plat:       plat,
+                            total_maletas: bhsToInt(cTotal ? r[cTotal] : 0),
+                            terminacion:   bhsToInt(cTerm ? r[cTerm] : 0),
+                            tras:          bhsToInt(cTras ? r[cTras] : 0),
                             _hora:         horaVal  // local-only, not persisted
                         };
-                    }).filter(function(r){ return r.compania; });
+                        var compNorm = norm(compania);
+                        var vueloNorm = norm(vuelo);
+                        if(!compania && !vuelo && !procedencia) return null;
+                        if(compNorm === 'compania' || compNorm === 'company' || compNorm === 'aerolinea' || vueloNorm === 'vuelo' || vueloNorm === 'flight') return null;
+                        var dedupeKey = [fecha, compania, vuelo, horaVal || '', procedencia].join('|');
+                        if(unique.has(dedupeKey)) return null;
+                        unique.add(dedupeKey);
+                        return rec;
+                    }).filter(function(r){ return r && r.compania; });
                 }
 
                 function bhsParseDepartures(rows,fecha){
@@ -5491,20 +5584,50 @@ FF
                 function bhsSaveToDB(type,fecha,records,cb){
                     var client=window.supabaseClient;
                     if(!client) return cb(new Error('No Supabase client'));
+                    var normalizedDate = bhsNormalizeDate(fecha);
+                    if(!normalizedDate) return cb(new Error('Fecha inválida para guardar'));
                     var table={'arrivals':'bhs_arrivals','departures':'bhs_departures','bwf':'bhs_bags_without_flight'}[type];
-                    // Delete existing records for this date first, then insert
-                    client.from(table).delete().eq('fecha',fecha).then(function(){
-                        if(!records.length) return cb(null);
-                        // Supabase insert in batches of 500
+                    var sanitized = records.map(function(record){
+                        var clean = {};
+                        Object.keys(record).forEach(function(key){
+                            if(key.charAt(0) === '_') return;
+                            clean[key] = record[key];
+                        });
+                        clean.fecha = normalizedDate;
+                        return clean;
+                    });
+                    console.log('[BHS] Save diagnostics', {
+                        type: type,
+                        table: table,
+                        fecha: normalizedDate,
+                        rowsRead: records.length,
+                        validRows: sanitized.length
+                    });
+                    client.from(table).delete().eq('fecha',normalizedDate).then(function(delRes){
+                        if(delRes && delRes.error) throw delRes.error;
+                        if(!sanitized.length) return cb(null, { rowsRead: records.length, validRows: 0, insertedRows: 0, updatedRows: 0, discardedRows: records.length });
                         var batches=[];
-                        for(var i=0;i<records.length;i+=500) batches.push(records.slice(i,i+500));
+                        for(var i=0;i<sanitized.length;i+=500) batches.push(sanitized.slice(i,i+500));
+                        var inserted = 0;
                         var chain=Promise.resolve();
                         batches.forEach(function(batch){
                             chain=chain.then(function(){
-                                return client.from(table).insert(batch);
+                                return client.from(table).insert(batch).then(function(insertRes){
+                                    if(insertRes && insertRes.error) throw insertRes.error;
+                                    inserted += batch.length;
+                                });
                             });
                         });
-                        chain.then(function(){ cb(null); }).catch(cb);
+                        chain.then(function(){
+                            cb(null, {
+                                rowsRead: records.length,
+                                validRows: sanitized.length,
+                                discardedRows: Math.max(0, records.length - sanitized.length),
+                                insertedRows: inserted,
+                                updatedRows: 0,
+                                fecha: normalizedDate
+                            });
+                        }).catch(cb);
                     }).catch(cb);
                 }
 
@@ -6177,7 +6300,12 @@ FF
 
                 })();
                 </script>
+
                 </div><!-- /bhs-section -->
+
+                <div id="bhs-estadisticas-equipaje-section" class="content-section">
+                    <div id="bhs-baggage-stats-root"></div>
+                </div>
 
                 <!-- FIDS Section -->
                 <div id="fids-section" class="content-section"></div>
@@ -33306,6 +33434,7 @@ FF
     <script src="js/catalogo-vehiculos.js?v=2"></script>
     <script src="js/ingenieria-civil.js?v=1"></script>
     <script src="js/capacidad-carga.js?v=4"></script>
+    <script src="js/bhs-baggage-stats.js?v=1"></script>
 
     <script src="js/data-manager.js"></script>
     <script src="js/permissions.js"></script>
