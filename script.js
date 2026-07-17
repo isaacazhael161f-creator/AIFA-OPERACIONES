@@ -19526,9 +19526,15 @@ async function _conciSaveBulkEdits() {
         const updates = [];
         const inserts = [];
 
-        const dirtyRows = Array.from(tbody.querySelectorAll('tr[data-dirty="1"]'));
+        // Las filas nuevas se identifican explícitamente: al salir del último
+        // editor una fila vacía puede perder la marca dirty aunque ya tenga datos.
+        const dirtyRows = Array.from(new Set([
+            ...tbody.querySelectorAll('tr[data-dirty="1"]'),
+            ...tbody.querySelectorAll('tr[data-conci-new="1"]'),
+        ]));
         dirtyRows.forEach(tr => {
             const rowId = String(tr.dataset.rowId || '').trim();
+            const isNewRow = tr.dataset.conciNew === '1';
             const changedPayload = {};
             const fullPayload = {};
 
@@ -19546,6 +19552,13 @@ async function _conciSaveBulkEdits() {
                 if (newRaw !== oldRaw) changedPayload[col] = normalized;
             });
 
+            // Para una fila nueva, usa todos los valores capturados (no sólo los
+            // que quedaron marcados como dirty) y no intentes guardar una fila vacía.
+            if (isNewRow && Object.keys(changedPayload).length === 0) {
+                Object.entries(fullPayload).forEach(([col, value]) => {
+                    if (value !== null && String(value).trim() !== '') changedPayload[col] = value;
+                });
+            }
             if (Object.keys(changedPayload).length === 0) return;
             if (rowId) updates.push({ id: rowId, payload: changedPayload });
             else {
