@@ -19171,6 +19171,13 @@ function _conciCommitCellRaw(td, nextRaw, moveNext, displayText) {
     td.textContent = displayText !== undefined ? displayText : nextRaw;
     td.title = 'Clic para editar';
 
+    // Guardado tipo Excel: al salir de una celda se persiste la fila sin esperar
+    // un botón global de Guardar.
+    if (tr && _conciEditMode) {
+        clearTimeout(tr._conciAutoSaveTimer);
+        tr._conciAutoSaveTimer = setTimeout(() => _conciAutoSaveRow(tr), 250);
+    }
+
     if (moveNext) {
         const nextCell = _conciGetNextEditableCell(td);
         if (nextCell) _conciActivateCellEditor(nextCell);
@@ -19356,9 +19363,9 @@ async function _conciWriteRowSafe(client, payload, rowId) {
         const req = client.from('Conciliación Manifiestos');
         const result = rowId
             ? await req.update(currentPayload).eq('id', rowId)
-            : await req.insert(currentPayload);
+            : await req.insert(currentPayload).select('id').maybeSingle();
 
-        if (!result.error) return { ok: true, adjusted: attempt > 0 };
+        if (!result.error) return { ok: true, adjusted: attempt > 0, data: result.data || null };
 
         const message = String(result.error.message || '');
         let mutated = false;
@@ -19398,6 +19405,74 @@ const typeValueMatch = message.match(/invalid input syntax for (?:type\s+)?(?:bi
     }
 
     return { ok: false, error: { message: 'Error desconocido al guardar.' } };
+}
+
+async function _conciAutoSaveRow(tr) {
+    if (!tr || !tr.isConnected || !_conciEditMode || !_conciCanCurrentUserEdit()) return;
+    if (tr._conciAutoSavePromise) return tr._conciAutoSavePromise;
+    const cells = Array.from(tr.querySelectorAll('td[data-col]'));
+    const payload = {};
+    cells.forEach(td => {
+        const col = td.dataset.col;
+        const liveInput = td.querySelector('input, textarea, select');
+        const raw = _conciNormalizeEditableCellText(
+            liveInput ? liveInput.value : (td.dataset.pendingRaw ?? td.dataset.raw ?? td.textContent)
+        );
+        if (raw) payload[col] = _conciPrepareValueForDatabase(col, raw);
+    });
+    // Si la fila nueva sólo tiene el mes capturado, usa la fecha actualmente
+    // seleccionada en el filtro como fecha inicial del registro.
+    if (tr.dataset.conciNew === '1' && !payload.FECHA) {
+        const year = Number(document.getElementById('filter-conci-manifiestos-year')?.value);
+        const month = Number(document.getElementById('filter-conci-manifiestos-month')?.value);
+        const day = Number(document.getElementById('filter-conci-manifiestos-day')?.value);
+        if (year && month && day) payload.FECHA = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    }
+    if (!Object.keys(payload).length) return;
+
+    tr._conciAutoSavePromise = (async () => {
+        try {
+            let client = window.supabaseClient;
+            if (!client && window.ensureSupabaseClient) client = await window.ensureSupabaseClient();
+            if (!client) throw new Error('No se pudo inicializar el cliente de Supabase.');
+            const rowId = String(tr.dataset.rowId || '').trim();
+            const result = await _conciWriteRowSafe(client, payload, rowId || null);
+            if (!result.ok) {
+                // Conserva la fila y sus valores para que el usuario pueda corregir
+                // el campo que causó el error; nunca se elimina silenciosamente.
+                tr.title = `Pendiente de guardar: ${result.error?.message || 'error de base de datos'}`;
+                tr.classList.add('table-warning');
+                console.warn('[Conciliación] fila pendiente de guardar:', result.error);
+                return;
+            }
+            const inserted = Array.isArray(result.data) ? result.data[0] : result.data;
+            if (!rowId && inserted?.id !== undefined && inserted?.id !== null) {
+                tr.dataset.rowId = String(inserted.id);
+                tr.removeAttribute('data-conci-new');
+                const action = tr.querySelector('.conci-delete-new-row');
+                if (action) {
+                    action.classList.remove('conci-delete-new-row');
+                    action.classList.add('conci-delete-row');
+                    action.dataset.rowId = String(inserted.id);
+                }
+            }
+            cells.forEach(td => {
+                const raw = _conciNormalizeEditableCellText(td.dataset.pendingRaw ?? td.dataset.raw ?? td.textContent);
+                td.dataset.origRaw = raw;
+                td.removeAttribute('data-dirty');
+            });
+            tr.removeAttribute('data-dirty');
+            tr.classList.remove('table-warning');
+            tr.removeAttribute('title');
+        } catch (error) {
+            tr.title = `Pendiente de guardar: ${error.message || error}`;
+            tr.classList.add('table-warning');
+            console.warn('[Conciliación] error de guardado automático:', error);
+        } finally {
+            tr._conciAutoSavePromise = null;
+        }
+    })();
+    return tr._conciAutoSavePromise;
 }
 
 function _conciBindRowActions() {
