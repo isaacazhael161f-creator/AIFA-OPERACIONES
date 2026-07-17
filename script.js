@@ -19224,8 +19224,10 @@ function _conciCommitCellRaw(td, nextRaw, moveNext, displayText) {
         clearTimeout(tr._conciAutoSaveTimer);
         tr._conciAutoSaveTimer = setTimeout(() => _conciAutoSaveRow(tr), 250);
     }
-    const role = String(sessionStorage.getItem('user_role') || '').trim().toLowerCase();
-    if (btnAirlineColors) btnAirlineColors.classList.toggle('d-none', !['admin', 'superadmin'].includes(role));
+    // El rol puede venir de sessionStorage, del gestor de sesión o de la caché
+    // de permisos; usa el mismo criterio que el resto de Conciliación para que
+    // el acceso no desaparezca según la forma en que inició sesión el usuario.
+    if (btnAirlineColors) btnAirlineColors.classList.toggle('d-none', !canEdit);
 
     if (moveNext) {
         const nextCell = _conciGetNextEditableCell(td);
