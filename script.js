@@ -18822,7 +18822,14 @@ function _renderConciManifiestosTable(data, columns, fallbackYear) {
                 } else if (meta.isOptype) {
                     const routingRaw = _routingCol ? String(row[_routingCol] || '') : '';
                     const tipoRaw = _tipoCol ? String(row[_tipoCol] || '') : '';
-                    const op = resolveOptype(routingRaw, tipoRaw);
+                    // Conserva una clasificación manual guardada (Nacional /
+                    // Internacional); sólo calcula automáticamente cuando el
+                    // valor almacenado es un código de servicio u otro texto.
+                    const storedOptype = String(row[c] || '').trim();
+                    const manualOptype = /^(nacional|internacional)$/i.test(storedOptype)
+                        ? storedOptype.charAt(0).toUpperCase() + storedOptype.slice(1).toLowerCase()
+                        : '';
+                    const op = manualOptype || resolveOptype(routingRaw, tipoRaw);
                     if (op) {
                         const isNac = op === 'Nacional';
                         const badge = document.createElement('span');
