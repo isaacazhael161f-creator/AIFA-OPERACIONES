@@ -16856,10 +16856,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const btnConciRefresh = document.getElementById('btn-conci-refresh');
     const btnConciEdit = document.getElementById('btn-conci-edit-mode');
+    const btnConciAdd = document.getElementById('btn-conci-add-row');
     const btnConciSave = document.getElementById('btn-conci-save-mode');
     const btnConciCancel = document.getElementById('btn-conci-cancel-mode');
     if (btnConciRefresh) btnConciRefresh.addEventListener('click', () => loadConciliacionManifiestos({ forceRefresh: true }));
     if (btnConciEdit) btnConciEdit.addEventListener('click', _conciEnterEditMode);
+    if (btnConciAdd) btnConciAdd.addEventListener('click', _conciAddBlankRow);
     if (btnConciSave) btnConciSave.addEventListener('click', _conciSaveBulkEdits);
     if (btnConciCancel) btnConciCancel.addEventListener('click', _conciCancelBulkEdits);
     window.addEventListener('admin-mode-changed', _conciRefreshEditToolbar);
@@ -17055,6 +17057,7 @@ function _conciRefreshEditToolbar() {
     const btnEdit = document.getElementById('btn-conci-edit-mode');
     const btnSave = document.getElementById('btn-conci-save-mode');
     const btnCancel = document.getElementById('btn-conci-cancel-mode');
+    const btnAdd = document.getElementById('btn-conci-add-row');
     const btnRefresh = document.getElementById('btn-conci-refresh');
     const yearSel = document.getElementById('filter-conci-manifiestos-year');
     const monthSel = document.getElementById('filter-conci-manifiestos-month');
@@ -17072,6 +17075,10 @@ function _conciRefreshEditToolbar() {
     if (btnCancel) {
         btnCancel.classList.toggle('d-none', !canEdit || !_conciEditMode);
         btnCancel.disabled = !canEdit;
+    }
+    if (btnAdd) {
+        btnAdd.classList.toggle('d-none', !canEdit || !_conciEditMode);
+        btnAdd.disabled = !canEdit || !_conciEditMode;
     }
 
     const controlsLocked = _conciEditMode;
@@ -18613,11 +18620,13 @@ function _renderConciManifiestosTable(data, columns, fallbackYear) {
 
     const thead = table.querySelector('thead');
     const tbody = table.querySelector('tbody');
+    _conciBindRowActions();
     thead.innerHTML = '';
     tbody.innerHTML = '';
 
     // Display columns: hide the internal marker columns
     const displayCols = (columns || (data.length ? Object.keys(data[0]) : [])).filter(c => !['_fuente', '_isPax', 'id', 'Año', 'Mes', 'Día'].includes(c));
+    const showRowActions = _conciCanCurrentUserEdit();
 
     // Detect semantic columns for smart city-name display in routing/origen cell
     const _tipoCol    = displayCols.find(c => /tipo.*(manif)/i.test(c)) || null;
@@ -18654,6 +18663,13 @@ function _renderConciManifiestosTable(data, columns, fallbackYear) {
         th.textContent = c;
         trHead.appendChild(th);
     });
+    if (showRowActions) {
+        const actionTh = document.createElement('th');
+        actionTh.className = 'text-nowrap conci-th conci-row-action-col';
+        actionTh.textContent = 'Acciones';
+        actionTh.dataset.conciAction = '1';
+        trHead.appendChild(actionTh);
+    }
     thead.appendChild(trHead);
     // Encabezado fijo vía CSS (position:sticky). Sin manipulación de transform
     // por JS para evitar el parpadeo al hacer scroll.
@@ -18892,6 +18908,25 @@ function _renderConciManifiestosTable(data, columns, fallbackYear) {
                 tr.appendChild(td);
             });
 
+            if (showRowActions) {
+                const actionTd = document.createElement('td');
+                actionTd.className = 'conci-row-action-col text-center';
+                actionTd.dataset.conciAction = '1';
+                const persistedId = String(row.id ?? '').trim();
+                if (persistedId) {
+                    const del = document.createElement('button');
+                    del.type = 'button';
+                    del.className = 'btn btn-sm btn-outline-danger conci-delete-row';
+                    del.title = 'Eliminar fila';
+                    del.innerHTML = '<i class="fas fa-trash-alt"></i>';
+                    del.dataset.rowId = persistedId;
+                    actionTd.appendChild(del);
+                } else {
+                    actionTd.innerHTML = '<span class="text-muted" title="Fila generada desde vuelos; no es un registro guardado">—</span>';
+                }
+                tr.appendChild(actionTd);
+            }
+
             frag.appendChild(tr);
         }
 
@@ -19010,6 +19045,8 @@ function _conciEnsureEditStyles() {
             text-align: center;
             letter-spacing: 0.5px;
         }
+        #table-conci-manifiestos .conci-row-action-col { display: none; }
+        #table-conci-manifiestos.conci-edit-mode .conci-row-action-col { display: table-cell; }
     `;
     document.head.appendChild(style);
 }
@@ -19342,6 +19379,91 @@ const typeValueMatch = message.match(/invalid input syntax for (?:type\s+)?(?:bi
     return { ok: false, error: { message: 'Error desconocido al guardar.' } };
 }
 
+function _conciBindRowActions() {
+    const table = document.getElementById('table-conci-manifiestos');
+    const tbody = table ? table.querySelector('tbody') : null;
+    if (!tbody || tbody.dataset.conciDeleteBound === 'true') return;
+    tbody.dataset.conciDeleteBound = 'true';
+    tbody.addEventListener('click', async (event) => {
+        const button = event.target.closest('.conci-delete-row, .conci-delete-new-row');
+        if (!button || !tbody.contains(button)) return;
+        event.preventDefault();
+        event.stopPropagation();
+        if (!_conciEditMode || !_conciCanCurrentUserEdit()) return;
+        const tr = button.closest('tr');
+        if (button.classList.contains('conci-delete-new-row')) {
+            tr?.remove();
+            return;
+        }
+        const rowId = String(button.dataset.rowId || tr?.dataset.rowId || '').trim();
+        if (!rowId) return;
+        if (!confirm('¿Eliminar esta fila de Conciliación? Esta acción no se puede deshacer.')) return;
+        button.disabled = true;
+        try {
+            let client = window.supabaseClient;
+            if (!client && window.ensureSupabaseClient) client = await window.ensureSupabaseClient();
+            if (!client) throw new Error('No se pudo inicializar el cliente de Supabase.');
+            const result = await client.from('Conciliación Manifiestos').delete().eq('id', rowId);
+            if (result.error) throw result.error;
+            _conciRenderCache.clear();
+            _conciRenderedKey = '';
+            await loadConciliacionManifiestos({ forceRefresh: true });
+        } catch (error) {
+            button.disabled = false;
+            alert('No se pudo eliminar la fila: ' + (error.message || error));
+        }
+    });
+}
+
+function _conciAddBlankRow() {
+    if (!_conciCanCurrentUserEdit()) {
+        alert('Solo usuarios editor o admin pueden agregar filas.');
+        return;
+    }
+    if (!_conciEditMode) _conciEnterEditMode();
+    const table = document.getElementById('table-conci-manifiestos');
+    const thead = table ? table.querySelector('thead') : null;
+    const tbody = table ? table.querySelector('tbody') : null;
+    const headerCells = thead ? Array.from(thead.querySelectorAll('th:not([data-conci-action])')) : [];
+    if (!tbody || !headerCells.length) {
+        alert('No hay columnas disponibles para crear una fila. Actualiza la tabla e inténtalo de nuevo.');
+        return;
+    }
+    const tr = document.createElement('tr');
+    tr.className = 'conci-row-tone-0';
+    tr.dataset.rowId = '';
+    tr.dataset.rowIndex = 'new';
+    tr.dataset.conciNew = '1';
+    tr.dataset.dirty = '1';
+    headerCells.forEach((th) => {
+        const col = th.textContent.trim();
+        const td = document.createElement('td');
+        td.className = 'conci-cell';
+        td.dataset.col = col;
+        td.dataset.raw = '';
+        td.dataset.origRaw = '';
+        td.dataset.pendingRaw = '';
+        td.title = 'Clic para editar';
+        td.textContent = '';
+        tr.appendChild(td);
+    });
+    const actionTd = document.createElement('td');
+    actionTd.className = 'conci-row-action-col text-center';
+    actionTd.dataset.conciAction = '1';
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.className = 'btn btn-sm btn-outline-danger conci-delete-new-row';
+    remove.title = 'Quitar fila nueva';
+    remove.innerHTML = '<i class="fas fa-trash-alt"></i>';
+    actionTd.appendChild(remove);
+    tr.appendChild(actionTd);
+    tbody.appendChild(tr);
+    tbody.scrollTop = tbody.scrollHeight;
+    _conciBindRowActions();
+    const firstCell = tr.querySelector('td[data-col]');
+    if (firstCell) _conciActivateCellEditor(firstCell);
+}
+
 async function _conciRunBatchWrites(items, batchSize, worker) {
     const results = [];
     for (let i = 0; i < items.length; i += batchSize) {
@@ -19429,7 +19551,7 @@ async function _conciSaveBulkEdits() {
             else {
                 const hasMeaningfulValue = Object.values(changedPayload)
                     .some(v => v !== null && String(v).trim() !== '');
-                if (hasMeaningfulValue) inserts.push(fullPayload);
+                if (hasMeaningfulValue) inserts.push(changedPayload);
             }
         });
 
