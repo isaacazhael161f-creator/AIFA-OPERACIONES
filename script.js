@@ -16857,14 +16857,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnConciRefresh = document.getElementById('btn-conci-refresh');
     const btnConciEdit = document.getElementById('btn-conci-edit-mode');
     const btnConciAdd = document.getElementById('btn-conci-add-row');
+    const btnConciAirlineColors = document.getElementById('btn-conci-airline-colors');
     const btnConciSave = document.getElementById('btn-conci-save-mode');
     const btnConciCancel = document.getElementById('btn-conci-cancel-mode');
     if (btnConciRefresh) btnConciRefresh.addEventListener('click', () => loadConciliacionManifiestos({ forceRefresh: true }));
     if (btnConciEdit) btnConciEdit.addEventListener('click', _conciEnterEditMode);
     if (btnConciAdd) btnConciAdd.addEventListener('click', _conciAddBlankRow);
+    if (btnConciAirlineColors) btnConciAirlineColors.addEventListener('click', _conciOpenAirlineColors);
     if (btnConciSave) btnConciSave.addEventListener('click', _conciSaveBulkEdits);
     if (btnConciCancel) btnConciCancel.addEventListener('click', _conciCancelBulkEdits);
     window.addEventListener('admin-mode-changed', _conciRefreshEditToolbar);
+    window.addEventListener('airline-catalog-updated', () => {
+        _conciAirlineCatalogLoaded = false;
+        _conciRenderCache.clear();
+        if (document.getElementById('table-conci-manifiestos')) {
+            loadConciliacionManifiestos({ forceRefresh: true });
+        }
+    });
     _conciRefreshEditToolbar();
 });
 
@@ -16976,6 +16985,36 @@ async function _ensureConciAirlineCatalog() {
             });
         });
 
+        // La configuración administrable de Gestión de Datos es la fuente de
+        // verdad para colores, nombres, alias y códigos IATA. El JSON sólo sirve
+        // como catálogo base cuando no hay conexión o una aerolínea aún no está
+        // configurada en Supabase.
+        try {
+            const sb = window.supabaseClient || (window.ensureSupabaseClient && await window.ensureSupabaseClient());
+            if (sb) {
+                const { data: managedAirlines } = await sb.from('airlines')
+                    .select('name, iata, aliases, color, text_color')
+                    .eq('active', true)
+                    .limit(1000);
+                (managedAirlines || []).forEach(item => {
+                    const meta = {
+                        name: String(item.name || item.iata || '').trim(),
+                        color: String(item.color || '#6c757d').trim(),
+                        textColor: String(item.text_color || '#ffffff').trim(),
+                        iata: String(item.iata || '').trim().toUpperCase(),
+                    };
+                    if (!meta.name) return;
+                    if (meta.iata) _conciAirlineCodeMap.set(meta.iata, meta);
+                    [meta.name].concat(Array.isArray(item.aliases) ? item.aliases : [])
+                        .map(a => _conciNormalizeAirlineName(a))
+                        .filter(Boolean)
+                        .forEach(alias => _conciAirlineAliasMap.set(alias, meta));
+                });
+            }
+        } catch (managedErr) {
+            console.warn('[Conciliación] No se pudo cargar el catálogo administrable de aerolíneas:', managedErr);
+        }
+
         try {
             const masterRes = await fetch('data/master/airlines.csv', { cache: 'force-cache' });
             if (masterRes.ok) {
@@ -17058,6 +17097,7 @@ function _conciRefreshEditToolbar() {
     const btnSave = document.getElementById('btn-conci-save-mode');
     const btnCancel = document.getElementById('btn-conci-cancel-mode');
     const btnAdd = document.getElementById('btn-conci-add-row');
+    const btnAirlineColors = document.getElementById('btn-conci-airline-colors');
     const btnRefresh = document.getElementById('btn-conci-refresh');
     const yearSel = document.getElementById('filter-conci-manifiestos-year');
     const monthSel = document.getElementById('filter-conci-manifiestos-month');
@@ -19184,6 +19224,8 @@ function _conciCommitCellRaw(td, nextRaw, moveNext, displayText) {
         clearTimeout(tr._conciAutoSaveTimer);
         tr._conciAutoSaveTimer = setTimeout(() => _conciAutoSaveRow(tr), 250);
     }
+    const role = String(sessionStorage.getItem('user_role') || '').trim().toLowerCase();
+    if (btnAirlineColors) btnAirlineColors.classList.toggle('d-none', !['admin', 'superadmin'].includes(role));
 
     if (moveNext) {
         const nextCell = _conciGetNextEditableCell(td);
@@ -19332,6 +19374,16 @@ function _conciCoerceNumberCandidate(value) {
     if (/^[-+]?\d+$/.test(normalized)) return parseInt(normalized, 10);
     if (/^[-+]?\d*\.\d+$/.test(normalized)) return parseFloat(normalized);
     return null;
+}
+
+function _conciOpenAirlineColors() {
+    if (typeof showSection === 'function') showSection('data-management', document.getElementById('data-management-menu'));
+    setTimeout(() => {
+        const tab = document.getElementById('tab-aerolineas');
+        if (tab && window.bootstrap?.Tab) window.bootstrap.Tab.getOrCreateInstance(tab).show();
+        const pane = document.getElementById('pane-aerolineas');
+        if (pane) pane.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 150);
 }
 
 function _conciPrepareValueForDatabase(col, value) {
