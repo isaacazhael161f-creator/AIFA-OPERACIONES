@@ -729,8 +729,8 @@ FF
         #conci-manifiestos-scroll {
             position: relative;
             max-height: 620px;
-            overflow-y: auto;
-            overflow-x: auto;
+            overflow: auto !important;
+            width: 100%;
             -webkit-overflow-scrolling: touch;
             overscroll-behavior: contain;
             /* Barra de scroll ancha estilo Excel (Firefox). */
@@ -766,7 +766,8 @@ FF
         #table-conci-manifiestos {
             border-collapse: separate;
             border-spacing: 0;
-            min-width: max-content;
+            width: max-content !important;
+            min-width: 100%;
             table-layout: auto;
             /* Override .table { overflow:hidden } para que los <th> sticky se
                anclen al contenedor con scroll real (#conci-manifiestos-scroll). */
