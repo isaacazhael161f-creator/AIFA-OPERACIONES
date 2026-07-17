@@ -19320,6 +19320,27 @@ function _conciCoerceNumberCandidate(value) {
     return null;
 }
 
+function _conciPrepareValueForDatabase(col, value) {
+    if (value === null || value === undefined) return null;
+    const raw = String(value).trim();
+    if (!raw) return null;
+    if (/^mes$/i.test(String(col || ''))) {
+        const monthNames = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+        const normalizedMonth = raw.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        const monthIndex = monthNames.indexOf(normalizedMonth);
+        if (monthIndex >= 0) return monthIndex + 1;
+        const numericMonth = Number(raw);
+        if (Number.isInteger(numericMonth) && numericMonth >= 1 && numericMonth <= 12) return numericMonth;
+    }
+    const dateMatch = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2}))?$/);
+    if (dateMatch) {
+        const [, day, month, year, hour, minute] = dateMatch;
+        const iso = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        return hour ? `${iso} ${String(hour).padStart(2, '0')}:${minute}:00` : iso;
+    }
+    return value;
+}
+
 async function _conciWriteRowSafe(client, payload, rowId) {
     let currentPayload = { ...payload };
 
@@ -19540,13 +19561,21 @@ async function _conciSaveBulkEdits() {
 
             tr.querySelectorAll('td[data-col]').forEach(td => {
                 const col = td.dataset.col;
+                // En una fila recién creada, el último input puede seguir abierto
+                // cuando se pulsa Guardar. Usa también el valor visible del input
+                // o de la celda para no perder la captura por el blur.
+                const liveInput = td.querySelector('input, textarea, select');
+                const liveValue = liveInput ? liveInput.value : td.textContent;
+                const pendingValue = td.dataset.pendingRaw !== undefined ? td.dataset.pendingRaw : td.dataset.raw;
                 const newRaw = _conciNormalizeEditableCellText(
-                    td.dataset.pendingRaw !== undefined ? td.dataset.pendingRaw : td.dataset.raw
+                    (isNewRow && !String(pendingValue || '').trim() && String(liveValue || '').trim())
+                        ? liveValue
+                        : pendingValue
                 );
                 const oldRaw = _conciNormalizeEditableCellText(
                     td.dataset.origRaw !== undefined ? td.dataset.origRaw : td.dataset.raw
                 );
-                const normalized = newRaw === '' ? null : newRaw;
+                const normalized = newRaw === '' ? null : _conciPrepareValueForDatabase(col, newRaw);
 
                 fullPayload[col] = normalized;
                 if (newRaw !== oldRaw) changedPayload[col] = normalized;
@@ -19554,7 +19583,7 @@ async function _conciSaveBulkEdits() {
 
             // Para una fila nueva, usa todos los valores capturados (no sólo los
             // que quedaron marcados como dirty) y no intentes guardar una fila vacía.
-            if (isNewRow && Object.keys(changedPayload).length === 0) {
+            if (isNewRow) {
                 Object.entries(fullPayload).forEach(([col, value]) => {
                     if (value !== null && String(value).trim() !== '') changedPayload[col] = value;
                 });
