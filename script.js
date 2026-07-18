@@ -1160,10 +1160,9 @@ function buildAviationAnalyticsFromDB(monthlyRows, annualRows) {
                     }
                 });
 
-                // Use dbTotal if no monthly data found
-                if (!hasMonthly && result[scope][metric].years[year].dbTotal) {
-                    yearTotal = result[scope][metric].years[year].dbTotal;
-                }
+                // annual_operations is authoritative for annual/historical views.
+                const officialTotal = result[scope][metric].years[year].dbTotal;
+                if (Number.isFinite(officialTotal) && officialTotal > 0) yearTotal = officialTotal;
 
                 result[scope][metric].years[year].total = yearTotal;
                 grandTotal += yearTotal;
@@ -3652,6 +3651,40 @@ const SESSION_REFRESH_TOKEN = 'aifa.session.refresh_token';
 const SESSION_USER = 'currentUser';
 const SECRET_SALT = 'aifa.ops.local.salt.v1'; // cambia en prod
 let supabaseAuthBridgeBound = false;
+const OPERACIONES_ACCESS_ERROR = 'Tu usuario no tiene acceso asignado al aplicativo AIFA Operaciones.';
+const GLOBAL_APPLICATION_ROLES = ['superuser', 'superadmin'];
+
+/** Autorización de AIFA: nunca usar user_roles para roles normales de Operaciones. */
+async function getOperacionesAccess(user) {
+    if (!user?.id || !window.supabaseClient) return { allowed: false, error: new Error(OPERACIONES_ACCESS_ERROR) };
+    const { data, error } = await window.supabaseClient
+        .from('usuarios_aplicaciones')
+        .select('rol, permisos, estado, aplicaciones!inner(clave)')
+        .eq('usuario_id', user.id)
+        .eq('aplicaciones.clave', 'OPERACIONES')
+        .eq('estado', 'ACTIVO')
+        .limit(1)
+        .maybeSingle();
+    if (error) return { allowed: false, error };
+    if (data) return { allowed: true, role: data.rol || 'viewer', permissions: data.permisos || {} };
+
+    // La excepción global se valida después de no encontrar una asignación normal.
+    const { data: globalRole } = await window.supabaseClient
+        .from('user_roles').select('role').eq('user_id', user.id).maybeSingle();
+    if (GLOBAL_APPLICATION_ROLES.includes(String(globalRole?.role || '').toLowerCase())) {
+        return { allowed: true, role: globalRole.role, permissions: {} };
+    }
+    return { allowed: false, error: new Error(OPERACIONES_ACCESS_ERROR) };
+}
+
+async function rejectOperacionesAccess() {
+    try { await window.supabaseClient?.auth?.signOut(); } catch (_) {}
+    try { sessionStorage.clear(); } catch (_) {}
+    document.getElementById('main-app')?.classList.add('hidden');
+    document.getElementById('login-screen')?.classList.remove('hidden');
+    const msg = document.getElementById('login-error') || document.getElementById('login-msg');
+    if (msg) { msg.textContent = OPERACIONES_ACCESS_ERROR; msg.classList.remove('d-none'); msg.classList.add('text-danger'); }
+}
 
 function cacheSupabaseSession(session) {
     if (!session) return;
@@ -3666,11 +3699,9 @@ async function ensureRoleInSessionStorage(userId) {
     try {
         if (sessionStorage.getItem('user_role')) return;
         if (!window.supabaseClient || !userId) return;
-        const { data: roleData } = await window.supabaseClient
-            .from('user_roles')
-            .select('role, permissions')
-            .eq('user_id', userId)
-            .single();
+        const access = await getOperacionesAccess({ id: userId });
+        if (!access.allowed) { await rejectOperacionesAccess(); return; }
+        const roleData = { role: access.role, permissions: access.permissions };
 
         // Verificar si el usuario fue dado de baja
         if (roleData?.permissions?.estado === 'INACTIVO') {
@@ -3751,6 +3782,8 @@ async function restoreSessionFromSupabase() {
                 if (fallbackName) sessionStorage.setItem('user_fullname', fallbackName);
             }
         } catch (_) { }
+        const access = await getOperacionesAccess(session.user);
+        if (!access.allowed) { await rejectOperacionesAccess(); return false; }
         await ensureRoleInSessionStorage(session.user?.id);
         return true;
     } catch (_) {
@@ -4079,6 +4112,12 @@ async function handleLogin(e) {
             return;
         }
 
+        const operacionesAccess = await getOperacionesAccess(data.user);
+        if (!operacionesAccess.allowed) {
+            await rejectOperacionesAccess();
+            return;
+        }
+
         // Éxito
         sessionStorage.setItem(SESSION_USER, data.user.email);
         sessionStorage.setItem(SESSION_TOKEN, data.session.access_token);
@@ -4100,24 +4139,9 @@ async function handleLogin(e) {
         sessionStorage.setItem('user_fullname', fullName || data.user.email);
 
         // Obtener rol y permisos del usuario
-        let role = 'viewer';
-        try {
-            const { data: roleData } = await window.supabaseClient
-                .from('user_roles')
-                .select('role, permissions')
-                .eq('user_id', data.user.id)
-                .single();
-
-            if (roleData && roleData.role) {
-                role = roleData.role;
-            }
-            try {
-                const secs = roleData?.permissions?.allowed_sections;
-                if (Array.isArray(secs)) sessionStorage.setItem('user_allowed_sections', JSON.stringify(secs));
-            } catch (_) {}
-        } catch (e) {
-            console.warn('No se pudo obtener el rol del usuario, asignando viewer por defecto', e);
-        }
+        const role = operacionesAccess.role || 'viewer';
+        const secs = operacionesAccess.permissions?.allowed_sections;
+        if (Array.isArray(secs)) sessionStorage.setItem('user_allowed_sections', JSON.stringify(secs));
         sessionStorage.setItem('user_role', role);
 
         showMainApp();
@@ -11054,13 +11078,6 @@ function ndwGetMonthlyVal(cat, metric, yearStr, monthIdx) {
         // Fallback: derive from captured daily data (for current in-progress month)
         result = ndwComputeMonthFromDailyData(cat, metric, yearStr, monthIdx);
     }
-    // Ajustes permanentes Junio 2026
-    if (yearStr === '2026' && monthIdx === 5) {
-        if (cat === 'comercial' && metric === 'operaciones') result -= 196;
-        if (cat === 'comercial' && metric === 'pasajeros')   result -= 11080;
-        if (cat === 'carga'     && metric === 'operaciones') result += 16;
-        if (cat === 'carga'     && (metric === 'toneladas' || metricKey === 'tons_transportadas')) result -= 578;
-    }
     return result;
 }
 
@@ -11119,8 +11136,12 @@ function ndwGetMonthCutoff(yearStr) {
 
 function ndwGetAnnualVal(cat, metric, yearStr) {
     if (!AVIATION_ANALYTICS_DATA) return 0;
-    // Sum all available months (including current in-progress month from daily captures)
-    // so the annual total matches what the comparison charts show.
+    const metricKey = metric === 'toneladas' ? 'tons_transportadas' : metric;
+    const annual = AVIATION_ANALYTICS_DATA[cat]?.[metricKey]?.years?.[yearStr];
+    if (annual && Number.isFinite(Number(annual.dbTotal)) && Number(annual.dbTotal) > 0) {
+        return Number(annual.dbTotal);
+    }
+    // Fallback only when no official annual consolidation exists.
     const cutoff = ndwGetMonthCutoff(yearStr);
     let total = 0;
     for (let i = 0; i <= cutoff; i++) {
@@ -12276,6 +12297,20 @@ function showMainApp() {
             } catch (_) { }
             if (main) main.classList.add('hidden');
             if (login) login.classList.remove('hidden');
+            return;
+        }
+        // Incluso con token local válido, no mostrar el panel sin autorización
+        // vigente en usuarios_aplicaciones (evita saltarse el control por caché).
+        try {
+            const { data: sessionData } = await window.supabaseClient.auth.getSession();
+            const access = await getOperacionesAccess(sessionData?.session?.user);
+            if (!access.allowed) { await rejectOperacionesAccess(); return; }
+            sessionStorage.setItem('user_role', access.role || 'viewer');
+            if (access.permissions && Array.isArray(access.permissions.allowed_sections)) {
+                sessionStorage.setItem('user_allowed_sections', JSON.stringify(access.permissions.allowed_sections));
+            }
+        } catch (_) {
+            await rejectOperacionesAccess();
             return;
         }
         checkForAppUpdates().catch(() => { });
@@ -20283,17 +20318,21 @@ async function _conciSaveBulkEdits() {
         tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4"><i class="fas fa-spinner fa-spin me-2"></i>Cargando…</td></tr>';
 
         try {
-            const [{ data: users, error: ue }, { data: perms }] = await Promise.all([
+            const [{ data: allowedUsers, error: ae }, { data: users, error: ue }, { data: perms }] = await Promise.all([
+                window.supabaseClient.rpc('admin_list_operaciones_user_ids'),
                 window.supabaseClient
                     .from('v_usuarios_roles')
                     .select('user_id, email, full_name, username, role, created_at, last_sign_in_at, is_online')
                     .order('last_sign_in_at', { ascending: false, nullsFirst: false }),
                 window.supabaseClient.from('user_roles').select('user_id, permissions')
             ]);
+            if (ae) throw new Error('Falta aplicar la migración 004_operaciones_admin_access.sql en Supabase: ' + ae.message);
             if (ue) throw ue;
+            const allowedIds = new Set((allowedUsers || []).map(r => r.user_id));
             const pMap = {};
             (perms || []).forEach(r => pMap[r.user_id] = r.permissions || {});
-            _auRows = (users || []).map(u => ({ ...u, permissions: pMap[u.user_id] || {} }));
+            _auRows = (users || []).filter(u => allowedIds.has(u.user_id))
+                .map(u => ({ ...u, permissions: pMap[u.user_id] || {} }));
             _auUpdateStats();
             if (statusEl) statusEl.textContent = `${_auRows.length} usuario(s) — Actualizado ${new Date().toLocaleTimeString('es-MX')}`;
             auRenderRows();
@@ -21193,6 +21232,13 @@ async function _conciSaveBulkEdits() {
                 });
             if (re) throw re;
             if (rd && rd.ok === false) throw new Error(rd.error || 'Error asignando rol');
+
+            const { error: appAccessError } = await window.supabaseClient.rpc('admin_assign_operaciones_access', {
+                p_user_id: userId,
+                p_role: role,
+                p_permissions: { allowed_sections: allowedSections, section_levels: sectionLevels }
+            });
+            if (appAccessError) throw appAccessError;
 
             // Guardar clave de área en permissions.area
             const areaId    = gerenciaId || subdirId || dirId;
