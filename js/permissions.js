@@ -54,6 +54,14 @@
                  }
                  return;
             }
+
+            // El submodulo de estadisticas de equipaje comparte visibilidad con BHS
+            if (section === 'bhs-estadisticas-equipaje') {
+                if (!allowed.includes('bhs-estadisticas-equipaje') && !allowed.includes('bhs')) {
+                    item.classList.add('d-none-auth');
+                }
+                return;
+            }
            
             if (!allowed.includes(section)) {
                 item.classList.add('d-none-auth');

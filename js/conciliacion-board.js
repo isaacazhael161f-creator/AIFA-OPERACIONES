@@ -7,6 +7,93 @@
      setBoardDateMode, stepBoardOffset, applyBoardDateFilter,
      clearBoardDateFilter, selectBoardFlight.
    ======================================================================== */
+
+/** Número de vuelos visibles al cargar (como AODB muestra al inicio) */
+const BOARD_INITIAL_ROWS = 31;
+
+/** Estado de expansión por tabla: false = mostrar solo 31, true = mostrar todos */
+const boardExpanded = { arr: false, dep: false };
+
+/**
+ * Expande una tabla para mostrar todos sus vuelos.
+ * Llamada desde el botón "Mostrar todos" en el footer.
+ */
+function expandBoardTable(side) {
+    boardExpanded[side] = true;
+    const tbody = document.getElementById(`tbody-board-${side === 'arr' ? 'arrivals' : 'departures'}`);
+    if (!tbody) return;
+    Array.from(tbody.querySelectorAll('tr.board-over-limit')).forEach(r => {
+        r.classList.remove('board-over-limit');
+        r.style.display = '';
+    });
+    _updateBoardLoadMoreBtn(side);
+    filterBoardTables();
+}
+
+/** Aplica el límite inicial de BOARD_INITIAL_ROWS tras renderizar las filas. */
+function _applyBoardRowLimit(side) {
+    const tbody = document.getElementById(`tbody-board-${side === 'arr' ? 'arrivals' : 'departures'}`);
+    if (!tbody) return;
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+    const total = rows.length;
+
+    if (boardExpanded[side] || total <= BOARD_INITIAL_ROWS) {
+        rows.forEach(r => r.classList.remove('board-over-limit'));
+    } else {
+        rows.forEach((r, i) => {
+            if (i < BOARD_INITIAL_ROWS) {
+                r.classList.remove('board-over-limit');
+            } else {
+                r.classList.add('board-over-limit');
+                r.style.display = 'none';
+            }
+        });
+    }
+    _updateBoardLoadMoreBtn(side);
+}
+
+/** Actualiza (o elimina) el botón "Mostrar todos" en el tfoot de una tabla. */
+function _updateBoardLoadMoreBtn(side) {
+    const tbody = document.getElementById(`tbody-board-${side === 'arr' ? 'arrivals' : 'departures'}`);
+    const footerSpan = document.getElementById(`board-${side}-footer`);
+    const btnId = `board-${side}-load-more`;
+
+    if (!tbody) return;
+    const total = Array.from(tbody.querySelectorAll('tr')).length;
+    const hidden = Array.from(tbody.querySelectorAll('tr.board-over-limit')).length;
+    const shown = total - hidden;
+
+    // Actualizar el texto del contador
+    if (footerSpan) {
+        footerSpan.textContent = (!boardExpanded[side] && total > BOARD_INITIAL_ROWS)
+            ? `${shown} de ${total}`
+            : String(total);
+    }
+
+    // Obtener o crear el botón
+    let existing = document.getElementById(btnId);
+
+    if (!boardExpanded[side] && total > BOARD_INITIAL_ROWS) {
+        if (!existing) {
+            const tfoot = tbody.closest('table')?.querySelector('tfoot td');
+            if (tfoot) {
+                const btn = document.createElement('button');
+                btn.id = btnId;
+                btn.className = 'btn btn-sm btn-outline-secondary ms-2 py-0';
+                btn.style.fontSize = '.78rem';
+                btn.onclick = () => expandBoardTable(side);
+                tfoot.appendChild(btn);
+                existing = btn;
+            }
+        }
+        if (existing) {
+            existing.textContent = `Ver todos (${total})`;
+        }
+    } else {
+        if (existing) existing.remove();
+    }
+}
+
 async function toggleConciliacionBoard() {
     const board   = document.getElementById('conciliacion-board-view');
     const csvView = document.getElementById('conciliacion-csv-view');
@@ -53,6 +140,10 @@ function renderConciliacionBoard() {
     const cntDep   = document.getElementById('board-dep-count');
     const footArr  = document.getElementById('board-arr-footer');
     const footDep  = document.getElementById('board-dep-footer');
+
+    // Resetear expansión al re-renderizar con nuevos datos
+    boardExpanded.arr = false;
+    boardExpanded.dep = false;
 
     const arrivals   = (data || []).filter(r => (r['[Arr] Flight Designator'] || '').trim());
     const departures = (data || []).filter(r => (r['[Dep] Flight Designator'] || '').trim());
@@ -122,6 +213,8 @@ function renderConciliacionBoard() {
         }
     }
 
+    _applyBoardRowLimit('arr');
+    _applyBoardRowLimit('dep');
     filterBoardTables();
 }
 
@@ -151,12 +244,22 @@ function filterBoardTables() {
             dateTo   = win.to;
         }
 
+        const hasFilter = gt || colInputs.some(i => i.value.trim()) || (ds && ds.active);
+
         let visible = 0;
         const rows = Array.from(tbody.querySelectorAll('tr'));
         const total = rows.length;
 
         rows.forEach(r => {
             const text = r.textContent.toLowerCase();
+
+            // Si hay filtro activo, ignorar el límite de 31 filas para mostrar resultados
+            if (hasFilter) {
+                r.classList.remove('board-over-limit');
+            } else if (!boardExpanded[side] && r.classList.contains('board-over-limit')) {
+                r.style.display = 'none';
+                return;
+            }
 
             if (gt && !text.includes(gt)) {
                 r.style.display = 'none';
@@ -182,15 +285,29 @@ function filterBoardTables() {
             if (show) visible++;
         });
 
-        const hasFilter = gt || colInputs.some(i => i.value.trim()) || (ds && ds.active);
-        const label = hasFilter ? `${visible} / ${total} vuelos` : `${total} vuelos`;
-        if (badge)  badge.textContent  = label;
-        if (footer) footer.textContent = hasFilter ? `${visible} / ${total}` : String(total);
+        // Si el usuario filtra, ocultar el botón "Ver todos" y mostrar conteo filtrado
+        const btnLoadMore = document.getElementById(`board-${side}-load-more`);
+        if (hasFilter) {
+            if (btnLoadMore) btnLoadMore.style.display = 'none';
+            const label = `${visible} / ${total} vuelos`;
+            if (badge)  badge.textContent  = label;
+            if (footer) footer.textContent = `${visible} / ${total}`;
+        } else {
+            if (btnLoadMore) btnLoadMore.style.display = '';
+            _updateBoardLoadMoreBtn(side);
+            const shown = Array.from(tbody.querySelectorAll('tr')).filter(r => r.style.display !== 'none').length;
+            const label = (!boardExpanded[side] && total > BOARD_INITIAL_ROWS)
+                ? `${shown} de ${total} vuelos`
+                : `${total} vuelos`;
+            if (badge)  badge.textContent  = label;
+        }
     });
 }
 
 function clearBoardColFilters(side) {
     document.querySelectorAll(`.board-col-filter[data-table="${side}"]`).forEach(inp => inp.value = '');
+    // Restaurar límite inicial si no está expandida
+    if (!boardExpanded[side]) _applyBoardRowLimit(side);
     filterBoardTables();
 }
 
@@ -307,6 +424,8 @@ function clearBoardDateFilter(side) {
     const btn = document.getElementById(`btn-board-date-${side}`);
     if (btn) btn.classList.remove('active-date-filter');
     _updateBoardDateLabels(side);
+    // Restaurar límite inicial si no está expandida
+    if (!boardExpanded[side]) _applyBoardRowLimit(side);
     filterBoardTables();
 }
 

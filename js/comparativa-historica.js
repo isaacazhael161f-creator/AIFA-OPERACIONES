@@ -258,11 +258,6 @@
         const match = opsDataCache.find(d => d.year === yr && d.month === month);
         if (!match) return null;
         let val = currentMetric === 'operaciones' ? (match.comercial_ops || 0) : (match.comercial_pax || 0);
-        // Ajustes permanentes Junio 2026
-        if (yr === 2026 && month === 6) {
-            if (currentMetric === 'pasajeros')    val -= 11080;
-            if (currentMetric === 'operaciones')  val -= 196;
-        }
         return val;
     }
 

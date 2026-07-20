@@ -25,13 +25,16 @@ CREATE INDEX IF NOT EXISTS idx_bhs_arr_compania  ON bhs_arrivals(compania);
 
 ALTER TABLE bhs_arrivals ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "bhs_arrivals_read" ON bhs_arrivals;
 CREATE POLICY "bhs_arrivals_read"
     ON bhs_arrivals FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS "bhs_arrivals_insert" ON bhs_arrivals;
 CREATE POLICY "bhs_arrivals_insert"
     ON bhs_arrivals FOR INSERT
     WITH CHECK (auth.role() = 'authenticated');
 
+DROP POLICY IF EXISTS "bhs_arrivals_delete" ON bhs_arrivals;
 CREATE POLICY "bhs_arrivals_delete"
     ON bhs_arrivals FOR DELETE
     USING (auth.role() = 'authenticated');
@@ -64,13 +67,16 @@ CREATE INDEX IF NOT EXISTS idx_bhs_dep_compania  ON bhs_departures(compania);
 
 ALTER TABLE bhs_departures ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "bhs_departures_read" ON bhs_departures;
 CREATE POLICY "bhs_departures_read"
     ON bhs_departures FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS "bhs_departures_insert" ON bhs_departures;
 CREATE POLICY "bhs_departures_insert"
     ON bhs_departures FOR INSERT
     WITH CHECK (auth.role() = 'authenticated');
 
+DROP POLICY IF EXISTS "bhs_departures_delete" ON bhs_departures;
 CREATE POLICY "bhs_departures_delete"
     ON bhs_departures FOR DELETE
     USING (auth.role() = 'authenticated');
@@ -96,13 +102,16 @@ CREATE INDEX IF NOT EXISTS idx_bhs_bwf_compania ON bhs_bags_without_flight(compa
 
 ALTER TABLE bhs_bags_without_flight ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "bhs_bwf_read" ON bhs_bags_without_flight;
 CREATE POLICY "bhs_bwf_read"
     ON bhs_bags_without_flight FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS "bhs_bwf_insert" ON bhs_bags_without_flight;
 CREATE POLICY "bhs_bwf_insert"
     ON bhs_bags_without_flight FOR INSERT
     WITH CHECK (auth.role() = 'authenticated');
 
+DROP POLICY IF EXISTS "bhs_bwf_delete" ON bhs_bags_without_flight;
 CREATE POLICY "bhs_bwf_delete"
     ON bhs_bags_without_flight FOR DELETE
     USING (auth.role() = 'authenticated');

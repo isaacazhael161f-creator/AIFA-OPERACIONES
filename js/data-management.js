@@ -5807,6 +5807,7 @@ document.addEventListener('DOMContentLoaded', () => { setTimeout(() => window.da
         if (res.error) { alToast(`Error: ${res.error.message}`, 'danger'); return; }
         alGetModal()?.hide();
         alToast(`${alEditId ? 'Actualizada' : 'Creada'}: ${name}`, 'success');
+        window.dispatchEvent(new CustomEvent('airline-catalog-updated', { detail: { id, name, color } }));
         await alLoad();
     };
 
@@ -6159,6 +6160,5 @@ document.addEventListener('DOMContentLoaded', () => { setTimeout(() => window.da
         }
     });
 })();
-
 
 

@@ -1160,10 +1160,9 @@ function buildAviationAnalyticsFromDB(monthlyRows, annualRows) {
                     }
                 });
 
-                // Use dbTotal if no monthly data found
-                if (!hasMonthly && result[scope][metric].years[year].dbTotal) {
-                    yearTotal = result[scope][metric].years[year].dbTotal;
-                }
+                // annual_operations is authoritative for annual/historical views.
+                const officialTotal = result[scope][metric].years[year].dbTotal;
+                if (Number.isFinite(officialTotal) && officialTotal > 0) yearTotal = officialTotal;
 
                 result[scope][metric].years[year].total = yearTotal;
                 grandTotal += yearTotal;
@@ -3652,6 +3651,40 @@ const SESSION_REFRESH_TOKEN = 'aifa.session.refresh_token';
 const SESSION_USER = 'currentUser';
 const SECRET_SALT = 'aifa.ops.local.salt.v1'; // cambia en prod
 let supabaseAuthBridgeBound = false;
+const OPERACIONES_ACCESS_ERROR = 'Tu usuario no tiene acceso asignado al aplicativo AIFA Operaciones.';
+const GLOBAL_APPLICATION_ROLES = ['superuser', 'superadmin'];
+
+/** Autorización de AIFA: nunca usar user_roles para roles normales de Operaciones. */
+async function getOperacionesAccess(user) {
+    if (!user?.id || !window.supabaseClient) return { allowed: false, error: new Error(OPERACIONES_ACCESS_ERROR) };
+    const { data, error } = await window.supabaseClient
+        .from('usuarios_aplicaciones')
+        .select('rol, permisos, estado, aplicaciones!inner(clave)')
+        .eq('usuario_id', user.id)
+        .eq('aplicaciones.clave', 'OPERACIONES')
+        .eq('estado', 'ACTIVO')
+        .limit(1)
+        .maybeSingle();
+    if (error) return { allowed: false, error };
+    if (data) return { allowed: true, role: data.rol || 'viewer', permissions: data.permisos || {} };
+
+    // La excepción global se valida después de no encontrar una asignación normal.
+    const { data: globalRole } = await window.supabaseClient
+        .from('user_roles').select('role').eq('user_id', user.id).maybeSingle();
+    if (GLOBAL_APPLICATION_ROLES.includes(String(globalRole?.role || '').toLowerCase())) {
+        return { allowed: true, role: globalRole.role, permissions: {} };
+    }
+    return { allowed: false, error: new Error(OPERACIONES_ACCESS_ERROR) };
+}
+
+async function rejectOperacionesAccess() {
+    try { await window.supabaseClient?.auth?.signOut(); } catch (_) {}
+    try { sessionStorage.clear(); } catch (_) {}
+    document.getElementById('main-app')?.classList.add('hidden');
+    document.getElementById('login-screen')?.classList.remove('hidden');
+    const msg = document.getElementById('login-error') || document.getElementById('login-msg');
+    if (msg) { msg.textContent = OPERACIONES_ACCESS_ERROR; msg.classList.remove('d-none'); msg.classList.add('text-danger'); }
+}
 
 function cacheSupabaseSession(session) {
     if (!session) return;
@@ -3666,11 +3699,9 @@ async function ensureRoleInSessionStorage(userId) {
     try {
         if (sessionStorage.getItem('user_role')) return;
         if (!window.supabaseClient || !userId) return;
-        const { data: roleData } = await window.supabaseClient
-            .from('user_roles')
-            .select('role, permissions')
-            .eq('user_id', userId)
-            .single();
+        const access = await getOperacionesAccess({ id: userId });
+        if (!access.allowed) { await rejectOperacionesAccess(); return; }
+        const roleData = { role: access.role, permissions: access.permissions };
 
         // Verificar si el usuario fue dado de baja
         if (roleData?.permissions?.estado === 'INACTIVO') {
@@ -3751,6 +3782,8 @@ async function restoreSessionFromSupabase() {
                 if (fallbackName) sessionStorage.setItem('user_fullname', fallbackName);
             }
         } catch (_) { }
+        const access = await getOperacionesAccess(session.user);
+        if (!access.allowed) { await rejectOperacionesAccess(); return false; }
         await ensureRoleInSessionStorage(session.user?.id);
         return true;
     } catch (_) {
@@ -4079,6 +4112,12 @@ async function handleLogin(e) {
             return;
         }
 
+        const operacionesAccess = await getOperacionesAccess(data.user);
+        if (!operacionesAccess.allowed) {
+            await rejectOperacionesAccess();
+            return;
+        }
+
         // Éxito
         sessionStorage.setItem(SESSION_USER, data.user.email);
         sessionStorage.setItem(SESSION_TOKEN, data.session.access_token);
@@ -4100,24 +4139,9 @@ async function handleLogin(e) {
         sessionStorage.setItem('user_fullname', fullName || data.user.email);
 
         // Obtener rol y permisos del usuario
-        let role = 'viewer';
-        try {
-            const { data: roleData } = await window.supabaseClient
-                .from('user_roles')
-                .select('role, permissions')
-                .eq('user_id', data.user.id)
-                .single();
-
-            if (roleData && roleData.role) {
-                role = roleData.role;
-            }
-            try {
-                const secs = roleData?.permissions?.allowed_sections;
-                if (Array.isArray(secs)) sessionStorage.setItem('user_allowed_sections', JSON.stringify(secs));
-            } catch (_) {}
-        } catch (e) {
-            console.warn('No se pudo obtener el rol del usuario, asignando viewer por defecto', e);
-        }
+        const role = operacionesAccess.role || 'viewer';
+        const secs = operacionesAccess.permissions?.allowed_sections;
+        if (Array.isArray(secs)) sessionStorage.setItem('user_allowed_sections', JSON.stringify(secs));
         sessionStorage.setItem('user_role', role);
 
         showMainApp();
@@ -7200,6 +7224,27 @@ function handleNavigation(e) {
             try {
                 setTimeout(() => {
                     if (typeof window.initSseiEmergencias === 'function') window.initSseiEmergencias();
+                }, 200);
+            } catch (_) { }
+        }
+        if (section === 'personal-capacitado-prestadores') {
+            try {
+                setTimeout(() => {
+                    if (typeof window.initPersonalCapacitadoPrestadores === 'function') window.initPersonalCapacitadoPrestadores();
+                }, 200);
+            } catch (_) { }
+        }
+        if (section === 'valoraciones-medicas') {
+            try {
+                setTimeout(() => {
+                    if (typeof window.initValoracionesMedicas === 'function') window.initValoracionesMedicas();
+                }, 200);
+            } catch (_) { }
+        }
+        if (section === 'catalogo-vehiculos') {
+            try {
+                setTimeout(() => {
+                    if (typeof window.initCatalogoVehiculos === 'function') window.initCatalogoVehiculos();
                 }, 200);
             } catch (_) { }
         }
@@ -11033,13 +11078,6 @@ function ndwGetMonthlyVal(cat, metric, yearStr, monthIdx) {
         // Fallback: derive from captured daily data (for current in-progress month)
         result = ndwComputeMonthFromDailyData(cat, metric, yearStr, monthIdx);
     }
-    // Ajustes permanentes Junio 2026
-    if (yearStr === '2026' && monthIdx === 5) {
-        if (cat === 'comercial' && metric === 'operaciones') result -= 196;
-        if (cat === 'comercial' && metric === 'pasajeros')   result -= 11080;
-        if (cat === 'carga'     && metric === 'operaciones') result += 16;
-        if (cat === 'carga'     && (metric === 'toneladas' || metricKey === 'tons_transportadas')) result -= 578;
-    }
     return result;
 }
 
@@ -11098,8 +11136,12 @@ function ndwGetMonthCutoff(yearStr) {
 
 function ndwGetAnnualVal(cat, metric, yearStr) {
     if (!AVIATION_ANALYTICS_DATA) return 0;
-    // Sum all available months (including current in-progress month from daily captures)
-    // so the annual total matches what the comparison charts show.
+    const metricKey = metric === 'toneladas' ? 'tons_transportadas' : metric;
+    const annual = AVIATION_ANALYTICS_DATA[cat]?.[metricKey]?.years?.[yearStr];
+    if (annual && Number.isFinite(Number(annual.dbTotal)) && Number(annual.dbTotal) > 0) {
+        return Number(annual.dbTotal);
+    }
+    // Fallback only when no official annual consolidation exists.
     const cutoff = ndwGetMonthCutoff(yearStr);
     let total = 0;
     for (let i = 0; i <= cutoff; i++) {
@@ -12255,6 +12297,20 @@ function showMainApp() {
             } catch (_) { }
             if (main) main.classList.add('hidden');
             if (login) login.classList.remove('hidden');
+            return;
+        }
+        // Incluso con token local válido, no mostrar el panel sin autorización
+        // vigente en usuarios_aplicaciones (evita saltarse el control por caché).
+        try {
+            const { data: sessionData } = await window.supabaseClient.auth.getSession();
+            const access = await getOperacionesAccess(sessionData?.session?.user);
+            if (!access.allowed) { await rejectOperacionesAccess(); return; }
+            sessionStorage.setItem('user_role', access.role || 'viewer');
+            if (access.permissions && Array.isArray(access.permissions.allowed_sections)) {
+                sessionStorage.setItem('user_allowed_sections', JSON.stringify(access.permissions.allowed_sections));
+            }
+        } catch (_) {
+            await rejectOperacionesAccess();
             return;
         }
         checkForAppUpdates().catch(() => { });
@@ -16835,13 +16891,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const btnConciRefresh = document.getElementById('btn-conci-refresh');
     const btnConciEdit = document.getElementById('btn-conci-edit-mode');
+    const btnConciAdd = document.getElementById('btn-conci-add-row');
+    const btnConciAirlineColors = document.getElementById('btn-conci-airline-colors');
     const btnConciSave = document.getElementById('btn-conci-save-mode');
     const btnConciCancel = document.getElementById('btn-conci-cancel-mode');
     if (btnConciRefresh) btnConciRefresh.addEventListener('click', () => loadConciliacionManifiestos({ forceRefresh: true }));
     if (btnConciEdit) btnConciEdit.addEventListener('click', _conciEnterEditMode);
+    if (btnConciAdd) btnConciAdd.addEventListener('click', _conciAddBlankRow);
+    if (btnConciAirlineColors) btnConciAirlineColors.addEventListener('click', _conciOpenAirlineColors);
     if (btnConciSave) btnConciSave.addEventListener('click', _conciSaveBulkEdits);
     if (btnConciCancel) btnConciCancel.addEventListener('click', _conciCancelBulkEdits);
     window.addEventListener('admin-mode-changed', _conciRefreshEditToolbar);
+    window.addEventListener('airline-catalog-updated', () => {
+        _conciAirlineCatalogLoaded = false;
+        _conciRenderCache.clear();
+        if (document.getElementById('table-conci-manifiestos')) {
+            loadConciliacionManifiestos({ forceRefresh: true });
+        }
+    });
     _conciRefreshEditToolbar();
 });
 
@@ -16953,6 +17020,36 @@ async function _ensureConciAirlineCatalog() {
             });
         });
 
+        // La configuración administrable de Gestión de Datos es la fuente de
+        // verdad para colores, nombres, alias y códigos IATA. El JSON sólo sirve
+        // como catálogo base cuando no hay conexión o una aerolínea aún no está
+        // configurada en Supabase.
+        try {
+            const sb = window.supabaseClient || (window.ensureSupabaseClient && await window.ensureSupabaseClient());
+            if (sb) {
+                const { data: managedAirlines } = await sb.from('airlines')
+                    .select('name, iata, aliases, color, text_color')
+                    .eq('active', true)
+                    .limit(1000);
+                (managedAirlines || []).forEach(item => {
+                    const meta = {
+                        name: String(item.name || item.iata || '').trim(),
+                        color: String(item.color || '#6c757d').trim(),
+                        textColor: String(item.text_color || '#ffffff').trim(),
+                        iata: String(item.iata || '').trim().toUpperCase(),
+                    };
+                    if (!meta.name) return;
+                    if (meta.iata) _conciAirlineCodeMap.set(meta.iata, meta);
+                    [meta.name].concat(Array.isArray(item.aliases) ? item.aliases : [])
+                        .map(a => _conciNormalizeAirlineName(a))
+                        .filter(Boolean)
+                        .forEach(alias => _conciAirlineAliasMap.set(alias, meta));
+                });
+            }
+        } catch (managedErr) {
+            console.warn('[Conciliación] No se pudo cargar el catálogo administrable de aerolíneas:', managedErr);
+        }
+
         try {
             const masterRes = await fetch('data/master/airlines.csv', { cache: 'force-cache' });
             if (masterRes.ok) {
@@ -17034,6 +17131,8 @@ function _conciRefreshEditToolbar() {
     const btnEdit = document.getElementById('btn-conci-edit-mode');
     const btnSave = document.getElementById('btn-conci-save-mode');
     const btnCancel = document.getElementById('btn-conci-cancel-mode');
+    const btnAdd = document.getElementById('btn-conci-add-row');
+    const btnAirlineColors = document.getElementById('btn-conci-airline-colors');
     const btnRefresh = document.getElementById('btn-conci-refresh');
     const yearSel = document.getElementById('filter-conci-manifiestos-year');
     const monthSel = document.getElementById('filter-conci-manifiestos-month');
@@ -17051,6 +17150,10 @@ function _conciRefreshEditToolbar() {
     if (btnCancel) {
         btnCancel.classList.toggle('d-none', !canEdit || !_conciEditMode);
         btnCancel.disabled = !canEdit;
+    }
+    if (btnAdd) {
+        btnAdd.classList.toggle('d-none', !canEdit || !_conciEditMode);
+        btnAdd.disabled = !canEdit || !_conciEditMode;
     }
 
     const controlsLocked = _conciEditMode;
@@ -18592,11 +18695,13 @@ function _renderConciManifiestosTable(data, columns, fallbackYear) {
 
     const thead = table.querySelector('thead');
     const tbody = table.querySelector('tbody');
+    _conciBindRowActions();
     thead.innerHTML = '';
     tbody.innerHTML = '';
 
     // Display columns: hide the internal marker columns
     const displayCols = (columns || (data.length ? Object.keys(data[0]) : [])).filter(c => !['_fuente', '_isPax', 'id', 'Año', 'Mes', 'Día'].includes(c));
+    const showRowActions = _conciCanCurrentUserEdit();
 
     // Detect semantic columns for smart city-name display in routing/origen cell
     const _tipoCol    = displayCols.find(c => /tipo.*(manif)/i.test(c)) || null;
@@ -18633,6 +18738,13 @@ function _renderConciManifiestosTable(data, columns, fallbackYear) {
         th.textContent = c;
         trHead.appendChild(th);
     });
+    if (showRowActions) {
+        const actionTh = document.createElement('th');
+        actionTh.className = 'text-nowrap conci-th conci-row-action-col';
+        actionTh.textContent = 'Acciones';
+        actionTh.dataset.conciAction = '1';
+        trHead.appendChild(actionTh);
+    }
     thead.appendChild(trHead);
     // Encabezado fijo vía CSS (position:sticky). Sin manipulación de transform
     // por JS para evitar el parpadeo al hacer scroll.
@@ -18785,7 +18897,14 @@ function _renderConciManifiestosTable(data, columns, fallbackYear) {
                 } else if (meta.isOptype) {
                     const routingRaw = _routingCol ? String(row[_routingCol] || '') : '';
                     const tipoRaw = _tipoCol ? String(row[_tipoCol] || '') : '';
-                    const op = resolveOptype(routingRaw, tipoRaw);
+                    // Conserva una clasificación manual guardada (Nacional /
+                    // Internacional); sólo calcula automáticamente cuando el
+                    // valor almacenado es un código de servicio u otro texto.
+                    const storedOptype = String(row[c] || '').trim();
+                    const manualOptype = /^(nacional|internacional)$/i.test(storedOptype)
+                        ? storedOptype.charAt(0).toUpperCase() + storedOptype.slice(1).toLowerCase()
+                        : '';
+                    const op = manualOptype || resolveOptype(routingRaw, tipoRaw);
                     if (op) {
                         const isNac = op === 'Nacional';
                         const badge = document.createElement('span');
@@ -18871,6 +18990,25 @@ function _renderConciManifiestosTable(data, columns, fallbackYear) {
                 tr.appendChild(td);
             });
 
+            if (showRowActions) {
+                const actionTd = document.createElement('td');
+                actionTd.className = 'conci-row-action-col text-center';
+                actionTd.dataset.conciAction = '1';
+                const persistedId = String(row.id ?? '').trim();
+                if (persistedId) {
+                    const del = document.createElement('button');
+                    del.type = 'button';
+                    del.className = 'btn btn-sm btn-outline-danger conci-delete-row';
+                    del.title = 'Eliminar fila';
+                    del.innerHTML = '<i class="fas fa-trash-alt"></i>';
+                    del.dataset.rowId = persistedId;
+                    actionTd.appendChild(del);
+                } else {
+                    actionTd.innerHTML = '<span class="text-muted" title="Fila generada desde vuelos; no es un registro guardado">—</span>';
+                }
+                tr.appendChild(actionTd);
+            }
+
             frag.appendChild(tr);
         }
 
@@ -18936,6 +19074,15 @@ function _renderConciManifiestosTable(data, columns, fallbackYear) {
 
     _conciRefreshEditToolbar();
     scheduleAppend();
+
+    // Auto-activar modo editar para usuarios con rol de edición
+    // sin necesidad de hacer clic en el botón "Editar".
+    if (_conciCanCurrentUserEdit() && !_conciEditMode) {
+        _conciEnsureEditStyles();
+        _conciEditMode = true;
+        _conciSetTableEditableState(true);
+        _conciRefreshEditToolbar();
+    }
 }
 
 // ─── Conciliation global-edit helpers ──────────────────────────────────────
@@ -18980,6 +19127,8 @@ function _conciEnsureEditStyles() {
             text-align: center;
             letter-spacing: 0.5px;
         }
+        #table-conci-manifiestos .conci-row-action-col { display: none; }
+        #table-conci-manifiestos.conci-edit-mode .conci-row-action-col { display: table-cell; }
     `;
     document.head.appendChild(style);
 }
@@ -19103,6 +19252,17 @@ function _conciCommitCellRaw(td, nextRaw, moveNext, displayText) {
     td.classList.remove('conci-cell-active');
     td.textContent = displayText !== undefined ? displayText : nextRaw;
     td.title = 'Clic para editar';
+
+    // Guardado tipo Excel: al salir de una celda se persiste la fila sin esperar
+    // un botón global de Guardar.
+    if (tr && _conciEditMode) {
+        clearTimeout(tr._conciAutoSaveTimer);
+        tr._conciAutoSaveTimer = setTimeout(() => _conciAutoSaveRow(tr), 250);
+    }
+    // El rol puede venir de sessionStorage, del gestor de sesión o de la caché
+    // de permisos; usa el mismo criterio que el resto de Conciliación para que
+    // el acceso no desaparezca según la forma en que inició sesión el usuario.
+    if (btnAirlineColors) btnAirlineColors.classList.toggle('d-none', !canEdit);
 
     if (moveNext) {
         const nextCell = _conciGetNextEditableCell(td);
@@ -19253,6 +19413,37 @@ function _conciCoerceNumberCandidate(value) {
     return null;
 }
 
+function _conciOpenAirlineColors() {
+    if (typeof showSection === 'function') showSection('data-management', document.getElementById('data-management-menu'));
+    setTimeout(() => {
+        const tab = document.getElementById('tab-aerolineas');
+        if (tab && window.bootstrap?.Tab) window.bootstrap.Tab.getOrCreateInstance(tab).show();
+        const pane = document.getElementById('pane-aerolineas');
+        if (pane) pane.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 150);
+}
+
+function _conciPrepareValueForDatabase(col, value) {
+    if (value === null || value === undefined) return null;
+    const raw = String(value).trim();
+    if (!raw) return null;
+    if (/^mes$/i.test(String(col || ''))) {
+        const monthNames = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+        const normalizedMonth = raw.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        const monthIndex = monthNames.indexOf(normalizedMonth);
+        if (monthIndex >= 0) return monthIndex + 1;
+        const numericMonth = Number(raw);
+        if (Number.isInteger(numericMonth) && numericMonth >= 1 && numericMonth <= 12) return numericMonth;
+    }
+    const dateMatch = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2}))?$/);
+    if (dateMatch) {
+        const [, day, month, year, hour, minute] = dateMatch;
+        const iso = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        return hour ? `${iso} ${String(hour).padStart(2, '0')}:${minute}:00` : iso;
+    }
+    return value;
+}
+
 async function _conciWriteRowSafe(client, payload, rowId) {
     let currentPayload = { ...payload };
 
@@ -19268,9 +19459,9 @@ async function _conciWriteRowSafe(client, payload, rowId) {
         const req = client.from('Conciliación Manifiestos');
         const result = rowId
             ? await req.update(currentPayload).eq('id', rowId)
-            : await req.insert(currentPayload);
+            : await req.insert(currentPayload).select('id').maybeSingle();
 
-        if (!result.error) return { ok: true, adjusted: attempt > 0 };
+        if (!result.error) return { ok: true, adjusted: attempt > 0, data: result.data || null };
 
         const message = String(result.error.message || '');
         let mutated = false;
@@ -19310,6 +19501,159 @@ const typeValueMatch = message.match(/invalid input syntax for (?:type\s+)?(?:bi
     }
 
     return { ok: false, error: { message: 'Error desconocido al guardar.' } };
+}
+
+async function _conciAutoSaveRow(tr) {
+    if (!tr || !tr.isConnected || !_conciEditMode || !_conciCanCurrentUserEdit()) return;
+    if (tr._conciAutoSavePromise) return tr._conciAutoSavePromise;
+    const cells = Array.from(tr.querySelectorAll('td[data-col]'));
+    const payload = {};
+    cells.forEach(td => {
+        const col = td.dataset.col;
+        const liveInput = td.querySelector('input, textarea, select');
+        const raw = _conciNormalizeEditableCellText(
+            liveInput ? liveInput.value : (td.dataset.pendingRaw ?? td.dataset.raw ?? td.textContent)
+        );
+        if (raw) payload[col] = _conciPrepareValueForDatabase(col, raw);
+    });
+    // Si la fila nueva sólo tiene el mes capturado, usa la fecha actualmente
+    // seleccionada en el filtro como fecha inicial del registro.
+    if (tr.dataset.conciNew === '1' && !payload.FECHA) {
+        const year = Number(document.getElementById('filter-conci-manifiestos-year')?.value);
+        const month = Number(document.getElementById('filter-conci-manifiestos-month')?.value);
+        const day = Number(document.getElementById('filter-conci-manifiestos-day')?.value);
+        if (year && month && day) payload.FECHA = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    }
+    if (!Object.keys(payload).length) return;
+
+    tr._conciAutoSavePromise = (async () => {
+        try {
+            let client = window.supabaseClient;
+            if (!client && window.ensureSupabaseClient) client = await window.ensureSupabaseClient();
+            if (!client) throw new Error('No se pudo inicializar el cliente de Supabase.');
+            const rowId = String(tr.dataset.rowId || '').trim();
+            const result = await _conciWriteRowSafe(client, payload, rowId || null);
+            if (!result.ok) {
+                // Conserva la fila y sus valores para que el usuario pueda corregir
+                // el campo que causó el error; nunca se elimina silenciosamente.
+                tr.title = `Pendiente de guardar: ${result.error?.message || 'error de base de datos'}`;
+                tr.classList.add('table-warning');
+                console.warn('[Conciliación] fila pendiente de guardar:', result.error);
+                return;
+            }
+            const inserted = Array.isArray(result.data) ? result.data[0] : result.data;
+            if (!rowId && inserted?.id !== undefined && inserted?.id !== null) {
+                tr.dataset.rowId = String(inserted.id);
+                tr.removeAttribute('data-conci-new');
+                const action = tr.querySelector('.conci-delete-new-row');
+                if (action) {
+                    action.classList.remove('conci-delete-new-row');
+                    action.classList.add('conci-delete-row');
+                    action.dataset.rowId = String(inserted.id);
+                }
+            }
+            cells.forEach(td => {
+                const raw = _conciNormalizeEditableCellText(td.dataset.pendingRaw ?? td.dataset.raw ?? td.textContent);
+                td.dataset.origRaw = raw;
+                td.removeAttribute('data-dirty');
+            });
+            tr.removeAttribute('data-dirty');
+            tr.classList.remove('table-warning');
+            tr.removeAttribute('title');
+        } catch (error) {
+            tr.title = `Pendiente de guardar: ${error.message || error}`;
+            tr.classList.add('table-warning');
+            console.warn('[Conciliación] error de guardado automático:', error);
+        } finally {
+            tr._conciAutoSavePromise = null;
+        }
+    })();
+    return tr._conciAutoSavePromise;
+}
+
+function _conciBindRowActions() {
+    const table = document.getElementById('table-conci-manifiestos');
+    const tbody = table ? table.querySelector('tbody') : null;
+    if (!tbody || tbody.dataset.conciDeleteBound === 'true') return;
+    tbody.dataset.conciDeleteBound = 'true';
+    tbody.addEventListener('click', async (event) => {
+        const button = event.target.closest('.conci-delete-row, .conci-delete-new-row');
+        if (!button || !tbody.contains(button)) return;
+        event.preventDefault();
+        event.stopPropagation();
+        if (!_conciEditMode || !_conciCanCurrentUserEdit()) return;
+        const tr = button.closest('tr');
+        if (button.classList.contains('conci-delete-new-row')) {
+            tr?.remove();
+            return;
+        }
+        const rowId = String(button.dataset.rowId || tr?.dataset.rowId || '').trim();
+        if (!rowId) return;
+        if (!confirm('¿Eliminar esta fila de Conciliación? Esta acción no se puede deshacer.')) return;
+        button.disabled = true;
+        try {
+            let client = window.supabaseClient;
+            if (!client && window.ensureSupabaseClient) client = await window.ensureSupabaseClient();
+            if (!client) throw new Error('No se pudo inicializar el cliente de Supabase.');
+            const result = await client.from('Conciliación Manifiestos').delete().eq('id', rowId);
+            if (result.error) throw result.error;
+            _conciRenderCache.clear();
+            _conciRenderedKey = '';
+            await loadConciliacionManifiestos({ forceRefresh: true });
+        } catch (error) {
+            button.disabled = false;
+            alert('No se pudo eliminar la fila: ' + (error.message || error));
+        }
+    });
+}
+
+function _conciAddBlankRow() {
+    if (!_conciCanCurrentUserEdit()) {
+        alert('Solo usuarios editor o admin pueden agregar filas.');
+        return;
+    }
+    if (!_conciEditMode) _conciEnterEditMode();
+    const table = document.getElementById('table-conci-manifiestos');
+    const thead = table ? table.querySelector('thead') : null;
+    const tbody = table ? table.querySelector('tbody') : null;
+    const headerCells = thead ? Array.from(thead.querySelectorAll('th:not([data-conci-action])')) : [];
+    if (!tbody || !headerCells.length) {
+        alert('No hay columnas disponibles para crear una fila. Actualiza la tabla e inténtalo de nuevo.');
+        return;
+    }
+    const tr = document.createElement('tr');
+    tr.className = 'conci-row-tone-0';
+    tr.dataset.rowId = '';
+    tr.dataset.rowIndex = 'new';
+    tr.dataset.conciNew = '1';
+    tr.dataset.dirty = '1';
+    headerCells.forEach((th) => {
+        const col = th.textContent.trim();
+        const td = document.createElement('td');
+        td.className = 'conci-cell';
+        td.dataset.col = col;
+        td.dataset.raw = '';
+        td.dataset.origRaw = '';
+        td.dataset.pendingRaw = '';
+        td.title = 'Clic para editar';
+        td.textContent = '';
+        tr.appendChild(td);
+    });
+    const actionTd = document.createElement('td');
+    actionTd.className = 'conci-row-action-col text-center';
+    actionTd.dataset.conciAction = '1';
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.className = 'btn btn-sm btn-outline-danger conci-delete-new-row';
+    remove.title = 'Quitar fila nueva';
+    remove.innerHTML = '<i class="fas fa-trash-alt"></i>';
+    actionTd.appendChild(remove);
+    tr.appendChild(actionTd);
+    tbody.appendChild(tr);
+    tbody.scrollTop = tbody.scrollHeight;
+    _conciBindRowActions();
+    const firstCell = tr.querySelector('td[data-col]');
+    if (firstCell) _conciActivateCellEditor(firstCell);
 }
 
 async function _conciRunBatchWrites(items, batchSize, worker) {
@@ -19374,32 +19718,53 @@ async function _conciSaveBulkEdits() {
         const updates = [];
         const inserts = [];
 
-        const dirtyRows = Array.from(tbody.querySelectorAll('tr[data-dirty="1"]'));
+        // Las filas nuevas se identifican explícitamente: al salir del último
+        // editor una fila vacía puede perder la marca dirty aunque ya tenga datos.
+        const dirtyRows = Array.from(new Set([
+            ...tbody.querySelectorAll('tr[data-dirty="1"]'),
+            ...tbody.querySelectorAll('tr[data-conci-new="1"]'),
+        ]));
         dirtyRows.forEach(tr => {
             const rowId = String(tr.dataset.rowId || '').trim();
+            const isNewRow = tr.dataset.conciNew === '1';
             const changedPayload = {};
             const fullPayload = {};
 
             tr.querySelectorAll('td[data-col]').forEach(td => {
                 const col = td.dataset.col;
+                // En una fila recién creada, el último input puede seguir abierto
+                // cuando se pulsa Guardar. Usa también el valor visible del input
+                // o de la celda para no perder la captura por el blur.
+                const liveInput = td.querySelector('input, textarea, select');
+                const liveValue = liveInput ? liveInput.value : td.textContent;
+                const pendingValue = td.dataset.pendingRaw !== undefined ? td.dataset.pendingRaw : td.dataset.raw;
                 const newRaw = _conciNormalizeEditableCellText(
-                    td.dataset.pendingRaw !== undefined ? td.dataset.pendingRaw : td.dataset.raw
+                    (isNewRow && !String(pendingValue || '').trim() && String(liveValue || '').trim())
+                        ? liveValue
+                        : pendingValue
                 );
                 const oldRaw = _conciNormalizeEditableCellText(
                     td.dataset.origRaw !== undefined ? td.dataset.origRaw : td.dataset.raw
                 );
-                const normalized = newRaw === '' ? null : newRaw;
+                const normalized = newRaw === '' ? null : _conciPrepareValueForDatabase(col, newRaw);
 
                 fullPayload[col] = normalized;
                 if (newRaw !== oldRaw) changedPayload[col] = normalized;
             });
 
+            // Para una fila nueva, usa todos los valores capturados (no sólo los
+            // que quedaron marcados como dirty) y no intentes guardar una fila vacía.
+            if (isNewRow) {
+                Object.entries(fullPayload).forEach(([col, value]) => {
+                    if (value !== null && String(value).trim() !== '') changedPayload[col] = value;
+                });
+            }
             if (Object.keys(changedPayload).length === 0) return;
             if (rowId) updates.push({ id: rowId, payload: changedPayload });
             else {
                 const hasMeaningfulValue = Object.values(changedPayload)
                     .some(v => v !== null && String(v).trim() !== '');
-                if (hasMeaningfulValue) inserts.push(fullPayload);
+                if (hasMeaningfulValue) inserts.push(changedPayload);
             }
         });
 
@@ -19772,6 +20137,43 @@ async function _conciSaveBulkEdits() {
     // allowed_sections = [] significa "acceso total"; sin este marcador,
     // "Ninguna" y "Todas" serían indistinguibles y al reabrir mostraría todo.
     const AU_VIEWS_NONE = '__none__';
+    // Perfiles frecuentes para asignar accesos sin recorrer toda la lista.
+    const AU_APP_REGISTRY = [
+        { key: 'mhr', label: 'MHR · Reporte hidráulico', icon: 'droplet', desc: 'Sistema de reportes hidráulicos', section: 'hidraulicas' },
+        { key: 'portal-manifiestos', label: 'Portal de Manifiestos', icon: 'file-signature', desc: 'Recepción y revisión de manifiestos', section: 'portal-digitalizacion' }
+    ];
+    const AU_SYSTEM_PROFILES = [
+        { key: 'all', label: 'Todos los sistemas', icon: 'check-double', sections: null, apps: AU_APP_REGISTRY.map(a => a.key) },
+        { key: 'mhr', label: 'Solo MHR', icon: 'droplet', sections: ['hidraulicas'], apps: ['mhr'] },
+        { key: 'portal-manifiestos', label: 'Solo Portal de Manifiestos', icon: 'file-signature', sections: ['portal-digitalizacion'], apps: ['portal-manifiestos'] },
+        { key: 'ssei', label: 'Solo SSEI', icon: 'fire-extinguisher', sections: ['ssei-derrames', 'ssei-emergencias'], apps: [] }
+    ];
+
+    function auUserApps(user) {
+        const explicit = user?.permissions?.app_access;
+        if (Array.isArray(explicit)) return explicit;
+        const sections = Array.isArray(user?.permissions?.allowed_sections) ? user.permissions.allowed_sections : [];
+        return AU_APP_REGISTRY.filter(app => sections.length === 0 || sections.includes(app.section)).map(app => app.key);
+    }
+
+    function auAccessInfo(user) {
+        const role = String(user?.role || '').toLowerCase();
+        const sections = Array.isArray(user?.permissions?.allowed_sections) ? user.permissions.allowed_sections : [];
+        const apps = auUserApps(user);
+        if (['admin', 'superadmin'].includes(role) || sections.length === 0) {
+            return { type: 'full', label: 'Todos los sistemas', count: auAllSelectableSections().length, apps, icon: 'check-double', color: 'success' };
+        }
+        if (sections.length === 1 && sections[0] === AU_VIEWS_NONE) {
+            return { type: 'none', label: 'Sin sistemas asignados', count: 0, apps, icon: 'ban', color: 'secondary' };
+        }
+        const valid = sections.filter(s => s !== AU_VIEWS_NONE);
+        const profile = AU_SYSTEM_PROFILES.find(p => p.sections && p.sections.length === valid.length && p.sections.every(s => valid.includes(s)));
+        return {
+            type: valid.length === 1 ? 'single' : 'limited',
+            label: profile?.label || `${valid.length} sistema${valid.length === 1 ? '' : 's'} asignado${valid.length === 1 ? '' : 's'}`,
+            count: valid.length, apps, icon: profile?.icon || 'list-check', color: profile ? 'primary' : 'info'
+        };
+    }
     // Genera el <select> compacto de nivel para una fila de módulo.
     //   cls: clase CSS del select · section: data-section · current: nivel guardado
     //   grp: (opcional) clave de subdirección → se agrega data-grp para poder
@@ -19875,10 +20277,19 @@ async function _conciSaveBulkEdits() {
     function _auUpdateStats() {
         const total  = _auRows.length;
         const bajas  = _auRows.filter(u => u.permissions?.estado === 'INACTIVO').length;
+        const accessCounts = _auRows.reduce((acc, u) => {
+            const type = auAccessInfo(u).type;
+            acc[type] = (acc[type] || 0) + 1;
+            return acc;
+        }, {});
         const el = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
         el('au-stat-total',   total);
         el('au-stat-activos', total - bajas);
         el('au-stat-bajas',   bajas);
+        el('au-access-full', `${accessCounts.full || 0} con acceso total`);
+        el('au-access-limited', `${accessCounts.limited || 0} con acceso limitado`);
+        el('au-access-single', `${accessCounts.single || 0} con un solo sistema`);
+        el('au-access-none', `${accessCounts.none || 0} sin sistemas`);
     }
 
     // ── Cargar lista de usuarios ──────────────────────────────────────────
@@ -19907,17 +20318,21 @@ async function _conciSaveBulkEdits() {
         tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-4"><i class="fas fa-spinner fa-spin me-2"></i>Cargando…</td></tr>';
 
         try {
-            const [{ data: users, error: ue }, { data: perms }] = await Promise.all([
+            const [{ data: allowedUsers, error: ae }, { data: users, error: ue }, { data: perms }] = await Promise.all([
+                window.supabaseClient.rpc('admin_list_operaciones_user_ids'),
                 window.supabaseClient
                     .from('v_usuarios_roles')
                     .select('user_id, email, full_name, username, role, created_at, last_sign_in_at, is_online')
                     .order('last_sign_in_at', { ascending: false, nullsFirst: false }),
                 window.supabaseClient.from('user_roles').select('user_id, permissions')
             ]);
+            if (ae) throw new Error('Falta aplicar la migración 004_operaciones_admin_access.sql en Supabase: ' + ae.message);
             if (ue) throw ue;
+            const allowedIds = new Set((allowedUsers || []).map(r => r.user_id));
             const pMap = {};
             (perms || []).forEach(r => pMap[r.user_id] = r.permissions || {});
-            _auRows = (users || []).map(u => ({ ...u, permissions: pMap[u.user_id] || {} }));
+            _auRows = (users || []).filter(u => allowedIds.has(u.user_id))
+                .map(u => ({ ...u, permissions: pMap[u.user_id] || {} }));
             _auUpdateStats();
             if (statusEl) statusEl.textContent = `${_auRows.length} usuario(s) — Actualizado ${new Date().toLocaleTimeString('es-MX')}`;
             auRenderRows();
@@ -19947,12 +20362,21 @@ async function _conciSaveBulkEdits() {
         { key: 'puntualidad-agosto',   label: 'Puntualidad',             icon: 'clock',             group: 'Operaciones' },
         { key: 'demoras',              label: 'Demoras',                 icon: 'clock',             group: 'Operaciones' },
         { key: 'aerolineas',           label: 'Aerolíneas',              icon: 'plane',             group: 'Módulos' },
-        { key: 'portal-digitalizacion',label: 'Portal Digital',          icon: 'cloud-upload-alt',  group: 'Módulos' },
+        { key: 'portal-digitalizacion',label: 'Portal de Manifiestos',  icon: 'file-signature',     group: 'Módulos' },
         { key: 'fauna',                label: 'GSO',                     icon: 'shield-alt',        group: 'Módulos' },
         { key: 'medicas',              label: 'Servicio Médico',         icon: 'briefcase-medical', group: 'Módulos' },
         { key: 'abordadores-mecanicos',label: 'Abordadores Mecánicos',   icon: 'cogs',              group: 'Módulos' },
         { key: 'email-analisis',       label: 'Análisis Correos',        icon: 'envelope',          group: 'Módulos' },
         { key: 'fids',                 label: 'FIDS',                    icon: 'tv',                group: 'Módulos' },
+        { key: 'bhs',                  label: 'BHS',                     icon: 'conveyor-belt',     group: 'Módulos' },
+        { key: 'ssei-derrames',        label: 'SSEI · Derrames',         icon: 'fire-extinguisher', group: 'Módulos' },
+        { key: 'ssei-emergencias',     label: 'SSEI · Emergencias',      icon: 'triangle-exclamation', group: 'Módulos' },
+        { key: 'personal-capacitado-prestadores', label: 'Personal capacitado', icon: 'user-graduate', group: 'Módulos' },
+        { key: 'valoraciones-medicas', label: 'Valoraciones médicas',     icon: 'stethoscope',        group: 'Módulos' },
+        { key: 'catalogo-vehiculos',   label: 'Catálogo de vehículos',   icon: 'car',               group: 'Módulos' },
+        { key: 'hidraulicas',          label: 'MHR · Reporte hidráulico',icon: 'droplet',           group: 'Ingeniería' },
+        { key: 'hvac-reportes',        label: 'Reportes HVAC',           icon: 'fan',               group: 'Ingeniería' },
+        { key: 'ingenieria-civil',     label: 'Ingeniería civil',        icon: 'helmet-safety',     group: 'Ingeniería' },
         { key: 'colaboradores',        label: 'Colaboradores',           icon: 'id-badge',          group: 'Personal' },
         { key: 'coord-auditoria',      label: 'Coord. Auditoría',        icon: 'clipboard-check',   group: 'Personal' },
         { key: 'agenda',               label: 'Agenda de Comités',       icon: 'calendar-check',    group: 'Personal' },
@@ -19986,8 +20410,8 @@ async function _conciSaveBulkEdits() {
                 // Accesos directos / operaciones aéreas
                 'operaciones-totales', 'inicio', 'frecuencias-semana',
                 'itinerario-mensual', 'puntualidad-agosto', 'demoras',
-                'aerolineas', 'comparativa', 'parte-operaciones',
-                'analisis-operaciones', 'conciliacion', 'manifiestos',
+                'aerolineas', 'parte-operaciones',
+                'analisis-operaciones', 'conciliacion',
                 'historia', 'email-analisis', 'fids', 'portal-digitalizacion',
                 // GOPA
                 'abordadores-mecanicos', 'biblioteca',
@@ -19995,10 +20419,9 @@ async function _conciSaveBulkEdits() {
                 'bhs',
                 // GSO
                 'fauna', 'ssei-derrames', 'ssei-emergencias',
-                // GIC
-                'ingenieria-civil',
                 // GSM
-                'medicas'
+                'medicas', 'personal-capacitado-prestadores',
+                'valoraciones-medicas', 'catalogo-vehiculos'
             ]
         },
         {
@@ -20026,7 +20449,7 @@ async function _conciSaveBulkEdits() {
             desc: 'GOMIH · GIE · GIC',
             icon: 'hard-hat',
             color: '#198754',
-            sections: ['hidraulicas', 'hvac-reportes']
+            sections: ['hidraulicas', 'hvac-reportes', 'ingenieria-civil']
         },
         {
             key: 'SGE',
@@ -20064,6 +20487,7 @@ async function _conciSaveBulkEdits() {
         const container = document.getElementById('au-tbody');
         if (!container) return;
         const q = (document.getElementById('au-search')?.value || '').toLowerCase();
+        const accessFilter = document.getElementById('au-access-filter')?.value || 'all';
         let rows = _auFilter === 'baja'   ? _auRows.filter(u => u.permissions?.estado === 'INACTIVO') :
                    _auFilter === 'activo' ? _auRows.filter(u => u.permissions?.estado !== 'INACTIVO') :
                    _auRows;
@@ -20072,6 +20496,7 @@ async function _conciSaveBulkEdits() {
             (u.full_name || '').toLowerCase().includes(q) ||
             (u.username || '').toLowerCase().includes(q)
         );
+        if (accessFilter !== 'all') rows = rows.filter(u => auAccessInfo(u).type === accessFilter);
 
         // Ordenar: online primero, luego por último inicio de sesión (más reciente → más antiguo)
         rows = [...rows].sort((a, b) => {
@@ -20098,6 +20523,11 @@ async function _conciSaveBulkEdits() {
             const roleLabel  = AU_ROLE_LABELS[u.role] || u.role || '—';
             const roleColor  = ROLE_COLORS[u.role] || 'secondary';
             const perms      = u.permissions || {};
+            const accessInfo = auAccessInfo(u);
+            const appBadges = accessInfo.apps.map(appKey => {
+                const app = AU_APP_REGISTRY.find(item => item.key === appKey);
+                return app ? `<span class="badge bg-light text-dark border" style="font-size:.67rem"><i class="fas fa-${app.icon} me-1 text-primary"></i>${app.label}</span>` : '';
+            }).join('');
             const dirId      = perms.direccion_id || '';
             const subId      = perms.subdireccion_id || '';
             const dirName    = dirId ? (_auAreas.find(a => a.id === dirId)?.clave || '?') : null;
@@ -20136,6 +20566,8 @@ async function _conciSaveBulkEdits() {
                             <div class="d-flex align-items-center gap-2 mt-1 flex-wrap">
                                 <span class="badge bg-${roleColor}" id="au-role-badge-${shortId}" style="font-size:.72rem">${roleLabel}</span>
                                 ${dirName ? `<span class="badge bg-light text-primary border" style="font-size:.7rem"><i class="fas fa-sitemap me-1"></i>${dirName}${subName ? ' / ' + subName : ''}</span>` : ''}
+                                <span class="badge bg-${accessInfo.color} bg-opacity-10 text-${accessInfo.color} border" style="font-size:.7rem"><i class="fas fa-${accessInfo.icon} me-1"></i>${accessInfo.label}</span>
+                                ${appBadges}
                                 <span class="text-muted" style="font-size:.72rem"><i class="fas fa-clock me-1 opacity-50"></i>${lastLogin}</span>
                             </div>
                         </div>
@@ -20205,12 +20637,18 @@ async function _conciSaveBulkEdits() {
             ? u.permissions.allowed_sections : [];
         const currentLevels = (u?.permissions?.section_levels && typeof u.permissions.section_levels === 'object')
             ? u.permissions.section_levels : {};
+        const currentApps = new Set(auUserApps(u));
 
         const isAllAccess = currentSecs.length === 0; // sin restricción = acceso total
         // Conjunto de módulos marcados (por sección individual)
         const allSecs = auAllSelectableSections();
         const isNone = currentSecs.length === 1 && currentSecs[0] === AU_VIEWS_NONE; // sin módulos (explícito)
         const checkedSet = new Set(isNone ? [] : (isAllAccess ? allSecs : currentSecs));
+
+        const appsHtml = AU_APP_REGISTRY.map(app => `<label class="d-flex align-items-center gap-2 border rounded-3 px-2 py-2" style="cursor:pointer;min-width:230px;background:${currentApps.has(app.key) ? '#eef6ff' : '#fff'}">
+            <input type="checkbox" class="form-check-input mt-0 auv-app-${shortId}" data-app="${app.key}" ${currentApps.has(app.key) ? 'checked' : ''}>
+            <i class="fas fa-${app.icon} text-primary"></i><span><strong class="small d-block">${app.label}</strong><small class="text-muted">${app.desc}</small></span>
+        </label>`).join('');
 
         const sectionsHtml = `
             <div class="d-flex flex-column gap-2">
@@ -20271,6 +20709,15 @@ async function _conciSaveBulkEdits() {
             <div class="small text-muted mb-2">
                 <i class="fas fa-info-circle me-1"></i>Marca los módulos que el usuario podrá ver y elige su <strong>nivel</strong> en cada uno: <em>Según rol</em> (usa el nivel del rol global), <em>Solo ver</em>, <em>Capturar</em> o <em>Editar</em>. El combo del <strong>encabezado de cada subdirección</strong> aplica el nivel a todos sus módulos de una vez; luego puedes ajustar módulos puntuales. Así puede ser editor en un módulo y lector en otro. <strong>Todas</strong> = acceso total; <strong>Ninguna</strong> = solo módulos base (Admin/Superadmin siempre ven todo).
             </div>
+            <div class="mb-3 p-2 rounded-3" style="background:#fff;border:1px solid #dee2e6">
+                <div class="small fw-semibold mb-2"><i class="fas fa-cubes me-1 text-primary"></i>Aplicaciones habilitadas</div>
+                <div class="d-flex flex-wrap gap-2">${appsHtml}</div>
+            </div>
+            <div class="d-flex flex-wrap align-items-center gap-2 mb-3 p-2 rounded-3" style="background:#fff;border:1px solid #dee2e6">
+                <span class="small fw-semibold text-muted"><i class="fas fa-bolt me-1 text-warning"></i>Perfil rápido:</span>
+                ${AU_SYSTEM_PROFILES.map(p => `<button type="button" class="btn btn-outline-${p.key === 'all' ? 'success' : 'primary'} btn-sm py-0" onclick="auApplySystemProfile('${shortId}','${p.key}')"><i class="fas fa-${p.icon} me-1"></i>${p.label}</button>`).join('')}
+                <button type="button" class="btn btn-outline-secondary btn-sm py-0" onclick="auApplySystemProfile('${shortId}','none')"><i class="fas fa-ban me-1"></i>Ninguno</button>
+            </div>
             ${sectionsHtml}
         </div>`;
     };
@@ -20311,6 +20758,22 @@ async function _conciSaveBulkEdits() {
         });
     };
 
+    // Aplica un perfil visual al panel; el administrador todavía debe pulsar
+    // Guardar para confirmar el cambio en la base de datos.
+    window.auApplySystemProfile = function (shortId, profileKey) {
+        const profile = AU_SYSTEM_PROFILES.find(p => p.key === profileKey);
+        const selected = new Set(profile?.sections || []);
+        const selectedApps = new Set(profile?.apps || []);
+        document.querySelectorAll(`.auv-app-${shortId}`).forEach(cb => { cb.checked = selectedApps.has(cb.dataset.app); });
+        document.querySelectorAll(`.auv-sec-${shortId}`).forEach(cb => { cb.checked = !!profile && selected.has(cb.value); });
+        document.querySelectorAll(`.auv-grp-${shortId}`).forEach(group => {
+            const children = Array.from(document.querySelectorAll(`.auv-sec-${shortId}[data-grp="${group.dataset.grp}"]`));
+            group.checked = children.length > 0 && children.every(cb => cb.checked);
+            group.indeterminate = children.some(cb => cb.checked) && !group.checked;
+        });
+        if (profileKey === 'all') auSelectAllViews(shortId, true);
+    };
+
     window.auSaveViews = async function (userId, shortId) {
         const secBoxes = document.querySelectorAll(`.auv-sec-${shortId}`);
         const selectedRaw = Array.from(secBoxes).filter(c => c.checked).map(c => c.value);
@@ -20322,6 +20785,7 @@ async function _conciSaveBulkEdits() {
         const isNone   = selectedRaw.length === 0;
         const isAll    = !isNone && selectedRaw.length >= allSecs.length;
         const selected = isNone ? [AU_VIEWS_NONE] : (isAll ? [] : selectedRaw);
+        const appAccess = Array.from(document.querySelectorAll(`.auv-app-${shortId}:checked`)).map(cb => cb.dataset.app);
         // Niveles por módulo: solo para módulos marcados con override (≠ "Según rol").
         const checkedSet = new Set(selectedRaw);
         const sectionLevels = {};
@@ -20334,7 +20798,7 @@ async function _conciSaveBulkEdits() {
         try {
             const { data: ur } = await window.supabaseClient
                 .from('user_roles').select('permissions').eq('user_id', userId).maybeSingle();
-            const perms = { ...(ur?.permissions || {}), allowed_sections: selected, section_levels: sectionLevels };
+            const perms = { ...(ur?.permissions || {}), allowed_sections: selected, section_levels: sectionLevels, app_access: appAccess };
             // Guardar vía RPC SECURITY DEFINER (no depende de la política RLS de
             // UPDATE, que puede bloquear el guardado en silencio → 0 filas).
             const { data: res, error } = await window.supabaseClient
@@ -20582,6 +21046,22 @@ async function _conciSaveBulkEdits() {
         }
     };
 
+    window.auRegApplySystemProfile = function (profileKey) {
+        const allRadio = document.getElementById('au-reg-vmode-all');
+        const manualRadio = document.getElementById('au-reg-vmode-manual');
+        const profile = AU_SYSTEM_PROFILES.find(p => p.key === profileKey);
+        if (profileKey === 'all') {
+            if (allRadio) allRadio.checked = true;
+            auRegViewsToggle();
+            return;
+        }
+        if (manualRadio) manualRadio.checked = true;
+        auRegViewsToggle();
+        const selected = new Set(profile?.sections || []);
+        document.querySelectorAll('#au-reg-views-grid .au-reg-sec').forEach(cb => { cb.checked = selected.has(cb.value); });
+        AU_SUBDIRECCIONES.filter(sd => sd.sections.length).forEach(sd => auRegSyncGroup(sd.key));
+    };
+
     window.auRegToggleGroup = function (grpKey, checked) {
         document.querySelectorAll(`#au-reg-views-grid .au-reg-sec[data-grp="${grpKey}"]`).forEach(cb => { cb.checked = checked; });
     };
@@ -20753,6 +21233,13 @@ async function _conciSaveBulkEdits() {
             if (re) throw re;
             if (rd && rd.ok === false) throw new Error(rd.error || 'Error asignando rol');
 
+            const { error: appAccessError } = await window.supabaseClient.rpc('admin_assign_operaciones_access', {
+                p_user_id: userId,
+                p_role: role,
+                p_permissions: { allowed_sections: allowedSections, section_levels: sectionLevels }
+            });
+            if (appAccessError) throw appAccessError;
+
             // Guardar clave de área en permissions.area
             const areaId    = gerenciaId || subdirId || dirId;
             const areaEntry = areaId ? _auAreas.find(a => a.id === areaId) : null;
@@ -20763,6 +21250,16 @@ async function _conciSaveBulkEdits() {
                 await window.supabaseClient
                     .from('user_roles').update({ permissions: updatedPerms }).eq('user_id', userId);
             }
+
+            // Guardar aplicaciones externas explícitas junto con las vistas.
+            const appAccess = viewMode !== 'manual'
+                ? AU_APP_REGISTRY.map(app => app.key)
+                : AU_APP_REGISTRY.filter(app => selectedSecs.includes(app.section)).map(app => app.key);
+            const { data: urApps } = await window.supabaseClient
+                .from('user_roles').select('permissions').eq('user_id', userId).maybeSingle();
+            await window.supabaseClient.from('user_roles').update({
+                permissions: { ...(urApps?.permissions || {}), app_access: appAccess }
+            }).eq('user_id', userId);
 
             if (msgEl) msgEl.innerHTML = `<span class="text-success"><i class="fas fa-check-circle me-1"></i>Usuario <strong>${username}</strong> creado con rol <strong>${role}</strong>.</span>`;
             // Limpiar formulario
