@@ -39,11 +39,11 @@
         12: 'diciembre'
     };
     const AIRLINES = [
-        { key: 'am', code: 'AM', label: 'Aeromexico (AM)', shortLabel: 'AM', color: '#2563EB' },
-        { key: 'y4', code: 'Y4', label: 'Volaris (Y4)', shortLabel: 'Y4', color: '#D946EF' },
-        { key: 'vb', code: 'VB', label: 'Viva Aerobus (VB)', shortLabel: 'VB', color: '#16A34A' },
-        { key: 'cm_dm', code: 'DM', label: 'Arajet (DM)', shortLabel: 'DM', color: '#7C3AED' },
-        { key: 'zv', code: 'ZV', label: 'Aerus (ZV)', shortLabel: 'ZV', color: '#111827' }
+        { key: 'am', code: 'AM', name: 'Aeromexico', label: 'Aeromexico (AM)', shortLabel: 'AM', color: '#2563EB', logo: 'images/airlines/logo_aeromexico.png' },
+        { key: 'y4', code: 'Y4', name: 'Volaris', label: 'Volaris (Y4)', shortLabel: 'Y4', color: '#D946EF', logo: 'images/airlines/logo_volaris.png' },
+        { key: 'vb', code: 'VB', name: 'Viva Aerobus', label: 'Viva Aerobus (VB)', shortLabel: 'VB', color: '#16A34A', logo: 'images/airlines/logo_viva.png' },
+        { key: 'cm_dm', code: 'DM', name: 'Arajet', label: 'Arajet (DM)', shortLabel: 'DM', color: '#7C3AED', logo: 'images/airlines/logo_arajet.png' },
+        { key: 'zv', code: 'ZV', name: 'Aerus', label: 'Aerus (ZV)', shortLabel: 'ZV', color: '#111827', logo: 'images/airlines/logo_aerus.png' }
     ];
     const KIND_LABELS = {
         monthly: 'Mensual',
@@ -186,8 +186,8 @@
         capacities: CAPACITY_FALLBACK,
         rows: [],
         charts: {},
-        sortField: 'source_order',
-        sortDir: 'asc',
+        sortField: 'period',
+        sortDir: 'desc',
         currentTab: 'SALIDA',
         editingId: null
     };
@@ -245,13 +245,37 @@
             '#' + ROOT_ID + ' .bhs-stats-head .badge{background:rgba(255,255,255,.16)!important;color:#fff;border:1px solid rgba(255,255,255,.18);}',
             '#' + ROOT_ID + ' .bhs-stats-body{padding:22px;}',
             '#' + ROOT_ID + ' .bhs-stats-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;}',
+            '#' + ROOT_ID + ' .bhs-stats-totals-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;}',
             '#' + ROOT_ID + ' .bhs-stats-kpi{border:1px solid #e2e8f0;border-radius:18px;background:#fff;padding:16px 18px;box-shadow:0 8px 18px rgba(15,23,42,.04);min-height:118px;}',
             '#' + ROOT_ID + ' .bhs-stats-kpi-label{font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#64748b;}',
             '#' + ROOT_ID + ' .bhs-stats-kpi-value{font-size:1.75rem;font-weight:800;color:#0f172a;line-height:1.05;margin-top:10px;}',
             '#' + ROOT_ID + ' .bhs-stats-kpi-sub{font-size:.79rem;color:#64748b;margin-top:8px;}',
+            '#' + ROOT_ID + ' .bhs-stats-airline-grid{display:grid;grid-template-columns:repeat(5,minmax(190px,1fr));gap:12px;}',
+            '#' + ROOT_ID + ' .bhs-stats-airline-card{border:1px solid #e2e8f0;border-left:5px solid var(--airline-color,#64748b);border-radius:16px;background:#fff;padding:14px;box-shadow:0 8px 18px rgba(15,23,42,.04);min-width:0;}',
+            '#' + ROOT_ID + ' .bhs-stats-airline-card.is-selected{box-shadow:0 0 0 2px color-mix(in srgb,var(--airline-color,#2563eb) 34%,transparent),0 12px 24px rgba(15,23,42,.08);}',
+            '#' + ROOT_ID + ' .bhs-stats-airline-head{display:flex;align-items:center;gap:10px;min-width:0;}',
+            '#' + ROOT_ID + ' .bhs-stats-airline-logo{width:54px;height:38px;object-fit:contain;border-radius:10px;background:#f8fafc;border:1px solid #e2e8f0;padding:5px;flex:0 0 auto;}',
+            '#' + ROOT_ID + ' .bhs-stats-airline-name{font-weight:850;color:#0f172a;line-height:1.15;white-space:normal;overflow-wrap:anywhere;}',
+            '#' + ROOT_ID + ' .bhs-stats-airline-code{display:inline-flex;align-items:center;border-radius:999px;padding:2px 8px;margin-top:5px;background:color-mix(in srgb,var(--airline-color,#64748b) 12%,white);color:var(--airline-color,#475569);font-size:.7rem;font-weight:850;}',
+            '#' + ROOT_ID + ' .bhs-stats-airline-metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:12px;}',
+            '#' + ROOT_ID + ' .bhs-stats-airline-metric{border-radius:12px;background:#f8fafc;padding:8px;min-width:0;}',
+            '#' + ROOT_ID + ' .bhs-stats-airline-metric span{display:block;font-size:.66rem;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:#64748b;}',
+            '#' + ROOT_ID + ' .bhs-stats-airline-metric strong{display:block;font-size:.92rem;color:#0f172a;margin-top:3px;overflow-wrap:anywhere;}',
             '#' + ROOT_ID + ' .bhs-stats-panel{border:1px solid #e2e8f0;border-radius:18px;background:#fff;box-shadow:0 8px 18px rgba(15,23,42,.04);}',
             '#' + ROOT_ID + ' .bhs-stats-panel-header{padding:16px 18px;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}',
             '#' + ROOT_ID + ' .bhs-stats-panel-body{padding:18px;}',
+            '#' + ROOT_ID + ' .bhs-stats-summary-panel{grid-column:span 1;}',
+            '#' + ROOT_ID + ' .bhs-stats-summary-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;}',
+            '#' + ROOT_ID + ' .bhs-stats-summary-card{border:1px solid #e2e8f0;border-radius:14px;background:#f8fafc;padding:12px;min-height:102px;}',
+            '#' + ROOT_ID + ' .bhs-stats-summary-title{font-size:.68rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#64748b;}',
+            '#' + ROOT_ID + ' .bhs-stats-summary-value{font-size:1.15rem;font-weight:850;color:#0f172a;line-height:1.1;margin-top:8px;word-break:break-word;}',
+            '#' + ROOT_ID + ' .bhs-stats-summary-desc{font-size:.74rem;color:#64748b;margin-top:7px;}',
+            '#' + ROOT_ID + ' .bhs-stats-delta{display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:2px 7px;font-size:.68rem;font-weight:800;margin-top:7px;}',
+            '#' + ROOT_ID + ' .bhs-stats-delta--up{background:#ecfdf5;color:#047857;}',
+            '#' + ROOT_ID + ' .bhs-stats-delta--down{background:#fef2f2;color:#b91c1c;}',
+            '#' + ROOT_ID + ' .bhs-stats-delta--flat{background:#eef2ff;color:#4338ca;}',
+            '#' + ROOT_ID + ' .bhs-stats-summary-trend{height:170px;margin-top:14px;}',
+            '#' + ROOT_ID + ' .bhs-stats-summary-trend canvas{width:100% !important;height:100% !important;}',
             '#' + ROOT_ID + ' .bhs-stats-filter-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;}',
             '#' + ROOT_ID + ' .bhs-stats-chart-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;}',
             '#' + ROOT_ID + ' .bhs-stats-chart-panel--monthly .bhs-stats-panel-body{padding:18px 18px 12px;}',
@@ -275,8 +299,9 @@
             '#' + ROOT_ID + ' .bhs-stats-inline-total{font-size:1.05rem;font-weight:800;color:#0f172a;}',
             '#' + ROOT_ID + ' .bhs-stats-muted{color:#64748b;}',
             '#' + ROOT_ID + ' .bhs-stats-empty{padding:28px 16px;text-align:center;color:#64748b;}',
-            '@media (max-width: 1199px){#' + ROOT_ID + ' .bhs-stats-grid{grid-template-columns:repeat(2,minmax(0,1fr));}#' + ROOT_ID + ' .bhs-stats-filter-grid{grid-template-columns:repeat(3,minmax(0,1fr));}}',
-            '@media (max-width: 767px){#' + ROOT_ID + ' .bhs-stats-grid,#' + ROOT_ID + ' .bhs-stats-chart-grid,#' + ROOT_ID + ' .bhs-stats-filter-grid{grid-template-columns:1fr;}#' + ROOT_ID + ' .bhs-stats-head{padding:18px;}#' + ROOT_ID + ' .bhs-stats-body{padding:16px;}}'
+            '@media (max-width: 1399px){#' + ROOT_ID + ' .bhs-stats-airline-grid{grid-template-columns:repeat(3,minmax(190px,1fr));}}',
+            '@media (max-width: 1199px){#' + ROOT_ID + ' .bhs-stats-grid,#' + ROOT_ID + ' .bhs-stats-totals-grid{grid-template-columns:repeat(2,minmax(0,1fr));}#' + ROOT_ID + ' .bhs-stats-filter-grid{grid-template-columns:repeat(3,minmax(0,1fr));}#' + ROOT_ID + ' .bhs-stats-summary-grid{grid-template-columns:repeat(2,minmax(0,1fr));}#' + ROOT_ID + ' .bhs-stats-airline-grid{grid-template-columns:repeat(2,minmax(190px,1fr));}}',
+            '@media (max-width: 767px){#' + ROOT_ID + ' .bhs-stats-grid,#' + ROOT_ID + ' .bhs-stats-totals-grid,#' + ROOT_ID + ' .bhs-stats-chart-grid,#' + ROOT_ID + ' .bhs-stats-filter-grid,#' + ROOT_ID + ' .bhs-stats-summary-grid,#' + ROOT_ID + ' .bhs-stats-airline-grid{grid-template-columns:1fr;}#' + ROOT_ID + ' .bhs-stats-head{padding:18px;}#' + ROOT_ID + ' .bhs-stats-body{padding:16px;}}'
         ].join('');
         document.head.appendChild(style);
     }
@@ -294,7 +319,7 @@
             '        <div style="opacity:.82;font-size:.9rem;">Dashboard histórico, captura mensual, análisis comparativo y reportes del sistema BHS.</div>',
             '      </div>',
             '      <div class="d-flex gap-2 flex-wrap align-items-center">',
-            '        <span class="badge rounded-pill px-3 py-2"><i class="fas fa-database me-1"></i>Catálogo de capacidades</span>',
+            '        <button type="button" class="badge rounded-pill px-3 py-2 border-0" id="bhs-stats-capacity-open"><i class="fas fa-database me-1"></i>Catalogo de capacidades</button>',
             '        <span class="badge rounded-pill px-3 py-2"><i class="fas fa-chart-column me-1"></i>Importación histórica Excel</span>',
             '      </div>',
             '    </div>',
@@ -318,11 +343,23 @@
             '        </div>',
             '      </div>',
             '    </div>',
-            '    <div class="bhs-stats-grid mb-4">',
-            '      <div class="bhs-stats-kpi"><div class="bhs-stats-kpi-label">Total de salida</div><div class="bhs-stats-kpi-value" id="bhs-stats-kpi-salida">—</div><div class="bhs-stats-kpi-sub" id="bhs-stats-kpi-salida-sub">Utilización mensual —</div></div>',
-            '      <div class="bhs-stats-kpi"><div class="bhs-stats-kpi-label">Total de llegada</div><div class="bhs-stats-kpi-value" id="bhs-stats-kpi-llegada">—</div><div class="bhs-stats-kpi-sub" id="bhs-stats-kpi-llegada-sub">Utilización mensual —</div></div>',
-            '      <div class="bhs-stats-kpi"><div class="bhs-stats-kpi-label">Total general</div><div class="bhs-stats-kpi-value" id="bhs-stats-kpi-general">—</div><div class="bhs-stats-kpi-sub" id="bhs-stats-kpi-general-sub">Promedio mensual —</div></div>',
-            '      <div class="bhs-stats-kpi"><div class="bhs-stats-kpi-label">Aerolínea líder</div><div class="bhs-stats-kpi-value" id="bhs-stats-kpi-airline">—</div><div class="bhs-stats-kpi-sub" id="bhs-stats-kpi-airline-sub">Comparativo previo —</div></div>',
+            '    <div class="modal fade" id="bhs-stats-capacity-modal" tabindex="-1" aria-hidden="true">',
+            '      <div class="modal-dialog modal-dialog-centered modal-lg">',
+            '        <div class="modal-content border-0 shadow-lg">',
+            '          <div class="modal-header">',
+            '            <div><h5 class="modal-title mb-0">Catalogo de capacidades</h5><div class="small text-muted">Valores internos usados para calcular utilizacion.</div></div>',
+            '            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>',
+            '          </div>',
+            '          <div class="modal-body">',
+            '            <div class="table-responsive">',
+            '              <table class="table table-sm align-middle mb-0">',
+            '                <thead class="table-light"><tr><th>Operacion</th><th>Hora</th><th>Dia</th><th>Mes</th><th>Ano</th></tr></thead>',
+            '                <tbody id="bhs-stats-capacity-body"></tbody>',
+            '              </table>',
+            '            </div>',
+            '          </div>',
+            '        </div>',
+            '      </div>',
             '    </div>',
             '    <div class="bhs-stats-panel mb-4">',
             '      <div class="bhs-stats-panel-header">',
@@ -345,6 +382,17 @@
             '          <div><label class="form-label small fw-semibold">Búsqueda</label><input id="bhs-stats-search" class="form-control form-control-sm" type="search" placeholder="Año, mes o periodo"></div>',
             '        </div>',
             '        <div class="d-flex justify-content-end"><button type="button" class="btn btn-sm btn-outline-secondary" id="bhs-stats-clear-filters"><i class="fas fa-rotate-left me-1"></i>Limpiar filtros</button></div>',
+            '      </div>',
+            '    </div>',
+            '    <div class="bhs-stats-totals-grid mb-4">',
+            '      <div class="bhs-stats-kpi"><div class="bhs-stats-kpi-label">Total de salida</div><div class="bhs-stats-kpi-value" id="bhs-stats-kpi-salida">—</div><div class="bhs-stats-kpi-sub" id="bhs-stats-kpi-salida-sub">Utilización mensual —</div></div>',
+            '      <div class="bhs-stats-kpi"><div class="bhs-stats-kpi-label">Total de llegada</div><div class="bhs-stats-kpi-value" id="bhs-stats-kpi-llegada">—</div><div class="bhs-stats-kpi-sub" id="bhs-stats-kpi-llegada-sub">Utilización mensual —</div></div>',
+            '      <div class="bhs-stats-kpi"><div class="bhs-stats-kpi-label">Total general</div><div class="bhs-stats-kpi-value" id="bhs-stats-kpi-general">—</div><div class="bhs-stats-kpi-sub" id="bhs-stats-kpi-general-sub">Promedio mensual —</div></div>',
+            '    </div>',
+            '    <div class="bhs-stats-panel mb-4">',
+            '      <div class="bhs-stats-panel-header"><div><div class="fw-bold">Resumen por aerolínea</div><div class="small text-muted">Totales por compañía calculados con los filtros activos.</div></div></div>',
+            '      <div class="bhs-stats-panel-body">',
+            '        <div class="bhs-stats-airline-grid" id="bhs-stats-airline-summary"></div>',
             '      </div>',
             '    </div>',
             '    <div class="bhs-stats-chart-grid mb-4">',
@@ -379,15 +427,11 @@
             '          </form>',
             '        </div>',
             '      </div>',
-            '      <div class="bhs-stats-panel">',
-            '        <div class="bhs-stats-panel-header"><div><div class="fw-bold">Capacidades máximas del catálogo</div><div class="small text-muted">Valores usados para calcular utilización de Salida y Llegada.</div></div></div>',
+            '      <div class="bhs-stats-panel bhs-stats-summary-panel">',
+            '        <div class="bhs-stats-panel-header"><div><div class="fw-bold">Resumen del periodo seleccionado</div><div class="small text-muted">Indicadores dinamicos conforme a los filtros activos.</div></div></div>',
             '        <div class="bhs-stats-panel-body">',
-            '          <div class="table-responsive">',
-            '            <table class="table table-sm align-middle mb-0">',
-            '              <thead class="table-light"><tr><th>Operación</th><th>Hora</th><th>Día</th><th>Mes</th><th>Año</th></tr></thead>',
-            '              <tbody id="bhs-stats-capacity-body"></tbody>',
-            '            </table>',
-            '          </div>',
+            '          <div class="bhs-stats-summary-grid" id="bhs-stats-period-summary"></div>',
+            '          <div class="bhs-stats-summary-trend"><canvas id="bhs-stats-chart-summary-trend"></canvas></div>',
             '        </div>',
             '      </div>',
             '    </div>',
@@ -756,10 +800,23 @@
         });
     }
 
+    function comparePeriods(a, b) {
+        var ay = a.anio == null ? Number.MIN_SAFE_INTEGER : Number(a.anio);
+        var by = b.anio == null ? Number.MIN_SAFE_INTEGER : Number(b.anio);
+        var am = a.mes_num == null ? 0 : Number(a.mes_num);
+        var bm = b.mes_num == null ? 0 : Number(b.mes_num);
+        if (ay !== by) return ay - by;
+        if (am !== bm) return am - bm;
+        return (Number(a.source_order) || 0) - (Number(b.source_order) || 0);
+    }
+
     function sortRows(rows) {
         var field = state.sortField;
         var dir = state.sortDir === 'asc' ? 1 : -1;
         return rows.slice().sort(function (a, b) {
+            if (field === 'period' || field === 'anio' || field === 'mes_num') {
+                return comparePeriods(a, b) * dir;
+            }
             var av = a[field];
             var bv = b[field];
             if (field === 'anio' || field === 'mes_num' || field === 'source_order') {
@@ -775,7 +832,7 @@
         });
     }
 
-    function getMonthlyAggregation(rows) {
+    function getMonthlyAggregation(rows, descending) {
         var map = {};
         getMonthlyRows(rows, false).forEach(function (row) {
             var key = row.anio + '-' + String(row.mes_num).padStart(2, '0');
@@ -794,7 +851,8 @@
             map[key].total += row.total_equipajes;
         });
         return Object.values(map).sort(function (a, b) {
-            return a.key.localeCompare(b.key);
+            var result = a.key.localeCompare(b.key);
+            return descending ? -result : result;
         });
     }
 
@@ -882,6 +940,110 @@
         };
     }
 
+    function getDaysInMonth(year, monthNum) {
+        if (!year || !monthNum) return null;
+        return new Date(Number(year), Number(monthNum), 0).getDate();
+    }
+
+    function getDeltaBadge(delta, percent) {
+        if (delta == null || percent == null || isNaN(percent)) {
+            return '<span class="bhs-stats-delta bhs-stats-delta--flat">Sin comparativo</span>';
+        }
+        var css = delta > 0 ? 'bhs-stats-delta--up' : delta < 0 ? 'bhs-stats-delta--down' : 'bhs-stats-delta--flat';
+        var icon = delta > 0 ? 'fa-arrow-trend-up' : delta < 0 ? 'fa-arrow-trend-down' : 'fa-minus';
+        var sign = delta > 0 ? '+' : '';
+        return '<span class="bhs-stats-delta ' + css + '"><i class="fas ' + icon + '"></i>' + sign + fmtPercent(percent) + '</span>';
+    }
+
+    function buildSummaryCard(title, value, desc, deltaHtml) {
+        return '<div class="bhs-stats-summary-card">' +
+            '<div class="bhs-stats-summary-title">' + title + '</div>' +
+            '<div class="bhs-stats-summary-value">' + value + '</div>' +
+            '<div class="bhs-stats-summary-desc">' + desc + '</div>' +
+            (deltaHtml || '') +
+            '</div>';
+    }
+
+    function renderPeriodSummary(filteredRows, filters) {
+        var container = document.getElementById('bhs-stats-period-summary');
+        if (!container) return;
+
+        var monthly = getMonthlyRows(filteredRows, false);
+        var salidaRows = monthly.filter(function (row) { return row.operation_type === 'SALIDA'; });
+        var llegadaRows = monthly.filter(function (row) { return row.operation_type === 'LLEGADA'; });
+        var salidaTotal = salidaRows.reduce(function (acc, row) { return acc + row.total_equipajes; }, 0);
+        var llegadaTotal = llegadaRows.reduce(function (acc, row) { return acc + row.total_equipajes; }, 0);
+        var totalGeneral = salidaTotal + llegadaTotal;
+        var distinctMonths = new Set(monthly.map(function (row) {
+            return row.anio + '-' + row.mes_num;
+        })).size;
+        var salidaPct = salidaRows.length ? (salidaTotal / (state.capacities.SALIDA.max_per_month * salidaRows.length)) * 100 : 0;
+        var llegadaPct = llegadaRows.length ? (llegadaTotal / (state.capacities.LLEGADA.max_per_month * llegadaRows.length)) * 100 : 0;
+        var comparison = getComparison(filters);
+        var monthlyAgg = getMonthlyAggregation(filteredRows);
+        var peakMonth = monthlyAgg.slice().sort(function (a, b) { return b.total - a.total; })[0] || null;
+        var airlineTotals = getAirlineTotals(filteredRows).sort(function (a, b) { return b.total - a.total; });
+        var topAirline = airlineTotals[0] || null;
+        var days = filters.year && filters.month ? getDaysInMonth(filters.year, normalizeMonthNum(filters.month)) : null;
+        var averageValue = days ? totalGeneral / days : (distinctMonths ? totalGeneral / distinctMonths : 0);
+        var averageLabel = days ? 'Promedio diario del mes filtrado.' : 'Promedio mensual del rango filtrado.';
+        var deltaHtml = comparison ? getDeltaBadge(comparison.delta, comparison.percent) : getDeltaBadge(null, null);
+
+        container.innerHTML = [
+            buildSummaryCard('Salida', fmtNumber(salidaTotal), 'Total de equipajes de salida.', deltaHtml),
+            buildSummaryCard('Llegada', fmtNumber(llegadaTotal), 'Total de equipajes de llegada.'),
+            buildSummaryCard('Total general', fmtNumber(totalGeneral), 'Equipajes acumulados del filtro.'),
+            buildSummaryCard('Uso salidas', fmtPercent(salidaPct), 'Capacidad maxima mensual aplicada.'),
+            buildSummaryCard('Uso llegadas', fmtPercent(llegadaPct), 'Capacidad maxima mensual aplicada.'),
+            buildSummaryCard('Variacion previa', comparison ? fmtNumber(comparison.delta) : 'N/D', 'Contra el periodo anterior comparable.', deltaHtml),
+            buildSummaryCard('Mes mayor', peakMonth ? peakMonth.label : 'N/D', peakMonth ? fmtNumber(peakMonth.total) + ' equipajes' : 'Sin registros para el filtro.'),
+            buildSummaryCard('Aerolínea lider', topAirline ? topAirline.shortLabel : 'N/D', topAirline ? topAirline.label + ' · ' + fmtNumber(topAirline.total) : 'Sin participacion disponible.'),
+            buildSummaryCard(days ? 'Promedio diario' : 'Promedio mensual', fmtNumber(Math.round(averageValue || 0)), averageLabel)
+        ].join('');
+    }
+
+    function renderAirlineSummary(filteredRows, filters) {
+        var container = document.getElementById('bhs-stats-airline-summary');
+        if (!container) return;
+
+        var monthly = getMonthlyRows(filteredRows, false);
+        var totalFiltered = monthly.reduce(function (acc, row) {
+            return acc + row.total_equipajes;
+        }, 0);
+        var visibleAirlines = filters.airline
+            ? AIRLINES.filter(function (airline) { return airline.key === filters.airline; })
+            : AIRLINES;
+
+        container.innerHTML = visibleAirlines.map(function (airline) {
+            var salida = monthly.filter(function (row) {
+                return row.operation_type === 'SALIDA';
+            }).reduce(function (acc, row) {
+                return acc + (Number(row[airline.key]) || 0);
+            }, 0);
+            var llegada = monthly.filter(function (row) {
+                return row.operation_type === 'LLEGADA';
+            }).reduce(function (acc, row) {
+                return acc + (Number(row[airline.key]) || 0);
+            }, 0);
+            var total = salida + llegada;
+            var share = totalFiltered > 0 ? (total / totalFiltered) * 100 : 0;
+            var selectedClass = filters.airline === airline.key ? ' is-selected' : '';
+
+            return '<div class="bhs-stats-airline-card' + selectedClass + '" style="--airline-color:' + airline.color + '">' +
+                '<div class="bhs-stats-airline-head">' +
+                '<img class="bhs-stats-airline-logo" src="' + airline.logo + '" alt="' + airline.name + '" onerror="this.style.display=&quot;none&quot;">' +
+                '<div><div class="bhs-stats-airline-name">' + airline.name + '</div><span class="bhs-stats-airline-code">' + airline.code + '</span></div>' +
+                '</div>' +
+                '<div class="bhs-stats-airline-metrics">' +
+                '<div class="bhs-stats-airline-metric"><span>Salida</span><strong>' + fmtNumber(salida) + '</strong></div>' +
+                '<div class="bhs-stats-airline-metric"><span>Llegada</span><strong>' + fmtNumber(llegada) + '</strong></div>' +
+                '<div class="bhs-stats-airline-metric"><span>Total</span><strong>' + fmtNumber(total) + '</strong></div>' +
+                '<div class="bhs-stats-airline-metric"><span>Participacion</span><strong>' + fmtPercent(share) + '</strong></div>' +
+                '</div>' +
+                '</div>';
+        }).join('');
+    }
+
     function renderCapacities() {
         var tbody = document.getElementById('bhs-stats-capacity-body');
         if (!tbody) return;
@@ -908,25 +1070,15 @@
             return row.anio + '-' + row.mes_num;
         })).size;
         var avgMonthly = distinctMonths > 0 ? totalGeneral / distinctMonths : 0;
-        var airlineTotals = getAirlineTotals(filteredRows).sort(function (a, b) { return b.total - a.total; });
-        var topAirline = airlineTotals[0] || null;
-        var comparison = getComparison(filters);
         var salidaPct = salidaRows.length ? (salidaTotal / (state.capacities.SALIDA.max_per_month * salidaRows.length)) * 100 : 0;
         var llegadaPct = llegadaRows.length ? (llegadaTotal / (state.capacities.LLEGADA.max_per_month * llegadaRows.length)) * 100 : 0;
 
         setText('bhs-stats-kpi-salida', fmtNumber(salidaTotal));
         setText('bhs-stats-kpi-llegada', fmtNumber(llegadaTotal));
         setText('bhs-stats-kpi-general', fmtNumber(totalGeneral));
-        setText('bhs-stats-kpi-airline', topAirline ? topAirline.label : '—');
         setText('bhs-stats-kpi-salida-sub', 'Utilización mensual ' + fmtPercent(salidaPct));
         setText('bhs-stats-kpi-llegada-sub', 'Utilización mensual ' + fmtPercent(llegadaPct));
         setText('bhs-stats-kpi-general-sub', 'Promedio mensual ' + fmtNumber(Math.round(avgMonthly || 0)));
-        setText(
-            'bhs-stats-kpi-airline-sub',
-            comparison
-                ? 'Periodo previo ' + (comparison.delta >= 0 ? '+' : '') + fmtNumber(comparison.delta) + ' (' + fmtPercent(comparison.percent) + ')'
-                : 'Comparativo previo —'
-        );
     }
 
     function setText(id, value) {
@@ -987,6 +1139,7 @@
         destroyCharts();
 
         var monthlyAgg = getMonthlyAggregation(filteredRows);
+        var monthlyChartAgg = getMonthlyAggregation(filteredRows, true);
         var yearlyAgg = getYearlyAggregation(filteredRows);
         var annualCompareAgg = getCalendarYearlyAggregation(filteredRows);
         var airlineTotals = getAirlineTotals(filteredRows);
@@ -995,11 +1148,11 @@
         var filters = getFilters();
         var monthlyStage = document.getElementById('bhs-stats-chart-monthly-stage');
         if (monthlyStage) {
-            monthlyStage.style.minWidth = Math.max(980, monthlyAgg.length * 62) + 'px';
+            monthlyStage.style.minWidth = Math.max(980, monthlyChartAgg.length * 62) + 'px';
         }
 
-        var monthlyMeta = monthlyAgg.map(function (item, index) {
-            var prev = monthlyAgg[index - 1] || null;
+        var monthlyMeta = monthlyChartAgg.map(function (item, index) {
+            var prev = monthlyChartAgg[index + 1] || null;
             return {
                 label: item.label,
                 anio: item.anio,
@@ -1010,10 +1163,10 @@
         });
 
         state.charts.monthly = makeChart('bhs-stats-chart-monthly', 'bar', {
-            labels: monthlyAgg.map(function (item) { return item.label; }),
+            labels: monthlyChartAgg.map(function (item) { return item.label; }),
             datasets: [
-                { label: 'Salida', data: monthlyAgg.map(function (item) { return item.SALIDA; }), backgroundColor: 'rgba(234,88,12,.78)', borderColor: '#ea580c', borderWidth: 1.2, borderRadius: 8, categoryPercentage: 0.62, barPercentage: 0.82, maxBarThickness: 26 },
-                { label: 'Llegada', data: monthlyAgg.map(function (item) { return item.LLEGADA; }), backgroundColor: 'rgba(37,99,235,.78)', borderColor: '#2563eb', borderWidth: 1.2, borderRadius: 8, categoryPercentage: 0.62, barPercentage: 0.82, maxBarThickness: 26 }
+                { label: 'Salida', data: monthlyChartAgg.map(function (item) { return item.SALIDA; }), backgroundColor: 'rgba(234,88,12,.78)', borderColor: '#ea580c', borderWidth: 1.2, borderRadius: 8, categoryPercentage: 0.62, barPercentage: 0.82, maxBarThickness: 26 },
+                { label: 'Llegada', data: monthlyChartAgg.map(function (item) { return item.LLEGADA; }), backgroundColor: 'rgba(37,99,235,.78)', borderColor: '#2563eb', borderWidth: 1.2, borderRadius: 8, categoryPercentage: 0.62, barPercentage: 0.82, maxBarThickness: 26 }
             ]
         }, {
             responsive: true,
@@ -1096,7 +1249,7 @@
                         mode: 'x'
                     },
                     limits: {
-                        x: { min: 0, max: Math.max(0, monthlyAgg.length - 1), minRange: 3 }
+                        x: { min: 0, max: Math.max(0, monthlyChartAgg.length - 1), minRange: 3 }
                     }
                 }
             },
@@ -1126,7 +1279,7 @@
                         minRotation: 0,
                         autoSkip: false,
                         callback: function (value, index) {
-                            var total = monthlyAgg.length || 1;
+                            var total = monthlyChartAgg.length || 1;
                             var maxLabels = window.innerWidth < 768 ? 6 : window.innerWidth < 1200 ? 9 : 14;
                             var step = Math.max(1, Math.ceil(total / maxLabels));
                             return index % step === 0 ? this.getLabelForValue(value) : '';
@@ -1224,6 +1377,46 @@
             labels: monthlyAgg.map(function (item) { return item.label; }),
             datasets: [{ label: 'Tendencia total', data: monthlyAgg.map(function (item) { return item.total; }), borderColor: '#0f172a', backgroundColor: 'rgba(15,23,42,.12)', fill: true, tension: 0.28, pointRadius: 3, pointBackgroundColor: '#0f172a' }]
         }, { responsive: true, maintainAspectRatio: false });
+
+        state.charts.summaryTrend = makeChart('bhs-stats-chart-summary-trend', 'line', {
+            labels: monthlyAgg.map(function (item) { return item.label; }),
+            datasets: [{
+                label: 'Total',
+                data: monthlyAgg.map(function (item) { return item.total; }),
+                borderColor: '#2563eb',
+                backgroundColor: 'rgba(37,99,235,.12)',
+                fill: true,
+                tension: 0.32,
+                pointRadius: 0,
+                pointHoverRadius: 4,
+                borderWidth: 2
+            }]
+        }, {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                datalabels: { display: false },
+                legend: { display: false },
+                tooltip: {
+                    displayColors: false,
+                    callbacks: {
+                        title: function (items) {
+                            return items && items[0] ? items[0].label : '';
+                        },
+                        label: function (context) {
+                            return 'Total: ' + fmtNumber(context.raw);
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: { beginAtZero: true, display: false, grid: { display: false } },
+                x: { display: false, grid: { display: false } }
+            },
+            elements: {
+                line: { borderJoinStyle: 'round' }
+            }
+        });
     }
 
     function makeChart(id, type, data, extraOptions) {
@@ -1610,6 +1803,8 @@
         var filteredRows = applyFilters(state.rows, filters);
         renderCapacities();
         renderKpis(filteredRows, filters);
+        renderAirlineSummary(filteredRows, filters);
+        renderPeriodSummary(filteredRows, filters);
         buildTableRows(filteredRows);
         renderCharts(filteredRows);
         updateFormTotal();
@@ -1688,6 +1883,15 @@
         var duplicateCancel = document.getElementById('bhs-stats-duplicate-cancel');
         if (duplicateCancel) duplicateCancel.addEventListener('click', hideDuplicateModal);
 
+        var capacityOpen = document.getElementById('bhs-stats-capacity-open');
+        if (capacityOpen) capacityOpen.addEventListener('click', function () {
+            renderCapacities();
+            if (window.bootstrap && window.bootstrap.Modal) {
+                var modalEl = document.getElementById('bhs-stats-capacity-modal');
+                if (modalEl) window.bootstrap.Modal.getOrCreateInstance(modalEl).show();
+            }
+        });
+
         var exportXlsx = document.getElementById('bhs-stats-export-xlsx');
         if (exportXlsx) exportXlsx.addEventListener('click', function () {
             exportExcel(applyFilters(state.rows, getFilters()));
@@ -1721,7 +1925,7 @@
                     state.sortDir = state.sortDir === 'asc' ? 'desc' : 'asc';
                 } else {
                     state.sortField = field;
-                    state.sortDir = 'asc';
+                    state.sortDir = (field === 'anio' || field === 'mes_num' || field === 'period') ? 'desc' : 'asc';
                 }
                 renderView();
                 return;
