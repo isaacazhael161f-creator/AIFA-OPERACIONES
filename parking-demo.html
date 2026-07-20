@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AIFA – Demo QR Estacionamiento</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <style>
+    :root{
+      --gold:#F5C518; --gold-d:#D49E10; --dark:#0A1628;
+      --card:#122040; --text:#F0F4F8; --muted:#8DA0B8; --ok:#28C76F;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{background:#0d1117;color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;overflow-x:hidden}
+
+    /* ─── Hero header ─── */
+    .hero{background:linear-gradient(135deg,#0A1628 0%,#122040 60%,#0d2040 100%);border-bottom:3px solid var(--gold);padding:28px 24px 24px}
+    .hero-logo{height:40px;object-fit:contain;filter:brightness(0) invert(1)}
+    .hero h1{font-size:clamp(1.3rem,3vw,2rem);font-weight:800;letter-spacing:-.5px}
+    .hero .sub{font-size:.85rem;color:var(--muted);margin-top:4px}
+
+    /* ─── Step badges ─── */
+    .steps{display:flex;gap:0;overflow-x:auto;padding:0 20px;margin:32px auto;max-width:900px;position:relative}
+    .step{flex:1;text-align:center;position:relative;min-width:120px}
+    .step::after{content:'';position:absolute;top:20px;left:calc(50% + 26px);right:calc(-50% + 26px);height:2px;background:var(--gold);opacity:.3}
+    .step:last-child::after{display:none}
+    .step-num{width:42px;height:42px;border-radius:50%;background:var(--gold);color:#0A1628;font-weight:900;font-size:1.1rem;display:flex;align-items:center;justify-content:center;margin:0 auto 8px}
+    .step-label{font-size:.78rem;color:var(--muted);line-height:1.4;font-weight:600}
+
+    /* ─── Main demo area ─── */
+    .demo-wrap{max-width:1100px;margin:0 auto;padding:0 20px 60px;display:grid;grid-template-columns:1fr auto 1fr;gap:32px;align-items:start}
+    @media(max-width:768px){.demo-wrap{grid-template-columns:1fr;gap:24px}}
+
+    /* ─── Column mockup ─── */
+    .column-scene{display:flex;justify-content:center;align-items:flex-end;gap:0;position:relative}
+    .parking-pillar{width:90px;background:#d8d0c4;border-radius:6px 6px 0 0;height:360px;position:relative;box-shadow:4px 0 12px rgba(0,0,0,.4)}
+    .column-sign{position:absolute;top:30px;left:-48px;width:186px;background:var(--gold);border-radius:12px;padding:0;overflow:hidden;box-shadow:0 6px 24px rgba(0,0,0,.5);z-index:2}
+    .column-sign .cs-top{background:var(--gold-d);padding:4px 10px;display:flex;align-items:center;justify-content:space-between}
+    .column-sign .cs-top .nivel{font-size:.75rem;font-weight:700;color:#0A1628}
+    .column-sign .cs-top .pattern{letter-spacing:1px;font-size:.5rem;color:rgba(0,0,0,.2);flex:1;text-align:right;overflow:hidden;white-space:nowrap}
+    .column-sign .cs-body{padding:8px 12px 4px;text-align:right;line-height:1}
+    .column-sign .cs-body .cs-letter{font-size:3.8rem;font-weight:900;color:#fff;letter-spacing:-2px;display:inline-block}
+    .column-sign .cs-body .cs-number{font-size:2.2rem;font-weight:900;color:#fff;letter-spacing:-1px;display:inline-block;margin-left:4px}
+
+    /* QR sticker on column */
+    .qr-sticker{position:absolute;bottom:90px;left:50%;transform:translateX(-50%);background:#fff;padding:8px;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.5);border:2px solid rgba(0,0,0,.15);z-index:3;text-align:center}
+    .qr-sticker .qr-label{font-size:.55rem;font-weight:700;color:#0A1628;text-transform:uppercase;letter-spacing:.5px;margin-top:4px}
+    .qr-sticker .qr-sub{font-size:.48rem;color:#666;margin-top:1px}
+    .qr-scan-hint{position:absolute;bottom:40px;left:50%;transform:translateX(-50%);white-space:nowrap;font-size:.72rem;color:var(--gold);font-weight:600;animation:pulse 2s ease-in-out infinite}
+    @keyframes pulse{0%,100%{opacity:.5;transform:translateX(-50%) scale(1)}50%{opacity:1;transform:translateX(-50%) scale(1.05)}}
+
+    /* Floor */
+    .parking-floor{width:260px;height:28px;background:linear-gradient(to bottom,#4a4540,#3a3530);border-radius:0 0 4px 4px;align-self:flex-end;display:flex;align-items:center;gap:0;overflow:hidden;position:absolute;bottom:0;left:50%;transform:translateX(-50%)}
+    .parking-floor::before{content:'';position:absolute;left:0;right:0;top:50%;height:2px;background:#F5C518;opacity:.4}
+    .parking-floor::after{content:'';position:absolute;left:0;right:0;top:calc(50% + 8px);height:2px;background:#F5C518;opacity:.2}
+
+    /* ─── Arrow ─── */
+    .flow-arrow{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding-top:120px}
+    .flow-arrow i{font-size:2rem;color:var(--gold);animation:pulse 1.5s ease-in-out infinite}
+    .flow-arrow span{font-size:.75rem;color:var(--muted);font-weight:600;text-align:center;line-height:1.4}
+    @media(max-width:768px){.flow-arrow{padding-top:0;flex-direction:row}}
+
+    /* ─── Phone mockup ─── */
+    .phone-wrap{display:flex;flex-direction:column;align-items:center;gap:12px}
+    .phone{width:260px;background:#1a1a1a;border-radius:36px;padding:14px 10px;box-shadow:0 16px 48px rgba(0,0,0,.7),0 0 0 1.5px #333;position:relative}
+    .phone::before{content:'';position:absolute;top:14px;left:50%;transform:translateX(-50%);width:70px;height:6px;background:#333;border-radius:3px}
+    .phone-screen{border-radius:24px;overflow:hidden;background:#0A1628;height:480px;position:relative;margin-top:6px}
+    .phone-screen iframe{width:100%;height:100%;border:none;transform-origin:top left}
+
+    /* ─── Phone static screen (fallback / step view) ─── */
+    .phone-static{width:100%;height:100%;overflow-y:auto;background:#0A1628;font-family:-apple-system,sans-serif}
+    .ps-header{background:linear-gradient(135deg,#0A1628,#122040);border-bottom:2px solid #F5C518;padding:10px 14px;display:flex;align-items:center;gap:10px}
+    .ps-header img{height:22px;filter:brightness(0) invert(1)}
+    .ps-header .ph-brand-title{font-size:.55rem;color:#8DA0B8;text-transform:uppercase}
+    .ps-header .ph-brand-sub{font-size:.75rem;font-weight:700;color:#F5C518}
+    .ps-body{padding:14px 12px}
+    .ps-card{background:#122040;border-radius:14px;padding:18px 14px;border:1.5px solid rgba(245,166,35,.35);text-align:center;position:relative;overflow:hidden}
+    .ps-section{font-size:3.8rem;font-weight:900;color:#F5C518;line-height:1}
+    .ps-num{font-size:1.8rem;font-weight:700;color:#F0F4F8}
+    .ps-level{font-size:.75rem;color:#F5C518;font-weight:600;margin-top:4px}
+    .ps-info{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.05);border-radius:8px;padding:8px 10px;margin-top:8px}
+    .ps-info i{color:#F5C518;font-size:.8rem;width:18px}
+    .ps-info .l{font-size:.65rem;color:#8DA0B8}
+    .ps-info .v{font-size:.75rem;font-weight:600;color:#F0F4F8}
+    .ps-btn{background:linear-gradient(135deg,#F5A623,#D4891A);color:#0A1628;border:none;border-radius:50px;padding:10px 0;font-size:.8rem;font-weight:700;width:100%;margin-top:14px;cursor:pointer;box-shadow:0 4px 14px rgba(245,166,35,.4)}
+    .ps-pill{display:inline-block;padding:3px 10px;border-radius:20px;background:#F5C518;color:#0A1628;font-size:.65rem;font-weight:700;margin-bottom:6px;text-transform:uppercase}
+
+    /* ─── Saved screen ─── */
+    .save-ok{width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#28C76F,#1aab5b);display:flex;align-items:center;justify-content:center;margin:0 auto 10px;font-size:1.4rem;animation:popIn .4s cubic-bezier(.175,.885,.32,1.275)}
+    @keyframes popIn{0%{transform:scale(0);opacity:0}100%{transform:scale(1);opacity:1}}
+    .nav-row{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:12px}
+    .nav-nb{background:#122040;border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px 6px;text-align:center;font-size:.7rem;font-weight:600;color:#F0F4F8}
+    .nav-nb i{display:block;font-size:1.2rem;margin-bottom:4px}
+
+    /* ─── Tabs ─── */
+    .phone-tabs{display:flex;gap:8px;margin-top:12px}
+    .ptab{flex:1;padding:7px 0;border-radius:20px;border:1.5px solid rgba(245,198,24,.35);background:transparent;color:#8DA0B8;font-size:.72rem;font-weight:600;cursor:pointer;transition:all .2s;text-align:center}
+    .ptab.active{background:var(--gold);color:#0A1628;border-color:var(--gold)}
+
+    /* ─── Info card ─── */
+    .info-card{background:var(--card);border-radius:18px;padding:22px 20px;border:1px solid rgba(245,166,35,.2);margin-top:8px}
+    .info-card h4{font-size:1rem;font-weight:700;color:var(--gold);margin-bottom:14px}
+    .info-card ul{list-style:none;display:flex;flex-direction:column;gap:10px}
+    .info-card ul li{font-size:.85rem;color:var(--muted);display:flex;align-items:flex-start;gap:10px}
+    .info-card ul li i{color:var(--ok);font-size:.85rem;width:18px;margin-top:2px;flex-shrink:0}
+
+    /* ─── URL display ─── */
+    .url-box{background:#0d1117;border:1px solid rgba(245,166,35,.3);border-radius:10px;padding:10px 14px;font-size:.72rem;color:#F5C518;font-family:monospace;word-break:break-all;margin-top:12px}
+
+    /* ─── Section title ─── */
+    .sec-title{text-align:center;max-width:900px;margin:40px auto 8px;padding:0 20px}
+    .sec-title h2{font-size:1.5rem;font-weight:800}
+    .sec-title p{font-size:.88rem;color:var(--muted);margin-top:6px}
+    .gold{color:var(--gold)}
+
+    /* qrcodejs renders canvas + img stacked; keep only canvas */
+    #qr-column img { display: none !important; }
+    #qr-column canvas { display: block; }
+
+    /* ─── Print helper ─── */
+    @media print{.hero,.steps,.sec-title,.info-card,.phone-tabs,.url-box{display:none}}
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════ HEADER ═══════════════ -->
+<header class="hero">
+  <div style="max-width:1100px;margin:0 auto;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+    <img src="images/aifa-logo.png" class="hero-logo" onerror="this.style.display='none'" alt="AIFA">
+    <div style="flex:1">
+      <h1><span class="gold"><i class="fas fa-qrcode me-2"></i></span>Sistema QR de Estacionamiento</h1>
+      <div class="sub">Aeropuerto Internacional Felipe &#xC1;ngeles &mdash; Demo de funcionamiento</div>
+    </div>
+    <a href="parking-admin.html" class="btn btn-outline-warning btn-sm">
+      <i class="fas fa-cog me-1"></i>Generar QRs
+    </a>
+    <a href="parking.html" class="btn btn-outline-light btn-sm">
+      <i class="fas fa-mobile-alt me-1"></i>P&#xE1;gina pasajero
+    </a>
+  </div>
+</header>
+
+<!-- ═══════════════ STEPS ═══════════════ -->
+<div class="steps">
+  <div class="step">
+    <div class="step-num">1</div>
+    <div class="step-label">Estaciona tu veh&#xED;culo</div>
+  </div>
+  <div class="step">
+    <div class="step-num">2</div>
+    <div class="step-label">Escanea el QR de la columna</div>
+  </div>
+  <div class="step">
+    <div class="step-num">3</div>
+    <div class="step-label">Presiona &ldquo;Guardar mi lugar&rdquo;</div>
+  </div>
+  <div class="step">
+    <div class="step-num">4</div>
+    <div class="step-label">Al volver, abre la p&#xE1;gina</div>
+  </div>
+  <div class="step">
+    <div class="step-num">5</div>
+    <div class="step-label">Navega directo a tu auto</div>
+  </div>
+</div>
+
+<!-- ═══════════════ SECTION TITLE ═══════════════ -->
+<div class="sec-title">
+  <h2>As&#xED; queda la columna <span class="gold">B&nbsp;23</span> con el QR</h2>
+  <p>Carga la foto real del estacionamiento y el QR aparece sobre la columna tal como quedar&#xED;a en la pr&#xE1;ctica.</p>
+</div>
+
+<!-- ═══════════════ DEMO PRINCIPAL ═══════════════ -->
+<div class="demo-wrap">
+
+  <!-- LEFT: Foto real + QR overlay -->
+  <div style="display:flex;flex-direction:column;align-items:center;gap:12px">
+
+    <!-- Zona de foto -->
+    <div id="photo-zone" style="position:relative;width:100%;max-width:340px;min-height:380px;background:#0d1117;border-radius:16px;overflow:hidden;border:2px dashed rgba(245,166,35,.4);display:flex;align-items:center;justify-content:center">
+
+      <!-- Placeholder (antes de cargar) -->
+      <div id="photo-placeholder" style="text-align:center;padding:36px 20px;cursor:pointer" onclick="document.getElementById('photo-input').click()">
+        <i class="fas fa-image" style="font-size:3rem;color:var(--muted);display:block;margin-bottom:14px"></i>
+        <div style="font-size:.92rem;color:var(--gold);font-weight:700"><i class="fas fa-upload me-2"></i>Cargar foto del estacionamiento</div>
+        <div style="font-size:.76rem;color:var(--muted);margin-top:6px;line-height:1.5">La imagen real del AIFA<br>que me compartiste</div>
+        <div style="margin-top:16px;padding:8px 16px;border:1.5px solid rgba(245,166,35,.4);border-radius:20px;font-size:.78rem;color:var(--gold)">Seleccionar imagen</div>
+        <input type="file" id="photo-input" accept="image/*" style="display:none" onchange="loadPhoto(this)">
+      </div>
+
+      <!-- Foto real -->
+      <img id="parking-photo" style="width:100%;height:auto;display:none;border-radius:14px" alt="Estacionamiento AIFA">
+
+      <!-- QR overlay (draggable) -->
+      <div id="qr-overlay" style="display:none;position:absolute;background:#fff;padding:4px;border-radius:6px;box-shadow:0 4px 20px rgba(0,0,0,.6),0 0 0 2px rgba(0,0,0,.2);cursor:grab;user-select:none;z-index:10;touch-action:none">
+        <div id="qr-column"></div>
+      </div>
+
+      <!-- Cursor crosshair mientras arrastra -->
+      <div id="drag-hint" style="display:none;position:absolute;top:8px;left:50%;transform:translateX(-50%);white-space:nowrap;font-size:.68rem;color:#fff;font-weight:600;background:rgba(0,0,0,.65);padding:4px 10px;border-radius:14px;pointer-events:none;z-index:20">
+        <i class="fas fa-hand-pointer me-1"></i>Arrastra el QR hasta la columna
+      </div>
+
+      <!-- Hint animado -->
+      <div id="scan-hint" style="display:none;position:absolute;bottom:12px;left:50%;transform:translateX(-50%);white-space:nowrap;font-size:.72rem;color:var(--gold);font-weight:600;background:rgba(10,22,40,.85);padding:5px 12px;border-radius:20px;animation:pulse 2s ease-in-out infinite">
+        <i class="fas fa-qrcode me-1"></i>Escanea con tu c&#xE1;mara
+      </div>
+    </div>
+
+    <!-- Controles de posici&#xF3;n (visibles tras cargar foto) -->
+    <div id="pos-controls" style="display:none;width:100%;max-width:340px;background:var(--card);border-radius:12px;padding:12px 14px;border:1px solid rgba(255,255,255,.08)">
+      <div style="font-size:.72rem;color:var(--gold);margin-bottom:10px;font-weight:600">
+        <i class="fas fa-hand-pointer me-1"></i>Arrastra el QR sobre la foto &mdash; o usa los controles:
+      </div>
+      <div style="display:grid;grid-template-columns:auto 1fr auto;gap:5px 10px;align-items:center">
+        <label style="font-size:.7rem;color:var(--muted)">&#x2194; X</label>
+        <input type="range" id="qr-x" min="0" max="100" step="0.5" value="58" oninput="posQR();document.getElementById('val-x').textContent=Math.round(this.value)+'%'" style="width:100%">
+        <span id="val-x" style="font-size:.68rem;color:var(--gold);min-width:32px;text-align:right">58%</span>
+
+        <label style="font-size:.7rem;color:var(--muted)">&#x2195; Y</label>
+        <input type="range" id="qr-y" min="0" max="100" step="0.5" value="30" oninput="posQR();document.getElementById('val-y').textContent=Math.round(this.value)+'%'" style="width:100%">
+        <span id="val-y" style="font-size:.68rem;color:var(--gold);min-width:32px;text-align:right">30%</span>
+
+        <label style="font-size:.7rem;color:var(--muted)">&#x26F6; Tama&#xF1;o</label>
+        <input type="range" id="qr-sz" min="60" max="130" step="2" value="80" oninput="resizeQR();document.getElementById('val-sz').textContent=this.value+'px'" style="width:100%">
+        <span id="val-sz" style="font-size:.68rem;color:var(--gold);min-width:32px;text-align:right">80px</span>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <button onclick="resetQRPos()" style="flex:1;background:transparent;border:1px solid rgba(245,166,35,.35);border-radius:8px;padding:6px;font-size:.73rem;color:var(--gold);cursor:pointer">
+          <i class="fas fa-undo me-1"></i>Reset
+        </button>
+        <button onclick="document.getElementById('photo-input').click()" style="flex:1;background:transparent;border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:6px;font-size:.73rem;color:var(--muted);cursor:pointer">
+          <i class="fas fa-folder-open me-1"></i>Cambiar foto
+        </button>
+      </div>
+    </div>
+
+    <!-- URL del QR -->
+    <div style="max-width:340px;width:100%">
+      <div style="font-size:.7rem;color:var(--muted);margin-bottom:4px"><i class="fas fa-link me-1"></i>URL codificada en el QR:</div>
+      <div class="url-box" id="qr-url-display">Generando...</div>
+    </div>
+  </div>
+
+  <!-- CENTER: Arrow -->
+  <div class="flow-arrow">
+    <i class="fas fa-arrow-right"></i>
+    <span>El pasajero<br>escanea</span>
+  </div>
+
+  <!-- RIGHT: Phone mockup with tabs -->
+  <div class="phone-wrap">
+    <div style="font-size:.78rem;color:var(--muted);text-align:center;margin-bottom:4px">
+      <i class="fas fa-mobile-alt me-1"></i>Lo que ve el pasajero en su <strong style="color:var(--gold)">tel&#xE9;fono</strong>
+    </div>
+
+    <!-- Tab buttons (above phone) -->
+    <div class="phone-tabs">
+      <button class="ptab active" onclick="showTab('save')">Al escanear</button>
+      <button class="ptab" onclick="showTab('saved')">Guardado</button>
+      <button class="ptab" onclick="showTab('find')">Al volver</button>
+    </div>
+
+    <!-- Phone frame -->
+    <div class="phone">
+      <div class="phone-screen">
+
+        <!-- TAB 1: Save (after QR scan) -->
+        <div id="tab-save" class="phone-static">
+          <div class="ps-header">
+            <img src="images/aifa-logo.png" onerror="this.style.display='none'" alt="AIFA">
+            <div>
+              <div class="ph-brand-title">Aeropuerto Internacional</div>
+              <div class="ph-brand-sub">Felipe &#xC1;ngeles</div>
+            </div>
+          </div>
+          <div class="ps-body">
+            <div style="text-align:center;margin-bottom:12px">
+              <div style="font-size:.65rem;color:#8DA0B8;text-transform:uppercase;letter-spacing:.5px"><i class="fas fa-qrcode me-1"></i> Lugar detectado</div>
+              <div style="font-size:1.1rem;font-weight:700;margin-top:4px">&#xBF;Guardar este lugar?</div>
+            </div>
+            <div class="ps-card" style="border-color:#F5C51866;background:linear-gradient(135deg,#122040,#F5C51811)">
+              <div class="ps-pill">Amarillo</div>
+              <div style="font-size:.65rem;color:#8DA0B8;text-transform:uppercase;letter-spacing:.5px">Secci&#xF3;n</div>
+              <div class="ps-section">B</div>
+              <div style="font-size:.7rem;color:#8DA0B8;margin-top:-4px">Columna</div>
+              <div class="ps-num">23</div>
+              <div class="ps-level"><i class="fas fa-layer-group me-1"></i>N1</div>
+            </div>
+            <div class="ps-info">
+              <i class="fas fa-clock"></i>
+              <div><div class="l">Hora de llegada</div><div class="v" id="ps-time">--:--</div></div>
+            </div>
+            <div class="ps-info">
+              <i class="fas fa-location-dot"></i>
+              <div><div class="l">Coordenadas GPS</div><div class="v">19.75400, -99.07620</div></div>
+            </div>
+            <button class="ps-btn" onclick="showTab('saved')">
+              <i class="fas fa-bookmark me-1"></i>Guardar mi lugar
+            </button>
+          </div>
+        </div>
+
+        <!-- TAB 2: Saved confirmation -->
+        <div id="tab-saved" class="phone-static d-none">
+          <div class="ps-header">
+            <img src="images/aifa-logo.png" onerror="this.style.display='none'" alt="AIFA">
+            <div>
+              <div class="ph-brand-title">Aeropuerto Internacional</div>
+              <div class="ph-brand-sub">Felipe &#xC1;ngeles</div>
+            </div>
+          </div>
+          <div class="ps-body" style="text-align:center">
+            <div style="padding:16px 0 12px">
+              <div class="save-ok"><i class="fas fa-check" style="color:#fff"></i></div>
+              <div style="font-size:1.15rem;font-weight:700">&#xA1;Lugar guardado!</div>
+              <div style="font-size:.72rem;color:#8DA0B8;margin-top:4px">Tu lugar est&#xE1; guardado en este dispositivo</div>
+            </div>
+            <div class="ps-card" style="border-color:#F5C51866;background:linear-gradient(135deg,#122040,#F5C51811)">
+              <div class="ps-pill">Amarillo</div>
+              <div class="ps-section">B</div>
+              <div class="ps-num">23</div>
+              <div class="ps-level"><i class="fas fa-layer-group me-1"></i>N1</div>
+            </div>
+            <div style="background:rgba(245,166,35,.07);border:1px dashed rgba(245,166,35,.4);border-radius:10px;padding:10px 12px;margin-top:12px;font-size:.72rem;color:#8DA0B8">
+              <i class="fas fa-info-circle" style="color:#F5A623"></i>
+              Al regresar, abre esta p&#xE1;gina para que te gu&#xED;e.
+            </div>
+            <button class="ps-btn" onclick="showTab('find')">
+              <i class="fas fa-map-marked-alt me-1"></i>Navegar a mi auto
+            </button>
+          </div>
+        </div>
+
+        <!-- TAB 3: Find my car -->
+        <div id="tab-find" class="phone-static d-none">
+          <div class="ps-header">
+            <img src="images/aifa-logo.png" onerror="this.style.display='none'" alt="AIFA">
+            <div>
+              <div class="ph-brand-title">Aeropuerto Internacional</div>
+              <div class="ph-brand-sub">Felipe &#xC1;ngeles</div>
+            </div>
+          </div>
+          <div class="ps-body">
+            <div style="text-align:center;margin-bottom:10px">
+              <div style="font-size:1.05rem;font-weight:700"><i class="fas fa-car me-1" style="color:#F5A623"></i>Mi Auto</div>
+            </div>
+            <div class="ps-card" style="border-color:#F5C51866;background:linear-gradient(135deg,#122040,#F5C51811)">
+              <div class="ps-pill">Amarillo</div>
+              <div class="ps-section">B</div>
+              <div class="ps-num">23</div>
+              <div class="ps-level"><i class="fas fa-layer-group me-1"></i>N1</div>
+            </div>
+            <div class="ps-info">
+              <i class="fas fa-stopwatch"></i>
+              <div><div class="l">Tiempo estacionado</div><div class="v" id="ps-elapsed">2 h 34 min</div></div>
+            </div>
+            <div style="font-size:.65rem;color:#8DA0B8;text-transform:uppercase;margin:10px 0 6px;letter-spacing:.5px">
+              <i class="fas fa-compass me-1"></i> Navegar
+            </div>
+            <div class="nav-row">
+              <a href="https://www.google.com/maps/dir/?api=1&destination=19.754,-99.0762&travelmode=walking"
+                 target="_blank" rel="noopener" class="nav-nb" style="text-decoration:none">
+                <i class="fab fa-google" style="color:#4285F4"></i>Google Maps
+              </a>
+              <a href="https://waze.com/ul?ll=19.754,-99.0762&navigate=yes"
+                 target="_blank" rel="noopener" class="nav-nb" style="text-decoration:none">
+                <i class="fas fa-route" style="color:#33CCFF"></i>Waze
+              </a>
+              <div class="nav-nb">
+                <i class="fab fa-apple" style="color:#fff"></i>Apple Maps
+              </div>
+              <div class="nav-nb">
+                <i class="fas fa-map-pin" style="color:#F5A623"></i>Ver mapa
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /phone-screen -->
+    </div><!-- /phone -->
+  </div><!-- /phone-wrap -->
+
+</div><!-- /demo-wrap -->
+
+<!-- ═══════════════ INFO ═══════════════ -->
+<div class="sec-title" style="margin-bottom:16px">
+  <h2>&#xBF;C&#xF3;mo funciona el sistema?</h2>
+</div>
+<div style="max-width:900px;margin:0 auto 60px;padding:0 20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px">
+
+  <div class="info-card">
+    <h4><i class="fas fa-print me-2"></i>1. Instalaci&#xF3;n</h4>
+    <ul>
+      <li><i class="fas fa-check-circle"></i>Se generan QRs desde <a href="parking-admin.html" style="color:var(--gold)">parking-admin.html</a></li>
+      <li><i class="fas fa-check-circle"></i>Se imprime y plastifica cada QR</li>
+      <li><i class="fas fa-check-circle"></i>Se pega en la columna correspondiente</li>
+      <li><i class="fas fa-check-circle"></i>Cada QR lleva GPS de esa columna</li>
+    </ul>
+  </div>
+
+  <div class="info-card">
+    <h4><i class="fas fa-mobile-alt me-2"></i>2. El pasajero</h4>
+    <ul>
+      <li><i class="fas fa-check-circle"></i>Estaciona su veh&#xED;culo</li>
+      <li><i class="fas fa-check-circle"></i>Escanea el QR con su c&#xE1;mara</li>
+      <li><i class="fas fa-check-circle"></i>Presiona &ldquo;Guardar mi lugar&rdquo;</li>
+      <li><i class="fas fa-check-circle"></i>Los datos se guardan en su tel&#xE9;fono</li>
+    </ul>
+  </div>
+
+  <div class="info-card">
+    <h4><i class="fas fa-map-marked-alt me-2"></i>3. Al regresar</h4>
+    <ul>
+      <li><i class="fas fa-check-circle"></i>Abre la p&#xE1;gina guardada en el navegador</li>
+      <li><i class="fas fa-check-circle"></i>Ve la secci&#xF3;n y columna donde dej&#xF3; el auto</li>
+      <li><i class="fas fa-check-circle"></i>Presiona Google Maps / Waze</li>
+      <li><i class="fas fa-check-circle"></i>Navegaci&#xF3;n directa a la columna</li>
+    </ul>
+  </div>
+
+</div>
+
+<script>
+// ── QR URL ──
+var BASE_URL = 'https://isaacazhael161f-creator.github.io/AIFA-OPERACIONES/parking.html';
+var params   = '?col=B&num=23&nivel=N1&color=amarillo&lat=19.754000&lng=-99.076200';
+var fullURL  = BASE_URL + params;
+var qrGenerated = false;
+
+document.getElementById('qr-url-display').textContent = fullURL;
+document.getElementById('ps-time').textContent = new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});
+
+function generateQR(containerId, size) {
+  var el = document.getElementById(containerId);
+  el.innerHTML = '';
+  try {
+    new QRCode(el, {
+      text: fullURL, width: size, height: size,
+      colorDark: '#000', colorLight: '#fff',
+      correctLevel: QRCode.CorrectLevel.H
+    });
+  } catch(e) { el.textContent = 'QR'; }
+}
+
+// ── Drag QR overlay ──
+(function() {
+  var dragging = false, startX, startY, startLeft, startTop;
+
+  function getZone() { return document.getElementById('photo-zone'); }
+  function getOv()   { return document.getElementById('qr-overlay'); }
+
+  function onDown(e) {
+    var ov = getOv();
+    if (ov.style.display === 'none') return;
+    dragging = true;
+    ov.style.cursor = 'grabbing';
+    var touch = e.touches ? e.touches[0] : e;
+    startX = touch.clientX;
+    startY = touch.clientY;
+    var zone = getZone().getBoundingClientRect();
+    startLeft = parseFloat(ov.style.left) / 100 * zone.width;
+    startTop  = parseFloat(ov.style.top)  / 100 * zone.height;
+    e.preventDefault();
+  }
+
+  function onMove(e) {
+    if (!dragging) return;
+    var touch  = e.touches ? e.touches[0] : e;
+    var dx = touch.clientX - startX;
+    var dy = touch.clientY - startY;
+    var zone = getZone().getBoundingClientRect();
+    var newLeft = Math.max(0, Math.min(100, (startLeft + dx) / zone.width  * 100));
+    var newTop  = Math.max(0, Math.min(100, (startTop  + dy) / zone.height * 100));
+    var ov = getOv();
+    ov.style.left = newLeft + '%';
+    ov.style.top  = newTop  + '%';
+    // sync sliders
+    var sx = document.getElementById('qr-x');
+    var sy = document.getElementById('qr-y');
+    if (sx) { sx.value = newLeft.toFixed(1); document.getElementById('val-x').textContent = Math.round(newLeft) + '%'; }
+    if (sy) { sy.value = newTop.toFixed(1);  document.getElementById('val-y').textContent = Math.round(newTop)  + '%'; }
+    e.preventDefault();
+  }
+
+  function onUp() {
+    dragging = false;
+    var ov = getOv();
+    if (ov) ov.style.cursor = 'grab';
+  }
+
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup',   onUp);
+  document.addEventListener('touchmove', onMove, { passive: false });
+  document.addEventListener('touchend',  onUp);
+
+  // Attach mousedown/touchstart once DOM is ready
+  document.addEventListener('DOMContentLoaded', function() {
+    var ov = document.getElementById('qr-overlay');
+    if (ov) {
+      ov.addEventListener('mousedown',  onDown);
+      ov.addEventListener('touchstart', onDown, { passive: false });
+    }
+  });
+})();
+
+// ── Cargar foto real ──
+function loadPhoto(input) {
+  var file = input.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var photo = document.getElementById('parking-photo');
+    photo.src = e.target.result;
+    photo.style.display = 'block';
+    document.getElementById('photo-placeholder').style.display = 'none';
+
+    // Mostrar QR overlay y hint de arrastre
+    var overlay = document.getElementById('qr-overlay');
+    overlay.style.display = 'block';
+    document.getElementById('scan-hint').style.display = 'block';
+    document.getElementById('pos-controls').style.display = 'block';
+    var hint = document.getElementById('drag-hint');
+    hint.style.display = 'block';
+    setTimeout(function(){ hint.style.display = 'none'; }, 3500);
+
+    posQR();
+
+    if (!qrGenerated) {
+      var sz = parseInt(document.getElementById('qr-sz').value) || 80;
+      generateQR('qr-column', sz);
+      qrGenerated = true;
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+// ── Posicionar QR ──
+function posQR() {
+  var x  = document.getElementById('qr-x').value;
+  var y  = document.getElementById('qr-y').value;
+  var ov = document.getElementById('qr-overlay');
+  ov.style.left      = x + '%';
+  ov.style.top       = y + '%';
+  ov.style.transform = 'translate(-50%, -50%)';
+}
+
+// ── Redimensionar QR ──
+function resizeQR() {
+  var sz = parseInt(document.getElementById('qr-sz').value) || 70;
+  generateQR('qr-column', sz);
+}
+
+// ── Reset posici&#xF3;n ──
+function resetQRPos() {
+  var sx = document.getElementById('qr-x');
+  var sy = document.getElementById('qr-y');
+  var ss = document.getElementById('qr-sz');
+  sx.value = 58; document.getElementById('val-x').textContent = '58%';
+  sy.value = 30; document.getElementById('val-y').textContent = '30%';
+  ss.value = 80; document.getElementById('val-sz').textContent = '80px';
+  posQR();
+  resizeQR();
+}
+
+// ── Tabs ──
+function showTab(name){
+  ['save','saved','find'].forEach(function(t){
+    document.getElementById('tab-'+t).classList.add('d-none');
+  });
+  document.getElementById('tab-'+name).classList.remove('d-none');
+
+  document.querySelectorAll('.ptab').forEach(function(btn,i){
+    btn.classList.toggle('active', btn.textContent.trim().toLowerCase().replace(/ /g,'') === {save:'alescanear',saved:'guardado',find:'alvolver'}[name]);
+  });
+  // re-trigger animation on saved
+  if(name==='saved'){
+    var ic=document.querySelector('.save-ok');
+    if(ic){ic.style.animation='none';void ic.offsetWidth;ic.style.animation='';}
+  }
+}
+
+// Match tab buttons by index
+document.querySelectorAll('.ptab').forEach(function(btn,i){
+  var tabs=['save','saved','find'];
+  btn.addEventListener('click',function(){ showTab(tabs[i]); });
+});
+</script>
+</body>
+</html>

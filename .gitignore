@@ -1,0 +1,46 @@
+# Dependencies
+node_modules/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+
+# Build outputs
+.dist/
+dist/
+build/
+coverage/
+.tmp/
+.temp/
+.cache/
+
+# Environment files
+.env
+.env.*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE/editor
+.vscode/
+.idea/
+
+# Misc
+*.swp
+*.swo
+*.bak
+*.tmp
+~$*
+
+# Large binaries — exceed GitHub 100 MB limit
+NG-Client/NG-Client.exe
+*.exe
+
+# Video FBO (347 MB) - excede el limite de 100 MB de GitHub; servir localmente o via CDN
+videos/FBO AIFA - Trim.mp4
+
+# TypeScript
+*.tsbuildinfo

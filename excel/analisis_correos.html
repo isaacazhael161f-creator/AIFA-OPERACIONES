@@ -1,0 +1,1324 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Análisis de Correos — AIFA Operaciones</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f2f5; color: #222; }
+  header { background: #003366; color: #fff; padding: 18px 32px; display: flex; align-items: center; gap: 16px; }
+  header h1 { font-size: 1.4rem; font-weight: 700; }
+  header .sub { font-size: 0.85rem; opacity: 0.75; }
+  .badge { background: #00aaff; color: #fff; border-radius: 4px; padding: 2px 8px; font-size: 0.75rem; }
+  main { max-width: 1400px; margin: 0 auto; padding: 24px 20px; }
+  .kpi-row { display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 28px; }
+  .kpi { background: #fff; border-radius: 10px; padding: 18px 24px; flex: 1 1 160px;
+          box-shadow: 0 2px 8px #0001; border-left: 5px solid #003366; }
+  .kpi .label { font-size: 0.78rem; color: #666; text-transform: uppercase; letter-spacing: .04em; }
+  .kpi .value { font-size: 2rem; font-weight: 700; color: #003366; }
+  .kpi .sub { font-size: 0.78rem; color: #999; }
+  .section { background: #fff; border-radius: 12px; padding: 24px; margin-bottom: 24px;
+              box-shadow: 0 2px 10px #0001; }
+  .section h2 { font-size: 1.1rem; font-weight: 700; color: #003366; margin-bottom: 4px; }
+  .section .desc { font-size: 0.82rem; color: #888; margin-bottom: 16px; }
+  .chart-wrap { position: relative; height: 320px; }
+  .chart-wrap-sm { position: relative; height: 240px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media(max-width:700px) { .grid2 { grid-template-columns: 1fr; } }
+  table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+  th { background: #003366; color: #fff; padding: 8px 10px; text-align: left; }
+  tr:nth-child(even) { background: #f5f7fa; }
+  td { padding: 7px 10px; border-bottom: 1px solid #eee; }
+  .tag { display: inline-block; border-radius: 12px; padding: 1px 10px; font-size: 0.75rem; font-weight: 600; }
+  .tag-Alta        { background: #d0f0ff; color: #0077b6; }
+  .tag-Modificación { background: #fff3cd; color: #9c6800; }
+  .tag-Cancelación  { background: #fde; color: #c0392b; }
+  .tag-Demora       { background: #e8d5f5; color: #6b2fa0; }
+  .tag-Otro         { background: #eee; color: #555; }
+  .rt-table td:nth-child(n+2) { text-align: center; }
+  .good { color: #27ae60; font-weight: 600; }
+  .warn { color: #e67e22; font-weight: 600; }
+  .bad  { color: #e74c3c; font-weight: 600; }
+  .footer { text-align: center; font-size: 0.78rem; color: #aaa; padding: 20px 0 40px; }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <div style="font-size:1.6rem;font-weight:800;letter-spacing:.05em;">AIFA</div>
+    <div class="sub">Aeropuerto Internacional Felipe Ángeles</div>
+  </div>
+  <div style="flex:1">
+    <h1>Análisis de Correos Electrónicos — Coordinación de Slots</h1>
+    <div class="sub">Período: 2026-03-01 → 2026-05-11 &nbsp;·&nbsp;
+    Generado: 11/05/2026</div>
+  </div>
+  <span class="badge">Bandeja de entrada + Elementos enviados</span>
+</header>
+<main>
+
+<!-- KPI Row -->
+<div class="kpi-row">
+  <div class="kpi">
+    <div class="label">Total recibidos</div>
+    <div class="value">2,559</div>
+    <div class="sub">Correos de entrada</div>
+  </div>
+  <div class="kpi">
+    <div class="label">Total enviados</div>
+    <div class="value">1,621</div>
+    <div class="sub">Elementos enviados</div>
+  </div>
+  <div class="kpi" style="border-left-color:#e74c3c">
+    <div class="label">Solicitudes de slot recibidas</div>
+    <div class="value">1,494</div>
+    <div class="sub">Alta · Modificación · Cancelación · Demora</div>
+  </div>
+  <div class="kpi" style="border-left-color:#27ae60">
+    <div class="label">Respuestas de slot enviadas</div>
+    <div class="value">902</div>
+    <div class="sub">Correos respondidos / gestionados</div>
+  </div>
+  <div class="kpi" style="border-left-color:#9b59b6">
+    <div class="label">Tiempo prom. respuesta</div>
+    <div class="value">23.8 h</div>
+    <div class="sub">6 pares con hora exacta</div>
+  </div>
+  <div class="kpi" style="border-left-color:#f39c12">
+    <div class="label">Mismo día (precisión día)</div>
+    <div class="value">93.2%</div>
+    <div class="sub">1115 pares con precisión de día</div>
+  </div>
+</div>
+
+<!-- 1. Correos por día -->
+<div class="section">
+  <h2>📅 Correos por día</h2>
+  <div class="desc">Volumen diario de correos recibidos y enviados desde el 2026-03-01 hasta el 2026-05-11.</div>
+  <div class="chart-wrap">
+    <canvas id="chartDaily"></canvas>
+  </div>
+</div>
+
+<!-- 2. Solicitudes de slot por categoría -->
+<div class="grid2">
+  <div class="section">
+    <h2>📊 Solicitudes de slot — Distribución por tipo</h2>
+    <div class="desc">Total de solicitudes recibidas clasificadas por categoría.</div>
+    <div class="chart-wrap-sm">
+      <canvas id="chartPie"></canvas>
+    </div>
+  </div>
+  <div class="section">
+    <h2>📈 Solicitudes recibidas vs. respondidas</h2>
+    <div class="desc">Comparativa por categoría de solicitud de slot.</div>
+    <div class="chart-wrap-sm">
+      <canvas id="chartCatBar"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- 3. Solicitudes por día (últimos 14 días) -->
+<div class="section">
+  <h2>📆 Solicitudes de slot por día — últimos 14 días</h2>
+  <div class="desc">Desglose diario de solicitudes recibidas por tipo en las últimas dos semanas.</div>
+  <div class="chart-wrap">
+    <canvas id="chartSlotDaily"></canvas>
+  </div>
+</div>
+
+<!-- 4. Tiempo de respuesta -->
+<div class="section">
+  <h2>⏱ Tiempo de respuesta por categoría</h2>
+  <div class="desc">
+    Se vincularon correos recibidos de slot con sus respuestas por asunto normalizado.
+    <strong>Tabla A</strong>: pares con hora exacta (correos recientes con hora disponible).
+    <strong>Tabla B</strong>: pares con precisión de día (correos más antiguos donde solo se guardó la fecha).
+  </div>
+
+  <p style="font-weight:600;margin:12px 0 6px;color:#003366">Tabla A — Precisión horaria (6 pares)</p>
+  <table class="rt-table">
+    <thead>
+      <tr><th>Categoría</th><th>N</th><th>Promedio</th><th>Mediana</th><th>Mínimo</th><th>Máximo</th><th>% ≤ 24 h</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="tag tag-Alta">Alta</span></td>
+        <td>3</td>
+        <td>0.5 h</td>
+        <td>0.4 h</td>
+        <td>0.2 h</td>
+        <td>1.0 h</td>
+        <td class="good">100.0%</td>
+      </tr>
+      <tr>
+        <td><span class="tag tag-Modificación">Modificación</span></td>
+        <td>3</td>
+        <td>47.1 h</td>
+        <td>0.7 h</td>
+        <td>0.3 h</td>
+        <td>140.3 h</td>
+        <td class="warn">66.7%</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p style="font-weight:600;margin:18px 0 6px;color:#003366">Tabla B — Precisión de día (1115 pares)</p>
+  <table class="rt-table">
+    <thead>
+      <tr><th>Categoría</th><th>N</th><th>Prom. días</th><th>Mismo día</th><th>Día siguiente</th><th>2+ días</th><th>% mismo día</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="tag tag-Alta">Alta</span></td>
+        <td>258</td>
+        <td>0.2 días</td>
+        <td>238</td>
+        <td>16</td>
+        <td>4</td>
+        <td class="good">92.2%</td>
+      </tr>
+      <tr>
+        <td><span class="tag tag-Modificación">Modificación</span></td>
+        <td>552</td>
+        <td>0.11 días</td>
+        <td>506</td>
+        <td>39</td>
+        <td>7</td>
+        <td class="good">91.7%</td>
+      </tr>
+      <tr>
+        <td><span class="tag tag-Cancelación">Cancelación</span></td>
+        <td>97</td>
+        <td>0.04 días</td>
+        <td>93</td>
+        <td>4</td>
+        <td>0</td>
+        <td class="good">95.9%</td>
+      </tr>
+      <tr>
+        <td><span class="tag tag-Demora">Demora</span></td>
+        <td>208</td>
+        <td>0.03 días</td>
+        <td>202</td>
+        <td>6</td>
+        <td>0</td>
+        <td class="good">97.1%</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- 5. Detalle solicitudes recibidas -->
+<div class="section">
+  <h2>📋 Detalle de solicitudes de slot recibidas</h2>
+  <div class="desc">Listado de los últimos 150 correos clasificados como solicitudes de slot. Ordenados del más reciente al más antiguo.</div>
+  <div style="overflow-x:auto">
+  <table>
+    <thead>
+      <tr><th>Fecha</th><th>Tipo</th><th>Remitente</th><th>Asunto</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>2026-05-11</td>
+        <td><span class="tag tag-Alta">Alta</span></td>
+        <td>Garcia, Oscar</td>
+        <td>Solicitud de Slot SUPARNA Y87461/2 24MAY</td>
+      </tr>
+      <tr>
+        <td>2026-05-11</td>
+        <td><span class="tag tag-Demora">Demora</span></td>
+        <td>Atlas Air NLU</td>
+        <td>DEMORA 5Y 512- 9892 12MAY26_2</td>
+      </tr>
+      <tr>
+        <td>2026-05-11</td>
+        <td><span class="tag tag-Modificación">Modificación</span></td>
+        <td>Ricardo Perez Torres</td>
+        <td>Solicitud de Modificacion de Slots  (11 de mayo 2026) Viva REFVIVNS26084</td>
+      </tr>
+      <tr>
+        <td>2026-05-11</td>
+        <td><span class="tag tag-Modificación">Modificación</span></td>
+        <td>Microsoft Outlook</td>
+        <td>No se puede entregar: Re: Modificacion slot Mayo 11 AERUS</td>
+      </tr>
+      <tr>
+        <td>2026-05-11</td>
+        <td><span class="tag tag-Alta">Alta</span></td>
+        <td>ccvnotificacion@vivaaerobus.com</td>
+        <td>Asignación de vuelos NLU Día Siguiente</td>
+      </tr>
+      <tr>
+        <td>2026-05-11</td>
+        <td><span class="tag tag-Alta">Alta</span></td>
+        <td>ccvnotificacion@vivaaerobus.com</td>
+        <td>Asignación de vuelos NLU Día Actual</td>
+      </tr>
+      <tr>
+        <td>2026-05-09</td>
+        <td><span class="tag tag-Alta">Alta</span></td>
+        <td>ccvnotificacion@vivaaerobus.com</td>
+        <td>Asignación de vuelos NLU Día Siguiente</td>
+      </tr>
+      <tr>
+        <td>2026-05-09</td>
+        <td><span class="tag tag-Modificación">Modificación</span></td>
+        <td>Ethiopian Ops</td>
+        <td>Re: SOLICITUD MODIFICACIÓN ET3516 10MAY</td>
+      </tr>
+      <tr>
+        <td>2026-05-09</td>
+        <td><span class="tag tag-Modificación">Modificación</span></td>
+        <td>Ethiopian Ops</td>
+        <td>SOLICITUD MODIFICACIÓN ET3516 10MAY</td>
+      </tr>
+      <tr>
+        <td>2026-05-09</td>
+        <td><span class="tag tag-Alta">Alta</span></td>
+        <td>CCO1</td>
+        <td>RE: Solicitud de slot WIN842/910</td>
+      </tr>
+      <tr>
+        <td>2026-05-09</td>
+        <td><span class="tag tag-Alta">Alta</span></td>
+        <td>Microsoft Outlook</td>
+        <td>No se puede entregar: Re: Solicitud de slot WIN842/910</td>
+      </tr>
+      <tr>
+        <td>2026-05-09</td>
+        <td><span class="tag tag-Alta">Alta</span></td>
+        <td>CCO1</td>
+        <td>Solicitud de slot WIN842/910</td>
+      </tr>
+      <tr>
+        <td>2026-05-09</td>
+        <td><span class="tag tag-Demora">Demora</span></td>
+        <td>Atlas Air NLU</td>
+        <td>Demora 5Y 337 - 337 12MAY26 </td>
+      </tr>
+      <tr>
+        <td>2026-05-09</td>
+        <td><span class="tag tag-Demora">Demora</span></td>
+        <td>Atlas Air NLU</td>
+        <td>DEMORA 5Y 512- 9892 12MAY26</td>
+      </tr>
+      <tr>
+        <td>2026-05-09</td>
+        <td><span class="tag tag-Alta">Alta</span></td>
+        <td>ccvnotificacion@vivaaerobus.com</td>
+        <td>Asignación de vuelos NLU Día Actual</td>
+      </tr>
+      <tr>
+        <td>2026-05-09</td>
+        <td><span class="tag tag-Alta">Alta</span></td>
+        <td>Garcia, Oscar</td>
+        <td>Solicitud de Slot SUPARNA Y87461/2 18MAY</td>
+      </tr>
+      <tr>
+        <td>2026-05-09</td>
+        <td><span class="tag tag-Alta">Alta</span></td>
+        <td>Flight Dispatch NLU</td>
+        <td>RE: Solicitud ALTA SLOT ACA7248-7250 09MAY</td>
+      </tr>
+      <tr>
+        <td>2026-05-09</td>
+        <td><span class="tag tag-Modificación">Modificación</span></td>
+        <td>NLU CGO Group</td>
+        <td>RE: SOLICITUD DE MODIFICACION DE SLOT CX096 /CX097 10MAY26</td>
+      </tr>
+      <tr>
+        <td>2026-05-09</td>
+        <td><span class="tag tag-Alta">Alta</span></td>
+        <td>ccvnotificacion@vivaaerobus.com</td>
+        <td>Asignación de vuelos NLU Día Siguiente</td>
+      </tr>
+      <tr>
+        <td>2026-05-09</td>
+        <td><span class="tag tag-Modificación">Modificación</span></td>
+        <td>Hugo Plata</td>
+        <td>SOLICITUD DE MODIFICACION DE SLOT CX096 /CX097 10MAY26</td>
+      </tr>
+      <tr>
+        <td>2026-05-09</td>
+        <td><span class="tag tag-Alta">Alta</span></td>
+        <td>ccvnotificacion@vivaaerobus.com</td>
+        <td>Asignación de vuelos NLU Día Actual</td>
+      </tr>
+      <tr>
+        <td>2026-05-09</td>
+        <td><span class="tag tag-Alta">Alta</span></td>
+        <td>Flight Dispatch NLU</td>
+        <td>Solicitud de SLOT CSG2521-2522 09MAY</td>
+      </tr>
+      <tr>
+        <td>2026-05-08</td>
+        <td><span class="tag tag-Alta">Alta</span></td>
+        <td>Flight Dispatch NLU</td>
+        <td>RE: Solicitud ALTA SLOT ACA7248-7250 09MAY</td>
+      </tr>
+      <tr>
+        <td>2026-05-08</td>
+        <td><span class="tag tag-Alta">Alta</span></td>
+        <td>Flight Dispatch NLU</td>
+        <td>RE: Solicitud ALTA SLOT ACA7248-7250 09MAY</td>
+      </tr>
+      <tr>
+        <td>2026-05-08</td>
+        <td><span class="tag tag-Alta">Alta</span></td>
+        <td>Flight Dispatch NLU</td>
+        <td>RE: Solicitud SLOT China Southern CSG2525/2526 08MAY</td>
+      </tr>
+      <tr>
+        <td>2026-05-08</td>
+        <td><span class="tag tag-Modificación">Modificación</span></td>
+        <td>Elvis Almengor Neria</td>
+        <td>CAMBIO DE SLOT AM871-AM998</td>
+      </tr>
+      <tr>
+        <td>2026-05-08</td>
+        <td><span class="tag tag-Alta">Alta</span></td>
+        <td>ccvnotificacion@vivaaerobus.com</td>
+        <td>Asignación de vuelos NLU Día Siguiente</td>
+      </tr>
+      <tr>
+        <td>2026-05-08</td>
+        <td><span class="tag tag-Alta">Alta</span></td>
+        <td>Flight Dispatch NLU</td>
+        <td>Solicitud ALTA SLOT ACA7248-7250 09MAY</td>
+      </tr>
+      <tr>
+        <td>2026-05-08</td>
+        <td><span class="tag tag-Cancelación">Cancelación</span></td>
+        <td>Ricardo Perez Torres</td>
+        <td>Solicitud de Cancelacion de Slots  (08 de mayo 2026) Viva REFVIVNS26083</td>
+      </tr>
+      <tr>
+        <td>2026-05-08</td>
+        <td><span class="tag tag-Modificación">Modificación</span></td>
+        <td>Ricardo Perez Torres</td>
+        <td>Re: Solicitud de Modificacion y Cancelacion de Slots  (09 al 30 de mayo 2026) Viva REFVIVN</td>
+      </tr>
+      <tr>
+        <td>2026-05-08</td>
+        <td><span class="tag tag-Modificación">Modificación</span></td>
+        <td>Ricardo Perez Torres</td>
+        <td>Solicitud de Modificacion y Cancelacion de Slots  (09 al 30 de mayo 2026) Viva REFVIVNS260</td>
+      </tr>
+      <tr>
+        <td>2026-05-08</td>
+        <td><span class="tag tag-Alta">Alta</span></td>
+        <td>CCO1</td>
+        <td>Alta de slot WIN913/830</td>
+      </tr>
+      <tr>
+        <td>2026-05-08</td>
+        <td><span class="tag tag-Modificación">Modificación</span></td>
+        <td>Pedro Reyes Gutierrez</td>
+        <td>Modificación slot mayo AERUS</td>
+      </tr>
+      <tr>
+        <td>2026-05-08</td>
+        <td><span class="tag tag-Demora">Demora</span></td>
+        <td>Atlas Air NLU</td>
+        <td>CORRECTA DEMORA 5Y 8174 - 8174 09MAY26</td>
+      </tr>
+      <tr>
+        <td>2026-05-08</td>
+        <td><span class="tag tag-Demora">Demora</span></td>
+        <td>Atlas Air NLU</td>
+        <td>DEMORA 5Y 8174 - 8174 09MAY26</td>
+      </tr>
+      <tr>
+        <td>2026-05-08</td>
+        <td><span class="tag tag-Alta">Alta</span></td>
+        <td>CCO1</td>
+        <td>Solicitud slot WIN913/830 </td>
+      </tr>
+      <tr>
+        <td>2026-05-08</td>
+        <td><span class="tag tag-Cancelación">Cancelación</span></td>
+        <td>Flight Dispatch NLU</td>
+        <td>Solicitud BAJA SLOT ACA7248/7249 08MAY</td>
+      </tr>
+      <tr>
+        <td>2026-05-08</td>
+        <td><span class="tag tag-Demora">Demora</span></td>
+        <td>Atlas Air NLU</td>
+        <td>Re: DEMORA 5Y 8174 - 8174 08MAY26</td>
+      </tr>
+      <tr>
+        <td>2026-05-08</td>
+        <td><span class="tag tag-Modificación">Modificación</span></td>
+        <td>marlenmejia@ups.com</td>
+        <td>UPS SCR CAMBIO DE SLOT (08 MAYO 2026) </td>
+      </tr>
+      <tr>
+        <td>2026-05-08</td>
+        <td><span class="tag tag-Alta">Alta</span></td>
+        <td>ccvnotificacion@vivaaerobus.com</td>
+        <td>Asignación de vuelos NLU Día Actual</td>
+      </tr>
+      <tr>
+        <td>2026-05-08</td>
+        <td><span class="tag tag-Cancelación">Cancelación</span></td>
+        <td>Flight Dispatch NLU</td>
+        <td>BAJA SLOT CKS 819-810</td>
+      </tr>
+      <tr>
+        <td>2026-05-08</td>
+        <td><span class="tag tag-Demora">Demora</span></td>
+        <td>Atlas Air NLU</td>
+        <td>DEMORA 5Y 8174 - 8174 08MAY26</td>
+      </tr>
+      <tr>
+        <td>2026-05-08</td>
+        <td><span class="tag tag-Alta">Alta</span></td>
+        <td>ccvnotificacion@vivaaerobus.com</td>
+        <td>Asignación de vuelos NLU Día Siguiente</td>
+      </tr>
+      <tr>
+        <td>2026-05-08</td>
+        <td><span class="tag tag-Alta">Alta</span></td>
+        <td>Flight Dispatch NLU</td>
+        <td>Solicitud SLOT ACA7246/7246 08MAY</td>
+      </tr>
+      <tr>
+        <td>2026-05-08</td>
+        <td><span class="tag tag-Modificación">Modificación</span></td>
+        <td>Manuela Jaramillo</td>
+        <td>Arajet - Solicitud ajuste de itinerarios S25 / NLU</td>
+      </tr>
+      <tr>
+        <td>2026-05-08</td>
+        <td><span class="tag tag-Modificación">Modificación</span></td>
+        <td>icortes@ups.com</td>
+        <td>   UPS  SCR  solicitud de modificación de  equipo (08 MAYO 2026) </td>
+      </tr>
+      <tr>
+        <td>2026-05-08</td>
+        <td><span class="tag tag-Alta">Alta</span></td>
+        <td>ccvnotificacion@vivaaerobus.com</td>
+        <td>Asignación de vuelos NLU Día Actual</td>
+      </tr>
+      <tr>
+        <td>2026-05-08</td>
+        <td><span class="tag tag-Alta">Alta</span></td>
+        <td>Flight Dispatch NLU</td>
+        <td>RE: Solicitud SLOT ACA7246/7246 08MAY</td>
+      </tr>
+      <tr>
+        <td>2026-05-07</td>
+        <td><span class="tag tag-Alta">Alta</span></td>
+        <td>Flight Dispatch NLU</td>
+        <td>Solicitud SLOT China Southern CSG2525/2526 08MAY</td>
+      </tr>
+      <tr>
+        <td>2026-05-07</td>
+        <td><span class="tag tag-Alta">Alta</span></td>
+        <td>ICCS AIFA</td>
+        <td>Re: SOLICITUD SLOT NATIONAL CARGO 08 MAYO 2026</td>
+      </tr>
+      <tr>
+        <td>2026-05-07</td>
+        <td><span class="tag tag-Alta">Alta</span></td>
+        <td>Flight Dispatch NLU</td>
+        <td>Solicitud SLOT ACA7246/7246 08MAY</td>
+      </tr>
+      <tr>
+        <td>2026-05-07</td>
+        <td><span class="tag tag-Alta">Alta</span></td>
+        <td>ccvnotificacion@vivaaerobus.com</td>
+        <td>Asignación de vuelos NLU Día Siguiente</td>
+      </tr>
+      <tr>
+        <td>2026-05-07</td>
+        <td><span class="tag tag-Alta">Alta</span></td>
+        <td>Gustavo Huerta Zaragoza</td>
+        <td>Re: SOLICITUD DE SLOT 8 DE MAYO 2026 // AERONAVES TSM XA-UQB</td>
+      </tr>
+      <tr>
+        <td>2026-05-07</td>
+        <td><span class="tag tag-Demora">Demora</span></td>
+        <td>Atlas Air NLU</td>
+        <td>Re: Demora 5Y 354 - 354 11MAY26 </td>
+      </tr>
+      <tr>
+        <td>2026-05-07</td>
+        <td><span class="tag tag-Alta">Alta</span></td>
+        <td>Flight Dispatch NLU</td>
+        <td>Solicitud SLOT China Southern CSG2521/2522</td>
+      </tr>
+      <tr>
+        <td>2026-05-07</td>
+        <td><span class="tag tag-Modificación">Modificación</span></td>
+        <td>Ricardo Perez Torres</td>
+        <td>Solicitud de Modificacion de Slots  (07 de mayo 2026) Viva REFVIVNS26081</td>
+      </tr>
+      <tr>
+        <td>2026-05-07</td>
+        <td><span class="tag tag-Alta">Alta</span></td>
+        <td>Gustavo Huerta Zaragoza</td>
+        <td>SOLICITUD DE SLOT 8 DE MAYO 2026 // AERONAVES TSM XA-UQB</td>
+      </tr>
+      <tr>
+        <td>2026-05-07</td>
+        <td><span class="tag tag-Modificación">Modificación</span></td>
+        <td>Emirates Operaciones</td>
+        <td>SCR EK9935 07MAY 26</td>
+      </tr>
+      <tr>
+        <td>2026-05-07</td>
+        <td><span class="tag tag-Demora">Demora</span></td>
+        <td>Atlas Air NLU</td>
+        <td>Demora 5Y 354 - 354 11MAY26 </td>
+      </tr>
+      <tr>
+        <td>2026-05-07</td>
+        <td><span class="tag tag-Modificación">Modificación</span></td>
+        <td>Eagle Aviation Services Stn NLU</td>
+        <td>Re: Solicitud de Modificación Slot DHL Guatemala  07/MAYO/2026</td>
+      </tr>
+      <tr>
+        <td>2026-05-07</td>
+        <td><span class="tag tag-Alta">Alta</span></td>
+        <td>Arturo Fragoso</td>
+        <td>Re: AFR NLU Slots Solicitud Asignación W26-27</td>
+      </tr>
+      <tr>
+        <td>2026-05-07</td>
+        <td><span class="tag tag-Alta">Alta</span></td>
+        <td>OnDemandSendings</td>
+        <td>Asignación de vuelos NLU</td>
+      </tr>
+      <tr>
+        <td>2026-05-07</td>
+        <td><span class="tag tag-Modificación">Modificación</span></td>
+        <td>Aaron Lopez Garcia</td>
+        <td>Automatic reply: [EXT] Re: SCR for NLU for W26 from AC</td>
+      </tr>
+      <tr>
+        <td>2026-05-07</td>
+        <td><span class="tag tag-Modificación">Modificación</span></td>
+        <td>Ricardo Perez Torres</td>
+        <td>Solicitud de Modificacion de Slots  (07 de mayo 2026) Viva REFVIVNS26080</td>
+      </tr>
+      <tr>
+        <td>2026-05-07</td>
+        <td><span class="tag tag-Modificación">Modificación</span></td>
+        <td>Eagle Aviation Services Stn NLU</td>
+        <td>Re: Solicitud de Modificación Slot DHL Guatemala  07/MAYO/2026</td>
+      </tr>
+      <tr>
+        <td>2026-05-07</td>
+        <td><span class="tag tag-Modificación">Modificación</span></td>
+        <td>Ricardo Perez Torres</td>
+        <td>Solicitud de Modificacion de Slots  (07 de mayo 2026) Viva REFVIVNS26079</td>
+      </tr>
+      <tr>
+        <td>2026-05-07</td>
+        <td><span class="tag tag-Alta">Alta</span></td>
+        <td>ccvnotificacion@vivaaerobus.com</td>
+        <td>Asignación de vuelos NLU Día Actual</td>
+      </tr>
+      <tr>
+        <td>2026-05-07</td>
+        <td><span class="tag tag-Modificación">Modificación</span></td>
+        <td>Eagle Aviation Services Stn NLU</td>
+        <td>Re: Solicitud de Modificación Slot DHL Guatemala  07/MAYO/2026</td>
+      </tr>
+      <tr>
+        <td>2026-05-07</td>
+        <td><span class="tag tag-Alta">Alta</span></td>
+        <td>Jorge Herrera Trejo</td>
+        <td>Re: SOLICITUD DE ASIGNACION CATHAY PACIFIC CX096/CX097 VIERNES 08MAY26</td>
+      </tr>
+      <tr>
+        <td>2026-05-07</td>
+        <td><span class="tag tag-Modificación">Modificación</span></td>
+        <td>Ricardo Perez Torres</td>
+        <td>Solicitud de Modificacion de Slots  (07 de mayo 2026) Viva REFVIVNS26078</td>
+      </tr>
+      <tr>
+        <td>2026-05-07</td>
+        <td><span class="tag tag-Modificación">Modificación</span></td>
+        <td>Eagle Aviation Services Stn NLU</td>
+        <td>Re: Solicitud de Modificación Slot DHL Guatemala  07/MAYO/2026</td>
+      </tr>
+      <tr>
+        <td>2026-05-07</td>
+        <td><span class="tag tag-Alta">Alta</span></td>
+        <td>ccvnotificacion@vivaaerobus.com</td>
+        <td>Asignación de vuelos NLU Día Siguiente</td>
+      </tr>
+      <tr>
+        <td>2026-05-07</td>
+        <td><span class="tag tag-Alta">Alta</span></td>
+        <td>Jorge Herrera Trejo</td>
+        <td>Re: SOLICITUD DE ASIGNACION CATHAY PACIFIC CX096/CX097 VIERNES 08MAY26</td>
+      </tr>
+      <tr>
+        <td>2026-05-07</td>
+        <td><span class="tag tag-Alta">Alta</span></td>
+        <td>Jorge Herrera Trejo</td>
+        <td>SOLICITUD DE ASIGNACION CATHAY PACIFIC CX096/CX097 VIERNES 08MAY26</td>
+      </tr>
+      <tr>
+        <td>2026-05-07</td>
+        <td><span class="tag tag-Modificación">Modificación</span></td>
+        <td>icortes@ups.com</td>
+        <td>RE:   UPS  SCR  solicitud de modificación de  equipo (07 MAYO 2026) </td>
+      </tr>
+      <tr>
+        <td>2026-05-07</td>
+        <td><span class="tag tag-Modificación">Modificación</span></td>
+        <td>CCO1</td>
+        <td>SOLICITUD MODIFICACION SLOT AWESOME CARGO </td>
+      </tr>
+      <tr>
+        <td>2026-05-07</td>
+        <td><span class="tag tag-Modificación">Modificación</span></td>
+        <td>icortes@ups.com</td>
+        <td>  UPS  SCR  solicitud de modificación de  equipo (07 MAYO 2026) </td>
+      </tr>
+      <tr>
+        <td>2026-05-07</td>
+        <td><span class="tag tag-Alta">Alta</span></td>
+        <td>ccvnotificacion@vivaaerobus.com</td>
+        <td>Asignación de vuelos NLU Día Actual</td>
+      </tr>
+      <tr>
+        <td>2026-05-06</td>
+        <td><span class="tag tag-Modificación">Modificación</span></td>
+        <td>Ethiopian Ops</td>
+        <td>Re: SOLICITUD MODIFICACIÓN ET3516 07MAY</td>
+      </tr>
+      <tr>
+        <td>2026-05-06</td>
+        <td><span class="tag tag-Alta">Alta</span></td>
+        <td>CCO1</td>
+        <td>SOLICITUD ALTA SLOT EURUS</td>
+      </tr>
+      <tr>
+        <td>2026-05-06</td>
+        <td><span class="tag tag-Modificación">Modificación</span></td>
+        <td>Ethiopian Ops</td>
+        <td>SOLICITUD MODIFICACIÓN ET3516 07MAY</td>
+      </tr>
+      <tr>
+        <td>2026-05-06</td>
+        <td><span class="tag tag-Alta">Alta</span></td>
+        <td>ccvnotificacion@vivaaerobus.com</td>
+        <td>Asignación de vuelos NLU Día Siguiente</td>
+      </tr>
+      <tr>
+        <td>2026-05-06</td>
+        <td><span class="tag tag-Alta">Alta</span></td>
+        <td>Arturo Fragoso</td>
+        <td>AFR NLU Slots Solicitud Asignación W26-27</td>
+      </tr>
+      <tr>
+        <td>2026-05-06</td>
+        <td><span class="tag tag-Modificación">Modificación</span></td>
+        <td>Ricardo Perez Torres</td>
+        <td>RV: Solicitud de Modificacion de Slots  (28 y 31 de mayo 2026) Viva REFVIVNS26075</td>
+      </tr>
+      <tr>
+        <td>2026-05-06</td>
+        <td><span class="tag tag-Demora">Demora</span></td>
+        <td>Atlas Air NLU</td>
+        <td>Re: DEMORA 5Y 346 - 347 07MAY26</td>
+      </tr>
+      <tr>
+        <td>2026-05-06</td>
+        <td><span class="tag tag-Demora">Demora</span></td>
+        <td>Atlas Air NLU</td>
+        <td>Re: Demora 5Y 512 - 512 07MAY26 </td>
+      </tr>
+      <tr>
+        <td>2026-05-06</td>
+        <td><span class="tag tag-Modificación">Modificación</span></td>
+        <td>Aaron Josue Santamaria Medellin</td>
+        <td>RE: SOLICITUD AJUSTES DE SLOT TNO 05 MAY</td>
+      </tr>
+      <tr>
+        <td>2026-05-06</td>
+        <td><span class="tag tag-Cancelación">Cancelación</span></td>
+        <td>Arzave Lopez, Viridiana (CUN PC KG) - AF</td>
+        <td>RE: Solicitud de cancelación AF6720-AF6721 13may26</td>
+      </tr>
+      <tr>
+        <td>2026-05-06</td>
+        <td><span class="tag tag-Modificación">Modificación</span></td>
+        <td>Ricardo Perez Torres</td>
+        <td>Solicitud de Modificacion de Slots  (06 de mayo 2026) Viva REFVIVNS26077</td>
+      </tr>
+      <tr>
+        <td>2026-05-06</td>
+        <td><span class="tag tag-Modificación">Modificación</span></td>
+        <td>Emirates Operaciones</td>
+        <td>SCR DEMORA EK9919 06MAY26</td>
+      </tr>
+      <tr>
+        <td>2026-05-06</td>
+        <td><span class="tag tag-Demora">Demora</span></td>
+        <td>Atlas Air NLU</td>
+        <td>Demora 5Y 512 - 512 07MAY26 </td>
+      </tr>
+      <tr>
+        <td>2026-05-06</td>
+        <td><span class="tag tag-Demora">Demora</span></td>
+        <td>Atlas Air NLU</td>
+        <td>DEMORA 5Y 346 - 347 07MAY26</td>
+      </tr>
+      <tr>
+        <td>2026-05-06</td>
+        <td><span class="tag tag-Cancelación">Cancelación</span></td>
+        <td>Arzave Lopez, Viridiana (CUN PC KG) - AF</td>
+        <td>Solicitud de cancelación AF6720-AF6721 13may26</td>
+      </tr>
+      <tr>
+        <td>2026-05-06</td>
+        <td><span class="tag tag-Modificación">Modificación</span></td>
+        <td>Qatar Ops Mexico</td>
+        <td>Re: SOLICITUD DE MODIFICACION DE SLOT QR8147 07MAY</td>
+      </tr>
+      <tr>
+        <td>2026-05-06</td>
+        <td><span class="tag tag-Demora">Demora</span></td>
+        <td>Atlas Air NLU</td>
+        <td>Re: Demora salida 5Y 512 - 512 06MAY26 </td>
+      </tr>
+      <tr>
+        <td>2026-05-06</td>
+        <td><span class="tag tag-Demora">Demora</span></td>
+        <td>Atlas Air NLU</td>
+        <td>Re: DEMORA 5Y 8174 - 8174 06MAY26_2</td>
+      </tr>
+      <tr>
+        <td>2026-05-06</td>
+        <td><span class="tag tag-Modificación">Modificación</span></td>
+        <td>Qatar Ops Mexico</td>
+        <td>SOLICITUD DE MODIFICACION DE SLOT QR8147 07MAY</td>
+      </tr>
+      <tr>
+        <td>2026-05-06</td>
+        <td><span class="tag tag-Alta">Alta</span></td>
+        <td>ccvnotificacion@vivaaerobus.com</td>
+        <td>Asignación de vuelos NLU Día Actual</td>
+      </tr>
+      <tr>
+        <td>2026-05-06</td>
+        <td><span class="tag tag-Cancelación">Cancelación</span></td>
+        <td>Arzave Lopez, Viridiana (CUN PC KG) - AF</td>
+        <td>RE: Solicitud de cancelación AF6720-AF6721 11may26</td>
+      </tr>
+      <tr>
+        <td>2026-05-06</td>
+        <td><span class="tag tag-Modificación">Modificación</span></td>
+        <td>Ricardo Perez Torres</td>
+        <td>Solicitud de Modificacion de Slots  (06 de mayo 2026) Viva REFVIVNS26076</td>
+      </tr>
+      <tr>
+        <td>2026-05-06</td>
+        <td><span class="tag tag-Alta">Alta</span></td>
+        <td>ccvnotificacion@vivaaerobus.com</td>
+        <td>Asignación de vuelos NLU Día Siguiente</td>
+      </tr>
+      <tr>
+        <td>2026-05-06</td>
+        <td><span class="tag tag-Modificación">Modificación</span></td>
+        <td>NLU CGO Group</td>
+        <td>RE: SOLICITUD DE MODIFICACION DE SLOT CX086 /CX087 07MAY26</td>
+      </tr>
+      <tr>
+        <td>2026-05-06</td>
+        <td><span class="tag tag-Demora">Demora</span></td>
+        <td>Atlas Air NLU</td>
+        <td>DEMORA 5Y 8174 - 8174 06MAY26_2</td>
+      </tr>
+      <tr>
+        <td>2026-05-06</td>
+        <td><span class="tag tag-Alta">Alta</span></td>
+        <td>ICCS AIFA</td>
+        <td>Re: SOLICITUD SLOT NATIONAL CARGO 08 MAYO 2026</td>
+      </tr>
+      <tr>
+        <td>2026-05-06</td>
+        <td><span class="tag tag-Demora">Demora</span></td>
+        <td>Atlas Air NLU</td>
+        <td>Demora salida 5Y 512 - 512 06MAY26 </td>
+      </tr>
+      <tr>
+        <td>2026-05-06</td>
+        <td><span class="tag tag-Modificación">Modificación</span></td>
+        <td>Hugo Plata</td>
+        <td>SOLICITUD DE MODIFICACION DE SLOT CX086 /CX087 07MAY26</td>
+      </tr>
+      <tr>
+        <td>2026-05-06</td>
+        <td><span class="tag tag-Alta">Alta</span></td>
+        <td>ccvnotificacion@vivaaerobus.com</td>
+        <td>Asignación de vuelos NLU Día Actual</td>
+      </tr>
+      <tr>
+        <td>2026-05-05</td>
+        <td><span class="tag tag-Alta">Alta</span></td>
+        <td>Flight Dispatch NLU</td>
+        <td>RV: Solicitud de slot SWWA 11MAY26</td>
+      </tr>
+      <tr>
+        <td>2026-05-05</td>
+        <td><span class="tag tag-Alta">Alta</span></td>
+        <td>ccvnotificacion@vivaaerobus.com</td>
+        <td>Asignación de vuelos NLU Día Siguiente</td>
+      </tr>
+      <tr>
+        <td>2026-05-05</td>
+        <td><span class="tag tag-Alta">Alta</span></td>
+        <td>Jorge Herrera Trejo</td>
+        <td>Re: SOLICITUD DE ASIGNACION CATHAY PACIFIC CX086/CX087 MARTES 12MAY26</td>
+      </tr>
+      <tr>
+        <td>2026-05-05</td>
+        <td><span class="tag tag-Alta">Alta</span></td>
+        <td>Jorge Herrera Trejo</td>
+        <td>SOLICITUD DE ASIGNACION CATHAY PACIFIC CX086/CX087 MARTES 12MAY26</td>
+      </tr>
+      <tr>
+        <td>2026-05-05</td>
+        <td><span class="tag tag-Modificación">Modificación</span></td>
+        <td>Emirates Operaciones</td>
+        <td>SCR EK9935 11MAY26</td>
+      </tr>
+      <tr>
+        <td>2026-05-05</td>
+        <td><span class="tag tag-Alta">Alta</span></td>
+        <td>ICCS AIFA</td>
+        <td>Re: SOLICITUD SLOT NATIONAL CARGO 08 MAYO 2026</td>
+      </tr>
+      <tr>
+        <td>2026-05-05</td>
+        <td><span class="tag tag-Modificación">Modificación</span></td>
+        <td>ROT NLU</td>
+        <td>Modificacion slot Mayo 11 AERUS</td>
+      </tr>
+      <tr>
+        <td>2026-05-05</td>
+        <td><span class="tag tag-Alta">Alta</span></td>
+        <td>ccvnotificacion@vivaaerobus.com</td>
+        <td>Asignación de vuelos NLU Día Actual</td>
+      </tr>
+      <tr>
+        <td>2026-05-05</td>
+        <td><span class="tag tag-Alta">Alta</span></td>
+        <td>ccvnotificacion@vivaaerobus.com</td>
+        <td>Asignación de vuelos NLU Día Siguiente</td>
+      </tr>
+      <tr>
+        <td>2026-05-05</td>
+        <td><span class="tag tag-Alta">Alta</span></td>
+        <td>ccvnotificacion@vivaaerobus.com</td>
+        <td>Asignación de vuelos NLU Día Actual</td>
+      </tr>
+      <tr>
+        <td>2026-05-05</td>
+        <td><span class="tag tag-Alta">Alta</span></td>
+        <td>ICCS AIFA</td>
+        <td>Re: SOLICITUD SLOT NATIONAL CARGO 08 MAYO 2026</td>
+      </tr>
+      <tr>
+        <td>2026-05-05</td>
+        <td><span class="tag tag-Modificación">Modificación</span></td>
+        <td>Turkish Operaciones</td>
+        <td>SOLICITUD MODIFICACIÓN TK6033/6034 06MAY 2026</td>
+      </tr>
+      <tr>
+        <td>2026-05-05</td>
+        <td><span class="tag tag-Alta">Alta</span></td>
+        <td>Elvis Almengor Neria</td>
+        <td>ALTA SLOT AM9693 Y AM9694 </td>
+      </tr>
+      <tr>
+        <td>2026-05-05</td>
+        <td><span class="tag tag-Modificación">Modificación</span></td>
+        <td>Ricardo Perez Torres</td>
+        <td>Solicitud de Modificacion de Slots  (28 y 31 de mayo 2026) Viva REFVIVNS26075</td>
+      </tr>
+      <tr>
+        <td>2026-05-05</td>
+        <td><span class="tag tag-Alta">Alta</span></td>
+        <td>ICCS AIFA</td>
+        <td>Re: SOLICITUD SLOT NATIONAL CARGO 08 MAYO 2026</td>
+      </tr>
+      <tr>
+        <td>2026-05-05</td>
+        <td><span class="tag tag-Alta">Alta</span></td>
+        <td>ccvnotificacion@vivaaerobus.com</td>
+        <td>Asignación de vuelos NLU Día Siguiente</td>
+      </tr>
+      <tr>
+        <td>2026-05-05</td>
+        <td><span class="tag tag-Modificación">Modificación</span></td>
+        <td>CCO1</td>
+        <td>MODIFICACIÓN NÚMERO DE VUELO SOBRE SLOT APROBADO</td>
+      </tr>
+      <tr>
+        <td>2026-05-05</td>
+        <td><span class="tag tag-Modificación">Modificación</span></td>
+        <td>Aaron Josue Santamaria Medellin</td>
+        <td>SOLICITUD AJUSTES DE SLOT TNO 05 MAY</td>
+      </tr>
+      <tr>
+        <td>2026-05-05</td>
+        <td><span class="tag tag-Alta">Alta</span></td>
+        <td>CCO1</td>
+        <td>SOLICITUD ALTA SLOT AWESOME CARGO WIN913-WIN830 06-MAY-26</td>
+      </tr>
+      <tr>
+        <td>2026-05-05</td>
+        <td><span class="tag tag-Modificación">Modificación</span></td>
+        <td>Alejandro del Angel</td>
+        <td>Re: Qatar Airways- Sol. de modificación de slots de vuelos regulares de carga del 13 mayo </td>
+      </tr>
+      <tr>
+        <td>2026-05-05</td>
+        <td><span class="tag tag-Modificación">Modificación</span></td>
+        <td>Alejandro del Angel</td>
+        <td>Qatar Airways- Sol. de modificación de slots de vuelos regulares de carga del 13 mayo 2026</td>
+      </tr>
+      <tr>
+        <td>2026-05-05</td>
+        <td><span class="tag tag-Demora">Demora</span></td>
+        <td>Atlas Air NLU</td>
+        <td>DEMORA 5Y 8174 - 8526 06MAY26</td>
+      </tr>
+      <tr>
+        <td>2026-05-05</td>
+        <td><span class="tag tag-Modificación">Modificación</span></td>
+        <td>Pedro Reyes Gutierrez</td>
+        <td>Modificación slot mayo AERUS</td>
+      </tr>
+      <tr>
+        <td>2026-05-05</td>
+        <td><span class="tag tag-Modificación">Modificación</span></td>
+        <td>ROT NLU</td>
+        <td>Modificacion slot Mayo 06 AERUS.</td>
+      </tr>
+      <tr>
+        <td>2026-05-05</td>
+        <td><span class="tag tag-Alta">Alta</span></td>
+        <td>CCO1</td>
+        <td>SOLICITUD ALTA SLOT AWESOME CARGO</td>
+      </tr>
+      <tr>
+        <td>2026-05-05</td>
+        <td><span class="tag tag-Cancelación">Cancelación</span></td>
+        <td>Alejandro del Angel</td>
+        <td>La Nueva Aerolínea- Sol. de cancelación de slot 05-MAY-26</td>
+      </tr>
+      <tr>
+        <td>2026-05-05</td>
+        <td><span class="tag tag-Alta">Alta</span></td>
+        <td>Flight Dispatch NLU</td>
+        <td>RE: Solicitud SLOT China Southern CSG2521/2522</td>
+      </tr>
+      <tr>
+        <td>2026-05-05</td>
+        <td><span class="tag tag-Alta">Alta</span></td>
+        <td>ICCS AIFA</td>
+        <td>SOLICITUD SLOT NATIONAL CARGO 08 MAYO 2026</td>
+      </tr>
+      <tr>
+        <td>2026-05-05</td>
+        <td><span class="tag tag-Alta">Alta</span></td>
+        <td>ccvnotificacion@vivaaerobus.com</td>
+        <td>Asignación de vuelos NLU Día Actual</td>
+      </tr>
+      <tr>
+        <td>2026-05-05</td>
+        <td><span class="tag tag-Cancelación">Cancelación</span></td>
+        <td>Mariana Perez</td>
+        <td>Cancelacion Slot 6 Mayo </td>
+      </tr>
+      <tr>
+        <td>2026-05-05</td>
+        <td><span class="tag tag-Demora">Demora</span></td>
+        <td>Atlas Air NLU</td>
+        <td>Re: DEMORA 5Y 8174 - 8526 05MAY26</td>
+      </tr>
+      <tr>
+        <td>2026-05-05</td>
+        <td><span class="tag tag-Demora">Demora</span></td>
+        <td>Atlas Air NLU</td>
+        <td>Re: Demora 5Y 512 - 512 06MAY26 </td>
+      </tr>
+      <tr>
+        <td>2026-05-05</td>
+        <td><span class="tag tag-Alta">Alta</span></td>
+        <td>ccvnotificacion@vivaaerobus.com</td>
+        <td>Asignación de vuelos NLU Día Siguiente</td>
+      </tr>
+      <tr>
+        <td>2026-05-05</td>
+        <td><span class="tag tag-Demora">Demora</span></td>
+        <td>Atlas Air NLU</td>
+        <td>Demora 5Y 512 - 512 06MAY26 </td>
+      </tr>
+      <tr>
+        <td>2026-05-05</td>
+        <td><span class="tag tag-Demora">Demora</span></td>
+        <td>Atlas Air NLU</td>
+        <td>DEMORA 5Y 8174 - 8526 05MAY26</td>
+      </tr>
+      <tr>
+        <td>2026-05-05</td>
+        <td><span class="tag tag-Modificación">Modificación</span></td>
+        <td>NLU CGO Group</td>
+        <td>RE: SOLICITUD DE MODIFICACION DE SLOT CX086 /CX087 05MAY26</td>
+      </tr>
+      <tr>
+        <td>2026-05-05</td>
+        <td><span class="tag tag-Modificación">Modificación</span></td>
+        <td>Hugo Plata</td>
+        <td>RE: SOLICITUD DE MODIFICACION DE SLOT CX086 /CX087 05MAY26</td>
+      </tr>
+      <tr>
+        <td>2026-05-05</td>
+        <td><span class="tag tag-Alta">Alta</span></td>
+        <td>ccvnotificacion@vivaaerobus.com</td>
+        <td>Asignación de vuelos NLU Día Actual</td>
+      </tr>
+      <tr>
+        <td>2026-05-05</td>
+        <td><span class="tag tag-Alta">Alta</span></td>
+        <td>Flight Dispatch NLU</td>
+        <td>Solicitud SLOT China Southern CSG2521/2522</td>
+      </tr>
+      <tr>
+        <td>2026-05-04</td>
+        <td><span class="tag tag-Alta">Alta</span></td>
+        <td>ccvnotificacion@vivaaerobus.com</td>
+        <td>Asignación de vuelos NLU Día Siguiente</td>
+      </tr>
+      <tr>
+        <td>2026-05-04</td>
+        <td><span class="tag tag-Cancelación">Cancelación</span></td>
+        <td>Arzave Lopez, Viridiana (CUN PC KG) - AF</td>
+        <td>Solicitud de cancelación AF6720-AF6721 11may26</td>
+      </tr>
+      <tr>
+        <td>2026-05-04</td>
+        <td><span class="tag tag-Modificación">Modificación</span></td>
+        <td>Pedro Reyes Gutierrez</td>
+        <td>Modificación slot Mayo AERUS</td>
+      </tr>
+      <tr>
+        <td>2026-05-04</td>
+        <td><span class="tag tag-Alta">Alta</span></td>
+        <td>Flight Dispatch NLU</td>
+        <td>RE: Solicitud de SLOT Kalitta Air CKS819-9707/04MAY26</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+</div>
+
+<!-- 6. Top remitentes -->
+<div class="grid2">
+  <div class="section">
+    <h2>👥 Top 15 remitentes (recibidos)</h2>
+    <div class="desc">Los emisores que más correos enviaron a la coordinación.</div>
+    <table>
+      <thead><tr><th>#</th><th>Remitente</th><th>Correos</th></tr></thead>
+      <tbody>
+      <tr><td>1</td><td>Flight Dispatch NLU</td><td><b>257</b></td></tr>
+      <tr><td>2</td><td>Atlas Air NLU</td><td><b>251</b></td></tr>
+      <tr><td>3</td><td>ccvnotificacion@vivaaerobus.com</td><td><b>158</b></td></tr>
+      <tr><td>4</td><td>Gerencia Operaciones P. Aeronáutica</td><td><b>137</b></td></tr>
+      <tr><td>5</td><td>Ricardo Perez Torres</td><td><b>132</b></td></tr>
+      <tr><td>6</td><td>Pamela Morales</td><td><b>123</b></td></tr>
+      <tr><td>7</td><td>OnDemandSendings</td><td><b>119</b></td></tr>
+      <tr><td>8</td><td>Mary Benitez</td><td><b>94</b></td></tr>
+      <tr><td>9</td><td>CCO1</td><td><b>91</b></td></tr>
+      <tr><td>10</td><td>Laura Elena Teran Gonzalez.</td><td><b>75</b></td></tr>
+      <tr><td>11</td><td>Brandon Guizar Reséndiz</td><td><b>65</b></td></tr>
+      <tr><td>12</td><td>Cristopher Valencia Ojeda</td><td><b>64</b></td></tr>
+      <tr><td>13</td><td>Hector Pacheco Estrada</td><td><b>59</b></td></tr>
+      <tr><td>14</td><td>Garcia, Oscar</td><td><b>39</b></td></tr>
+      <tr><td>15</td><td>Qatar Ops Mexico</td><td><b>39</b></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="section">
+    <h2>📬 Top 15 asuntos más frecuentes (recibidos)</h2>
+    <div class="desc">Asuntos normalizados más recurrentes en la bandeja de entrada.</div>
+    <table>
+      <thead><tr><th>#</th><th>Asunto</th><th>N</th></tr></thead>
+      <tbody>
+      <tr><td>1</td><td>asignación de vuelos nlu</td><td><b>156</b></td></tr>
+      <tr><td>2</td><td>asignación de vuelos nlu día siguiente</td><td><b>61</b></td></tr>
+      <tr><td>3</td><td>asignación de vuelos nlu día actual</td><td><b>60</b></td></tr>
+      <tr><td>4</td><td>slot china southern</td><td><b>26</b></td></tr>
+      <tr><td>5</td><td>solicitd de slots aerounion mexico</td><td><b>16</b></td></tr>
+      <tr><td>6</td><td>notificación de correo en cuarentena por política spf</td><td><b>11</b></td></tr>
+      <tr><td>7</td><td>876/2026 || n860da b777-200 gridiron air || 04 mayo 2026 || quick turn</td><td><b>9</b></td></tr>
+      <tr><td>8</td><td>slot kalitta</td><td><b>9</b></td></tr>
+      <tr><td>9</td><td>ajustes de slots tno</td><td><b>8</b></td></tr>
+      <tr><td>10</td><td>slot air canada</td><td><b>8</b></td></tr>
+      <tr><td>11</td><td>solicitud slot national cargo 08 mayo 2026</td><td><b>6</b></td></tr>
+      <tr><td>12</td><td>solicitud alta slot awesome cargo</td><td><b>6</b></td></tr>
+      <tr><td>13</td><td>solicitud de slot´s b777 4 & 11 mayo 2026</td><td><b>6</b></td></tr>
+      <tr><td>14</td><td>slot kalitta air baja y alta</td><td><b>6</b></td></tr>
+      <tr><td>15</td><td>manual de procesos y procedimientos (mpp)</td><td><b>6</b></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+
+<div class="footer">Análisis generado automáticamente · AIFA Operaciones · 11/05/2026</div>
+</main>
+
+<script>
+// ── Utilidades ──────────────────────────────────────────────
+function makeGradient(ctx, color) {
+  const g = ctx.createLinearGradient(0, 0, 0, 300);
+  g.addColorStop(0, color + 'cc');
+  g.addColorStop(1, color + '11');
+  return g;
+}
+
+// ── 1. Correos por día ──────────────────────────────────────
+(function() {
+  const labels = ["2026-03-01", "2026-03-02", "2026-03-03", "2026-03-04", "2026-03-05", "2026-03-06", "2026-03-07", "2026-03-08", "2026-03-09", "2026-03-10", "2026-03-11", "2026-03-12", "2026-03-13", "2026-03-14", "2026-03-15", "2026-03-16", "2026-03-17", "2026-03-18", "2026-03-19", "2026-03-20", "2026-03-21", "2026-03-22", "2026-03-23", "2026-03-24", "2026-03-25", "2026-03-26", "2026-03-27", "2026-03-28", "2026-03-29", "2026-03-30", "2026-03-31", "2026-04-01", "2026-04-02", "2026-04-03", "2026-04-04", "2026-04-05", "2026-04-06", "2026-04-07", "2026-04-08", "2026-04-09", "2026-04-10", "2026-04-11", "2026-04-12", "2026-04-13", "2026-04-14", "2026-04-15", "2026-04-16", "2026-04-17", "2026-04-18", "2026-04-19", "2026-04-20", "2026-04-21", "2026-04-22", "2026-04-23", "2026-04-24", "2026-04-25", "2026-04-26", "2026-04-27", "2026-04-28", "2026-04-29", "2026-04-30", "2026-05-01", "2026-05-02", "2026-05-03", "2026-05-04", "2026-05-05", "2026-05-06", "2026-05-07", "2026-05-08", "2026-05-09", "2026-05-11"];
+  const recv   = [0, 11, 31, 33, 29, 34, 38, 25, 24, 45, 43, 32, 38, 24, 26, 27, 27, 32, 37, 35, 25, 29, 42, 50, 34, 16, 24, 25, 29, 54, 59, 51, 54, 29, 24, 23, 49, 47, 46, 34, 33, 43, 33, 45, 47, 40, 49, 37, 22, 16, 34, 53, 42, 47, 37, 24, 35, 38, 36, 41, 52, 57, 37, 38, 37, 67, 48, 60, 40, 25, 11];
+  const sent   = [14, 20, 14, 23, 21, 20, 23, 17, 15, 29, 29, 24, 21, 16, 17, 20, 18, 21, 22, 21, 15, 25, 19, 32, 24, 29, 12, 20, 21, 26, 34, 32, 35, 17, 18, 17, 26, 40, 23, 22, 20, 25, 22, 28, 23, 30, 28, 19, 12, 14, 18, 28, 23, 30, 19, 16, 26, 25, 24, 30, 31, 27, 19, 24, 20, 41, 27, 31, 27, 17, 5];
+  const ctx    = document.getElementById('chartDaily').getContext('2d');
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Recibidos',
+          data: recv,
+          backgroundColor: 'rgba(0,51,102,0.7)',
+          borderRadius: 2,
+          order: 2
+        },
+        {
+          label: 'Enviados',
+          data: sent,
+          backgroundColor: 'rgba(0,170,255,0.65)',
+          borderRadius: 2,
+          order: 2
+        },
+        {
+          label: 'Total recibidos (línea)',
+          data: recv,
+          type: 'line',
+          borderColor: '#003366',
+          borderWidth: 1.5,
+          pointRadius: 0,
+          fill: false,
+          tension: 0.4,
+          order: 1
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'top' },
+        tooltip: {
+          callbacks: {
+            footer: (items) => 'Total: ' + items.reduce((a,b)=>a+(b.dataset.type==='line'?0:b.raw),0)
+          }
+        }
+      },
+      scales: {
+        x: { stacked: false, ticks: { maxTicksLimit: 30, maxRotation: 45 } },
+        y: { beginAtZero: true }
+      }
+    }
+  });
+})();
+
+// ── 2. Pie — solicitudes por categoría ─────────────────────
+(function() {
+  const catLabels = ["Alta", "Modificación", "Cancelación", "Demora"];
+  const recv_vals = [564, 602, 110, 218];
+  const ctx = document.getElementById('chartPie').getContext('2d');
+  new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: catLabels,
+      datasets: [{
+        data: recv_vals,
+        backgroundColor: ['#0077b6','#f4a261','#e63946','#9b5de5'],
+        borderWidth: 2,
+        borderColor: '#fff'
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'right' } }
+    }
+  });
+})();
+
+// ── 3. Bar — recibidas vs respondidas por categoría ─────────
+(function() {
+  const catLabels = ["Alta", "Modificación", "Cancelación", "Demora"];
+  const recv_vals = [564, 602, 110, 218];
+  const sent_vals = [216, 456, 89, 141];
+  const ctx = document.getElementById('chartCatBar').getContext('2d');
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: catLabels,
+      datasets: [
+        { label: 'Recibidas', data: recv_vals, backgroundColor: 'rgba(0,51,102,0.75)', borderRadius: 4 },
+        { label: 'Respondidas/Enviadas', data: sent_vals, backgroundColor: 'rgba(0,170,255,0.7)', borderRadius: 4 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'top' } },
+      scales: { y: { beginAtZero: true } }
+    }
+  });
+})();
+
+// ── 4. Solicitudes por día (últimos 14 días) ────────────────
+(function() {
+  const labels = ["2026-04-27", "2026-04-28", "2026-04-29", "2026-04-30", "2026-05-01", "2026-05-02", "2026-05-03", "2026-05-04", "2026-05-05", "2026-05-06", "2026-05-07", "2026-05-08", "2026-05-09", "2026-05-11"];
+  const cats   = ["Alta", "Modificación", "Cancelación", "Demora"];
+  const colors = ['#0077b6','#f4a261','#e63946','#9b5de5'];
+  const datasets = cats.map((cat, i) => ({
+    label: cat,
+    data: {"Alta": [7, 8, 15, 12, 9, 12, 15, 7, 20, 7, 15, 12, 10, 3], "Modificación": [8, 8, 6, 21, 16, 11, 7, 3, 12, 11, 13, 7, 4, 2], "Cancelación": [1, 1, 2, 1, 5, 2, 0, 1, 2, 3, 0, 3, 0, 0], "Demora": [6, 2, 3, 8, 4, 1, 0, 4, 5, 8, 2, 4, 2, 1]}[cat],
+    backgroundColor: colors[i],
+    borderRadius: 3,
+    stack: 'stack'
+  }));
+  const ctx = document.getElementById('chartSlotDaily').getContext('2d');
+  new Chart(ctx, {
+    type: 'bar',
+    data: { labels, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'top' } },
+      scales: {
+        x: { stacked: true, ticks: { maxRotation: 45 } },
+        y: { stacked: true, beginAtZero: true }
+      }
+    }
+  });
+})();
+</script>
+</body>
+</html>

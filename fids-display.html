@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AIFA — Tablero de Vuelos</title>
+  <link rel="icon" type="image/png" sizes="192x192" href="images/icons/aifa-app-icon-192.png">
+  <link rel="stylesheet" href="style.css?v=20260617O">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body {
+      margin: 0; padding: 0;
+      background: #04040a;
+      width: 100%; height: 100%;
+      overflow: hidden;
+    }
+
+    /* ── Kiosko: tablero ocupa toda la pantalla ── */
+    .fids-screen {
+      max-width: 100%    !important;
+      border-radius: 0   !important;
+      box-shadow: none   !important;
+      margin: 0          !important;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .fids-rows-container {
+      flex: 1;
+      overflow: hidden;
+      position: relative;
+    }
+    .fids-rows-container::after {
+      content: '';
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 52px;
+      background: linear-gradient(to bottom, transparent, #0c0c1e);
+      pointer-events: none;
+    }
+
+    /* ── Barra de progreso (muestra tiempo hasta el cambio) ── */
+    #kiosk-progress {
+      position: fixed;
+      bottom: 0; left: 0;
+      width: 100%; height: 3px;
+      background: #0c0c1e;
+      z-index: 300;
+    }
+    #kiosk-progress-fill {
+      height: 100%;
+      background: #f0b830;
+      width: 0%;
+    }
+
+    /* ── Overlay de transición ── */
+    #kiosk-fade {
+      position: fixed;
+      inset: 0;
+      background: #04040a;
+      opacity: 0;
+      pointer-events: none;
+      z-index: 200;
+      transition: opacity .4s ease;
+    }
+    #kiosk-fade.active { opacity: 1; }
+
+    /* ── Indicator de próxima vista (header) ── */
+    #kiosk-next {
+      font-size: .58rem;
+      color: #2e4a6a;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      margin-top: 3px;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+       VISTA PUERTAS — Gate Walk-Time Display
+       Inspired by LAX-style boarding gate wayfinding displays
+    ═══════════════════════════════════════════════════════════════ */
+    #fids-gates-view {
+      position: fixed;
+      inset: 0;
+      background: #02030d;
+      display: none;
+      flex-direction: column;
+      z-index: 150;
+      font-family: 'Arial', sans-serif;
+    }
+
+    /* Header */
+    .fgv-header {
+      display: flex;
+      align-items: center;
+      background: #081530;
+      padding: 12px 32px;
+      border-bottom: 3px solid #e2c870;
+      gap: 1.2rem;
+      flex-shrink: 0;
+    }
+    .fgv-header-logo { display: flex; align-items: center; gap: 10px; }
+    .fgv-header-logo img { height: 42px; }
+    .fgv-header-brand {
+      font-size: .7rem;
+      font-weight: 700;
+      color: #e2c870;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      line-height: 1.3;
+    }
+    .fgv-header-brand small {
+      display: block;
+      font-size: .58rem;
+      color: rgba(255,255,255,.45);
+      letter-spacing: .12em;
+      font-weight: 400;
+    }
+    .fgv-header-title {
+      flex: 1;
+      text-align: center;
+      font-size: 1.55rem;
+      font-weight: 900;
+      color: #f0f8ff;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+    }
+    .fgv-header-right {
+      text-align: right;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 2px;
+    }
+    .fgv-clock {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #e2c870;
+      letter-spacing: .06em;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+    .fgv-date {
+      font-size: .62rem;
+      color: rgba(255,255,255,.42);
+      letter-spacing: .1em;
+      text-transform: uppercase;
+    }
+
+    /* Column headers */
+    .fgv-cols-hdr {
+      display: grid;
+      grid-template-columns: 220px 1fr 150px;
+      background: #071228;
+      border-bottom: 1px solid #1a3060;
+      padding: 9px 32px;
+      gap: 0;
+      flex-shrink: 0;
+    }
+    .fgv-col-hdr {
+      font-size: .68rem;
+      font-weight: 700;
+      color: #5a80a8;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+    }
+    .fgv-col-hdr.right { text-align: center; padding-right: 4px; }
+
+    /* Rows */
+    .fgv-rows {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      padding: 6px 16px;
+      gap: 4px;
+    }
+    .fgv-row {
+      display: grid;
+      grid-template-columns: 220px 1fr 150px;
+      align-items: center;
+      padding: 0 16px;
+      flex: 1;
+      border-radius: 8px;
+      border-left: 4px solid transparent;
+      transition: background .3s;
+      min-height: 0;
+      overflow: hidden;
+    }
+    .fgv-row:nth-child(odd)  { background: rgba(8,20,48,.65); }
+    .fgv-row:nth-child(even) { background: rgba(5,14,36,.55); }
+    .fgv-row.type-bus       { border-left-color: #e2c040; }
+    .fgv-row.type-jetbridge { border-left-color: #3a8eff; }
+    .fgv-row.type-apron     { border-left-color: #ff8030; }
+
+    /* Walk time cell */
+    .fgv-walk {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .fgv-walk-icon {
+      font-size: clamp(1.4rem, 2.2vh, 2.4rem);
+      color: rgba(255,255,255,.6);
+      line-height: 1;
+    }
+    .fgv-walk-info { display: flex; flex-direction: column; }
+    .fgv-walk-time {
+      font-size: clamp(1.2rem, 2.5vh, 2rem);
+      font-weight: 800;
+      color: #f0f8ff;
+      letter-spacing: .02em;
+      line-height: 1;
+    }
+    .fgv-walk-label {
+      font-size: clamp(.55rem, .9vh, .72rem);
+      font-weight: 600;
+      color: #4a6a90;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    /* Gate label cell */
+    .fgv-gate-cell { display: flex; flex-direction: column; justify-content: center; }
+    .fgv-gate-label {
+      font-size: clamp(1.5rem, 3vh, 2.6rem);
+      font-weight: 900;
+      letter-spacing: .03em;
+      line-height: 1;
+    }
+    .fgv-row.type-bus       .fgv-gate-label { color: #f5c83a; }
+    .fgv-row.type-jetbridge .fgv-gate-label { color: #5aaeff; }
+    .fgv-row.type-apron     .fgv-gate-label { color: #ff9050; }
+
+    .fgv-gate-sublabel {
+      font-size: clamp(.58rem, .95vh, .78rem);
+      font-weight: 600;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      margin-top: 2px;
+      opacity: .6;
+    }
+    .fgv-row.type-bus       .fgv-gate-sublabel { color: #c8a820; }
+    .fgv-row.type-jetbridge .fgv-gate-sublabel { color: #3a80c8; }
+    .fgv-row.type-apron     .fgv-gate-sublabel { color: #c06020; }
+
+    /* QR cell */
+    .fgv-qr-cell {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 4px;
+      overflow: hidden;
+      min-height: 0;
+    }
+    .fgv-qr-wrap {
+      background: #fff;
+      border-radius: 6px;
+      padding: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 1;
+      overflow: hidden;
+      max-height: 100%;
+    }
+    .fgv-qr-wrap canvas,
+    .fgv-qr-wrap img {
+      display: block !important;
+      max-width: 76px !important;
+      max-height: 76px !important;
+      width: auto !important;
+      height: auto !important;
+    }
+
+    /* Footer */
+    .fgv-footer {
+      background: #081530;
+      padding: 9px 32px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 3px solid #e2c870;
+      flex-shrink: 0;
+    }
+    .fgv-footer span {
+      font-size: .62rem;
+      color: #3a5878;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+    .fgv-footer .fgv-next-lbl { color: #1e4a78; }
+
+    /* Separator dots for QR hint */
+    .fgv-qr-hint {
+      font-size: .55rem;
+      color: #2a4868;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      text-align: center;
+      margin-top: 2px;
+      white-space: nowrap;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Tablero FIDS -->
+  <div class="fids-screen">
+
+    <div class="fids-screen-header">
+      <div class="fids-screen-logo">
+        <img src="images/aifa-logo.png" alt="AIFA" height="36"
+             onerror="this.src='images/aifa-logo.jpg'">
+      </div>
+      <div class="fids-screen-title">
+        <span class="fids-screen-tipo" id="fids-tipo">LLEGADAS</span>
+        <span class="fids-screen-fecha" id="fids-fecha"></span>
+        <span id="kiosk-next"></span>
+      </div>
+      <div class="fids-screen-clock" id="fids-clock">--:--:--</div>
+    </div>
+
+    <div class="fids-screen-cols">
+      <div class="fids-col-aerolinea">AEROLÍNEA</div>
+      <div class="fids-col-vuelo">VUELO</div>
+      <div class="fids-col-ciudad" id="fids-hdr-ciudad">ORIGEN</div>
+      <div class="fids-col-hora">HORA</div>
+      <div class="fids-col-puerta">PUERTA</div>
+      <div class="fids-col-estado">ESTADO</div>
+    </div>
+
+    <div class="fids-rows-container" id="fids-rows">
+      <div style="padding:2.5rem;text-align:center;color:#4d7eb5;font-size:.9rem;">
+        Cargando vuelos…
+      </div>
+    </div>
+
+    <div class="fids-screen-footer">
+      <span>AEROPUERTO INTERNACIONAL FELIPE ÁNGELES — AIFA</span>
+      <span id="fids-footer-count"></span>
+    </div>
+
+  </div>
+
+  <!-- Barra de progreso / transición -->
+  <div id="kiosk-progress"><div id="kiosk-progress-fill"></div></div>
+  <div id="kiosk-fade"></div>
+
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="js/supabase-client.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" crossorigin="anonymous"></script>
+
+  <script>
+  (function () {
+    'use strict';
+
+    // ── Configuración ────────────────────────────────────────────────
+    const SWITCH_MS       = 12000;   // ms por vista de vuelos
+    const GATES_SWITCH_MS = 20000;   // ms en la vista de puertas (más tiempo para QR)
+    const REFRESH_MS      = 5 * 60 * 1000; // recarga de datos cada 5 min
+
+    // ── Estado ───────────────────────────────────────────────────────
+    let _airlines   = [];
+    let _llegadas   = [];
+    let _salidas    = [];
+    let _tipo       = 'llegada'; // 'llegada' | 'salida' | 'puertas'
+    let _progInt    = null;
+    let _switchTmr  = null;
+    let _progStart  = 0;
+    let _gatesReady = false;      // QR codes already generated
+
+    // ── Puertas AIFA (datos exactos del terminal) ────────────────────
+    // Fuente: airport-map.html buildGates() - layout oeste a este:
+    //   MARS plataforma:    501-505  (extremo oeste, junto a terminal)
+    //   Mangas (jetbridge): 106A/B - 116A/B  (pier central)
+    //   MARS plataforma:    506A/B   (extremo este, tras manga 116)
+    //   Plataforma Este:    3 - 8    (lado norte, acceso especial)
+    //
+    //   Tiempos de caminata calculados con WSPEED = 75 m/min
+    const GATE_GROUPS = [
+      {
+        mins:    '1 \u2013 3 min',
+        gates:   '101 \u2013 105',
+        type:    'apron',
+        sublbl:  'MARS \u00B7 Posici\u00f3n remota \u00B7 Autobus',
+        qrGate:  '103',
+      },
+      {
+        mins:    '4 \u2013 5 min',
+        gates:   '106 \u2013 108',
+        type:    'jetbridge',
+        sublbl:  'Manga \u00B7 Embarque directo',
+        qrGate:  '107A',
+      },
+      {
+        mins:    '5 \u2013 7 min',
+        gates:   '109 \u2013 112',
+        type:    'jetbridge',
+        sublbl:  'Manga \u00B7 Embarque directo',
+        qrGate:  '110A',
+      },
+      {
+        mins:    '7 \u2013 10 min',
+        gates:   '113 \u2013 116',
+        type:    'jetbridge',
+        sublbl:  'Manga \u00B7 Embarque directo',
+        qrGate:  '114A',
+      },
+      {
+        mins:    '12 \u2013 13 min',
+        gates:   '506 A / B',
+        type:    'apron',
+        sublbl:  'MARS \u00B7 Posici\u00f3n remota \u00B7 Autobus',
+        qrGate:  '506A',
+      },
+    ];
+
+    const ESTADO_CLASES = {
+      'A tiempo':   'fids-estado-ok',
+      'Aterrizo':   'fids-estado-ok',
+      'Aterrizó':   'fids-estado-ok',
+      'Despegó':    'fids-estado-ok',
+      'En puerta':  'fids-estado-puerta',
+      'Abordando':  'fids-estado-puerta',
+      'Embarcando': 'fids-estado-puerta',
+      'Cancelado':  'fids-estado-cancelado',
+      'Demorado':   'fids-estado-demorado',
+      'En vuelo':   'fids-estado-vuelo',
+    };
+
+    // ── Aerolíneas ───────────────────────────────────────────────────
+    async function loadAirlines() {
+      try {
+        _airlines = await (await fetch('data/airlines.json')).json();
+      } catch (_) { _airlines = []; }
+    }
+
+    function norm(s) {
+      return (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+    }
+
+    function findAirline(iata, nombre) {
+      const ni = norm(iata), nn = norm(nombre);
+      let m = null;
+      if (ni) m = _airlines.find(a => norm(a.iata) === ni);
+      if (!m && nn) m = _airlines.find(a =>
+        norm(a.name) === nn ||
+        (Array.isArray(a.aliases) && a.aliases.some(al => norm(al) === nn))
+      );
+      if (!m && nn) m = _airlines.find(a =>
+        norm(a.name).includes(nn) || nn.includes(norm(a.name)) ||
+        (Array.isArray(a.aliases) && a.aliases.some(al => nn.includes(norm(al)) || norm(al).includes(nn)))
+      );
+      return m || null;
+    }
+
+    function airlineStyle(iata, nombre) {
+      const a = findAirline(iata, nombre);
+      if (a) return {
+        bg:       a.color     || '#1e3a8a',
+        text:     a.textColor || '#ffffff',
+        name:     a.name      || nombre || iata || '?',
+        logo:     a.logo      ? `images/airlines/${a.logo}` : null,
+        logoZoom: a.logoZoom  || null,
+        rawLogo:  a.rawLogo   || false,
+      };
+      let h = 0;
+      const s = (nombre || iata || '?').toUpperCase();
+      for (let i = 0; i < s.length; i++) h = s.charCodeAt(i) + ((h << 5) - h);
+      return { bg: `hsl(${Math.abs(h)%360},55%,28%)`, text:'#fff', name: nombre||iata||'?', logo: null, logoZoom: null, rawLogo: false };
+    }
+
+    // ── Utilidades de fecha / hora ───────────────────────────────────
+    function todayStr() {
+      return new Date().toISOString().split('T')[0];
+    }
+
+    function fmtTime(t) {
+      return t ? String(t).slice(0, 5) : '—';
+    }
+
+    function fmtFecha(d) {
+      const [y, m, dd] = d.split('-');
+      const meses = ['enero','febrero','marzo','abril','mayo','junio',
+                     'julio','agosto','septiembre','octubre','noviembre','diciembre'];
+      const dias  = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+      const dt    = new Date(+y, +m - 1, +dd);
+      return `${dias[dt.getDay()]}, ${dd} de ${meses[+m - 1]} de ${y}`;
+    }
+
+    // ── Carga de datos ───────────────────────────────────────────────
+    async function loadData() {
+      const fecha = todayStr();
+      try {
+        const sb = await window.ensureSupabaseClient();
+        const [rL, rS] = await Promise.all([
+          sb.from('flights')
+            .select('aerolinea,vuelo_llegada,hora_llegada,origen,posicion,banda_reclamo')
+            .eq('fecha_llegada', fecha)
+            .order('hora_llegada', { ascending: true }),
+          sb.from('flights')
+            .select('aerolinea,vuelo_salida,hora_salida,destino,posicion')
+            .eq('fecha_salida', fecha)
+            .order('hora_salida', { ascending: true }),
+        ]);
+        _llegadas = mapRows(rL.data || [], 'llegada');
+        _salidas  = mapRows(rS.data || [], 'salida');
+      } catch (e) {
+        console.warn('[FIDS-Kiosk] Error cargando datos:', e.message);
+      }
+      // Complementar con demo si hay pocos vuelos reales (tablero siempre lleno)
+      _llegadas = padFlights(_llegadas, 'llegada');
+      _salidas  = padFlights(_salidas,  'salida');
+      renderBoard();
+    }
+
+    function mapRows(data, tipo) {
+      return data.map(f => ({
+        iata:   (f.aerolinea || '').toUpperCase().trim(),
+        nombre: (f.aerolinea || ''),          // nombre completo si el campo trae texto
+        num:    tipo === 'llegada' ? (f.vuelo_llegada || '') : (f.vuelo_salida || ''),
+        hora:   tipo === 'llegada' ? (f.hora_llegada  || '') : (f.hora_salida  || ''),
+        city:   tipo === 'llegada' ? (f.origen        || '') : (f.destino      || ''),
+        puerta: f.posicion || '',
+        estado: 'A tiempo',
+      }));
+    }
+
+    function demoFlights(tipo) {
+      const L = [
+        { iata:'IB', num:'IB 6829', city:'Madrid',            hora:'05:50', puerta:'116A', estado:'Aterriz\u00f3'  },
+        { iata:'EK', num:'EK 9915', city:'Dub\u00e1i',        hora:'06:05', puerta:'116B', estado:'Aterriz\u00f3'  },
+        { iata:'VB', num:'VB 7417', city:'Guadalajara',       hora:'06:00', puerta:'101',  estado:'Aterriz\u00f3'  },
+        { iata:'Y4', num:'Y4 3296', city:'Tijuana',           hora:'06:35', puerta:'105',  estado:'Aterriz\u00f3'  },
+        { iata:'KL', num:'KL 0685', city:'Amsterdam',         hora:'07:00', puerta:'115A', estado:'Aterriz\u00f3'  },
+        { iata:'AM', num:'AM 0234', city:'Canc\u00fan',       hora:'07:15', puerta:'107A', estado:'En puerta' },
+        { iata:'UA', num:'UA 1567', city:'Houston',           hora:'07:50', puerta:'108B', estado:'Aterriz\u00f3'  },
+        { iata:'VB', num:'VB 9497', city:'Los Cabos',         hora:'08:10', puerta:'110B', estado:'En puerta' },
+        { iata:'AM', num:'AM 0456', city:'Monterrey',         hora:'08:20', puerta:'113A', estado:'En puerta' },
+        { iata:'AA', num:'AA 2046', city:'Dallas/Fort Worth', hora:'08:50', puerta:'114B', estado:'A tiempo'  },
+        { iata:'XN', num:'XN 1765', city:'M\u00e9rida',       hora:'08:55', puerta:'116A', estado:'A tiempo'  },
+        { iata:'Y4', num:'Y4 7171', city:'La Paz',            hora:'09:30', puerta:'103',  estado:'Demorado'  },
+        { iata:'AM', num:'AM 0678', city:'Puerto Vallarta',   hora:'10:00', puerta:'109A', estado:'A tiempo'  },
+        { iata:'VB', num:'VB 9313', city:'Zihuatanejo',       hora:'10:35', puerta:'506A', estado:'A tiempo'  },
+        { iata:'DL', num:'DL 0615', city:'Atlanta',           hora:'10:55', puerta:'113B', estado:'A tiempo'  },
+        { iata:'6R', num:'6R 7085', city:'Los \u00c1ngeles',  hora:'11:10', puerta:'506B', estado:'En vuelo'  },
+        { iata:'AM', num:'AM 0890', city:'Oaxaca',            hora:'11:30', puerta:'109B', estado:'A tiempo'  },
+        { iata:'CX', num:'CX 0086', city:'Anchorage',         hora:'12:20', puerta:'115B', estado:'A tiempo'  },
+        { iata:'Y4', num:'Y4 1083', city:'Hermosillo',        hora:'12:50', puerta:'104',  estado:'Demorado'  },
+        { iata:'CM', num:'CM 0233', city:'Panam\u00e1',       hora:'13:20', puerta:'112A', estado:'A tiempo'  },
+      ];
+      const S = [
+        { iata:'VB', num:'VB 7418', city:'Guadalajara',       hora:'06:30', puerta:'102',  estado:'Despeg\u00f3'   },
+        { iata:'Y4', num:'Y4 3297', city:'Tijuana',           hora:'07:05', puerta:'104',  estado:'Despeg\u00f3'   },
+        { iata:'AM', num:'AM 0235', city:'Canc\u00fan',       hora:'07:50', puerta:'108A', estado:'A tiempo'  },
+        { iata:'UA', num:'UA 1568', city:'Houston',           hora:'08:10', puerta:'107B', estado:'Abordando' },
+        { iata:'VB', num:'VB 9520', city:'Los Cabos',         hora:'08:25', puerta:'111A', estado:'Abordando' },
+        { iata:'AM', num:'AM 0457', city:'Monterrey',         hora:'09:00', puerta:'114A', estado:'En puerta' },
+        { iata:'XN', num:'XN 1204', city:'Tijuana',           hora:'09:35', puerta:'106A', estado:'A tiempo'  },
+        { iata:'AA', num:'AA 2047', city:'Dallas/Fort Worth', hora:'09:55', puerta:'115B', estado:'A tiempo'  },
+        { iata:'Y4', num:'Y4 3960', city:'Bogot\u00e1',       hora:'10:10', puerta:'506B', estado:'Demorado'  },
+        { iata:'AM', num:'AM 0679', city:'Puerto Vallarta',   hora:'10:45', puerta:'112B', estado:'A tiempo'  },
+        { iata:'VB', num:'VB 9462', city:'Chetumal',          hora:'11:20', puerta:'115A', estado:'A tiempo'  },
+        { iata:'DL', num:'DL 0614', city:'Atlanta',           hora:'11:40', puerta:'113A', estado:'A tiempo'  },
+        { iata:'6R', num:'6R 7084', city:'Los \u00c1ngeles',  hora:'12:00', puerta:'506A', estado:'A tiempo'  },
+        { iata:'EK', num:'EK 9916', city:'Dub\u00e1i',        hora:'12:30', puerta:'116B', estado:'A tiempo'  },
+        { iata:'AM', num:'AM 0891', city:'Oaxaca',            hora:'12:55', puerta:'109A', estado:'En puerta' },
+        { iata:'M7', num:'M7 6810', city:'Los \u00c1ngeles',  hora:'13:00', puerta:'113B', estado:'En vuelo'  },
+        { iata:'IB', num:'IB 6828', city:'Madrid',            hora:'13:30', puerta:'116A', estado:'A tiempo'  },
+        { iata:'VB', num:'VB 9301', city:'Culiac\u00e1n',     hora:'14:10', puerta:'101',  estado:'A tiempo'  },
+        { iata:'Y4', num:'Y4 1082', city:'Hermosillo',        hora:'14:45', puerta:'103',  estado:'A tiempo'  },
+        { iata:'CM', num:'CM 0234', city:'Panam\u00e1',       hora:'15:20', puerta:'112A', estado:'A tiempo'  },
+      ];
+      return tipo === 'llegada' ? L : S;
+    }
+
+    // Rellena con demo hasta cubrir toda la pantalla (minimo 16, maximo 20)
+    function padFlights(real, tipo) {
+      if (real.length >= 16) return real;
+      const demo  = demoFlights(tipo);
+      const extra = demo.filter(d => !real.some(r => r.num === d.num));
+      return [...real, ...extra].slice(0, 20);
+    }
+
+    function showGateQR(gate, vuelo) {
+      const url = `${MAP_BASE}?gate=${encodeURIComponent(gate)}&from=security${vuelo ? '&vuelo=' + encodeURIComponent(vuelo) : ''}`;
+      document.getElementById('fids-qr-gate').textContent  = gate;
+      document.getElementById('fids-qr-vuelo').textContent = vuelo ? `Vuelo ${vuelo}` : '';
+      const qrDiv = document.getElementById('fids-qr-code');
+      qrDiv.innerHTML = '';
+      if (window.QRCode) {
+        new QRCode(qrDiv, { text: url, width: 200, height: 200, colorDark: '#000', colorLight: '#fff' });
+      }
+      document.getElementById('fids-gate-overlay').style.display = 'flex';
+    }
+
+    // ── Renderizado ──────────────────────────────────────────────────
+    function renderBoard() {
+      const vuelos = _tipo === 'llegada' ? _llegadas : _salidas;
+      const isLleg = _tipo === 'llegada';
+
+      document.getElementById('fids-tipo').textContent       = isLleg ? 'LLEGADAS' : 'SALIDAS';
+      document.getElementById('fids-hdr-ciudad').textContent  = isLleg ? 'ORIGEN'   : 'DESTINO';
+      document.getElementById('fids-footer-count').textContent =
+        `${vuelos.length} vuelo${vuelos.length !== 1 ? 's' : ''}`;
+      document.getElementById('kiosk-next').textContent =
+        `» ${isLleg ? 'SALIDAS' : 'PUERTAS'} a continuación`;
+
+      const rows = document.getElementById('fids-rows');
+      if (!vuelos.length) {
+        rows.innerHTML = '<div style="padding:2.5rem;text-align:center;color:#3d5a7a;">Sin vuelos registrados para hoy.</div>';
+        return;
+      }
+
+      rows.innerHTML = vuelos.map((v, i) => {
+        const al   = airlineStyle(v.iata, v.nombre);
+        const est  = v.estado || 'A tiempo';
+        const cls  = ESTADO_CLASES[est] || 'fids-estado-ok';
+        const rowC = i % 2 === 0 ? 'fids-row fids-row-even fade-in-row' : 'fids-row fids-row-odd fade-in-row';
+
+        const badgeBg = al.rawLogo ? '#ffffff' : al.bg;
+        const _imgSt = [al.rawLogo ? 'filter:none' : '', al.logoZoom ? `transform:scale(${al.logoZoom})` : ''].filter(Boolean).join(';');
+        const imgStyleAttr = _imgSt ? ` style="${_imgSt}"` : '';
+        const logoInner = al.logo
+          ? `<img src="${al.logo}" alt="${al.name}" class="fids-airline-logo"${imgStyleAttr}
+                 onerror="this.style.display='none';this.nextElementSibling.style.display='inline-block'">
+             <span style="display:none">${(al.name||v.iata||'').toUpperCase().slice(0,12)}</span>`
+          : `<span>${(al.name||v.iata||'').toUpperCase().slice(0,12)}</span>`;
+
+        return `<div class="${rowC}" style="--delay:${(i*0.06).toFixed(2)}s" data-gate="${v.puerta||''}" data-vuelo="${v.num||''}">
+          <div class="fids-col-aerolinea">
+            <span class="fids-airline-badge" style="background:${badgeBg};color:${al.text};">${logoInner}</span>
+          </div>
+          <div class="fids-col-vuelo">${v.num || '—'}</div>
+          <div class="fids-col-ciudad">${v.city || '—'}</div>
+          <div class="fids-col-hora">${fmtTime(v.hora)}</div>
+          <div class="fids-col-puerta">${v.puerta || '—'}</div>
+          <div class="fids-col-estado"><span class="fids-estado-badge ${cls}">${est}</span></div>
+        </div>`;
+      }).join('');
+
+      // Tap any row → show QR with gate map link
+      rows.onclick = ev => {
+        const row = ev.target.closest('[data-gate]');
+        if (!row) return;
+        const gate  = row.dataset.gate;
+        const vuelo = row.dataset.vuelo;
+        if (!gate || gate === '—') return;
+        openMapOverlay(gateOverlayUrl(gate));
+      };
+    }
+
+    // ── Reloj ────────────────────────────────────────────────────────
+    function startClock() {
+      const elClock = document.getElementById('fids-clock');
+      const elFecha = document.getElementById('fids-fecha');
+      const fgvClock = document.getElementById('fgv-clock');
+      const fgvDate  = document.getElementById('fgv-date');
+      function tick() {
+        const now = new Date();
+        const t = now.toLocaleTimeString('es-MX',
+          { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+        const d = fmtFecha(now.toISOString().split('T')[0]);
+        elClock.textContent = t;
+        elFecha.textContent = d;
+        if (fgvClock) fgvClock.textContent = t;
+        if (fgvDate)  fgvDate.textContent  = d;
+      }
+      tick();
+      setInterval(tick, 1000);
+    }
+
+    // ── Barra de progreso ────────────────────────────────────────────
+    function startProgress(ms) {
+      _progStart = performance.now();
+      const fill = document.getElementById('kiosk-progress-fill');
+      fill.style.transition = 'none';
+      fill.style.width = '0%';
+      fill.getBoundingClientRect();
+      fill.style.transition = `width ${ms}ms linear`;
+      fill.style.width = '100%';
+    }
+
+    // ── Rotación automática ──────────────────────────────────────────
+    function scheduleSwitch(ms) {
+      clearTimeout(_switchTmr);
+      _switchTmr = setTimeout(doSwitch, ms);
+      startProgress(ms);
+    }
+
+    async function doSwitch() {
+      const overlay = document.getElementById('kiosk-fade');
+      overlay.classList.add('active');
+      await new Promise(r => setTimeout(r, 400));
+
+      // Ciclo: llegada → salida → puertas → llegada → …
+      if      (_tipo === 'llegada') _tipo = 'salida';
+      else if (_tipo === 'salida')  _tipo = 'puertas';
+      else                          _tipo = 'llegada';
+
+      if (_tipo === 'puertas') {
+        document.querySelector('.fids-screen').style.display = 'none';
+        const gv = document.getElementById('fids-gates-view');
+        gv.style.display = 'flex';
+        renderGatesView();
+        document.getElementById('kiosk-next').textContent = '';
+        overlay.classList.remove('active');
+        scheduleSwitch(GATES_SWITCH_MS);
+      } else {
+        document.querySelector('.fids-screen').style.display = 'flex';
+        document.getElementById('fids-gates-view').style.display = 'none';
+        renderBoard();
+        overlay.classList.remove('active');
+        scheduleSwitch(SWITCH_MS);
+      }
+    }
+
+    // ── Vista de puertas ─────────────────────────────────────────────
+    const _MAP_GH  = 'https://isaacazhael161f-creator.github.io/AIFA-OPERACIONES/airport-map.html';
+    const _MAP_VER = '20260521';   // bump this whenever airport-map.html changes
+
+    // URL para el CONTENIDO del QR → siempre pública (cualquier teléfono puede abrirla)
+    function gateQrUrl(gate) {
+      return `${_MAP_GH}?gate=${encodeURIComponent(gate)}&from=security&_v=${_MAP_VER}`;
+    }
+
+    // URL para el iframe OVERLAY dentro del kiosco → usa archivo local si está disponible
+    function gateOverlayUrl(gate) {
+      const h = location.hostname;
+      const base = (h === 'localhost' || h === '127.0.0.1' || location.protocol === 'file:')
+        ? './airport-map.html'
+        : (h === 'isaacazhael161f-creator.github.io'
+            ? location.href.replace(/\/[^/?#]*(\?.*)?$/, '/') + 'airport-map.html'
+            : _MAP_GH);
+      return `${base}?gate=${encodeURIComponent(gate)}&from=security&_v=${_MAP_VER}`;
+    }
+
+    function renderGatesView() {
+      // Update "next" label
+      const nextLbl = document.getElementById('fgv-next-lbl');
+      if (nextLbl) nextLbl.textContent = '» LLEGADAS a continuación';
+
+      if (_gatesReady) return; // QR codes already built
+      _gatesReady = true;
+
+      const container = document.getElementById('fgv-rows');
+      container.innerHTML = '';
+
+      // QR fixed at 76 px — fits any row without bleeding into adjacent rows
+      const qrSize = 76;
+
+      GATE_GROUPS.forEach(grp => {
+        const row = document.createElement('div');
+        row.className = `fgv-row type-${grp.type}`;
+        row.title = 'Toca para abrir el mapa de la puerta';
+
+        // Walk time cell
+        const walkDiv = document.createElement('div');
+        walkDiv.className = 'fgv-walk';
+        walkDiv.innerHTML = `
+          <span class="fgv-walk-icon"><i class="fas fa-person-walking" aria-hidden="true"></i></span>
+          <span class="fgv-walk-info">
+            <span class="fgv-walk-time">${grp.mins}</span>
+            <span class="fgv-walk-label">desde seguridad</span>
+          </span>`;
+
+        // Gate label cell
+        const gateDiv = document.createElement('div');
+        gateDiv.className = 'fgv-gate-cell';
+        gateDiv.innerHTML = `
+          <span class="fgv-gate-label">${grp.gates}</span>
+          <span class="fgv-gate-sublabel">${grp.sublbl}</span>`;
+
+        // QR cell — tap to open map
+        const qrCell = document.createElement('div');
+        qrCell.className = 'fgv-qr-cell';
+        qrCell.style.cursor = 'pointer';
+        qrCell.title = 'Toca para abrir el mapa';
+        qrCell.addEventListener('click', (e) => { e.stopPropagation(); openMapOverlay(gateOverlayUrl(grp.qrGate)); });
+
+        const qrWrap = document.createElement('div');
+        qrWrap.className = 'fgv-qr-wrap';
+        const qrDiv = document.createElement('div');
+        qrWrap.appendChild(qrDiv);
+        qrCell.appendChild(qrWrap);
+
+        // Generate QR
+        if (window.QRCode) {
+          new QRCode(qrDiv, {
+            text:       gateQrUrl(grp.qrGate),
+            width:      qrSize,
+            height:     qrSize,
+            colorDark:  '#000000',
+            colorLight: '#ffffff',
+            correctLevel: QRCode.CorrectLevel.M,
+          });
+        }
+
+        row.appendChild(walkDiv);
+        row.appendChild(gateDiv);
+        row.appendChild(qrCell);
+        container.appendChild(row);
+      });
+    }
+
+    // ── Realtime ─────────────────────────────────────────────────────
+    async function startRealtime() {
+      try {
+        const sb = await window.ensureSupabaseClient();
+        sb.channel('fids-kiosk')
+          .on('postgres_changes',
+              { event: '*', schema: 'public', table: 'flights' },
+              () => loadData())
+          .subscribe();
+      } catch (_) {}
+    }
+
+    // ── Mapa en overlay (tap row → abre mapa inline) ────────────────
+    function openMapOverlay(url) {
+      const ov = document.getElementById('map-frame-overlay');
+      const fr = document.getElementById('map-iframe');
+      clearTimeout(_switchTmr);
+      const fill = document.getElementById('kiosk-progress-fill');
+      if (fill) { fill.style.transition = 'none'; fill.style.width = '0%'; }
+      fr.src = url;
+      ov.style.display = 'flex';
+    }
+    function closeMapOverlay() {
+      const ov = document.getElementById('map-frame-overlay');
+      document.getElementById('map-iframe').src = '';
+      ov.style.display = 'none';
+      scheduleSwitch(_tipo === 'puertas' ? GATES_SWITCH_MS : SWITCH_MS);
+    }
+    window.closeMapOverlay = closeMapOverlay;
+
+    // ── Inicio ───────────────────────────────────────────────────────
+    async function init() {
+      await loadAirlines();
+      startClock();
+      await loadData();
+      scheduleSwitch(SWITCH_MS);
+      startRealtime();
+      // Recarga periódica como respaldo al realtime
+      setInterval(loadData, REFRESH_MS);
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
+
+  })();
+  </script>
+
+  <!-- Gate QR overlay: tap any FIDS row to open -->
+  <div id="fids-gate-overlay"
+       onclick="document.getElementById('fids-gate-overlay').style.display='none'"
+       style="position:fixed;inset:0;background:rgba(2,4,14,.96);z-index:9999;
+              display:none;align-items:center;justify-content:center;
+              flex-direction:column;gap:.85rem;cursor:pointer;user-select:none">
+    <div style="color:#4a7ab8;font-size:.7rem;letter-spacing:.14em;text-transform:uppercase">
+      Escanea con tu teléfono para ver el mapa
+    </div>
+    <div id="fids-qr-gate" style="font-size:3.5rem;font-weight:900;color:#f0b830;letter-spacing:.1em"></div>
+    <div id="fids-qr-vuelo" style="font-size:1rem;color:#8aaac8;letter-spacing:.06em"></div>
+    <div style="background:#fff;padding:10px;border-radius:8px">
+      <div id="fids-qr-code"></div>
+    </div>
+    <div style="color:#4a6888;font-size:.72rem;margin-top:.4rem">Toca en cualquier lugar para cerrar</div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       VISTA PUERTAS — Tiempos de caminata y códigos QR por puerta
+       Rotates in as the 3rd scene after Llegadas → Salidas → Puertas
+  ═══════════════════════════════════════════════════════════════════ -->
+  <div id="fids-gates-view">
+
+    <!-- Header -->
+    <div class="fgv-header">
+      <div class="fgv-header-logo">
+        <img src="images/aifa-logo.png" alt="AIFA" onerror="this.src='images/aifa-logo.jpg'">
+        <div class="fgv-header-brand">
+          AIFA
+          <small>Aeropuerto Internacional Felipe Ángeles</small>
+        </div>
+      </div>
+      <div class="fgv-header-title">PUERTAS DE EMBARQUE</div>
+      <div class="fgv-header-right">
+        <div class="fgv-clock" id="fgv-clock">--:--:--</div>
+        <div class="fgv-date" id="fgv-date"></div>
+      </div>
+    </div>
+
+    <!-- Column headers (LAX-style) -->
+    <div class="fgv-cols-hdr">
+      <div class="fgv-col-hdr">&#x2190; Tiempo de caminata</div>
+      <div class="fgv-col-hdr">Puertas</div>
+      <div class="fgv-col-hdr right">Toca para el mapa</div>
+    </div>
+
+    <!-- Gate rows (generated by JS) -->
+    <div class="fgv-rows" id="fgv-rows"></div>
+
+    <!-- Footer -->
+    <div class="fgv-footer">
+      <span>Aeropuerto Internacional Felipe Ángeles &mdash; AIFA &nbsp;&#9632;&nbsp; Santa Lucía, Edo. Méx.</span>
+      <span class="fgv-next-lbl" id="fgv-next-lbl">» LLEGADAS a continuación</span>
+    </div>
+
+  </div>
+
+  <!-- ══ Mapa iframe overlay: toca cualquier puerta para abrir ══ -->
+  <div id="map-frame-overlay"
+       style="position:fixed;inset:0;background:#02030d;z-index:9999;
+              display:none;flex-direction:column;">
+    <div style="display:flex;align-items:center;justify-content:space-between;
+                padding:10px 28px;background:#040c20;border-bottom:2px solid #1a3870;flex-shrink:0">
+      <span style="color:#e2c870;font-size:.88rem;font-weight:800;letter-spacing:.14em;
+                   text-transform:uppercase">&#9992; AIFA &mdash; MAPA DE PUERTAS</span>
+      <button onclick="closeMapOverlay()"
+              style="background:#c82030;color:#fff;border:none;border-radius:6px;
+                     padding:9px 26px;font-size:.85rem;font-weight:800;
+                     letter-spacing:.08em;cursor:pointer;">&#x2715; CERRAR</button>
+    </div>
+    <iframe id="map-iframe" src="" allowfullscreen
+            style="flex:1;border:none;width:100%;background:#04040a;"></iframe>
+  </div>
+
+</body>
+</html>

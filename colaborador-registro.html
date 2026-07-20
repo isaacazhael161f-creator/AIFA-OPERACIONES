@@ -1,0 +1,660 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Registro de Colaborador</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="./js/supabase-client.js"></script>
+  <style>
+    :root {
+      --bg: #f4f8ff;
+      --card: #ffffff;
+      --ink: #17233b;
+      --muted: #5e6d84;
+      --accent: #0057c2;
+      --ok: #0f9f61;
+      --warn: #d68b00;
+    }
+    body { margin: 0; font-family: 'Barlow', system-ui, sans-serif; background: radial-gradient(circle at top right, #d9ebff, var(--bg) 45%); color: var(--ink); }
+    .page { max-width: 980px; margin: 24px auto; padding: 0 16px 32px; }
+    .hero { background: linear-gradient(125deg, #0f2e63, #1750a2); color: #fff; border-radius: 16px; padding: 18px 18px 14px; box-shadow: 0 10px 28px rgba(10,36,76,.2); }
+    .hero h1 { margin: 0; font-size: 1.6rem; font-weight: 800; }
+    .hero p { margin: 8px 0 0; opacity: .95; }
+    .panel { background: var(--card); border: 1px solid #dbe7f7; border-radius: 14px; box-shadow: 0 6px 14px rgba(14,41,87,.08); padding: 14px; margin-top: 14px; }
+    .sec-title { font-size: 1.06rem; font-weight: 700; margin: 0 0 10px; color: #153464; }
+    .badge-lite { display: inline-block; border-radius: 999px; border: 1px solid #c8dbf4; color: #214d8b; padding: 2px 10px; font-size: .8rem; }
+    .dropzone { border: 1.5px dashed #8fb4e7; border-radius: 12px; background: #f5f9ff; padding: 10px; text-align: center; }
+    .preview { margin-top: 8px; min-height: 38px; }
+    .preview img { max-height: 140px; max-width: 100%; border-radius: 8px; border: 1px solid #cadbf2; }
+    .status { font-size: .9rem; color: var(--muted); }
+    .status.ok { color: var(--ok); font-weight: 600; }
+    .status.warn { color: var(--warn); font-weight: 600; }
+    .actions { display: flex; flex-wrap: wrap; gap: 8px; }
+    @media (max-width: 768px) {
+      .hero h1 { font-size: 1.3rem; }
+      .panel { padding: 12px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <section class="hero">
+      <h1>Registro de Colaborador</h1>
+      <p>Completa tus datos. Puedes guardar avances y regresar despues con el mismo QR.</p>
+      <div class="mt-2"><span class="badge-lite" id="token-state">Token: pendiente</span></div>
+    </section>
+
+    <section class="panel">
+      <h2 class="sec-title">Acceso por QR</h2>
+      <div class="row g-2 align-items-end">
+        <div class="col-md-9">
+          <label class="form-label mb-1">Token</label>
+          <input id="token-input" class="form-control" placeholder="Pega el token del QR si no viene en la URL">
+        </div>
+        <div class="col-md-3 d-grid">
+          <button id="btn-load" class="btn btn-primary">Cargar</button>
+        </div>
+      </div>
+      <div class="status mt-2" id="load-status">Escanea el QR o pega el token para continuar.</div>
+    </section>
+
+    <form id="onboarding-form" class="d-none">
+      <section class="panel">
+        <h2 class="sec-title">Identificación básica</h2>
+        <div class="row g-3">
+          <div class="col-md-3">
+            <label class="form-label">No. Empleado</label>
+            <input id="f-num" class="form-control" readonly>
+          </div>
+          <div class="col-md-9">
+            <label class="form-label">Nombre completo</label>
+            <input id="f-nombre" class="form-control" required>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Puesto</label>
+            <input id="f-puesto" class="form-control">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Profesión</label>
+            <input id="f-profesion" class="form-control">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Grado académico</label>
+            <input id="f-grado-academico" class="form-control">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Matrícula</label>
+            <input id="f-matricula" class="form-control">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Cédula</label>
+            <input id="f-cedula" class="form-control">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">RYR</label>
+            <input id="f-ryr" class="form-control">
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2 class="sec-title">Datos laborales</h2>
+        <div class="row g-3">
+          <div class="col-md-3">
+            <label class="form-label">Nivel</label>
+            <input id="f-nivel" class="form-control">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Plaza</label>
+            <input id="f-plaza" class="form-control">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Turno</label>
+            <input id="f-turno" class="form-control">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Militar / civil</label>
+            <input id="f-militar" class="form-control">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Comisionado</label>
+            <input id="f-comisionado" class="form-control">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Dirección</label>
+            <input id="f-direccion" class="form-control">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Subdirección</label>
+            <input id="f-subdireccion" class="form-control">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Gerencia</label>
+            <input id="f-gerencia" class="form-control">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Coordinación</label>
+            <input id="f-coordinacion" class="form-control">
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2 class="sec-title">Datos personales y fiscales</h2>
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label class="form-label">CURP</label>
+            <input id="f-curp" class="form-control" maxlength="18">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">RFC</label>
+            <input id="f-rfc" class="form-control">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Tipo de sangre</label>
+            <input id="f-sangre" class="form-control">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Estado civil</label>
+            <input id="f-estado-civil" class="form-control">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Dependientes</label>
+            <input id="f-dependientes" class="form-control">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Domicilio</label>
+            <input id="f-domicilio" class="form-control">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">NSS</label>
+            <input id="f-nss" class="form-control">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Alergia a medicamento</label>
+            <input id="f-alerg-med" class="form-control">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Alergia a alimento</label>
+            <input id="f-alerg-ali" class="form-control">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Rubrica</label>
+            <input id="f-rubrica" class="form-control">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Documento de ingreso</label>
+            <input id="f-doc-ingreso" class="form-control">
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2 class="sec-title">Contacto y vigencias</h2>
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label class="form-label">Celular</label>
+            <input id="f-celular" class="form-control" inputmode="numeric">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Extensión</label>
+            <input id="f-extension" class="form-control">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Correo institucional</label>
+            <input id="f-correo" class="form-control" type="email">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Correo personal</label>
+            <input id="f-correo-personal" class="form-control" type="email">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Fecha de ingreso</label>
+            <input id="f-fecha-ingreso" class="form-control" type="date">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Onomástico</label>
+            <input id="f-onomastico" class="form-control" type="date">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Licencia</label>
+            <input id="f-licencia" class="form-control">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Tipo de licencia</label>
+            <input id="f-licencia-tipo" class="form-control">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Vigencia licencia</label>
+            <input id="f-vig-licencia" class="form-control" type="date">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Vigencia credencial</label>
+            <input id="f-vig-credencial" class="form-control" type="date">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Vigencia INE</label>
+            <input id="f-vig-ine" class="form-control" type="date">
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2 class="sec-title">Contactos de emergencia</h2>
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label class="form-label">Contacto 1 nombre</label>
+            <input id="f-c1-nombre" class="form-control">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Contacto 1 parentesco</label>
+            <input id="f-c1-parentesco" class="form-control">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Contacto 1 teléfono</label>
+            <input id="f-c1-tel" class="form-control">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Contacto 2 nombre</label>
+            <input id="f-c2-nombre" class="form-control">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Contacto 2 parentesco</label>
+            <input id="f-c2-parentesco" class="form-control">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Contacto 2 teléfono</label>
+            <input id="f-c2-tel" class="form-control">
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2 class="sec-title">Documentos</h2>
+        <div class="row g-3">
+          <div class="col-md-4">
+            <label class="form-label">CV</label>
+            <div class="dropzone">
+              <input id="doc-cv" class="form-control form-control-sm" type="file" accept="application/pdf,.pdf">
+              <div id="prev-cv" class="preview"></div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">INE frente</label>
+            <div class="dropzone">
+              <input id="doc-ine" class="form-control form-control-sm" type="file" accept="image/*">
+              <div id="prev-ine" class="preview"></div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">INE reverso</label>
+            <div class="dropzone">
+              <input id="doc-ine-rev" class="form-control form-control-sm" type="file" accept="image/*">
+              <div id="prev-ine-rev" class="preview"></div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">TIA / Credencial</label>
+            <div class="dropzone">
+              <input id="doc-tia" class="form-control form-control-sm" type="file" accept="image/*">
+              <div id="prev-tia" class="preview"></div>
+            </div>
+          </div>
+        </div>
+        <div id="docs-state" class="status mt-2">Aun faltan documentos por cargar.</div>
+      </section>
+
+      <section class="panel">
+        <div class="actions">
+          <button type="button" id="btn-save-draft" class="btn btn-outline-primary">Guardar avance</button>
+          <button type="submit" id="btn-save-all" class="btn btn-success">Guardar y finalizar</button>
+        </div>
+        <div id="save-status" class="status mt-2"></div>
+      </section>
+    </form>
+  </div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      let token = '';
+      const FIELD_SPECS = [
+        ['f-nombre', 'nombre'],
+        ['f-puesto', 'puesto'],
+        ['f-profesion', 'profesion'],
+        ['f-grado-academico', 'grado_academico'],
+        ['f-matricula', 'matricula'],
+        ['f-cedula', 'cedula'],
+        ['f-ryr', 'ryr'],
+        ['f-nivel', 'nivel'],
+        ['f-plaza', 'plaza'],
+        ['f-turno', 'turno'],
+        ['f-militar', 'militar'],
+        ['f-comisionado', 'comisionado'],
+        ['f-direccion', 'direccion'],
+        ['f-subdireccion', 'subdireccion'],
+        ['f-gerencia', 'gerencia'],
+        ['f-coordinacion', 'coordinacion'],
+        ['f-curp', 'curp'],
+        ['f-rfc', 'rfc'],
+        ['f-sangre', 'sangre'],
+        ['f-estado-civil', 'estado_civil'],
+        ['f-dependientes', 'dependientes'],
+        ['f-domicilio', 'domicilio'],
+        ['f-nss', 'nss'],
+        ['f-alerg-med', 'alerg_med'],
+        ['f-alerg-ali', 'alerg_ali'],
+        ['f-rubrica', 'rubrica'],
+        ['f-doc-ingreso', 'doc_ingreso'],
+        ['f-celular', 'celular'],
+        ['f-extension', 'extension'],
+        ['f-correo', 'correo'],
+        ['f-correo-personal', 'correo_personal'],
+        ['f-fecha-ingreso', 'fecha_ingreso'],
+        ['f-onomastico', 'onomastico'],
+        ['f-licencia', 'licencia'],
+        ['f-licencia-tipo', 'licencia_tipo'],
+        ['f-vig-licencia', 'vig_licencia'],
+        ['f-vig-credencial', 'vig_credencial'],
+        ['f-vig-ine', 'vig_ine'],
+        ['f-c1-nombre', 'c1_nombre'],
+        ['f-c1-parentesco', 'c1_parentesco'],
+        ['f-c1-tel', 'c1_tel'],
+        ['f-c2-nombre', 'c2_nombre'],
+        ['f-c2-parentesco', 'c2_parentesco'],
+        ['f-c2-tel', 'c2_tel']
+      ];
+
+      const REQUIRED_FINAL_KEYS = [
+        'nombre', 'puesto', 'profesion', 'grado_academico', 'matricula', 'cedula', 'ryr', 'nivel', 'plaza', 'turno', 'militar', 'comisionado', 'direccion', 'subdireccion', 'gerencia', 'coordinacion',
+        'curp', 'rfc', 'sangre', 'estado_civil', 'dependientes', 'domicilio', 'nss', 'alerg_med', 'alerg_ali', 'rubrica', 'doc_ingreso',
+        'celular', 'extension', 'correo', 'correo_personal', 'fecha_ingreso', 'onomastico', 'vig_licencia', 'vig_credencial', 'vig_ine', 'licencia', 'licencia_tipo',
+        'c1_nombre', 'c1_parentesco', 'c1_tel', 'c2_nombre', 'c2_parentesco', 'c2_tel',
+        'cv_url', 'foto_ine', 'foto_ine_rev', 'foto_cred'
+      ];
+
+      let currentData = {
+        cv_url: '',
+        foto_ine: '',
+        foto_ine_rev: '',
+        foto_cred: ''
+      };
+
+      function $(id) { return document.getElementById(id); }
+      function setStatus(id, text, cls) {
+        const el = $(id);
+        if (!el) return;
+        el.className = 'status' + (cls ? ' ' + cls : '');
+        el.textContent = text;
+      }
+
+      function escapeHtml(text) {
+        return String(text == null ? '' : text)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/\"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
+
+      function readAsDataUrl(file) {
+        return new Promise((resolve, reject) => {
+          const fr = new FileReader();
+          fr.onload = () => resolve(fr.result || '');
+          fr.onerror = reject;
+          fr.readAsDataURL(file);
+        });
+      }
+
+      async function toCompressedDataUrl(file, maxW) {
+        const raw = await readAsDataUrl(file);
+        const img = await new Promise((resolve, reject) => {
+          const i = new Image();
+          i.onload = () => resolve(i);
+          i.onerror = reject;
+          i.src = raw;
+        });
+        const ratio = Math.min(1, maxW / img.width);
+        const w = Math.max(400, Math.round(img.width * ratio));
+        const h = Math.round(img.height * (w / img.width));
+        const cvs = document.createElement('canvas');
+        cvs.width = w;
+        cvs.height = h;
+        const ctx = cvs.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        return cvs.toDataURL('image/jpeg', 0.82);
+      }
+
+      function preview(id, dataUrl) {
+        const el = $(id);
+        if (!el) return;
+        if (!dataUrl) {
+          el.innerHTML = '<small class="text-muted">Sin archivo</small>';
+          return;
+        }
+        if (String(dataUrl).startsWith('data:application/pdf')) {
+          el.innerHTML = '<span class="badge-lite">CV cargado</span>';
+          return;
+        }
+        if (String(dataUrl).startsWith('data:')) {
+          el.innerHTML = '<img alt="preview" src="' + escapeHtml(dataUrl) + '">';
+          return;
+        }
+        el.innerHTML = '<a class="badge-lite" href="' + escapeHtml(dataUrl) + '" target="_blank" rel="noopener">Abrir archivo</a>';
+      }
+
+      function setInputValue(key, value) {
+        const spec = FIELD_SPECS.find(function (item) { return item[1] === key; });
+        if (!spec) return;
+        const input = $(spec[0]);
+        if (input) input.value = value || '';
+      }
+
+      function bindFileInput(inputId, key, previewId, options) {
+        const input = $(inputId);
+        if (!input) return;
+        input.addEventListener('change', async function () {
+          const file = input.files && input.files[0] ? input.files[0] : null;
+          if (!file) return;
+          setStatus('save-status', 'Procesando archivo ' + file.name + ' ...', '');
+          try {
+            const data = options && options.raw ? await readAsDataUrl(file) : await toCompressedDataUrl(file, 1500);
+            currentData[key] = data;
+            preview(previewId, data);
+            refreshDocsState();
+            setStatus('save-status', 'Archivo listo para guardarse.', 'ok');
+          } catch (e) {
+            setStatus('save-status', 'No se pudo procesar la imagen: ' + (e.message || e), 'warn');
+          }
+        });
+      }
+
+      function refreshDocsState() {
+        const okIne = !!currentData.foto_ine;
+        const okIneRev = !!currentData.foto_ine_rev;
+        const okTia = !!currentData.foto_cred;
+        const okCv = !!currentData.cv_url;
+        if (okCv && okIne && okIneRev && okTia) {
+          setStatus('docs-state', 'Documentacion completa.', 'ok');
+        } else {
+          const missing = [];
+          if (!okCv) missing.push('CV');
+          if (!okIne) missing.push('INE frente');
+          if (!okIneRev) missing.push('INE reverso');
+          if (!okTia) missing.push('TIA');
+          setStatus('docs-state', 'Falta: ' + missing.join(', '), 'warn');
+        }
+      }
+
+      function collectPayload() {
+        const payload = {
+          cv_url: currentData.cv_url || '',
+          foto_ine: currentData.foto_ine || '',
+          foto_ine_rev: currentData.foto_ine_rev || '',
+          foto_cred: currentData.foto_cred || ''
+        };
+
+        FIELD_SPECS.forEach(function (spec) {
+          const input = $(spec[0]);
+          if (!input) return;
+          let value = input.value == null ? '' : input.value.trim();
+          if (spec[1] === 'curp' || spec[1] === 'rfc') {
+            value = value.toUpperCase();
+          }
+          payload[spec[1]] = value;
+        });
+
+        return payload;
+      }
+
+      function populateForm(data) {
+        FIELD_SPECS.forEach(function (spec) {
+          const key = spec[1];
+          const input = $(spec[0]);
+          if (!input) return;
+          const value = data && data[key] != null ? data[key] : '';
+          input.value = value;
+          currentData[key] = value;
+        });
+
+        currentData.cv_url = data && data.cv_url ? data.cv_url : currentData.cv_url;
+        currentData.foto_ine = data && data.foto_ine ? data.foto_ine : currentData.foto_ine;
+        currentData.foto_ine_rev = data && data.foto_ine_rev ? data.foto_ine_rev : currentData.foto_ine_rev;
+        currentData.foto_cred = data && data.foto_cred ? data.foto_cred : currentData.foto_cred;
+
+        preview('prev-cv', currentData.cv_url);
+        preview('prev-ine', currentData.foto_ine);
+        preview('prev-ine-rev', currentData.foto_ine_rev);
+        preview('prev-tia', currentData.foto_cred);
+        refreshDocsState();
+      }
+
+      function missingFinalFields(payload) {
+        return REQUIRED_FINAL_KEYS.filter(function (key) {
+          return !String(payload[key] || '').trim();
+        });
+      }
+
+      async function loadByToken() {
+        const sb = window.supabaseClient || (window.ensureSupabaseClient ? window.ensureSupabaseClient() : null);
+        if (!sb) {
+          setStatus('load-status', 'Supabase no disponible en esta pagina.', 'warn');
+          return;
+        }
+
+        const qToken = $('token-input').value.trim();
+        if (!qToken) {
+          setStatus('load-status', 'Ingresa token valido.', 'warn');
+          return;
+        }
+        token = qToken;
+        setStatus('load-status', 'Cargando datos...', '');
+
+        const { data, error } = await sb.rpc('get_colab_onboarding', { p_token: token });
+        if (error) {
+          setStatus('load-status', 'Error de carga: ' + error.message, 'warn');
+          return;
+        }
+        if (!data || data.ok !== true) {
+          setStatus('load-status', (data && data.error) ? data.error : 'Token no valido.', 'warn');
+          return;
+        }
+
+        const d = data.data || {};
+        $('f-num').value = data.num_empleado || '';
+        populateForm(d);
+
+        $('onboarding-form').classList.remove('d-none');
+        $('token-state').textContent = 'Token activo: ' + token.slice(0, 8) + '...';
+        setStatus('load-status', 'Listo. Puedes editar, guardar y volver despues con el mismo QR.', 'ok');
+      }
+
+      async function saveOnboarding(finalMode) {
+        const sb = window.supabaseClient || (window.ensureSupabaseClient ? window.ensureSupabaseClient() : null);
+        if (!sb) {
+          setStatus('save-status', 'Supabase no disponible.', 'warn');
+          return;
+        }
+        if (!token) {
+          setStatus('save-status', 'Primero carga el token.', 'warn');
+          return;
+        }
+
+        const payload = collectPayload();
+        if (finalMode) {
+          const missing = missingFinalFields(payload);
+          if (missing.length) {
+            setStatus('save-status', 'Para finalizar faltan campos personales obligatorios: ' + missing.join(', '), 'warn');
+            return;
+          }
+          if (!payload.cv_url || !payload.foto_ine || !payload.foto_ine_rev || !payload.foto_cred) {
+            setStatus('save-status', 'Para finalizar debes cargar CV, INE frente, INE reverso y TIA.', 'warn');
+            return;
+          }
+        }
+
+        setStatus('save-status', finalMode ? 'Guardando registro final...' : 'Guardando avance...', '');
+
+        const { data, error } = await sb.rpc('save_colab_onboarding', {
+          p_token: token,
+          p_payload: payload,
+          p_final: finalMode
+        });
+
+        if (error) {
+          setStatus('save-status', 'Error al guardar: ' + error.message, 'warn');
+          return;
+        }
+        if (!data || data.ok !== true) {
+          setStatus('save-status', (data && data.error) ? data.error : 'No se pudo guardar.', 'warn');
+          return;
+        }
+
+        setStatus('save-status', finalMode ? 'Registro final guardado correctamente.' : 'Avance guardado correctamente.', 'ok');
+      }
+
+      document.addEventListener('DOMContentLoaded', function () {
+        const params = new URLSearchParams(window.location.search);
+        const tokenFromUrl = params.get('token') || '';
+        if (tokenFromUrl) {
+          $('token-input').value = tokenFromUrl;
+        }
+
+        $('btn-load').addEventListener('click', function () {
+          loadByToken().catch(function (e) {
+            setStatus('load-status', 'Fallo inesperado: ' + (e.message || e), 'warn');
+          });
+        });
+
+        $('onboarding-form').addEventListener('submit', function (ev) {
+          ev.preventDefault();
+          saveOnboarding(true).catch(function (e) {
+            setStatus('save-status', 'Fallo inesperado: ' + (e.message || e), 'warn');
+          });
+        });
+
+        $('btn-save-draft').addEventListener('click', function () {
+          saveOnboarding(false).catch(function (e) {
+            setStatus('save-status', 'Fallo inesperado: ' + (e.message || e), 'warn');
+          });
+        });
+
+        bindFileInput('doc-cv', 'cv_url', 'prev-cv', { raw: true });
+        bindFileInput('doc-ine', 'foto_ine', 'prev-ine');
+        bindFileInput('doc-ine-rev', 'foto_ine_rev', 'prev-ine-rev');
+        bindFileInput('doc-tia', 'foto_cred', 'prev-tia');
+
+        if (tokenFromUrl) {
+          loadByToken().catch(function () {});
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
