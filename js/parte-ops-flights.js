@@ -136,6 +136,8 @@
             loadFlights,
             // Force-refresh clears the probe cache so the next loadFlights re-probes Supabase.
             refreshFlights: () => { _flightProbeCache = null; return loadFlights(); },
+            // Reset date picker filter — reload using latest available day.
+            resetDateFilter: () => loadFlights(),
             importCsvFromFile,
             toggleColumn,
             toggleValidacion,
@@ -162,6 +164,18 @@
         const conciTabEl = document.getElementById('tab-conci-itinerario');
         if (conciTabEl) {
             conciTabEl.addEventListener('shown.bs.tab', () => loadFlights());
+        }
+
+        // Re-load data whenever the date picker changes (load that specific day from DB)
+        const conciPickerEl = document.getElementById('conci-date-picker');
+        if (conciPickerEl) {
+            conciPickerEl.addEventListener('change', () => loadFlights());
+        }
+
+        // Re-load data when the end-date picker changes (range mode)
+        const conciEndPickerEl = document.getElementById('conci-date-end');
+        if (conciEndPickerEl) {
+            conciEndPickerEl.addEventListener('change', () => loadFlights());
         }
 
         // Legacy hook (element may not exist, kept for safety)
@@ -337,9 +351,44 @@
             _flightTotalCount = probe.totalCount;
 
             const sortedKeys = [...probe.dayIdMap.keys()].sort();
-            const latestKey = sortedKeys.length ? sortedKeys[sortedKeys.length - 1] : null;
 
-            if (!latestKey) {
+            // Read start/end date pickers
+            const pickerEl = document.getElementById('conci-date-picker');
+            const endPickEl = document.getElementById('conci-date-end');
+            const pickedDate = pickerEl && pickerEl.value ? pickerEl.value : null;
+            const endDate = endPickEl && endPickEl.value ? endPickEl.value : null;
+
+            let targetIds = [];
+            let effectiveEndKey = null;
+
+            if (pickedDate && endDate && endDate >= pickedDate) {
+                // ── Range mode: collect all IDs for days within [pickedDate, endDate] ──
+                for (const [key, ids] of probe.dayIdMap) {
+                    if (key >= pickedDate && key <= endDate) {
+                        targetIds.push(...ids);
+                        effectiveEndKey = key;
+                    }
+                }
+                latestDataDate = effectiveEndKey || pickedDate;
+            } else {
+                // ── Single-day mode: pick the specific date or the latest available ──
+                const targetKey = (pickedDate && probe.dayIdMap.has(pickedDate))
+                    ? pickedDate
+                    : (sortedKeys.length ? sortedKeys[sortedKeys.length - 1] : null);
+
+                if (!targetKey) {
+                    currentData = [];
+                    _dateWindowUserActivated = false;
+                    computeLatestDataDate();
+                    initCsvExcelFilterButtons();
+                    applyAndRender();
+                    return;
+                }
+                targetIds = probe.dayIdMap.get(targetKey) || [];
+                latestDataDate = targetKey;
+            }
+
+            if (targetIds.length === 0) {
                 currentData = [];
                 _dateWindowUserActivated = false;
                 computeLatestDataDate();
@@ -348,19 +397,16 @@
                 return;
             }
 
-            const latestIds = probe.dayIdMap.get(latestKey) || [];
-
-            // Phase 2: fetch full rows only for the latest day
+            // Phase 2: fetch full rows for all targeted day(s)
             const { data, error } = await supabase
                 .from(TABLE_NAME)
                 .select('*')
-                .in('id', latestIds);
+                .in('id', targetIds);
             if (error) throw error;
 
             let rows = Array.isArray(data) ? data.map(normalizeRow) : [];
             currentData = rows;
-            _dateWindowUserActivated = false; // show all currentData (= latest day)
-            latestDataDate = latestKey;       // skip full scan — we know the answer
+            _dateWindowUserActivated = false;
             initCsvExcelFilterButtons();
             applyAndRender();
         } catch (err) {
@@ -881,6 +927,12 @@
                         : `Validación del vuelo ${flightLabel} deshecha en Conciliación`
                 );
             }
+
+            // Invalidar caché de Conciliación Manifiestos para que la pestaña refleje
+            // el nuevo estado al recargar sin necesidad de acción manual del usuario.
+            if (typeof window.invalidateConciVuelosCache === 'function') {
+                window.invalidateConciVuelosCache();
+            }
         } catch (err) {
             console.error('Error al actualizar validación:', err);
             alert('No se pudo guardar la validación: ' + err.message);
@@ -890,6 +942,56 @@
     function updateChart(rows, dateFilter) {
         // Chart removed as per request
         return;
+    }
+
+    // ── Resumen operativo del día ────────────────────────────────────────────
+    const _EXCLUDED_STATUS_RE = /cancel|not.?oper|no.?opera|cnx|nop\b/i;
+    const _CARGO_SVC_RE = /^F$/i; // Service Type 'F' = Full Freighter
+
+    function computeItinerarioSummary(data) {
+        let paxOps = 0, paxBoarded = 0, cargoOps = 0, cargoKg = 0;
+        for (const row of data) {
+            const status = String(row['Status'] || '').trim();
+            if (_EXCLUDED_STATUS_RE.test(status)) continue; // skip cancelled / not operating
+
+            const arrFlight = String(row['[Arr] Flight Designator'] || '').trim();
+            const depFlight = String(row['[Dep] Flight Designator'] || '').trim();
+            const arrSvc = String(row['[Arr] Service Type'] || '').trim();
+            const depSvc = String(row['[Dep] Service Type'] || '').trim();
+            const arrBoarded = Math.max(0, parseInt(row['[Arr] Boarded'] || '0', 10) || 0);
+            const depBoarded = Math.max(0, parseInt(row['[Dep] Boarded'] || '0', 10) || 0);
+
+            if (arrFlight) {
+                if (_CARGO_SVC_RE.test(arrSvc)) { cargoOps++; cargoKg += arrBoarded; }
+                else { paxOps++; paxBoarded += arrBoarded; }
+            }
+            if (depFlight) {
+                if (_CARGO_SVC_RE.test(depSvc)) { cargoOps++; cargoKg += depBoarded; }
+                else { paxOps++; paxBoarded += depBoarded; }
+            }
+        }
+        return { paxOps, paxBoarded, cargoOps, cargoKg };
+    }
+
+    function updateSummaryStrip(data) {
+        const strip = document.getElementById('itinerario-summary-strip');
+        if (!strip) return;
+
+        if (!data || data.length === 0) {
+            strip.classList.add('d-none');
+            return;
+        }
+
+        const { paxOps, paxBoarded, cargoOps, cargoKg } = computeItinerarioSummary(data);
+        const fmt = n => n.toLocaleString('es-MX');
+
+        const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+        set('sum-pax-ops', fmt(paxOps));
+        set('sum-pax-boarded', fmt(paxBoarded));
+        set('sum-cargo-ops', fmt(cargoOps));
+        set('sum-cargo-kg', cargoKg > 0 ? fmt(cargoKg) : 'N/D');
+
+        strip.classList.remove('d-none');
     }
 
     function applyAndRender() {
@@ -903,6 +1005,8 @@
         // Guard: ensure filter buttons are on all columns (handles caching / timing edge cases)
         initCsvExcelFilterButtons();
         updateCsvExcelFilterIcons();
+        // Actualizar resumen operativo con los datos visibles
+        updateSummaryStrip(filtered);
     }
 
     function computeLatestDataDate() {

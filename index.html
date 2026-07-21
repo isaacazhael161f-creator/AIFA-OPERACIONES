@@ -9874,7 +9874,11 @@ FF
                                         <button class="btn btn-sm btn-outline-secondary px-2" id="btn-day-prev" title="Día anterior">
                                             <i class="fas fa-chevron-left" style="font-size:.7rem;"></i>
                                         </button>
-                                        <input type="date" class="form-control form-control-sm" id="conci-date-picker" style="width:138px;" title="Filtrar por día específico">
+                                        <input type="date" class="form-control form-control-sm" id="conci-date-picker" style="width:138px;"
+                                            title="Fecha inicio del periodo">
+                                        <span class="text-muted fw-semibold" style="font-size:.8rem;padding:0 1px;">&#8212;</span>
+                                        <input type="date" class="form-control form-control-sm" id="conci-date-end" style="width:138px;"
+                                            title="Fecha fin del periodo (dejar vacío para un solo día)">
                                         <button class="btn btn-sm btn-outline-secondary px-2" id="btn-day-next" title="Día siguiente">
                                             <i class="fas fa-chevron-right" style="font-size:.7rem;"></i>
                                         </button>
@@ -9883,7 +9887,7 @@ FF
                                         </button>
                                         <button class="btn btn-sm btn-warning px-2 fw-bold" id="btn-date-reset-all"
                                             title="Quitar filtro de fecha — mostrar todos los vuelos"
-                                            onclick="window.opsFlights && window.opsFlights.resetDateFilter(); (function(){var p=document.getElementById('conci-date-picker');if(p)p.value='';var b=document.getElementById('itinerario-toolbar');if(b)b.classList.remove('toolbar-date-active');})()">
+                                            onclick="window.opsFlights && window.opsFlights.resetDateFilter(); (function(){var p=document.getElementById('conci-date-picker');if(p)p.value='';var e=document.getElementById('conci-date-end');if(e)e.value='';var b=document.getElementById('itinerario-toolbar');if(b)b.classList.remove('toolbar-date-active');})()">
                                             <i class="fas fa-times me-1" style="font-size:.75rem;"></i>Todos
                                         </button>
 
@@ -9981,6 +9985,53 @@ FF
                                     -->
 
                                     <!-- CSV Table (Operaciones) -->
+                                    <!-- ═══ Resumen operativo del día ═══ -->
+                                    <div id="itinerario-summary-strip" class="mb-3 d-none">
+                                        <div class="row g-2">
+                                            <div class="col-6 col-xl-3">
+                                                <div class="ops-kpi-card ops-kpi-pax">
+                                                    <div class="ops-kpi-icon"><i class="fas fa-plane-arrival"></i><i class="fas fa-plane-departure"></i>
+                                                    </div>
+                                                    <div class="ops-kpi-content">
+                                                        <div class="ops-kpi-label">Operaciones de Pasajeros</div>
+                                                        <div class="ops-kpi-value" id="sum-pax-ops">—</div>
+                                                        <div class="ops-kpi-sub">vuelos activos</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-6 col-xl-3">
+                                                <div class="ops-kpi-card ops-kpi-pax2">
+                                                    <div class="ops-kpi-icon"><i class="fas fa-users"></i></div>
+                                                    <div class="ops-kpi-content">
+                                                        <div class="ops-kpi-label">Pasajeros Transportados</div>
+                                                        <div class="ops-kpi-value" id="sum-pax-boarded">—</div>
+                                                        <div class="ops-kpi-sub">PAX embarcados</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-6 col-xl-3">
+                                                <div class="ops-kpi-card ops-kpi-cargo">
+                                                    <div class="ops-kpi-icon"><i class="fas fa-box-open"></i></div>
+                                                    <div class="ops-kpi-content">
+                                                        <div class="ops-kpi-label">Operaciones de Carga</div>
+                                                        <div class="ops-kpi-value" id="sum-cargo-ops">—</div>
+                                                        <div class="ops-kpi-sub">vuelos activos</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-6 col-xl-3">
+                                                <div class="ops-kpi-card ops-kpi-kg">
+                                                    <div class="ops-kpi-icon"><i class="fas fa-weight-hanging"></i></div>
+                                                    <div class="ops-kpi-content">
+                                                        <div class="ops-kpi-label">Kilogramos Transportados</div>
+                                                        <div class="ops-kpi-value" id="sum-cargo-kg">—</div>
+                                                        <div class="ops-kpi-sub">KGS embarcados</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
                                     <div id="conciliacion-csv-view">
                                     <div class="row">
                                         <div class="col-12 mb-4">
@@ -10303,16 +10354,22 @@ FF
                                                 <div class="card-header bg-white border-bottom d-flex align-items-center justify-content-between flex-wrap gap-2">
                                                     <h6 class="mb-0 fw-semibold"><i class="fas fa-file-alt me-2 text-success"></i>Conciliación Manifiestos</h6>
                                                     <div class="d-flex gap-2 align-items-center flex-wrap">
+                                                        <!-- Selector de periodo de fechas -->
                                                         <div class="input-group input-group-sm" style="width:auto">
-                                                            <span class="input-group-text">Año</span>
-                                                            <select class="form-select" id="filter-conci-manifiestos-year" aria-label="Año" style="width:90px">
+                                                            <span class="input-group-text text-muted" title="Periodo de fechas"><i class="fas fa-calendar-week"></i></span>
+                                                            <input type="date" class="form-control form-control-sm" id="filter-conci-fecha-desde" style="width:138px;"
+                                                                title="Fecha inicio">
+                                                            <span class="input-group-text text-muted" style="font-size:.85rem">&#8212;</span>
+                                                            <input type="date" class="form-control form-control-sm" id="filter-conci-fecha-hasta" style="width:138px;"
+                                                                title="Fecha fin (dejar vac\u00edo para un solo d\u00eda)">
+                                                        </div>
+                                                        <!-- Selectores heredados (ocultos, usados por el JS interno) -->
+                                                        <div style="display:none" aria-hidden="true">
+                                                            <select id="filter-conci-manifiestos-year">
                                                                 <option value="2026" selected>2026</option>
                                                                 <option value="2025">2025</option>
                                                             </select>
-                                                        </div>
-                                                        <div class="input-group input-group-sm" style="width:auto">
-                                                            <span class="input-group-text">Mes</span>
-                                                            <select class="form-select" id="filter-conci-manifiestos-month" aria-label="Mes">
+                                                            <select id="filter-conci-manifiestos-month">
                                                                 <option value="">Todos</option>
                                                                 <option value="1">Enero</option>
                                                                 <option value="2">Febrero</option>
@@ -10327,10 +10384,7 @@ FF
                                                                 <option value="11">Noviembre</option>
                                                                 <option value="12">Diciembre</option>
                                                             </select>
-                                                        </div>
-                                                        <div class="input-group input-group-sm" style="width:auto">
-                                                            <span class="input-group-text">Día</span>
-                                                            <select class="form-select" id="filter-conci-manifiestos-day" aria-label="Día" style="width:84px">
+                                                            <select id="filter-conci-manifiestos-day">
                                                                 <option value="">Todos</option>
                                                                 <option value="1">1</option>
                                                                 <option value="2">2</option>
@@ -19644,9 +19698,6 @@ FF
                                                     <span class="punc-toggle-active-icon-show"><i class="fas fa-eye me-1"></i>Impuntuales</span>
                                                     <span class="punc-toggle-active-icon-hide"><i class="fas fa-eye-slash me-1"></i>Ocultar</span>
                                                 </button>
-                                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="puncAbrirCriterio()" title="¿Cómo se calcula?">
-                                                    <i class="fas fa-circle-info me-1"></i>Criterio
-                                                </button>
                                             </div>
                                         </div>
                                     </div>
@@ -19717,17 +19768,6 @@ FF
                                 </div>
                             </div>
                         </div>
-                    </div>
-                </div>
-
-                <!-- MODAL CRITERIO PUNTUALIDAD -->
-                <div id="punc-criteria-overlay" onclick="puncCerrarCriterio(event)">
-                    <div id="punc-criteria-box" onclick="event.stopPropagation()">
-                        <div class="punc-crit-header">
-                            <h5><i class="fas fa-circle-info me-2"></i><span id="punc-crit-title">¿Cómo se calcula?</span></h5>
-                            <button class="punc-crit-close" onclick="puncCerrarCriterio()"><i class="fas fa-xmark"></i></button>
-                        </div>
-                        <div class="punc-crit-body" id="punc-crit-body"></div>
                     </div>
                 </div>
 
@@ -24329,29 +24369,60 @@ FF
             });
         }
 
+        // Helper: advance a YYYY-MM-DD string by delta days
+        function shiftDate(iso, delta) {
+            var d = iso ? new Date(iso + 'T00:00:00') : new Date();
+            d.setDate(d.getDate() + delta);
+            return toISO(d);
+        }
+
         document.getElementById('btn-day-prev') && document.getElementById('btn-day-prev').addEventListener('click', function () {
             var p = document.getElementById('conci-date-picker');
+            var e = document.getElementById('conci-date-end');
             if (!p) return;
-            var d = p.value ? new Date(p.value + 'T00:00:00') : new Date();
-            d.setDate(d.getDate() - 1);
-            p.value = toISO(d);
+            p.value = shiftDate(p.value, -1);
+            if (e && e.value) e.value = shiftDate(e.value, -1);
             p.dispatchEvent(new Event('change'));
         });
 
         document.getElementById('btn-day-next') && document.getElementById('btn-day-next').addEventListener('click', function () {
             var p = document.getElementById('conci-date-picker');
+            var e = document.getElementById('conci-date-end');
             if (!p) return;
-            var d = p.value ? new Date(p.value + 'T00:00:00') : new Date();
-            d.setDate(d.getDate() + 1);
-            p.value = toISO(d);
+            p.value = shiftDate(p.value, 1);
+            if (e && e.value) e.value = shiftDate(e.value, 1);
             p.dispatchEvent(new Event('change'));
         });
 
         document.getElementById('btn-day-today') && document.getElementById('btn-day-today').addEventListener('click', function () {
             var p = document.getElementById('conci-date-picker');
+            var e = document.getElementById('conci-date-end');
             if (!p) return;
             p.value = toISO(new Date());
+            if (e) e.value = '';
             p.dispatchEvent(new Event('change'));
+        });
+
+        // Wire end-date picker for Itinerario
+        var endPicker = document.getElementById('conci-date-end');
+        if (endPicker) {
+            endPicker.addEventListener('change', function () {
+                if (toolbar) toolbar.classList.add('toolbar-date-active');
+                if (window.opsFlights && typeof window.opsFlights.loadFlights === 'function') {
+                    window.opsFlights.loadFlights();
+                }
+            });
+        }
+
+        // Wire Manifiestos date range pickers
+        ['filter-conci-fecha-desde', 'filter-conci-fecha-hasta'].forEach(function(id) {
+            var el = document.getElementById(id);
+            if (!el) return;
+            el.addEventListener('change', function () {
+                if (typeof loadConciliacionManifiestos === 'function') {
+                    loadConciliacionManifiestos({ forceRefresh: true });
+                }
+            });
         });
     });
 })();

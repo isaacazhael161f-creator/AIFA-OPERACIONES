@@ -17557,6 +17557,231 @@ body.dark-mode #table-conci-manifiestos tbody tr.conci-row-selected > td { backg
     white-space: nowrap;
     text-align: center;
 }
+/* Header inner layout: column name + filter button side by side */
+#table-conci-manifiestos thead th.conci-th .conci-th-inner {
+   display: flex;
+   align-items: center;
+   justify-content: space-between;
+   gap: 6px;
+   white-space: nowrap;
+}
+
+/* Itinerario validation column */
+#table-conci-manifiestos thead th.conci-it-val-col {
+   background: #1a3a52;
+   min-width: 110px;
+   border-left: 2px solid #2d6a9f !important;
+}
+
+#table-conci-manifiestos td.conci-it-val-cell {
+   border-left: 2px solid #2d6a9f !important;
+   background: #f0f6fb;
+   min-width: 110px;
+}
+
+/* Badge: vuelo validado en Itinerario */
+.conci-it-valid-badge {
+   display: inline-flex;
+   align-items: center;
+   padding: 2px 9px;
+   border-radius: 999px;
+   font-size: 0.73rem;
+   font-weight: 700;
+   background: #e8f5e9;
+   color: #2e7d32;
+   border: 1px solid #a5d6a7;
+}
+
+/* Fila completa en verde cuando el vuelo está validado en el Itinerario */
+#table-conci-manifiestos tr.conci-validated-itinerario>td {
+   background: #e8f5e9 !important;
+}
+
+#table-conci-manifiestos tr.conci-validated-itinerario>td.conci-it-val-cell {
+   background: #c8e6c9 !important;
+}
+
+/* Fila de vuelo sin manifiesto (Solo Vuelos + validado): borde naranja, fondo verde del validated-itinerario */
+#table-conci-manifiestos tr.conci-missing-manifiesto>td:first-child {
+   border-left: 4px solid #f9a825 !important;
+}
+
+/* Excel-style filter funnel button on each header cell */
+#table-conci-manifiestos thead th.conci-th .conci-ef-btn {
+   background: none;
+   border: none;
+   color: rgba(255, 255, 255, .45);
+   cursor: pointer;
+   padding: 1px 3px;
+   border-radius: 3px;
+   font-size: .65rem;
+   line-height: 1;
+   flex-shrink: 0;
+   transition: color .15s, background .15s;
+}
+
+#table-conci-manifiestos thead th.conci-th .conci-ef-btn:hover {
+   color: #fff;
+   background: rgba(255, 255, 255, .15);
+}
+
+#table-conci-manifiestos thead th.conci-th .conci-ef-btn.conci-ef-btn-active {
+   color: #ffc107;
+   background: rgba(255, 193, 7, .15);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Tarjetas KPI del resumen operativo — Itinerario de Vuelos
+   ═══════════════════════════════════════════════════════════════════════════ */
+.ops-kpi-card {
+   display: flex;
+   align-items: center;
+   gap: 14px;
+   padding: 14px 18px;
+   border-radius: 14px;
+   color: #fff;
+   min-height: 90px;
+   box-shadow: 0 4px 18px rgba(0, 0, 0, .13);
+   transition: transform .15s, box-shadow .15s;
+   overflow: hidden;
+   position: relative;
+}
+
+.ops-kpi-card::after {
+   content: '';
+   position: absolute;
+   right: -18px;
+   top: -18px;
+   width: 80px;
+   height: 80px;
+   border-radius: 50%;
+   background: rgba(255, 255, 255, .08);
+}
+
+.ops-kpi-card:hover {
+   transform: translateY(-2px);
+   box-shadow: 0 8px 28px rgba(0, 0, 0, .18);
+}
+
+.ops-kpi-pax {
+   background: linear-gradient(135deg, #1565c0 0%, #1e88e5 100%);
+}
+
+.ops-kpi-pax2 {
+   background: linear-gradient(135deg, #00695c 0%, #00897b 100%);
+}
+
+.ops-kpi-cargo {
+   background: linear-gradient(135deg, #e65100 0%, #f57c00 100%);
+}
+
+.ops-kpi-kg {
+   background: linear-gradient(135deg, #4a148c 0%, #7b1fa2 100%);
+}
+
+.ops-kpi-icon {
+   font-size: 1.6rem;
+   opacity: .85;
+   display: flex;
+   flex-direction: column;
+   gap: 2px;
+   flex-shrink: 0;
+   line-height: 1;
+}
+
+.ops-kpi-icon i {
+   font-size: 1.1rem;
+}
+
+.ops-kpi-content {
+   flex: 1;
+   min-width: 0;
+}
+
+.ops-kpi-label {
+   font-size: .65rem;
+   font-weight: 700;
+   text-transform: uppercase;
+   letter-spacing: .08em;
+   opacity: .85;
+   line-height: 1.2;
+}
+
+.ops-kpi-value {
+   font-size: 1.75rem;
+   font-weight: 800;
+   line-height: 1.1;
+   letter-spacing: -.01em;
+   white-space: nowrap;
+}
+
+.ops-kpi-sub {
+   font-size: .62rem;
+   opacity: .7;
+   margin-top: 1px;
+   font-weight: 500;
+}
+
+@media (max-width: 575px) {
+   .ops-kpi-value {
+      font-size: 1.4rem;
+   }
+
+   .ops-kpi-card {
+      padding: 10px 12px;
+      gap: 10px;
+      min-height: 76px;
+   }
+}
+
+/* ── Fila de filtros de columna (Conciliación Manifiestos) ── */
+#table-conci-manifiestos thead tr.conci-filter-row th.conci-th-filter {
+   position: sticky;
+   top: var(--conci-head-h, 33px);
+   z-index: 5;
+   background: #f4f5f6;
+   border: 1px solid #c8ccd0;
+   padding: 3px 4px;
+   white-space: nowrap;
+}
+
+#table-conci-manifiestos thead tr.conci-filter-row .conci-col-filter {
+   font-size: 0.72rem;
+   padding: 1px 5px;
+   height: 24px;
+   min-width: 55px;
+   border-radius: 3px;
+   border: 1px solid #ced4da;
+   background: #fff;
+}
+
+#table-conci-manifiestos thead tr.conci-filter-row .conci-col-filter:focus {
+   outline: none;
+   border-color: #86b7fe;
+   box-shadow: 0 0 0 2px rgba(13, 110, 253, .18);
+   background: #fff;
+}
+
+#table-conci-manifiestos thead tr.conci-filter-row .conci-col-filter:not(:placeholder-shown) {
+   border-color: #0d6efd;
+   background: #f0f5ff;
+}
+
+body.dark-mode #table-conci-manifiestos thead tr.conci-filter-row th.conci-th-filter {
+   background: #2b3035;
+   border-color: #454d55;
+}
+
+body.dark-mode #table-conci-manifiestos thead tr.conci-filter-row .conci-col-filter {
+   background: #343a40;
+   border-color: #555;
+   color: #dee2e6;
+}
+
+body.dark-mode #table-conci-manifiestos thead tr.conci-filter-row .conci-col-filter:not(:placeholder-shown) {
+   background: #1e2d45;
+   border-color: #6ea8fe;
+}
 #table-conci-manifiestos tbody td.conci-cell {
     text-align: center;
     padding: 5px 8px;

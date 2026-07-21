@@ -16905,10 +16905,15 @@ document.addEventListener('DOMContentLoaded', () => {
             _conciApplyTodayFilters();
             loadConciliacionManifiestos({ autoLatestDate: true });
         });
-        // Also hook filter changes
+        // Hook on legacy filter changes
         ['filter-conci-manifiestos-year', 'filter-conci-manifiestos-month', 'filter-conci-manifiestos-day'].forEach(id => {
             const el = document.getElementById(id);
             if (el) el.addEventListener('change', () => loadConciliacionManifiestos());
+        });
+        // Hook on new date-range pickers
+        ['filter-conci-fecha-desde', 'filter-conci-fecha-hasta'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.addEventListener('change', () => loadConciliacionManifiestos({ forceRefresh: true }));
         });
     }
 
@@ -16957,6 +16962,12 @@ let _conciRawCache = null; // { manifestRows, vuelosRows, ts }
 // Separate cache for the vuelos table (longer TTL — changes rarely during a session)
 const _CONCI_VUELOS_TTL_MS = 15 * 60 * 1000; // 15 minutes
 let _conciVuelosCache = null; // { rows, ts }
+
+// Expone invalidación de caché para que parte-ops-flights.js la llame al validar un vuelo.
+window.invalidateConciVuelosCache = function () {
+    _conciVuelosCache = null;
+    _conciRenderCache.clear();
+};
 
 // Manifest column key detection — cached after first probe so we pay this cost once.
 let _conciManifestColInfo = null; // { yKey, mKey, dKey, fKey }
@@ -17417,7 +17428,7 @@ async function _conciFetchLatestManifestDate(client, year) {
 // date. When the table has no numeric "Día" column the day is filtered in JS by
 // parsing the Fecha column. Falls back to a full fetch only when no date columns
 // can be detected at all.
-async function _conciFetchManifestsForDate(client, year, month, day) {
+async function _conciFetchManifestsForDate(client, year, month, day, dayEnd) {
     const info = await _conciGetManifestColInfo(client);
     if (!info || (!info.mKey && !info.dKey && !info.fKey)) {
         return _concifetchAllRows(client, 'Conciliación Manifiestos', {
@@ -17429,7 +17440,13 @@ async function _conciFetchManifestsForDate(client, year, month, day) {
     let q = client.from('Conciliación Manifiestos').select('*');
     if (info.yKey)            q = q.eq(info.yKey, year);
     if (month && info.mKey)   q = q.eq(info.mKey, month);
-    if (day && info.dKey)     q = q.eq(info.dKey, day);
+    if (day && info.dKey) {
+        if (dayEnd && dayEnd > day) {
+            q = q.gte(info.dKey, day).lte(info.dKey, dayEnd);
+        } else {
+            q = q.eq(info.dKey, day);
+        }
+    }
     q = q.order('id', { ascending: true });
 
     let { data, error } = await q;
@@ -17442,7 +17459,7 @@ async function _conciFetchManifestsForDate(client, year, month, day) {
         data = data.filter((r) => {
             const parts = _conciParseDateTimeParts(r[info.fKey], year);
             if (!parts || !Number.isFinite(parts.day)) return false;
-            if (parts.day !== day) return false;
+            if (parts.day < day || parts.day > (dayEnd || day)) return false;
             if (month && Number.isFinite(parts.month) && parts.month !== month) return false;
             return true;
         });
@@ -17794,6 +17811,8 @@ function _conciVueloToRow(vRow, tipo, outputCols, colm, hasManifestSchema) {
             if (colm.aobt)  row[colm.aobt]       = vRow['[Dep] AOBT'] || '';
             if (colm.atot)  row[colm.atot]       = vRow['[Dep] ATOT'] || '';
         }
+        row['_validado_itinerario'] = vRow.validado === true;
+        row['_validado_por_itinerario'] = vRow.validado_por || '';
         row['_fuente'] = 'Solo Vuelos';
         return row;
     }
@@ -17817,6 +17836,8 @@ function _conciVueloToRow(vRow, tipo, outputCols, colm, hasManifestSchema) {
         'ALDT / ATOT':        isArr ? (vRow['[Arr] ALDT']   || '') : (vRow['[Dep] ATOT']   || ''),
         'ATTT':               isArr ? '' : (vRow['[Dep] ATTT'] || ''),
         'Status':             vRow['Status'] || '',
+        '_validado_itinerario': vRow.validado === true,
+        '_validado_por_itinerario': vRow.validado_por || '',
         '_fuente':            'Solo Vuelos',
     };
 }
@@ -18028,8 +18049,12 @@ function _conciBuildEnriched(manifestRows, vuelosRows, schemaRows) {
                     enriched[col] = val || '';
                 }
             }
+            enriched['_validado_itinerario'] = vRow.validado === true;
+            enriched['_validado_por_itinerario'] = vRow.validado_por || '';
             enriched['_fuente'] = 'Manifiestos + Vuelos';
         } else {
+            enriched['_validado_itinerario'] = false;
+            enriched['_validado_por_itinerario'] = '';
             enriched['_fuente'] = 'Solo Manifiestos';
         }
 
@@ -18069,16 +18094,50 @@ async function loadConciliacionManifiestos(options = {}) {
     const yearEl  = document.getElementById('filter-conci-manifiestos-year');
     const monthEl = document.getElementById('filter-conci-manifiestos-month');
     const dayEl   = document.getElementById('filter-conci-manifiestos-day');
+    const desdeEl = document.getElementById('filter-conci-fecha-desde');
+    const hastaEl = document.getElementById('filter-conci-fecha-hasta');
     const loading = document.getElementById('conci-manifiestos-loading');
     const errorEl = document.getElementById('conci-manifiestos-error');
     const badge   = document.getElementById('badge-conci-manifiestos-count');
     const config = (typeof Event !== 'undefined' && options instanceof Event) ? {} : (options || {});
     const requestSeq = ++_conciLoadRequestSeq;
 
-    let year  = yearEl  ? parseInt(yearEl.value, 10)  : new Date().getFullYear();
-    let month = monthEl && monthEl.value ? parseInt(monthEl.value, 10) : null; // 1-12 or null
-    let day   = dayEl && dayEl.value ? parseInt(dayEl.value, 10) : null; // 1-31 or null
-    let cacheKey = `${year}|${month || 0}|${day || 0}`;
+    let year, month, day, dayEnd = null;
+
+    // Prefer the visible date-range pickers over the hidden legacy dropdowns.
+    if (desdeEl && desdeEl.value) {
+        const dStart = new Date(desdeEl.value + 'T12:00:00');
+        year = dStart.getFullYear();
+        month = dStart.getMonth() + 1;
+        day = dStart.getDate();
+        // Sync hidden dropdowns so that autoLatestDate and other internal code
+        // that reads them still works correctly.
+        if (yearEl) yearEl.value = year;
+        if (monthEl) monthEl.value = month;
+        if (dayEl) dayEl.value = day;
+        // Compute dayEnd only for same-year same-month ranges.
+        if (hastaEl && hastaEl.value) {
+            const dEnd = new Date(hastaEl.value + 'T12:00:00');
+            if (dEnd >= dStart) {
+                const endY = dEnd.getFullYear();
+                const endM = dEnd.getMonth() + 1;
+                const endD = dEnd.getDate();
+                if (endY === year && endM === month) {
+                    dayEnd = endD; // same-month range — use server-side gte/lte
+                } else {
+                    // Cross-month: show full month of start; end-date will be
+                    // applied as a client-side filter after the fetch.
+                    dayEnd = null;
+                }
+            }
+        }
+    } else {
+        year = yearEl ? parseInt(yearEl.value, 10) : new Date().getFullYear();
+        month = monthEl && monthEl.value ? parseInt(monthEl.value, 10) : null;
+        day = dayEl && dayEl.value ? parseInt(dayEl.value, 10) : null;
+    }
+
+    let cacheKey = `${year}|${month || 0}|${day || 0}|${dayEnd || 0}`;
 
     // When auto-detecting the latest date we skip the render-cache short-circuit
     // because we don’t know the effective key until we scan the raw data.
@@ -18144,7 +18203,13 @@ async function loadConciliacionManifiestos(options = {}) {
                 day   = latest.day;
                 if (monthEl) monthEl.value = month;
                 if (dayEl)   dayEl.value   = day;
-                cacheKey = `${year}|${month}|${day}`;
+                // Sync the visible date picker to the auto-detected date.
+                if (desdeEl && year && month && day) {
+                    desdeEl.value = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                    if (hastaEl) hastaEl.value = '';
+                }
+                dayEnd = null;
+                cacheKey = `${year}|${month}|${day}|0`;
             }
         }
 
@@ -18160,7 +18225,7 @@ async function loadConciliacionManifiestos(options = {}) {
             return;
         }
 
-        const mResult = await _conciFetchManifestsForDate(client, year, month, day);
+        const mResult = await _conciFetchManifestsForDate(client, year, month, day, dayEnd);
         if (requestSeq !== _conciLoadRequestSeq) return;
         if (mResult.error) throw mResult.error;
         manifestRows = mResult.data || [];
@@ -18309,6 +18374,11 @@ function _conciUpdateResumen(data, columns) {
 let _conciClassFilter = null; // 'pax' | 'carga' | null
 let _conciDirFilter = null;   // 'arr' | 'dep' | null
 let _conciCountBreakdown = { paxArr: 0, paxDep: 0, cargaArr: 0, cargaDep: 0 };
+// Filtros de texto por columna (se aplican junto con los filtros por pill).
+let _conciColFilters = {};          // { colName: searchTerm }
+let _conciColFilterDebounce = null;
+let _conciExcelFilters = {};        // { colName: Set<string> } filtros desplegables estilo Excel
+let _conciManifestosAllData = [];   // Referencia al conjunto de datos actual (para listas de valores)
 
 // Determina si una fila (tr) es visible bajo los filtros activos.
 function _conciRowPassesPillFilter(tr) {
@@ -18323,6 +18393,32 @@ function _conciRowPassesPillFilter(tr) {
     return true;
 }
 
+// Determina si una fila pasa todos los filtros de texto por columna activos.
+function _conciRowPassesColFilter(tr) {
+    // Filtros de texto (contiene)
+    const activeText = Object.entries(_conciColFilters).filter(([, v]) => v && v.trim());
+    for (const [col, term] of activeText) {
+        const lower = term.toLowerCase();
+        let matched = false;
+        for (const td of tr.querySelectorAll('td[data-col]')) {
+            if (td.dataset.col === col) {
+                matched = (td.dataset.raw || td.textContent || '').toLowerCase().includes(lower);
+                break;
+            }
+        }
+        if (!matched) return false;
+    }
+    // Filtros desplegables (valor exacto contra datos originales)
+    for (const [col, allowed] of Object.entries(_conciExcelFilters)) {
+        if (!allowed) continue;
+        const rowIdx = parseInt(tr.dataset.rowIndex, 10);
+        const rowData = (Number.isFinite(rowIdx) && _conciManifestosAllData[rowIdx]) ? _conciManifestosAllData[rowIdx] : null;
+        const cellVal = rowData ? String(rowData[col] !== null && rowData[col] !== undefined ? rowData[col] : '').trim() : '';
+        if (!allowed.has(cellVal)) return false;
+    }
+    return true;
+}
+
 // Aplica los filtros a todas las filas ya renderizadas del tbody y muestra un aviso
 // si ninguna coincide.
 function _conciApplyPillFilter() {
@@ -18332,12 +18428,12 @@ function _conciApplyPillFilter() {
     if (!tbody) return;
     let visible = 0;
     tbody.querySelectorAll('tr[data-row-index]').forEach((tr) => {
-        const ok = _conciRowPassesPillFilter(tr);
+        const ok = _conciRowPassesPillFilter(tr) && _conciRowPassesColFilter(tr);
         tr.style.display = ok ? '' : 'none';
         if (ok) visible++;
     });
     let emptyRow = tbody.querySelector('tr.conci-filter-empty');
-    const anyFilter = !!(_conciClassFilter || _conciDirFilter);
+    const anyFilter = !!(_conciClassFilter || _conciDirFilter || Object.values(_conciColFilters).some(v => v && v.trim()) || Object.keys(_conciExcelFilters).length > 0);
     if (anyFilter && visible === 0) {
         if (!emptyRow) {
             emptyRow = document.createElement('tr');
@@ -18354,6 +18450,116 @@ function _conciApplyPillFilter() {
         emptyRow.style.display = 'none';
     }
     _conciUpdatePillActiveStyles();
+}
+
+// ── Filtro desplegable estilo Excel para columnas de manifiestos ──────────────────
+function _showConciExcelFilter(col, triggerEl) {
+    document.querySelectorAll('.conci-excel-dropdown').forEach(el => el.remove());
+
+    const rect = triggerEl.getBoundingClientRect();
+    const menu = document.createElement('div');
+    menu.className = 'conci-excel-dropdown';
+    document.body.appendChild(menu);
+
+    let left = rect.left;
+    if (left + 260 > window.innerWidth) left = window.innerWidth - 270;
+    menu.style.cssText = `position:fixed;top:${rect.bottom + 4}px;left:${Math.max(4, left)}px;z-index:99999;` +
+        `background:#fff;border:1px solid #ddd;box-shadow:0 4px 14px rgba(0,0,0,.18);` +
+        `width:260px;border-radius:6px;padding:10px;font-size:.84rem;`;
+
+    const activeSet = _conciExcelFilters[col] || null;
+    const values = [...new Set((_conciManifestosAllData || []).map(r => {
+        const v = r[col];
+        return (v === null || v === undefined) ? '' : String(v).trim();
+    }))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }));
+
+    const esc2 = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+
+    menu.innerHTML = `
+        <input type="text" class="form-control form-control-sm mb-2" placeholder="Buscar valor..." id="conci-ef-search">
+        <div class="d-flex justify-content-between mb-2 small px-1">
+            <a href="#" class="text-decoration-none text-primary" id="conci-ef-all">Seleccionar todo</a>
+            <a href="#" class="text-decoration-none text-danger" id="conci-ef-none">Borrar filtro</a>
+        </div>
+        <div style="max-height:200px;overflow-y:auto;border:1px solid #eee;border-radius:4px;padding:4px;margin-bottom:10px;background:#f8f9fa;" id="conci-ef-list">
+            ${values.map((v, i) => {
+        const checked = !activeSet || activeSet.has(v);
+        const label = v === '' ? '(Vac\u00edo)' : esc2(v);
+        const safeVal = esc2(v);
+        return `<div class="conci-ef-item d-flex align-items-center gap-2" style="padding:2px 4px;cursor:pointer;" data-value="${safeVal}">
+                    <input class="form-check-input conci-ef-chk" type="checkbox" id="conci-ef-${i}" value="${safeVal}" ${checked ? 'checked' : ''}>
+                    <label class="conci-ef-label flex-grow-1" data-value="${safeVal}" title="click: solo este valor" style="cursor:pointer;margin:0;">${label}</label>
+                </div>`;
+    }).join('')}
+        </div>
+        <div class="text-muted px-1 mb-2" style="font-size:.7rem;"><i class="fas fa-info-circle me-1"></i>click en el texto = solo ese valor &nbsp;&middot;&nbsp; <i class="fas fa-check-square me-1"></i>= multi-selecci\u00f3n</div>
+        <div style="display:flex;justify-content:flex-end;gap:8px;border-top:1px solid #eee;padding-top:8px;">
+            <button class="btn btn-sm btn-light border" id="conci-ef-cancel">Cancelar</button>
+            <button class="btn btn-sm btn-primary" id="conci-ef-apply">Aceptar</button>
+        </div>`;
+
+    menu.addEventListener('click', e => e.stopPropagation());
+    const searchBox = menu.querySelector('#conci-ef-search');
+    const listEl = menu.querySelector('#conci-ef-list');
+
+    searchBox.addEventListener('input', () => {
+        const txt = searchBox.value.toLowerCase();
+        listEl.querySelectorAll('.conci-ef-item').forEach(item => {
+            item.style.display = item.dataset.value.toLowerCase().includes(txt) ? '' : 'none';
+        });
+    });
+
+    // Click on label text = "solo este valor"
+    listEl.addEventListener('click', e => {
+        const label = e.target.closest('.conci-ef-label');
+        if (!label) return;
+        e.preventDefault();
+        const val = label.dataset.value;
+        listEl.querySelectorAll('.conci-ef-chk').forEach(c2 => { c2.checked = c2.value === val; });
+        _conciExcelFilters[col] = new Set([val]);
+        menu.remove();
+        _updateConciExcelFilterIcons();
+        _conciApplyPillFilter();
+    });
+
+    menu.querySelector('#conci-ef-all').addEventListener('click', e => {
+        e.preventDefault();
+        listEl.querySelectorAll('.conci-ef-chk:not([style*="none"]),.conci-ef-item:not([style*="display: none"]) .conci-ef-chk').forEach(c2 => c2.checked = true);
+        listEl.querySelectorAll('.conci-ef-chk').forEach(c2 => { if (!c2.closest('.conci-ef-item[style*="none"]')) c2.checked = true; });
+    });
+    menu.querySelector('#conci-ef-none').addEventListener('click', e => {
+        e.preventDefault();
+        delete _conciExcelFilters[col];
+        menu.remove();
+        _updateConciExcelFilterIcons();
+        _conciApplyPillFilter();
+    });
+    menu.querySelector('#conci-ef-cancel').addEventListener('click', () => menu.remove());
+    menu.querySelector('#conci-ef-apply').addEventListener('click', () => {
+        const checked = [...listEl.querySelectorAll('.conci-ef-chk:checked')].map(c2 => c2.value);
+        if (checked.length >= values.length || checked.length === 0) {
+            delete _conciExcelFilters[col];
+        } else {
+            _conciExcelFilters[col] = new Set(checked);
+        }
+        menu.remove();
+        _updateConciExcelFilterIcons();
+        _conciApplyPillFilter();
+    });
+
+    searchBox.focus();
+    setTimeout(() => {
+        document.addEventListener('click', function closeFn(e) {
+            if (!menu.contains(e.target)) { menu.remove(); document.removeEventListener('click', closeFn); }
+        });
+    }, 0);
+}
+
+function _updateConciExcelFilterIcons() {
+    document.querySelectorAll('#table-conci-manifiestos thead th.conci-th .conci-ef-btn').forEach(btn => {
+        const isActive = !!_conciExcelFilters[btn.dataset.col];
+        btn.classList.toggle('conci-ef-btn-active', isActive);
+    });
 }
 
 // Refleja visualmente qué pills están activos (borde/sombra) y muestra el desglose
@@ -18721,9 +18927,10 @@ function _renderConciManifiestosTable(data, columns, fallbackYear) {
     _conciBindRowActions();
     thead.innerHTML = '';
     tbody.innerHTML = '';
+    _conciManifestosAllData = data; // Guarda referencia para las listas de valores de filtros desplegables
 
     // Display columns: hide the internal marker columns
-    const displayCols = (columns || (data.length ? Object.keys(data[0]) : [])).filter(c => !['_fuente', '_isPax', 'id', 'Año', 'Mes', 'Día'].includes(c));
+    const displayCols = (columns || (data.length ? Object.keys(data[0]) : [])).filter(c => !['_fuente', '_isPax', '_validado_itinerario', '_validado_por_itinerario', 'id', 'Año', 'Mes', 'Día'].includes(c));
     const showRowActions = _conciCanCurrentUserEdit();
 
     // Detect semantic columns for smart city-name display in routing/origen cell
@@ -18758,9 +18965,27 @@ function _renderConciManifiestosTable(data, columns, fallbackYear) {
     displayCols.forEach(c => {
         const th = document.createElement('th');
         th.className = 'text-nowrap conci-th';
-        th.textContent = c;
+        const thInner = document.createElement('div');
+        thInner.className = 'conci-th-inner';
+        const thLabel = document.createElement('span');
+        thLabel.textContent = c;
+        const thBtn = document.createElement('button');
+        thBtn.type = 'button';
+        thBtn.className = 'conci-ef-btn';
+        thBtn.title = 'Filtrar por ' + c;
+        thBtn.dataset.col = c;
+        thBtn.innerHTML = '<i class="fas fa-filter" aria-hidden="true"></i>';
+        thInner.appendChild(thLabel);
+        thInner.appendChild(thBtn);
+        th.appendChild(thInner);
         trHead.appendChild(th);
     });
+    // Columna “Itinerario”: indica si el vuelo fue validado en la pestaña de Itinerario de Vuelos
+    const itTh = document.createElement('th');
+    itTh.className = 'text-nowrap conci-th conci-it-val-col';
+    itTh.title = 'Validación del vuelo en el Itinerario de Vuelos';
+    itTh.innerHTML = '<i class="fas fa-check-circle me-1"></i>Itinerario';
+    trHead.appendChild(itTh);
     if (showRowActions) {
         const actionTh = document.createElement('th');
         actionTh.className = 'text-nowrap conci-th conci-row-action-col';
@@ -18769,6 +18994,71 @@ function _renderConciManifiestosTable(data, columns, fallbackYear) {
         trHead.appendChild(actionTh);
     }
     thead.appendChild(trHead);
+
+    // Vincular botones de filtro Excel (delegación, se asocia una vez por ciclo de render).
+    if (!thead.dataset.conciEfBound) {
+        thead.dataset.conciEfBound = '1';
+        thead.addEventListener('click', (ev) => {
+            const btn = ev.target.closest('.conci-ef-btn');
+            if (!btn) return;
+            ev.stopPropagation();
+            const col = btn.dataset.col;
+            if (col) _showConciExcelFilter(col, btn);
+        });
+    }
+    _updateConciExcelFilterIcons();
+
+    // ── Fila de filtros de columna ────────────────────────────────────────────
+    const trFilter = document.createElement('tr');
+    trFilter.className = 'conci-filter-row';
+    displayCols.forEach(c => {
+        const thF = document.createElement('th');
+        thF.className = 'conci-th-filter';
+        const inp = document.createElement('input');
+        inp.type = 'text';
+        inp.className = 'form-control form-control-sm conci-col-filter';
+        inp.placeholder = 'Filtrar…';
+        inp.dataset.col = c;
+        inp.value = _conciColFilters[c] || '';
+        inp.setAttribute('aria-label', 'Filtrar ' + c);
+        thF.appendChild(inp);
+        trFilter.appendChild(thF);
+    });
+    const thFIt = document.createElement('th');
+    thFIt.className = 'conci-th-filter';
+    trFilter.appendChild(thFIt);
+    if (showRowActions) {
+        const thFAct = document.createElement('th');
+        thFAct.className = 'conci-th-filter';
+        trFilter.appendChild(thFAct);
+    }
+    thead.appendChild(trFilter);
+
+    // Delegar eventos de escritura en la fila de filtros (bind único por render).
+    if (!thead.dataset.conciColFilterBound) {
+        thead.dataset.conciColFilterBound = '1';
+        thead.addEventListener('input', (ev) => {
+            const inp2 = ev.target.closest('.conci-col-filter');
+            if (!inp2) return;
+            const col = inp2.dataset.col;
+            if (col !== undefined) {
+                const v = inp2.value;
+                if (v && v.trim()) { _conciColFilters[col] = v; }
+                else { delete _conciColFilters[col]; }
+            }
+            clearTimeout(_conciColFilterDebounce);
+            _conciColFilterDebounce = setTimeout(_conciApplyPillFilter, 200);
+        });
+    }
+
+    // Ajustar top de la fila de filtros al alto real del encabezado (sticky).
+    requestAnimationFrame(() => {
+        const headerRow = thead.querySelector('tr:first-child');
+        if (headerRow && table) {
+            table.style.setProperty('--conci-head-h', Math.ceil(headerRow.getBoundingClientRect().height) + 'px');
+        }
+    });
+
     // Encabezado fijo vía CSS (position:sticky). Sin manipulación de transform
     // por JS para evitar el parpadeo al hacer scroll.
 
@@ -19013,6 +19303,26 @@ function _renderConciManifiestosTable(data, columns, fallbackYear) {
                 tr.appendChild(td);
             });
 
+            // ── Celda de validación Itinerario ─────────────────────────────────
+            {
+                const isValidadoIt = row['_validado_itinerario'] === true;
+                const validadoPorIt = String(row['_validado_por_itinerario'] || '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+                const itTd = document.createElement('td');
+                itTd.className = 'conci-cell conci-it-val-cell text-center';
+                if (isValidadoIt) {
+                    tr.dataset.rowValidadoIt = '1';
+                    tr.classList.add('conci-validated-itinerario');
+                    const badge = document.createElement('span');
+                    badge.className = 'conci-it-valid-badge';
+                    badge.title = validadoPorIt ? `Validado por: ${validadoPorIt}` : 'Validado en Itinerario';
+                    badge.innerHTML = '<i class="fas fa-check-circle me-1"></i>Validado';
+                    itTd.appendChild(badge);
+                    if (_rowFuente === 'Solo Vuelos') tr.classList.add('conci-missing-manifiesto');
+                } else {
+                    itTd.innerHTML = '<span class="text-muted" style="font-size:.7rem">—</span>';
+                }
+                tr.appendChild(itTd);
+            }
             if (showRowActions) {
                 const actionTd = document.createElement('td');
                 actionTd.className = 'conci-row-action-col text-center';
@@ -19037,8 +19347,8 @@ function _renderConciManifiestosTable(data, columns, fallbackYear) {
 
         tbody.appendChild(frag);
 
-        // Re-aplica los filtros por pill a las filas recién agregadas (lazy append).
-        if (_conciClassFilter || _conciDirFilter) _conciApplyPillFilter();
+        // Re-aplica todos los filtros activos (pill + columna) a las filas recién agregadas.
+        if (_conciClassFilter || _conciDirFilter || Object.values(_conciColFilters).some(v => v && v.trim())) _conciApplyPillFilter();
 
         if (idx >= data.length) {
             if (scrollWrap && scrollWrap._conciLazyHandler) {
