@@ -9873,8 +9873,15 @@ FF
                                             <i class="fas fa-plane"></i>Itinerario del Día
                                         </span>
                                         <span id="csv-flight-count-badge" class="badge rounded-pill bg-primary" style="font-size:.75rem;display:none"></span>
-
-                                        <!-- Divisor -->
+                                        <!-- Indicador de filtros de columna activos -->
+                                        <button id="csv-col-filters-badge" class="btn btn-sm d-none align-items-center gap-1"
+                                            style="font-size:.72rem;padding:2px 9px;border-radius:999px;background:#fff3cd;color:#664d03;border:1px solid #ffc107;line-height:1.4;"
+                                            title="Filtros de columna activos \u2014 haz click para limpiarlos todos"
+                                            onclick="window.opsFlights && window.opsFlights.clearAllFilters()">
+                                            <i class="fas fa-filter" style="font-size:.65rem"></i>
+                                            <span id="csv-col-filters-text">0 filtros</span>
+                                            <i class="fas fa-times" style="font-size:.6rem;opacity:.7"></i>
+                                        </button>
                                         <span class="text-muted" style="opacity:.25;font-size:.9rem;">│</span>
 
                                         <!-- ── Navegación de fecha inline ── -->

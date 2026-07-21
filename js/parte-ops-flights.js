@@ -994,6 +994,35 @@
         strip.classList.remove('d-none');
     }
 
+    // ── Indicador de filtros de columna activos ───────────────────────────
+    function updateFilterIndicator() {
+        const activeText   = Object.values(columnFilters).filter(v => v && v.trim()).length;
+        const activeExcel  = Object.keys(csvExcelFilters).length;
+        const total        = activeText + activeExcel;
+        const badge        = document.getElementById('csv-col-filters-badge');
+        const badgeText    = document.getElementById('csv-col-filters-text');
+        if (!badge) return;
+        if (total > 0) {
+            badge.classList.remove('d-none');
+            badge.style.display = 'inline-flex';
+            const label = total === 1 ? '1 filtro activo' : `${total} filtros activos`;
+            if (badgeText) badgeText.textContent = label;
+        } else {
+            badge.classList.add('d-none');
+            badge.style.display = '';
+        }
+    }
+
+    function clearAllCsvFilters() {
+        // Clear text filters
+        columnFilters = {};
+        document.querySelectorAll('#table-ops-flights-csv .csv-filter-row input').forEach(inp => { inp.value = ''; });
+        // Clear Excel dropdown filters
+        csvExcelFilters = {};
+        updateCsvExcelFilterIcons();
+        applyAndRender();
+    }
+
     function applyAndRender() {
         const dateRef = getReferenceDate();
         const dateFiltered = applyDateWindow(currentData, dateRef);
@@ -1007,6 +1036,8 @@
         updateCsvExcelFilterIcons();
         // Actualizar resumen operativo con los datos visibles
         updateSummaryStrip(filtered);
+        // Actualizar indicador de filtros activos
+        updateFilterIndicator();
     }
 
     function computeLatestDataDate() {

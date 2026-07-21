@@ -19738,6 +19738,14 @@ body.sec-access-read .requires-capture { display: none !important; }
     outline: none;
     box-shadow: 0 0 0 1px rgba(0,85,170,.25);
 }
+/* Filtro de texto activo (tiene valor): fondo azul pálido + borde azul */
+#table-ops-flights-csv thead tr.csv-filter-row input:not(:placeholder-shown) {
+    background: #dbeafe !important;
+    border-color: #2563eb !important;
+    color: #1e3a8a !important;
+    font-weight: 700;
+    box-shadow: 0 0 0 1px rgba(37,99,235,.35);
+}
 #table-ops-flights-csv thead tr.csv-filter-row input::placeholder { color: #aaaaaa; }
 
 /* ── CELDAS de datos ── */
