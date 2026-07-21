@@ -17913,8 +17913,13 @@ function _conciBuildEnriched(manifestRows, vuelosRows, schemaRows) {
 
     // Identity index for vuelos rows (used to track which were matched, without
     // relying on a DB id being present).
+    // Excluir vuelos cancelados o no-operativos: no se muestran en la vista de
+    // Manifiestos (solo permanecen visibles en el Itinerario de Vuelos).
+    const _VUELO_EXCL_RE = /cancel|not.?oper|no.?opera|cnx|nop\b/i;
+    const activeVuelos = vuelosRows.filter(r => !_VUELO_EXCL_RE.test(String(r['Status'] || '').trim()));
+
     const vueloId = new Map();
-    vuelosRows.forEach((r, i) => vueloId.set(r, i));
+    activeVuelos.forEach((r, i) => vueloId.set(r, i));
 
     // month*100+day for a vuelos row in a given direction (null if no parseable date).
     const _vueloMd = (r, isArr) => {
@@ -17933,7 +17938,7 @@ function _conciBuildEnriched(manifestRows, vuelosRows, schemaRows) {
     // número de vuelo de un día distinto.
     const vByKeyDate = new Map();
     const vByKey = new Map();
-    for (const r of vuelosRows) {
+    for (const r of activeVuelos) {
         const arr = (r['[Arr] Flight Designator'] || '').trim().toUpperCase();
         const dep = (r['[Dep] Flight Designator'] || '').trim().toUpperCase();
         if (arr) {
@@ -18062,7 +18067,7 @@ function _conciBuildEnriched(manifestRows, vuelosRows, schemaRows) {
     }
 
     // Step 2: Add unmatched vuelos as virtual manifest rows
-    for (const vRow of vuelosRows) {
+    for (const vRow of activeVuelos) {
         const idx = vueloId.get(vRow);
         const arrFlight = (vRow['[Arr] Flight Designator'] || '').trim().toUpperCase();
         const depFlight = (vRow['[Dep] Flight Designator'] || '').trim().toUpperCase();
