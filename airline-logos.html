@@ -110,6 +110,33 @@
   </div>
 </div>
 
+<!-- Auth gate overlay -->
+<div id="authOverlay" style="position:fixed;inset:0;background:linear-gradient(135deg,#1a237e,#1565c0);z-index:10000;display:none;align-items:center;justify-content:center;padding:1rem">
+  <div class="card shadow-lg border-0" style="max-width:360px;width:100%">
+    <div class="card-body p-4">
+      <div class="text-center mb-3">
+        <i class="fas fa-lock text-primary" style="font-size:1.6rem"></i>
+        <h5 class="mt-2 mb-0 fw-bold">Acceso requerido</h5>
+        <p class="small text-muted mb-0">Gestión de Aerolíneas · AIFA</p>
+      </div>
+      <form id="authForm" autocomplete="on">
+        <div class="mb-2">
+          <label class="form-label small fw-semibold">Usuario</label>
+          <input type="text" class="form-control" id="authUser" autocomplete="username" required>
+        </div>
+        <div class="mb-3">
+          <label class="form-label small fw-semibold">Contraseña</label>
+          <input type="password" class="form-control" id="authPass" autocomplete="current-password" required>
+        </div>
+        <div class="alert alert-danger py-2 small d-none" id="authError"></div>
+        <button type="submit" class="btn btn-primary w-100" id="authBtn">
+          <i class="fas fa-sign-in-alt me-1"></i>Entrar
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
 <!-- Page header -->
 <div class="page-header d-flex align-items-center flex-wrap gap-3">
   <div>
@@ -273,6 +300,8 @@ document.addEventListener('DOMContentLoaded', async function(){
   try {
     sb = window.supabaseClient;
     if (!sb) throw new Error('supabaseClient no disponible. Verifica js/supabase-client.js');
+    hideLoading();
+    await ensureAuth();
     document.getElementById('connectedBadge').classList.remove('d-none');
     await reloadFromDB();
   } catch(e){
@@ -281,6 +310,49 @@ document.addEventListener('DOMContentLoaded', async function(){
       '<tr><td colspan="7"><div class="alert alert-danger m-3"><i class="fas fa-exclamation-triangle me-2"></i>' + escHtml(e.message) + '</div></td></tr>';
   }
 });
+
+/* ── Auth gate (requiere sesión Supabase para leer/escribir) ── */
+function normalizeAuthEmail(u){
+  u = (u || '').trim();
+  if (!u) return u;
+  return u.indexOf('@') !== -1 ? u.toLowerCase() : (u.toLowerCase() + '@aifa.operaciones');
+}
+
+async function ensureAuth(){
+  var sess = await sb.auth.getSession();
+  if (sess && sess.data && sess.data.session && sess.data.session.user) return true;
+  return await promptLogin();
+}
+
+function promptLogin(){
+  return new Promise(function(resolve, reject){
+    var overlay = document.getElementById('authOverlay');
+    var form    = document.getElementById('authForm');
+    var errBox  = document.getElementById('authError');
+    var btn     = document.getElementById('authBtn');
+    overlay.style.display = 'flex';
+    document.getElementById('authUser').focus();
+    form.onsubmit = async function(ev){
+      ev.preventDefault();
+      errBox.classList.add('d-none');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Entrando...';
+      try {
+        var email = normalizeAuthEmail(document.getElementById('authUser').value);
+        var pass  = document.getElementById('authPass').value;
+        var res   = await sb.auth.signInWithPassword({ email: email, password: pass });
+        if (res.error) throw res.error;
+        overlay.style.display = 'none';
+        resolve(true);
+      } catch (ex){
+        errBox.textContent = 'Credenciales inválidas. Verifica usuario y contraseña.';
+        errBox.classList.remove('d-none');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-sign-in-alt me-1"></i>Entrar';
+      }
+    };
+  });
+}
 
 /* ── DB load ── */
 async function reloadFromDB(){

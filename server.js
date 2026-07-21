@@ -4,6 +4,7 @@ const path = require('path');
 const cors = require('cors');
 const fs = require('fs');
 const crypto = require('crypto');
+const { createClient } = require('@supabase/supabase-js');
 
 const fsp = fs.promises;
 
@@ -84,13 +85,38 @@ async function computeAppVersionToken() {
   return crypto.createHash('sha1').update(signatures.join('|')).digest('hex').slice(0, 16);
 }
 
-// Enable CORS for local development (optional but handy)
-app.use(cors());
+// CORS restringido a orígenes conocidos. Las peticiones same-origin (la propia
+// SPA) y herramientas sin cabecera Origin no se ven afectadas; solo se limita el
+// acceso cross-origin desde dominios no autorizados.
+const EXTRA_ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || '')
+  .split(',')
+  .map((value) => value.trim())
+  .filter(Boolean);
+const LOCAL_ORIGIN_RE = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i;
+const corsOptions = {
+  origin(origin, callback) {
+    // Sin Origin => same-origin, curl o server-to-server: permitido.
+    if (!origin) return callback(null, true);
+    if (LOCAL_ORIGIN_RE.test(origin)) return callback(null, true);
+    if (EXTRA_ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
+    // Denegar sin lanzar error: simplemente no se emiten cabeceras CORS.
+    return callback(null, false);
+  }
+};
+app.use(cors(corsOptions));
 app.use(express.json({ limit: '256kb' }));
 
-// Helpful headers for local PDFs and static assets
+// Cabeceras de cache + seguridad para assets y respuestas.
 app.use((req, res, next) => {
   res.setHeader('Cache-Control', 'no-store');
+  // Sin CSP: la SPA usa scripts inline y múltiples CDNs (Bootstrap, Chart.js,
+  // PDF.js, Tesseract, SheetJS); una CSP estricta requiere una allowlist probada.
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('X-Permitted-Cross-Domain-Policies', 'none');
+  // HSTS solo surte efecto sobre HTTPS; los navegadores lo ignoran en HTTP local.
+  res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
   next();
 });
 
@@ -99,6 +125,35 @@ if (DEV) {
   app.use('/www', (req, res) => {
     res.status(410).send('www folder disabled in development. Use root files only.');
   });
+}
+
+// Cliente Supabase para VALIDAR tokens de sesión en el servidor. Usa la anon key
+// (pública por diseño); getUser() verifica el JWT contra Supabase sin exponer el
+// service_role. Configurable por variables de entorno.
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://fgstncvuuhpgyzmjceyr.supabase.co';
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZnc3RuY3Z1dWhwZ3l6bWpjZXlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4NzQ0NDQsImV4cCI6MjA4MTQ1MDQ0NH0.YEDIKuWt5iKUEI0BAvidINUz0aZBvQM0h6XRJ-uslB8';
+const supabaseAuthClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: { persistSession: false, autoRefreshToken: false }
+});
+
+// Middleware: exige una sesión Supabase válida (Authorization: Bearer <token>).
+async function requireAuth(req, res, next) {
+  try {
+    const header = req.headers.authorization || '';
+    const token = header.startsWith('Bearer ') ? header.slice(7).trim() : '';
+    if (!token) {
+      return res.status(401).json({ error: 'No autenticado' });
+    }
+    const { data, error } = await supabaseAuthClient.auth.getUser(token);
+    if (error || !data || !data.user) {
+      return res.status(401).json({ error: 'Sesión inválida' });
+    }
+    req.user = data.user;
+    return next();
+  } catch (err) {
+    console.error('requireAuth failed', err);
+    return res.status(401).json({ error: 'No autenticado' });
+  }
 }
 
 const api = express.Router();
@@ -121,7 +176,7 @@ api.get('/app-version', async (req, res) => {
   }
 });
 
-api.get('/parte-operaciones/custom', async (req, res) => {
+api.get('/parte-operaciones/custom', requireAuth, async (req, res) => {
   try {
     const store = await readCustomStore();
     const { date } = req.query || {};
@@ -135,7 +190,7 @@ api.get('/parte-operaciones/custom', async (req, res) => {
   }
 });
 
-api.post('/parte-operaciones/custom', async (req, res) => {
+api.post('/parte-operaciones/custom', requireAuth, async (req, res) => {
   try {
     const { date, entries } = req.body || {};
     if (!isIsoDate(date)) {
@@ -161,7 +216,7 @@ api.post('/parte-operaciones/custom', async (req, res) => {
   }
 });
 
-api.delete('/parte-operaciones/custom/:date', async (req, res) => {
+api.delete('/parte-operaciones/custom/:date', requireAuth, async (req, res) => {
   try {
     const { date } = req.params;
     if (!isIsoDate(date)) {

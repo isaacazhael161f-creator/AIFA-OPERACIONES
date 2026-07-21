@@ -1846,21 +1846,22 @@ function setAviationAnalyticsUnavailableState(message) {
 
 const dashboardData = {
     users: {
-        // NOTA: las contraseñas en texto plano no se usan para validar; se migran a hash en tiempo de ejecución y se descartan
-        "David Pacheco": { password: "2468", canViewItinerarioMensual: true },
-        "Isaac López": { password: "18052003", canViewItinerarioMensual: false },
-        "Mauro Hernández": { password: "Mauro123", canViewItinerarioMensual: true },
-        "Emily Beltrán": { password: "Emily67", canViewItinerarioMensual: true },
-        "Director General": { password: "Dirección71", canViewItinerarioMensual: true },
-        "Director de Operación": { password: "OperacionesNLU", canViewItinerarioMensual: true },
-        "Jefe Mateos": { password: "2025M", canViewItinerarioMensual: true },
-        "Usuario1": { password: "AIFAOps", canViewItinerarioMensual: true },
-        "Dilery Urenda": { password: "DileryNLU", canViewItinerarioMensual: true },
-        "Fernanda Ficachi": { password: "GerenciaMedicos", canViewItinerarioMensual: true },
-        "Isaac Hernández": { password: "CoordIsaac", canViewItinerarioMensual: true },
-        "Darwin Cala": { password: "CCO2025", canViewItinerarioMensual: true },
+        // La autenticación real ocurre en Supabase (signInWithPassword). Aquí solo
+        // se conservan banderas/metadata de permisos legacy por usuario.
+        // NUNCA almacenar contraseñas en claro en el cliente.
+        "David Pacheco": { canViewItinerarioMensual: true },
+        "Isaac López": { canViewItinerarioMensual: false },
+        "Mauro Hernández": { canViewItinerarioMensual: true },
+        "Emily Beltrán": { canViewItinerarioMensual: true },
+        "Director General": { canViewItinerarioMensual: true },
+        "Director de Operación": { canViewItinerarioMensual: true },
+        "Jefe Mateos": { canViewItinerarioMensual: true },
+        "Usuario1": { canViewItinerarioMensual: true },
+        "Dilery Urenda": { canViewItinerarioMensual: true },
+        "Fernanda Ficachi": { canViewItinerarioMensual: true },
+        "Isaac Hernández": { canViewItinerarioMensual: true },
+        "Darwin Cala": { canViewItinerarioMensual: true },
         "Germán Nuñez": {
-            password: "DrGerman12",
             canViewItinerarioMensual: false,
             allowedSections: ["medicas"],
             defaultSection: "medicas"
@@ -2720,22 +2721,14 @@ function startPermissionsAutoRefresh() {
     };
 })();
 
-// Hashes de contraseñas (generados en cliente al inicio y luego se descartan passwords en claro)
-const AUTH_HASHES = Object.create(null);
-const SECRET_PW_SALT = 'aifa.ops.local.pw.v1';
-
+// Salvaguarda de arranque: la autenticación real es Supabase. Si por error se
+// reintrodujera un campo `password` en dashboardData.users, aquí se elimina para
+// evitar exponer credenciales en el cliente.
 async function initAuthHashes() {
     try {
         const entries = Object.entries(dashboardData.users || {});
-        for (const [name, info] of entries) {
-            if (!info) continue;
-            const pw = typeof info.password === 'string' ? info.password : '';
-            const norm = (name || '').toString().trim().toLowerCase();
-            if (pw) {
-                const h = await sha256(pw + '|' + norm + '|' + SECRET_PW_SALT);
-                AUTH_HASHES[name] = h;
-            }
-            // eliminar password en claro para evitar abusos posteriores
+        for (const [, info] of entries) {
+            if (!info || typeof info.password === 'undefined') continue;
             try { delete info.password; } catch (_) { info.password = undefined; }
         }
     } catch (_) { /* noop */ }
@@ -3649,7 +3642,6 @@ const LOGIN_LOCK_TS = 'aifa.lock.until';
 const SESSION_TOKEN = 'aifa.session.token';
 const SESSION_REFRESH_TOKEN = 'aifa.session.refresh_token';
 const SESSION_USER = 'currentUser';
-const SECRET_SALT = 'aifa.ops.local.salt.v1'; // cambia en prod
 let supabaseAuthBridgeBound = false;
 const OPERACIONES_ACCESS_ERROR = 'Tu usuario no tiene acceso asignado al aplicativo AIFA Operaciones.';
 const GLOBAL_APPLICATION_ROLES = ['superuser', 'superadmin'];
@@ -3986,12 +3978,6 @@ async function sha256(str) {
     return sha256Fallback(str);
 }
 
-async function makeToken(username) {
-    const ts = Date.now().toString();
-    const sign = await sha256(username + '|' + ts + '|' + SECRET_SALT);
-    return `${username}.${ts}.${sign}`;
-}
-
 async function verifyToken(token) {
     if (!token) return false;
 
@@ -4028,14 +4014,10 @@ async function verifyToken(token) {
         return false;
     }
 
-    // Validación Legacy (Hash local)
-    const parts = token.split('.');
-    if (parts.length !== 3) return false;
-    const [u, ts, sig] = parts;
-    const expect = await sha256(u + '|' + ts + '|' + SECRET_SALT);
-    // expira en 12h
-    const expired = (Date.now() - Number(ts)) > (12 * 60 * 60 * 1000);
-    return (!expired && sig === expect);
+    // Sin cliente Supabase no es posible validar la sesión de forma segura.
+    // Se elimina la validación por hash local: el SECRET_SALT vivía en el
+    // cliente y permitía falsificar tokens. El acceso exige sesión Supabase.
+    return false;
 }
 
 function getLockInfo() {
