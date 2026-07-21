@@ -18907,47 +18907,49 @@ async function _conciExportToExcel(kind) {
 }
 window.conciExportExcel = _conciExportToExcel;
 
-// \u2500\u2500 KPI Summary strip para la pesta\u00f1a Manifiestos \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
-// S\u00f3lo cuenta filas con manifiesto capturado (excluye \u201cSolo Vuelos\u201d virtuales).
+// ── KPI Summary strip para la pestaña Manifiestos ─────────────────────────────
+// Cuenta TODAS las filas (manifiestos capturados + vuelos del itinerario).
 function _updateManifiestosSummaryStrip(data, columns) {
     const strip = document.getElementById('manifiestos-summary-strip');
     if (!strip) return;
     if (!data || data.length === 0) { strip.classList.add('d-none'); return; }
 
     const cols = columns || (data.length ? Object.keys(data[0]) : []);
-    const _airlineCol  = cols.find(c => /aerol[ií]nea|airline/i.test(c))         || null;
-    const _optypeCol   = cols.find(c => /tipo.*oper|service\s*type/i.test(c))     || null;
-    const _totalPaxCol = cols.find(c => /^total\s*pax$/i.test(c.trim()))          || null;
+    const _airlineCol  = cols.find(c => /aerol[ií]nea|airline/i.test(c))          || null;
+    const _optypeCol   = cols.find(c => /tipo.*oper|service\s*type/i.test(c))      || null;
+    const _totalPaxCol = cols.find(c => /^total\s*pax$/i.test(c.trim()))           || null;
     const _kgsCarCol   = cols.find(c => /kgs?\.?\s*(de\s*)?carga/i.test(c.trim())) || null;
 
     let paxOps = 0, totalPax = 0, cargoOps = 0, kgsCarga = 0;
 
     for (const row of data) {
-        // Skip virtual rows that have no captured manifest
-        if (row['_fuente'] === 'Solo Vuelos') continue;
-
+        // Clasificar la fila como carga o pasajeros
         const isCargo = _conciRowIsCargo(row, _optypeCol, _airlineCol);
+
         if (isCargo) {
             cargoOps++;
-            if (_kgsCarCol) {
-                const v = parseFloat(String(row[_kgsCarCol] || '').replace(/[^0-9.]/g, '')) || 0;
-                kgsCarga += v;
-            }
         } else {
             paxOps++;
+            // Sumar pasajeros (TOTAL PAX para manifiestos, [Arr/Dep] Boarded en "Solo Vuelos")
             if (_totalPaxCol) {
                 const v = parseInt(String(row[_totalPaxCol] || '').replace(/[^0-9]/g, ''), 10) || 0;
                 totalPax += v;
             }
         }
+
+        // KGS. DE CARGA: sumar en cualquier fila que tenga valor (solo las cargueras lo tendrán)
+        if (_kgsCarCol) {
+            const v = parseFloat(String(row[_kgsCarCol] || '').replace(/[^0-9.]/g, '')) || 0;
+            kgsCarga += v;
+        }
     }
 
     const fmt = n => n.toLocaleString('es-MX');
     const setEl = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
-    setEl('mf-sum-pax-ops',    fmt(paxOps));
-    setEl('mf-sum-total-pax',  fmt(totalPax));
-    setEl('mf-sum-cargo-ops',  fmt(cargoOps));
-    setEl('mf-sum-kgs-carga',  kgsCarga > 0 ? fmt(Math.round(kgsCarga)) : 'N/D');
+    setEl('mf-sum-pax-ops',   fmt(paxOps));
+    setEl('mf-sum-total-pax', fmt(totalPax));
+    setEl('mf-sum-cargo-ops', fmt(cargoOps));
+    setEl('mf-sum-kgs-carga', kgsCarga > 0 ? fmt(Math.round(kgsCarga)) : 'N/D');
 
     strip.classList.remove('d-none');
 }
