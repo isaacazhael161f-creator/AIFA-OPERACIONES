@@ -7114,6 +7114,47 @@ function showSection(sectionKey, linkEl) {
     } catch (e) { console.warn('showSection error:', e); }
 }
 
+// Navegación desde el menú de usuario (dropdown de la tarjeta de sesión).
+// Cierra el dropdown, muestra la sección y, en modo deck (navdeck), entra a la
+// vista de sección (navdeck-active) para que NO quede oculta por las reglas
+// `body.navdeck-mode:not(.navdeck-active) .content-section { display:none }`.
+function siUserGoToSection(sectionKey, linkEl) {
+    try {
+        const dd = document.getElementById('si-user-dropdown');
+        if (dd) dd.classList.add('d-none');
+        const chev = document.getElementById('si-user-chevron');
+        if (chev) chev.style.transform = '';
+    } catch (_) {}
+    try { showSection(sectionKey, linkEl || null); } catch (_) {}
+    // Modo deck: asegurar que se entra a la vista de sección.
+    try {
+        if (document.body.classList.contains('navdeck-mode')) {
+            if (typeof window._navdeckEnterSection === 'function') {
+                window._navdeckEnterSection();
+            } else {
+                document.body.classList.add('navdeck-active');
+                try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (_) { window.scrollTo(0, 0); }
+            }
+        }
+    } catch (_) {}
+    // Cerrar sidebar (móvil) y colapsar en escritorio, como el resto de la nav.
+    try {
+        const s = document.getElementById('sidebar');
+        const o = document.getElementById('sidebar-overlay');
+        if (s && o) {
+            s.classList.remove('visible');
+            o.classList.remove('active');
+            document.body.classList.remove('sidebar-open');
+        }
+        if (window.innerWidth > 991.98) {
+            document.body.classList.add('sidebar-collapsed');
+            localStorage.setItem('sidebarState', 'collapsed');
+        }
+    } catch (_) {}
+    return false;
+}
+window.siUserGoToSection = siUserGoToSection;
+
 function getActiveSectionKey() {
     if (currentSectionKey) return currentSectionKey;
     const activeSection = document.querySelector('.content-section.active');
