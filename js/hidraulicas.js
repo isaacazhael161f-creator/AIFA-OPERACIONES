@@ -26,6 +26,7 @@
 
     const POZOS_FIJOS = ['Pozo 1', 'Pozo 2', 'Pozo 3', 'Pozo 4', 'Pozo 5',
                          'Pozo 6', 'Pozo 7', 'Pozo 8', 'Pozo 10'];
+    const POZOS_EXCLUIDOS = new Set(['Pozo 9']);
     const TRIMESTRES  = ['Q1', 'Q2', 'Q3', 'Q4'];
     const QUARTER_LABELS = ['Ene-Mar', 'Abr-Jun', 'Jul-Sep', 'Oct-Dic'];
     const DEMANDA_COLORS = { aifa: '#e07a3c', cdmilitar: '#1d4ed8' };
@@ -145,7 +146,7 @@
             const y = Number(a.anio);
             if (Number.isFinite(y)) ySet.add(y);
             const p = String(a.pozo || '').trim();
-            if (p) pSet.add(p);
+            if (p && !POZOS_EXCLUIDOS.has(p)) pSet.add(p);
         }
         for (const a of state.paap) {
             const y = Number(a.anio);
@@ -156,7 +157,7 @@
             if (Number.isFinite(y)) ySet.add(y);
         }
         state.years = [...ySet].sort((a, b) => b - a);
-        // pozos fijos 1..10 + cualquier pozo extra presente en el diario
+        // pozos fijos vigentes + cualquier pozo extra presente en el diario
         const extra = [...pSet].filter(p => !POZOS_FIJOS.includes(p)).sort(pozoSort);
         state.pozos = [...POZOS_FIJOS, ...extra];
         if (!state.years.length) state.years.push(new Date().getFullYear());
@@ -977,6 +978,66 @@
         bindNum('hidra-cap-ptar-a3', state.capPtar, 'a3', '_origA3');
     }
 
+    function confirmClearModule() {
+        return window.confirm('¿Deseas borrar toda la información capturada en este módulo? Esta acción no se puede deshacer hasta volver a capturar los datos.');
+    }
+
+    function markCapInputDirty(input, orig, current) {
+        if (!input) return;
+        input.classList.toggle('hidra-changed', String(orig) !== String(current));
+    }
+
+    function clearCapPozos() {
+        if (!confirmClearModule()) return;
+        const tbody = $('hidra-cap-pozos-tbody'); if (!tbody) return;
+        tbody.querySelectorAll('tr[data-pozo]').forEach(tr => {
+            const pozo = tr.dataset.pozo;
+            const row = state.capPozos.find(r => r.pozo === pozo);
+            const input = tr.querySelector('.hidra-cap-total');
+            if (!row || !input) return;
+            row.total = 0;
+            input.value = 0;
+            markCapInputDirty(input, row._origTotal, row.total);
+        });
+        recalcCapTotals();
+    }
+
+    function clearCapPaap() {
+        if (!confirmClearModule()) return;
+        if (!state.capPaap) {
+            state.capPaap = { primaria: '', secundaria: '', _id: null, _origPri: '', _origSec: '' };
+        }
+        state.capPaap.primaria = 0;
+        state.capPaap.secundaria = 0;
+        const primaria = $('hidra-cap-paap-primaria');
+        const secundaria = $('hidra-cap-paap-secundaria');
+        if (primaria) primaria.value = 0;
+        if (secundaria) secundaria.value = 0;
+        markCapInputDirty(primaria, state.capPaap._origPri, state.capPaap.primaria);
+        markCapInputDirty(secundaria, state.capPaap._origSec, state.capPaap.secundaria);
+        recalcCapTotals();
+    }
+
+    function clearCapPtar() {
+        if (!confirmClearModule()) return;
+        if (!state.capPtar) {
+            state.capPtar = { a1: '', a2: '', a3: '', _id: null, _origA1: '', _origA2: '', _origA3: '' };
+        }
+        state.capPtar.a1 = 0;
+        state.capPtar.a2 = 0;
+        state.capPtar.a3 = 0;
+        const a1 = $('hidra-cap-ptar-a1');
+        const a2 = $('hidra-cap-ptar-a2');
+        const a3 = $('hidra-cap-ptar-a3');
+        if (a1) a1.value = 0;
+        if (a2) a2.value = 0;
+        if (a3) a3.value = 0;
+        markCapInputDirty(a1, state.capPtar._origA1, state.capPtar.a1);
+        markCapInputDirty(a2, state.capPtar._origA2, state.capPtar.a2);
+        markCapInputDirty(a3, state.capPtar._origA3, state.capPtar.a3);
+        recalcCapTotals();
+    }
+
     function recalcCapTotals() {
         let total = 0, pozosConDato = 0;
         for (const r of state.capPozos) {
@@ -986,6 +1047,10 @@
         }
         setText('hidra-cap-total-dia', fmt(total));
         setText('hidra-cap-pozos-con-dato', pozosConDato);
+        const pozosCounter = $('hidra-cap-pozos-con-dato');
+        if (pozosCounter && pozosCounter.parentElement) {
+            pozosCounter.parentElement.innerHTML = `<strong>Pozos con dato:</strong> <span id="hidra-cap-pozos-con-dato">${pozosConDato}</span> / ${POZOS_FIJOS.length}`;
+        }
 
         const paapTot = (Number(state.capPaap?.primaria) || 0) + (Number(state.capPaap?.secundaria) || 0);
         setText('hidra-cap-paap-total', fmt(paapTot));
@@ -1011,6 +1076,10 @@
         if (tabEdit && tabEdit.parentElement) tabEdit.parentElement.style.display = canCap ? '' : 'none';
         const saveBtn = $('hidra-cap-save');
         if (saveBtn) saveBtn.disabled = !canCap;
+        ['hidra-cap-clear-pozos', 'hidra-cap-clear-paap', 'hidra-cap-clear-ptar'].forEach(id => {
+            const btn = $(id);
+            if (btn) btn.disabled = !canCap;
+        });
         if (!canCap) {
             // Si el usuario estaba en la pestaña de captura, regresarlo al Dashboard.
             const dashBtn = $('hidra-tabbtn-dash');
@@ -1227,6 +1296,9 @@
             loadDayEditor();
         });
         $('hidra-cap-save')?.addEventListener('click', saveDayEditor);
+        $('hidra-cap-clear-pozos')?.addEventListener('click', clearCapPozos);
+        $('hidra-cap-clear-paap')?.addEventListener('click', clearCapPaap);
+        $('hidra-cap-clear-ptar')?.addEventListener('click', clearCapPtar);
     }
 
     // ─── Init ──────────────────────────────────────────────────

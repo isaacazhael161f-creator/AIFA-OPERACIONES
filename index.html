@@ -20524,7 +20524,12 @@ FF
                           <div class="row g-4">
                             <!-- Extracción por pozo (total) -->
                             <div class="col-12 col-xl-7">
-                              <h6 class="fw-bold mb-2" style="color:#0e7490;"><i class="fas fa-faucet me-2"></i>Extracción por pozo</h6>
+                              <div class="d-flex align-items-center justify-content-between gap-2 mb-2">
+                                <h6 class="fw-bold mb-0" style="color:#0e7490;"><i class="fas fa-faucet me-2"></i>Extracción por pozo</h6>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" id="hidra-cap-clear-pozos">
+                                  <i class="fas fa-eraser me-1"></i>Limpiar datos
+                                </button>
+                              </div>
                               <div class="hidra-edit-summary mb-2 d-flex flex-wrap gap-4">
                                 <div><strong>Total del día:</strong> <span id="hidra-cap-total-dia">0</span> m³</div>
                                 <div><strong>Pozos con dato:</strong> <span id="hidra-cap-pozos-con-dato">0</span> / 9</div>
@@ -20547,7 +20552,12 @@ FF
                             <!-- PAAP + PTAR -->
                             <div class="col-12 col-xl-5">
                               <div class="hidra-chart-card mb-3">
-                                <h6 class="fw-bold mb-2" style="color:#1d4ed8;"><i class="fas fa-water me-2"></i>Suministro PAAP del día</h6>
+                                <div class="d-flex align-items-center justify-content-between gap-2 mb-2">
+                                  <h6 class="fw-bold mb-0" style="color:#1d4ed8;"><i class="fas fa-water me-2"></i>Suministro PAAP del día</h6>
+                                  <button type="button" class="btn btn-sm btn-outline-secondary" id="hidra-cap-clear-paap">
+                                    <i class="fas fa-eraser me-1"></i>Limpiar datos
+                                  </button>
+                                </div>
                                 <div class="row g-2">
                                   <div class="col-6">
                                     <label class="form-label small fw-bold mb-1">PAAP Primaria (m³)</label>
@@ -20562,7 +20572,12 @@ FF
                               </div>
 
                               <div class="hidra-chart-card">
-                                <h6 class="fw-bold mb-2" style="color:#059669;"><i class="fas fa-recycle me-2"></i>Tratamiento PTAR del día</h6>
+                                <div class="d-flex align-items-center justify-content-between gap-2 mb-2">
+                                  <h6 class="fw-bold mb-0" style="color:#059669;"><i class="fas fa-recycle me-2"></i>Tratamiento PTAR del día</h6>
+                                  <button type="button" class="btn btn-sm btn-outline-secondary" id="hidra-cap-clear-ptar">
+                                    <i class="fas fa-eraser me-1"></i>Limpiar datos
+                                  </button>
+                                </div>
                                 <div class="row g-2">
                                   <div class="col-4">
                                     <label class="form-label small fw-bold mb-1">PTAR A1 (m³)</label>
@@ -33366,7 +33381,7 @@ FF
     <script src="js/portal-admin.js?v=20260701"></script>
     <script src="js/medicas.js?v=2"></script>
     <script src="js/fauna.js"></script>
-    <script src="js/hidraulicas.js?v=13"></script>
+    <script src="js/hidraulicas.js?v=15"></script>
     <script src="js/ggen-energia.js?v=5"></script>
     <script src="js/gtrans-energia.js?v=1"></script>
     <script src="js/gtrans-preventivos.js?v=2"></script>
