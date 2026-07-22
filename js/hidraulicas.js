@@ -25,7 +25,7 @@
     const TBL_PTAR    = 'Tratamiento_ptar_diario';
 
     const POZOS_FIJOS = ['Pozo 1', 'Pozo 2', 'Pozo 3', 'Pozo 4', 'Pozo 5',
-                         'Pozo 6', 'Pozo 7', 'Pozo 8', 'Pozo 9', 'Pozo 10'];
+                         'Pozo 6', 'Pozo 7', 'Pozo 8', 'Pozo 10'];
     const TRIMESTRES  = ['Q1', 'Q2', 'Q3', 'Q4'];
     const QUARTER_LABELS = ['Ene-Mar', 'Abr-Jun', 'Jul-Sep', 'Oct-Dic'];
     const DEMANDA_COLORS = { aifa: '#e07a3c', cdmilitar: '#1d4ed8' };
