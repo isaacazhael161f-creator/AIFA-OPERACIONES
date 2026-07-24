@@ -5841,6 +5841,7 @@ document.addEventListener('DOMContentLoaded', () => { setTimeout(() => window.da
         const { error } = await client.from(AL_TABLE).delete().eq('id', id);
         if (error) { alToast(`Error: ${error.message}`, 'danger'); return; }
         alToast('Aerolínea eliminada.', 'warning');
+        window.dispatchEvent(new CustomEvent('airline-catalog-updated', { detail: { id, deleted: true } }));
         await alLoad();
     };
 
@@ -6160,5 +6161,4 @@ document.addEventListener('DOMContentLoaded', () => { setTimeout(() => window.da
         }
     });
 })();
-
 

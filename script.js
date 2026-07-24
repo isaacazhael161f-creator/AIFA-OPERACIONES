@@ -16921,17 +16921,27 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnConciEdit = document.getElementById('btn-conci-edit-mode');
     const btnConciAdd = document.getElementById('btn-conci-add-row');
     const btnConciAirlineColors = document.getElementById('btn-conci-airline-colors');
+    const btnConciMatriculaCatalog = document.getElementById('btn-conci-matricula-catalog');
     const btnConciSave = document.getElementById('btn-conci-save-mode');
     const btnConciCancel = document.getElementById('btn-conci-cancel-mode');
     if (btnConciRefresh) btnConciRefresh.addEventListener('click', () => loadConciliacionManifiestos({ forceRefresh: true }));
     if (btnConciEdit) btnConciEdit.addEventListener('click', _conciEnterEditMode);
     if (btnConciAdd) btnConciAdd.addEventListener('click', _conciAddBlankRow);
     if (btnConciAirlineColors) btnConciAirlineColors.addEventListener('click', _conciOpenAirlineColors);
+    if (btnConciMatriculaCatalog) btnConciMatriculaCatalog.addEventListener('click', _conciOpenMatriculaCatalog);
     if (btnConciSave) btnConciSave.addEventListener('click', _conciSaveBulkEdits);
     if (btnConciCancel) btnConciCancel.addEventListener('click', _conciCancelBulkEdits);
     window.addEventListener('admin-mode-changed', _conciRefreshEditToolbar);
     window.addEventListener('airline-catalog-updated', () => {
         _conciAirlineCatalogLoaded = false;
+        _conciRenderCache.clear();
+        if (document.getElementById('table-conci-manifiestos')) {
+            loadConciliacionManifiestos({ forceRefresh: true });
+        }
+    });
+    window.addEventListener('matricula-catalog-updated', () => {
+        _conciMatriculaCatalogLoaded = false;
+        _conciMatriculaCatalogMap = new Map();
         _conciRenderCache.clear();
         if (document.getElementById('table-conci-manifiestos')) {
             loadConciliacionManifiestos({ forceRefresh: true });
@@ -16950,6 +16960,9 @@ let _conciAirlineCatalogLoaded = false;
 let _conciAirlineCodeMap = new Map();
 let _conciAirlineMasterCodeMap = new Map();
 let _conciAirlineAliasMap = new Map();
+let _conciAirlineOverrides = new Map(); // `${vueloId}|${direccion}` -> airline name
+let _conciMatriculaCatalogLoaded = false;
+let _conciMatriculaCatalogMap = new Map();
 let _conciLoadRequestSeq = 0;
 let _conciRenderSeq = 0;
 const _conciRenderCache = new Map();
@@ -17034,6 +17047,8 @@ async function _ensureConciAirlineCatalog() {
                 color: String(item?.color || '#6c757d').trim(),
                 textColor: String(item?.textColor || '#ffffff').trim(),
                 iata: String(item?.iata || '').trim().toUpperCase(),
+                types: Array.isArray(item?.types) ? item.types : (Array.isArray(item?.type) ? item.type : []),
+                aliases: Array.isArray(item?.aliases) ? item.aliases : [],
             };
             if (!meta.name) return;
 
@@ -17062,7 +17077,7 @@ async function _ensureConciAirlineCatalog() {
             const sb = window.supabaseClient || (window.ensureSupabaseClient && await window.ensureSupabaseClient());
             if (sb) {
                 const { data: managedAirlines } = await sb.from('airlines')
-                    .select('name, iata, aliases, color, text_color')
+                    .select('name, iata, aliases, color, text_color, types')
                     .eq('active', true)
                     .limit(1000);
                 (managedAirlines || []).forEach(item => {
@@ -17071,6 +17086,8 @@ async function _ensureConciAirlineCatalog() {
                         color: String(item.color || '#6c757d').trim(),
                         textColor: String(item.text_color || '#ffffff').trim(),
                         iata: String(item.iata || '').trim().toUpperCase(),
+                        types: Array.isArray(item.types) ? item.types : [],
+                        aliases: Array.isArray(item.aliases) ? item.aliases : [],
                     };
                     if (!meta.name) return;
                     if (meta.iata) _conciAirlineCodeMap.set(meta.iata, meta);
@@ -17110,11 +17127,192 @@ async function _ensureConciAirlineCatalog() {
         } catch (masterErr) {
             console.warn('[Conciliacion] No se pudo cargar data/master/airlines.csv:', masterErr);
         }
+
+        // Última capa: catálogo aislado de Conciliación. Sus cambios tienen
+        // prioridad y nunca escriben sobre public.airlines.
+        try {
+            const sb = window.supabaseClient || (window.ensureSupabaseClient && await window.ensureSupabaseClient());
+            if (sb) {
+                const { data: scopedAirlines, error: scopedError } = await sb
+                    .from('conciliacion_catalogo_aerolineas')
+                    .select('id, name, iata, aliases, color, text_color, types, active')
+                    .limit(2000);
+                if (scopedError) throw scopedError;
+
+                (scopedAirlines || []).forEach(item => {
+                    const meta = {
+                        name: String(item.name || item.iata || '').trim(),
+                        color: String(item.color || '#6c757d').trim(),
+                        textColor: String(item.text_color || '#ffffff').trim(),
+                        iata: String(item.iata || '').trim().toUpperCase(),
+                        types: Array.isArray(item.types) ? item.types : [],
+                        aliases: Array.isArray(item.aliases) ? item.aliases : [],
+                    };
+                    if (!meta.name) return;
+
+                    const aliases = [meta.name, meta.iata, ...meta.aliases]
+                        .map(_conciNormalizeAirlineName)
+                        .filter(Boolean);
+                    const clearExistingIdentity = () => {
+                        if (!meta.iata) return;
+                        for (const [alias, current] of _conciAirlineAliasMap.entries()) {
+                            if (String(current?.iata || '').toUpperCase() === meta.iata) _conciAirlineAliasMap.delete(alias);
+                        }
+                        _conciAirlineMasterCodeMap.delete(meta.iata);
+                    };
+                    clearExistingIdentity();
+                    if (item.active === false) {
+                        if (meta.iata) _conciAirlineCodeMap.delete(meta.iata);
+                        aliases.forEach(alias => _conciAirlineAliasMap.delete(alias));
+                        return;
+                    }
+
+                    if (meta.iata) {
+                        _conciAirlineCodeMap.set(meta.iata, meta);
+                        _conciAirlineMasterCodeMap.set(meta.iata, meta);
+                    }
+                    aliases.forEach(alias => _conciAirlineAliasMap.set(alias, meta));
+                });
+            }
+        } catch (scopedErr) {
+            // Compatibilidad: si aún no se ejecuta la migración 008, se usa
+            // temporalmente el catálogo existente sin modificarlo.
+            if (!String(scopedErr?.message || '').toLowerCase().includes('relation')) {
+                console.warn('[Conciliación] No se pudo cargar el catálogo aislado de aerolíneas:', scopedErr);
+            }
+        }
     } catch (err) {
         console.warn('[Conciliacion] No se pudo cargar data/airlines.json:', err);
     } finally {
         _conciAirlineCatalogLoaded = true;
     }
+}
+
+function _conciNormalizeMatricula(value) {
+    return String(value || '')
+        .replace(/\u00a0/g, ' ')
+        .trim()
+        .toUpperCase();
+}
+
+function _conciNormalizeAirlineIdentity(value) {
+    return String(value || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^A-Z0-9]/gi, '')
+        .toUpperCase();
+}
+
+function _conciAirlineIdentityKeys(value) {
+    const keys = new Set();
+    const add = item => {
+        const key = _conciNormalizeAirlineIdentity(item);
+        if (key) keys.add(key);
+    };
+    add(value);
+    const meta = _conciResolveAirlineMeta(value);
+    if (meta) {
+        add(meta.name);
+        add(meta.iata);
+        (meta.aliases || []).forEach(add);
+    }
+    return keys;
+}
+
+function _conciAirlinesMatch(actual, expected) {
+    const actualKeys = _conciAirlineIdentityKeys(actual);
+    const expectedKeys = _conciAirlineIdentityKeys(expected);
+    return [...actualKeys].some(key => expectedKeys.has(key));
+}
+
+async function _ensureConciMatriculaCatalog() {
+    if (_conciMatriculaCatalogLoaded) return;
+    _conciMatriculaCatalogMap = new Map();
+    try {
+        const sb = window.supabaseClient || (window.ensureSupabaseClient && await window.ensureSupabaseClient());
+        if (!sb) throw new Error('Cliente Supabase no disponible.');
+        const { data, error } = await sb.from('matriculas_manifiestos')
+            .select('matricula, aerolinea, estatus')
+            .limit(5000);
+        if (error) throw error;
+        (data || []).forEach(item => {
+            const key = _conciNormalizeMatricula(item.matricula);
+            if (key) _conciMatriculaCatalogMap.set(key, {
+                matricula: key,
+                aerolinea: String(item.aerolinea || '').trim(),
+                estatus: String(item.estatus || '').trim().toUpperCase(),
+            });
+        });
+    } catch (error) {
+        console.warn('[Conciliación] No se pudo cargar el catálogo de matrículas:', error);
+    } finally {
+        _conciMatriculaCatalogLoaded = true;
+    }
+}
+
+function _conciApplyMatriculaCatalogValidation(rows, columns) {
+    const cols = Array.isArray(columns) ? columns : [];
+    const matriculaCol = cols.find(col => _conciSummaryColumnKey(col) === 'MATRICULA') || null;
+    const statusCol = cols.find(col => /estatus.*matr/i.test(String(col)) || /status.*matr/i.test(String(col))) || null;
+    const airlineCol = cols.find(col => /aerol[ií]nea|airline/i.test(String(col))) || null;
+    if (!matriculaCol || !statusCol) return;
+
+    (rows || []).forEach(row => {
+        const matricula = _conciNormalizeMatricula(row[matriculaCol]);
+        const catalogEntry = matricula ? _conciMatriculaCatalogMap.get(matricula) : null;
+        row[statusCol] = catalogEntry ? 'ACTIVA' : 'NO IDENTIFICADA';
+        row._conci_matricula_mismatch = false;
+        row._conci_matricula_catalog_airline = catalogEntry?.aerolinea || '';
+        if (catalogEntry && airlineCol) {
+            row._conci_matricula_mismatch = !_conciAirlinesMatch(row[airlineCol], catalogEntry.aerolinea);
+        }
+    });
+}
+
+function _conciLiveCellValue(td) {
+    if (!td) return '';
+    const input = td.querySelector('input, textarea, select');
+    return input
+        ? String(input.value || '').trim()
+        : String(td.dataset.pendingRaw !== undefined ? td.dataset.pendingRaw : (td.dataset.raw || td.textContent || '')).trim();
+}
+
+function _conciRenderMatriculaStatusCell(td, status, mismatch, expectedAirline) {
+    if (!td) return;
+    const safeStatus = status || 'NO IDENTIFICADA';
+    td.dataset.raw = safeStatus;
+    td.dataset.conciReadonly = '1';
+    td.style.fontWeight = '700';
+    td.style.textAlign = 'center';
+    if (mismatch) {
+        const expected = escapeHTML(expectedAirline || 'la aerolínea del catálogo');
+        td.innerHTML = `<span style="color:#198754">${escapeHTML(safeStatus)}</span> <i class="fas fa-exclamation-triangle text-warning" title="Matrícula no corresponde a la aerolínea. Catálogo: ${expected}" aria-label="Matrícula no corresponde a la aerolínea"></i>`;
+        td.style.setProperty('background', '#fff3cd', 'important');
+        td.style.setProperty('color', '#664d03', 'important');
+        td.title = `Matrícula no corresponde a la aerolínea. Catálogo: ${expectedAirline || 'sin dato'}`;
+    } else if (safeStatus === 'ACTIVA') {
+        td.innerHTML = `<span style="color:#198754">${escapeHTML(safeStatus)}</span>`;
+        td.title = 'Matrícula encontrada en el catálogo.';
+    } else {
+        td.innerHTML = `<span style="color:#dc3545">${escapeHTML(safeStatus)}</span>`;
+        td.title = 'Matrícula no encontrada en el catálogo.';
+    }
+}
+
+function _conciRefreshMatriculaValidationForRow(tr) {
+    if (!tr || !_conciMatriculaCatalogLoaded) return;
+    const cells = [...tr.querySelectorAll('td[data-col]')];
+    const matriculaTd = cells.find(td => _conciSummaryColumnKey(td.dataset.col) === 'MATRICULA');
+    const statusTd = cells.find(td => _conciIsMatriculaStatusColumn(td.dataset.col));
+    const airlineTd = cells.find(td => /aerol[ií]nea|airline/i.test(String(td.dataset.col || '')));
+    if (!matriculaTd || !statusTd) return;
+
+    const catalogEntry = _conciMatriculaCatalogMap.get(_conciNormalizeMatricula(_conciLiveCellValue(matriculaTd)));
+    const status = catalogEntry ? 'ACTIVA' : 'NO IDENTIFICADA';
+    const mismatch = !!(catalogEntry && airlineTd
+        && !_conciAirlinesMatch(_conciLiveCellValue(airlineTd), catalogEntry.aerolinea));
+    _conciRenderMatriculaStatusCell(statusTd, status, mismatch, catalogEntry?.aerolinea || '');
+    tr.classList.toggle('conci-matricula-mismatch', mismatch);
 }
 
 function _conciResolveAirlineMeta(value) {
@@ -17133,6 +17331,24 @@ function _conciResolveAirlineMeta(value) {
     if (byAlias) return byAlias;
 
     return _conciDefaultAirlineMeta(raw);
+}
+
+async function _ensureConciAirlineOverrides() {
+    try {
+        const sb = window.supabaseClient || (window.ensureSupabaseClient && await window.ensureSupabaseClient());
+        if (!sb) return;
+        const { data, error } = await sb.rpc('get_conciliacion_vuelo_airline_overrides');
+        if (error) throw error;
+        _conciAirlineOverrides = new Map((data || []).map(row => [
+            `${row.vuelo_id}|${String(row.direccion || '').toUpperCase()}`,
+            String(row.aerolinea || '').trim()
+        ]));
+    } catch (error) {
+        _conciAirlineOverrides = new Map();
+        if (!String(error?.message || '').toLowerCase().includes('function')) {
+            console.warn('[Conciliación] No se pudieron cargar ajustes de aerolínea:', error);
+        }
+    }
 }
 
 function _conciCanCurrentUserEdit() {
@@ -17167,6 +17383,7 @@ function _conciRefreshEditToolbar() {
     const btnCancel = document.getElementById('btn-conci-cancel-mode');
     const btnAdd = document.getElementById('btn-conci-add-row');
     const btnAirlineColors = document.getElementById('btn-conci-airline-colors');
+    const btnMatriculaCatalog = document.getElementById('btn-conci-matricula-catalog');
     const btnRefresh = document.getElementById('btn-conci-refresh');
     const yearSel = document.getElementById('filter-conci-manifiestos-year');
     const monthSel = document.getElementById('filter-conci-manifiestos-month');
@@ -17188,6 +17405,14 @@ function _conciRefreshEditToolbar() {
     if (btnAdd) {
         btnAdd.classList.toggle('d-none', !canEdit || !_conciEditMode);
         btnAdd.disabled = !canEdit || !_conciEditMode;
+    }
+    if (btnAirlineColors) {
+        btnAirlineColors.classList.toggle('d-none', !canEdit);
+        btnAirlineColors.disabled = !canEdit;
+    }
+    if (btnMatriculaCatalog) {
+        btnMatriculaCatalog.classList.toggle('d-none', !canEdit);
+        btnMatriculaCatalog.disabled = !canEdit;
     }
 
     const controlsLocked = _conciEditMode;
@@ -17761,18 +17986,26 @@ function _conciRowMatchesOperationDay(row, columns, year, month, day) {
 // (F/H = carga; el resto pasajeros) y, como respaldo, el catálogo de aerolíneas de
 // carga conocidas.
 function _conciRowIsCargo(row, optypeCol, airlineCol) {
-    const st = String(optypeCol ? row[optypeCol] : '').trim().toUpperCase();
-    if (st) {
-        if (/^[FH]/.test(st)) return true;
-        if (/^[JSUVGTWKZLMNPQXY]/.test(st)) return false;
-    }
     if (airlineCol) {
         try {
             const meta = (typeof _conciResolveAirlineMeta === 'function') ? _conciResolveAirlineMeta(row[airlineCol]) : null;
             const name = meta && meta.name ? meta.name : row[airlineCol];
+            const types = (meta?.types || []).map(type => String(type).trim().toLowerCase());
+            if (types.includes('carga') && !types.includes('pasajeros')) return true;
+            if (types.includes('pasajeros') && !types.includes('carga')) return false;
             if (typeof normalizeAirlineName === 'function' && typeof cargoAirlinesNormalized !== 'undefined'
                 && cargoAirlinesNormalized.has(normalizeAirlineName(name))) return true;
+            if (typeof normalizeAirlineName === 'function' && typeof passengerAirlinesNormalized !== 'undefined'
+                && passengerAirlinesNormalized.has(normalizeAirlineName(name))) return false;
         } catch (_) {}
+    }
+
+    // Fallback para vuelos que aún no tienen una aerolínea configurada en el
+    // catálogo: usa el tipo de servicio del itinerario, nunca los kilogramos.
+    const st = String(optypeCol ? row[optypeCol] : '').trim().toUpperCase();
+    if (st) {
+        if (/^[FH]/.test(st)) return true;
+        if (/^[JSUVGTWKZLMNPQXY]/.test(st)) return false;
     }
     return false;
 }
@@ -17780,6 +18013,10 @@ function _conciRowIsCargo(row, optypeCol, airlineCol) {
 // Build a synthetic manifest row from a vuelos row, given 'LLEGADA' or 'SALIDA'
 function _conciVueloToRow(vRow, tipo, outputCols, colm, hasManifestSchema) {
     const isArr = tipo === 'LLEGADA';
+    const overrideKey = `${vRow.id}|${tipo}`;
+    const overriddenAirline = _conciAirlineOverrides.get(overrideKey);
+    const sourceAirline = isArr ? vRow['[Arr] Airline code'] : vRow['[Dep] Airline code'];
+    const airlineValue = overriddenAirline || sourceAirline || '';
     const assignedSlot = _conciGetAssignedSlot(vRow, isArr);
     const operationHour = _conciGetOperationHour(vRow, isArr);
     if (hasManifestSchema) {
@@ -17787,7 +18024,7 @@ function _conciVueloToRow(vRow, tipo, outputCols, colm, hasManifestSchema) {
         outputCols.forEach(c => { row[c] = ''; });
         if (colm.tipo)      row[colm.tipo]      = tipo;
         if (colm.vuelo)     row[colm.vuelo]      = isArr ? vRow['[Arr] Flight Designator'] : vRow['[Dep] Flight Designator'];
-        if (colm.aerolinea) row[colm.aerolinea]  = isArr ? vRow['[Arr] Airline code']      : vRow['[Dep] Airline code'];
+        if (colm.aerolinea) row[colm.aerolinea]  = airlineValue;
         if (colm.optype)    row[colm.optype]     = isArr ? vRow['[Arr] Service Type']      : vRow['[Dep] Service Type'];
         if (colm.aeronave)  row[colm.aeronave]   = vRow['Aircraft type'] || '';
         if (colm.matricula) row[colm.matricula]  = vRow['Registration']  || '';
@@ -17814,10 +18051,12 @@ function _conciVueloToRow(vRow, tipo, outputCols, colm, hasManifestSchema) {
         row['_validado_itinerario'] = vRow.validado === true;
         row['_validado_por_itinerario'] = vRow.validado_por || '';
         row['_fuente'] = 'Solo Vuelos';
+        row['_conci_vuelo_id'] = vRow.id;
+        row['_conci_vuelo_direccion'] = tipo;
         return row;
     }
     // No manifest schema — use synthetic columns
-    return {
+    const synthetic = {
         'Tipo de Manifiesto': tipo,
         '# de Vuelo':         isArr ? (vRow['[Arr] Flight Designator'] || '') : (vRow['[Dep] Flight Designator'] || ''),
         'Aerolínea':          isArr ? (vRow['[Arr] Airline code']      || '') : (vRow['[Dep] Airline code']      || ''),
@@ -17840,6 +18079,11 @@ function _conciVueloToRow(vRow, tipo, outputCols, colm, hasManifestSchema) {
         '_validado_por_itinerario': vRow.validado_por || '',
         '_fuente':            'Solo Vuelos',
     };
+    const syntheticAirlineKey = Object.keys(synthetic).find(k => /aerol/i.test(k));
+    if (syntheticAirlineKey) synthetic[syntheticAirlineKey] = airlineValue;
+    synthetic._conci_vuelo_id = vRow.id;
+    synthetic._conci_vuelo_direccion = tipo;
+    return synthetic;
 }
 
 // Build enriched rows merging manifest + vuelos data
@@ -18268,6 +18512,8 @@ async function loadConciliacionManifiestos(options = {}) {
         await Promise.all([
             _ensureIataCityMap(),
             _ensureConciAirlineCatalog(),
+            _ensureConciAirlineOverrides(),
+            _ensureConciMatriculaCatalog(),
         ]);
 
         if (requestSeq !== _conciLoadRequestSeq) return;
@@ -18282,6 +18528,7 @@ async function loadConciliacionManifiestos(options = {}) {
         }
 
         const { rows, columns } = _conciBuildEnriched(filteredManifest, filteredVuelos, schemaRows);
+        _conciApplyMatriculaCatalogValidation(rows, columns);
 
         // Filtro fino por día: se conserva la fila solo si su HR. DE OPERACIÓN cae en el
         // día seleccionado (con respaldo a SLOT ASIGNADO / FECHA cuando no hay hora de
@@ -18384,6 +18631,8 @@ let _conciColFilters = {};          // { colName: searchTerm }
 let _conciColFilterDebounce = null;
 let _conciExcelFilters = {};        // { colName: Set<string> } filtros desplegables estilo Excel
 let _conciManifestosAllData = [];   // Referencia al conjunto de datos actual (para listas de valores)
+let _conciManifestosSummaryColumns = [];
+let _conciSummaryLiveOverrides = new Map(); // row index -> { column: current value }
 
 // Determina si una fila (tr) es visible bajo los filtros activos.
 function _conciRowPassesPillFilter(tr) {
@@ -18564,6 +18813,12 @@ function _updateConciExcelFilterIcons() {
     document.querySelectorAll('#table-conci-manifiestos thead th.conci-th .conci-ef-btn').forEach(btn => {
         const isActive = !!_conciExcelFilters[btn.dataset.col];
         btn.classList.toggle('conci-ef-btn-active', isActive);
+        const th = btn.closest('th');
+        if (th) th.classList.toggle('conci-filter-header-active', isActive);
+        btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+        btn.title = isActive ? 'Quitar filtro de ' + btn.dataset.col : 'Filtrar por ' + btn.dataset.col;
+        const icon = btn.querySelector('i');
+        if (icon) icon.className = isActive ? 'fas fa-filter-circle-xmark' : 'fas fa-filter';
     });
 }
 
@@ -18909,7 +19164,7 @@ window.conciExportExcel = _conciExportToExcel;
 
 // ── KPI Summary strip para la pestaña Manifiestos ─────────────────────────────
 // Cuenta TODAS las filas (manifiestos capturados + vuelos del itinerario).
-function _updateManifiestosSummaryStrip(data, columns) {
+function _updateManifiestosSummaryStripLegacy(data, columns) {
     const strip = document.getElementById('manifiestos-summary-strip');
     if (!strip) return;
     if (!data || data.length === 0) { strip.classList.add('d-none'); return; }
@@ -18954,8 +19209,120 @@ function _updateManifiestosSummaryStrip(data, columns) {
     strip.classList.remove('d-none');
 }
 
+function _conciSummaryColumnKey(value) {
+    return String(value || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toUpperCase()
+        .replace(/[^A-Z0-9]+/g, '');
+}
+
+function _conciSummaryNumber(value) {
+    if (value === null || value === undefined || value === '') return 0;
+    const raw = String(value).trim().replace(/\s/g, '').replace(/,/g, '');
+    const number = Number(raw.replace(/[^0-9.-]/g, ''));
+    return Number.isFinite(number) ? number : 0;
+}
+
+function _conciSummaryFindColumn(columns, predicate) {
+    return (columns || []).find(column => predicate(_conciSummaryColumnKey(column))) || null;
+}
+
+function _conciReadLiveTableRow(tr) {
+    const row = {};
+    tr.querySelectorAll('td[data-col]').forEach(td => {
+        const input = td.querySelector('input, textarea, select');
+        row[td.dataset.col] = input
+            ? input.value
+            : (td.dataset.pendingRaw !== undefined ? td.dataset.pendingRaw : (td.dataset.raw || td.textContent || ''));
+    });
+    row._fuente = tr.dataset.rowFuente || '';
+    return row;
+}
+
+function _conciGetLiveSummaryRows() {
+    const rows = (_conciManifestosAllData || []).map((row, index) => {
+        const overrides = _conciSummaryLiveOverrides.get(String(index));
+        return overrides ? { ...row, ...overrides } : row;
+    });
+    const tbody = document.querySelector('#table-conci-manifiestos tbody');
+    if (tbody) {
+        tbody.querySelectorAll('tr[data-conci-new="1"], tr[data-conci-summary-persisted="1"]').forEach(tr => {
+            rows.push(_conciReadLiveTableRow(tr));
+        });
+    }
+    return rows;
+}
+
+function _conciRefreshSummaryCardsLive() {
+    const rows = _conciGetLiveSummaryRows();
+    _conciUpdateResumen(rows, _conciManifestosSummaryColumns);
+    _updateManifiestosSummaryStrip(rows, _conciManifestosSummaryColumns);
+}
+
+function _conciUpdateSummaryLiveCell(td, value) {
+    const tr = td?.closest('tr');
+    if (!tr) return;
+    const rowIndex = tr.dataset.rowIndex;
+    if (rowIndex !== undefined && rowIndex !== '' && !String(rowIndex).startsWith('new')) {
+        const overrides = _conciSummaryLiveOverrides.get(String(rowIndex)) || {};
+        overrides[td.dataset.col] = value;
+        _conciSummaryLiveOverrides.set(String(rowIndex), overrides);
+    }
+    _conciRefreshSummaryCardsLive();
+}
+
+// Recalcula de forma independiente pasajeros y carga: una fila puede contener
+// PAX y también kilogramos de carga/equipaje.
+function _updateManifiestosSummaryStrip(data, columns) {
+    const strip = document.getElementById('manifiestos-summary-strip');
+    if (!strip) return;
+    const rows = Array.isArray(data) ? data : [];
+    const cols = columns || (rows.length ? Object.keys(rows[0]) : []);
+    if (!rows.length) { strip.classList.add('d-none'); return; }
+
+    const airlineCol = _conciSummaryFindColumn(cols, key => key.includes('AEROLINEA') || key.includes('AIRLINE'));
+    const optypeCol = _conciSummaryFindColumn(cols, key =>
+        (key.includes('TIPO') && key.includes('OPER')) || key.includes('SERVICETYPE')
+    );
+    const totalPaxCol = _conciSummaryFindColumn(cols, key => key === 'TOTALPAX' || key.includes('TOTALPAX'));
+    const kgsCarCol = _conciSummaryFindColumn(cols, key =>
+        (key.includes('CARGA') && (key.includes('KG') || key.includes('KILO') || key.includes('PESO')))
+        || key.includes('KILOGRAMOSCARGA')
+    );
+
+    let paxOps = 0, totalPax = 0, cargoOps = 0, kgsCarga = 0;
+    for (const row of rows) {
+        const isCargoByType = _conciRowIsCargo(row, optypeCol, airlineCol);
+        const paxValue = totalPaxCol ? _conciSummaryNumber(row[totalPaxCol]) : 0;
+        const kgsValue = kgsCarCol ? _conciSummaryNumber(row[kgsCarCol]) : 0;
+
+        if (isCargoByType) {
+            cargoOps++;
+        } else {
+            paxOps++;
+            totalPax += paxValue;
+        }
+        // Los KGS son una métrica independiente; no cambian la categoría ni
+        // el número de operaciones.
+        kgsCarga += kgsValue;
+    }
+
+    const fmt = n => n.toLocaleString('es-MX');
+    const setEl = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+    setEl('mf-sum-pax-ops', fmt(paxOps));
+    setEl('mf-sum-total-pax', fmt(totalPax));
+    setEl('mf-sum-cargo-ops', fmt(cargoOps));
+    setEl('mf-sum-kgs-carga', kgsCarga > 0 ? fmt(Math.round(kgsCarga)) : 'N/D');
+    strip.classList.remove('d-none');
+}
+
 function _renderConciManifiestosTable(data, columns, fallbackYear) {
     const tableId = 'table-conci-manifiestos';
+
+    _conciManifestosAllData = Array.isArray(data) ? data : [];
+    _conciManifestosSummaryColumns = Array.isArray(columns) ? columns : [];
+    _conciSummaryLiveOverrides.clear();
 
     _conciUpdateResumen(data, columns);
     _conciBindCountPills();
@@ -18989,6 +19356,7 @@ function _renderConciManifiestosTable(data, columns, fallbackYear) {
     // Detect semantic columns for smart city-name display in routing/origen cell
     const _tipoCol    = displayCols.find(c => /tipo.*(manif)/i.test(c)) || null;
     const _airlineCol = displayCols.find(c => /aerol[ií]nea|airline/i.test(c)) || null;
+    const _matriculaStatusCol = displayCols.find(c => /estatus.*matr[ií]cula|status.*matr[ií]cula/i.test(c)) || null;
     // Match columns named exactly 'Routing' OR containing 'origen' or 'destino' (e.g. 'DESTINO / ORIGEN')
     const _routingCol = displayCols.find(c => /^routing$/i.test(c) || /origen|destino.*origen|routing/i.test(c)) || null;
     // Columna "TIPO DE OPERACIÓN": se muestra como Nacional / Internacional según el
@@ -19175,6 +19543,7 @@ function _renderConciManifiestosTable(data, columns, fallbackYear) {
     const colMeta = displayCols.map(c => ({
         c,
         isAirline:   c === _airlineCol,
+        isMatriculaStatus: c === _matriculaStatusCol,
         isRouting:   c === _routingCol && hasIataMap,
         isOptype:    c === _optypeCol,
         isHrsCumplidas: c === _hrsCumplidasCol && !!_hrOperacionCol && !!_hrRecepcionCol,
@@ -19219,6 +19588,10 @@ function _renderConciManifiestosTable(data, columns, fallbackYear) {
             tr.dataset.rowId = _rowId;
             tr.dataset.rowFuente = _rowFuente;
             tr.dataset.rowIndex = String(idx);
+            if (row._conci_vuelo_id !== undefined && row._conci_vuelo_id !== null) {
+                tr.dataset.conciVueloId = String(row._conci_vuelo_id);
+                tr.dataset.conciVueloDireccion = String(row._conci_vuelo_direccion || '');
+            }
 
             // Etiqueta la fila para los filtros por pill (clase pax/carga y dirección).
             const _tipoRaw = _tipoCol ? String(row[_tipoCol] || '').toLowerCase() : '';
@@ -19234,7 +19607,11 @@ function _renderConciManifiestosTable(data, columns, fallbackYear) {
                 const rawStr = String(val !== null && val !== undefined ? val : '').trim();
                 td.dataset.raw = rawStr;
 
-                if (meta.isAirline) {
+                if (meta.isMatriculaStatus) {
+                    const status = rawStr || 'NO IDENTIFICADA';
+                    _conciRenderMatriculaStatusCell(td, status, !!row._conci_matricula_mismatch, row._conci_matricula_catalog_airline || '');
+                    if (row._conci_matricula_mismatch) tr.classList.add('conci-matricula-mismatch');
+                } else if (meta.isAirline) {
                     const airlineMeta = resolveAirlineMeta(rawStr);
                     if (airlineMeta) {
                         const bg = airlineMeta.color || '#6c757d';
@@ -19481,6 +19858,9 @@ function _conciEnsureEditStyles() {
             cursor: text;
             background: #fffef2 !important;
         }
+        #table-conci-manifiestos.conci-edit-mode td[data-conci-readonly="1"] {
+            cursor: default;
+        }
         #table-conci-manifiestos.conci-edit-mode td[data-col].conci-cell-active {
             outline: 2px solid #0d6efd;
             outline-offset: -2px;
@@ -19559,10 +19939,32 @@ function _conciGetNextEditableCell(td) {
     return null;
 }
 
+function _conciApplyAirlineCellPreview(td, value) {
+    if (!td || !/aerol[ií]nea|airline/i.test(String(td.dataset.col || ''))) return;
+    const raw = String(value || '').trim();
+    const meta = _conciResolveAirlineMeta(raw);
+    const bg = meta?.color || '#6c757d';
+    const fg = meta?.textColor || '#ffffff';
+    td.style.setProperty('background', bg, 'important');
+    td.style.setProperty('color', fg, 'important');
+    td.style.fontWeight = '700';
+    const input = td.querySelector('.conci-cell-input');
+    if (input) {
+        input.style.setProperty('background', bg, 'important');
+        input.style.setProperty('color', fg, 'important');
+        input.style.fontWeight = '700';
+    }
+}
+
+function _conciIsMatriculaStatusColumn(col) {
+    return /estatus.*matr[ií]cula|status.*matr[ií]cula/i.test(String(col || ''));
+}
+
 function _conciActivateCellEditor(td) {
     if (!td || td.querySelector('.conci-cell-input, .conci-cell-dt')) return;
 
     const col = td.dataset.col || '';
+    if (_conciIsMatriculaStatusColumn(col)) return;
     const currentRaw = _conciNormalizeEditableCellText(
         td.dataset.pendingRaw !== undefined ? td.dataset.pendingRaw : (td.dataset.raw || '')
     );
@@ -19582,11 +19984,16 @@ function _conciActivateCellEditor(td) {
     const input = document.createElement('input');
     input.type = 'text';
     input.className = 'form-control form-control-sm conci-cell-input';
-    input.value = currentRaw;
+    const isAirlineCol = /aerol[ií]nea|airline/i.test(col);
+    const currentAirlineMeta = isAirlineCol ? _conciResolveAirlineMeta(currentRaw) : null;
+    input.value = isAirlineCol
+        ? String(currentAirlineMeta?.name || currentRaw).toUpperCase()
+        : currentRaw;
 
     td.classList.add('conci-cell-active');
     td.textContent = '';
     td.appendChild(input);
+    if (isAirlineCol) _conciApplyAirlineCellPreview(td, input.value);
 
     let closed = false;
     const closeEditor = (accept, moveNext) => {
@@ -19610,6 +20017,11 @@ function _conciActivateCellEditor(td) {
             e.preventDefault();
             closeEditor(false, false);
         }
+    });
+    input.addEventListener('input', () => {
+        if (isAirlineCol) _conciApplyAirlineCellPreview(td, input.value);
+        _conciRefreshMatriculaValidationForRow(td.closest('tr'));
+        _conciUpdateSummaryLiveCell(td, input.value);
     });
     input.addEventListener('blur', () => closeEditor(true, false));
 
@@ -19636,8 +20048,14 @@ function _conciCommitCellRaw(td, nextRaw, moveNext, displayText) {
     }
 
     td.classList.remove('conci-cell-active');
-    td.textContent = displayText !== undefined ? displayText : nextRaw;
+    const isAirlineCol = /aerol[ií]nea|airline/i.test(String(td.dataset.col || ''));
+    const committedMeta = isAirlineCol ? _conciResolveAirlineMeta(nextRaw) : null;
+    td.textContent = isAirlineCol
+        ? String(committedMeta?.name || nextRaw).toUpperCase()
+        : (displayText !== undefined ? displayText : nextRaw);
+    _conciApplyAirlineCellPreview(td, nextRaw);
     td.title = 'Clic para editar';
+    _conciRefreshMatriculaValidationForRow(tr);
 
     // Guardado tipo Excel: al salir de una celda se persiste la fila sin esperar
     // un botón global de Guardar.
@@ -19732,9 +20150,11 @@ function _conciActivateDateTimeEditor(td, { withTime, parts }) {
 
     dateInput.addEventListener('keydown', onKeydown);
     dateInput.addEventListener('blur', onBlur);
+    dateInput.addEventListener('input', () => _conciUpdateSummaryLiveCell(td, buildRaw()));
     if (timeInput) {
         timeInput.addEventListener('keydown', onKeydown);
         timeInput.addEventListener('blur', onBlur);
+        timeInput.addEventListener('input', () => _conciUpdateSummaryLiveCell(td, buildRaw()));
     }
 
     // Enfoca hora si la fecha ya está puesta (caso típico: solo ajustar la hora).
@@ -19799,15 +20219,294 @@ function _conciCoerceNumberCandidate(value) {
     return null;
 }
 
-function _conciOpenAirlineColors() {
+function _conciOpenAirlineColorsLegacy() {
+    if (!_conciCanCurrentUserEdit()) {
+        alert('Solo usuarios editor o admin pueden administrar el catálogo de aerolíneas.');
+        return;
+    }
     if (typeof showSection === 'function') showSection('data-management', document.getElementById('data-management-menu'));
     setTimeout(() => {
         const tab = document.getElementById('tab-aerolineas');
         if (tab && window.bootstrap?.Tab) window.bootstrap.Tab.getOrCreateInstance(tab).show();
+        if (typeof window.alLoad === 'function') window.alLoad();
         const pane = document.getElementById('pane-aerolineas');
         if (pane) pane.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 150);
 }
+
+let _conciScopedCatalogRows = [];
+let _conciScopedAircraftRows = [];
+let _conciScopedCatalogKind = '';
+let _conciScopedCatalogColumnFilters = { airline: {}, matricula: {} };
+
+function _conciCatalogModal() {
+    let modal = document.getElementById('modal-conci-scoped-catalog');
+    if (modal) return modal;
+    modal = document.createElement('div');
+    modal.id = 'modal-conci-scoped-catalog';
+    modal.className = 'modal fade';
+    modal.tabIndex = -1;
+    document.body.appendChild(modal);
+    return modal;
+}
+
+function _conciCatalogEsc(value) {
+    return escapeHTML(value === null || value === undefined ? '' : String(value));
+}
+
+function _conciCatalogFeedback(message, type = 'success') {
+    const el = document.getElementById('conci-scoped-catalog-feedback');
+    if (!el) return;
+    el.className = `alert alert-${type} py-2 px-3 mb-3 small`;
+    el.textContent = message;
+    if (type === 'success') setTimeout(() => el.classList.add('d-none'), 2800);
+}
+
+function _conciCatalogTypes(selected) {
+    const set = new Set(Array.isArray(selected) ? selected : []);
+    return ['nacional', 'internacional', 'carga', 'pasajeros'].map(type => `
+        <label class="form-check form-check-inline small"><input class="form-check-input" type="checkbox" name="conci-catalog-type" value="${type}" ${set.has(type) ? 'checked' : ''}><span class="form-check-label">${type}</span></label>`).join('');
+}
+
+function _conciRenderScopedCatalog(kind, row = null) {
+    const modal = _conciCatalogModal();
+    const airline = kind === 'airline';
+    const title = airline ? 'Catálogo de aerolíneas de Manifiestos' : 'Catálogo de matrículas de Manifiestos';
+    const table = airline ? 'conciliacion_catalogo_aerolineas' : 'matriculas_manifiestos';
+    const field = (name, value, extra = '') => `<input name="${name}" class="form-control form-control-sm" value="${_conciCatalogEsc(value)}" ${extra}>`;
+    const form = airline ? `
+        <form id="conci-scoped-catalog-form" class="border rounded-3 p-3 bg-light mb-3">
+            <input type="hidden" name="id" value="${_conciCatalogEsc(row?.id || '')}">
+            <div class="row g-2">
+                <div class="col-md-4"><label class="form-label small fw-semibold">Nombre</label>${field('name', row?.name || '', 'required')}</div>
+                <div class="col-md-2"><label class="form-label small fw-semibold">IATA</label>${field('iata', row?.iata || '', 'maxlength="5"')}</div>
+                <div class="col-md-2"><label class="form-label small fw-semibold">Color</label><input name="color" type="color" class="form-control form-control-sm form-control-color w-100" value="${_conciCatalogEsc(row?.color || '#6c757d')}"></div>
+                <div class="col-md-2"><label class="form-label small fw-semibold">Color texto</label><input name="text_color" type="color" class="form-control form-control-sm form-control-color w-100" value="${_conciCatalogEsc(row?.text_color || '#ffffff')}"></div>
+                <div class="col-md-2 d-flex align-items-end"><button class="btn btn-success btn-sm w-100" type="submit"><i class="fas fa-save me-1"></i>${row ? 'Actualizar' : 'Agregar'}</button></div>
+                <div class="col-12"><label class="form-label small fw-semibold mb-1">Alias (uno por línea o separados por coma)</label><textarea name="aliases" rows="2" class="form-control form-control-sm">${_conciCatalogEsc((row?.aliases || []).join('\n'))}</textarea></div>
+                <div class="col-12"><label class="form-label small fw-semibold mb-1">Tipo</label>${_conciCatalogTypes(row?.types)}</div>
+            </div>
+        </form>` : `
+        <form id="conci-scoped-catalog-form" class="border rounded-3 p-3 bg-light mb-3">
+            <input type="hidden" name="id" value="${_conciCatalogEsc(row?.id || '')}">
+            <div class="row g-2">
+                <div class="col-md-3"><label class="form-label small fw-semibold">Matrícula</label>${field('matricula', row?.matricula || '', 'required')}</div>
+                <div class="col-md-3"><label class="form-label small fw-semibold">Aerolínea</label>${field('aerolinea', row?.aerolinea || '', 'required')}</div>
+                <div class="col-md-2"><label class="form-label small fw-semibold">Estatus</label><select name="estatus" class="form-select form-select-sm"><option value="ACTIVO" ${row?.estatus === 'ACTIVO' ? 'selected' : ''}>ACTIVO</option><option value="CHARTEROS" ${row?.estatus === 'CHARTEROS' ? 'selected' : ''}>CHARTEROS</option></select></div>
+                <div class="col-md-2"><label class="form-label small fw-semibold">Aeronave</label>${field('tipo_de_aeronave', row?.tipo_de_aeronave || '')}</div>
+                <div class="col-md-2"><label class="form-label small fw-semibold">Tipo 2</label>${field('tipo_de_aeronave_2', row?.tipo_de_aeronave_2 || '')}</div>
+                ${['mlw_ton', 'mtow_ton', 'mzfw_ton', 'promedio'].map(name => `<div class="col-md-2"><label class="form-label small fw-semibold">${name.replace('_ton', '').toUpperCase()}</label>${field(name, row?.[name] ?? '', 'type="number" step="0.001" min="0"')}</div>`).join('')}
+                <div class="col-md-2"><label class="form-label small fw-semibold">Pasajeros</label>${field('pasajeros', row?.pasajeros ?? 0, 'type="number" min="0" step="1" required')}</div>
+                <div class="col-md-2 d-flex align-items-end"><button class="btn btn-success btn-sm w-100" type="submit"><i class="fas fa-save me-1"></i>${row ? 'Actualizar' : 'Agregar'}</button></div>
+            </div>
+        </form>`;
+    modal.innerHTML = `<div class="modal-dialog modal-xl modal-dialog-scrollable"><div class="modal-content">
+        <div class="modal-header bg-primary text-white"><h5 class="modal-title"><i class="fas ${airline ? 'fa-palette' : 'fa-id-card'} me-2"></i>${title}</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button></div>
+        <div class="modal-body"><div id="conci-scoped-catalog-feedback" class="d-none"></div><p class="small text-muted"><i class="fas fa-shield-alt me-1"></i>Este catálogo es exclusivo de Conciliación/Manifiestos. No modifica los catálogos principales.</p>${form}
+            <div class="d-flex justify-content-between align-items-center mb-2"><strong class="small">Registros</strong><input id="conci-scoped-catalog-search" class="form-control form-control-sm" style="max-width:300px" placeholder="Buscar..."></div>
+            <div class="table-responsive border rounded" style="max-height:390px"><table class="table table-sm table-hover align-middle mb-0"><thead class="table-light sticky-top"><tr>${airline ? '<th>Nombre</th><th>IATA</th><th>Color</th><th>Tipos</th><th>Estado</th><th></th>' : '<th>Matrícula</th><th>Aerolínea</th><th>Estatus</th><th>Aeronave</th><th>Pasajeros</th><th></th>'}</tr></thead><tbody id="conci-scoped-catalog-rows"><tr><td colspan="6" class="text-center text-muted py-3">Cargando...</td></tr></tbody></table></div></div>
+        <div class="modal-footer"><span class="small text-muted me-auto">Tabla: ${table}</span><button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cerrar</button></div></div></div>`;
+    const legacyFilterDefs = airline ? [
+        ['name', 'Nombre'], ['iata', 'IATA'], ['color', 'Color'], ['types', 'Tipos'], ['aircraft', 'Aeronaves'], ['active', 'Estado']
+    ] : [
+        ['matricula', 'Matrícula'], ['aerolinea', 'Aerolínea'], ['estatus', 'Estatus'], ['aeronave', 'Aeronave'], ['pasajeros', 'Pasajeros']
+    ];
+    const filterDefs = airline ? [
+        ['name', 'Nombre'], ['iata', 'IATA'], ['color', 'Color'], ['types', 'Tipos'], ['aircraft', 'Aeronaves'], ['active', 'Estado']
+    ] : [
+        ['matricula', 'Matrícula'], ['aerolinea', 'Aerolínea'], ['estatus', 'Estatus'],
+        ['tipo_de_aeronave', 'Aeronave'], ['tipo_de_aeronave_2', 'Tipo 2'], ['mlw_ton', 'MLW (t)'],
+        ['mtow_ton', 'MTOW (t)'], ['mzfw_ton', 'MZFW (t)'], ['promedio', 'Promedio'], ['pasajeros', 'Pasajeros']
+    ];
+    const savedFilters = _conciScopedCatalogColumnFilters[kind] || {};
+    const filterHeader = filterDefs.map(([key, label]) => `<th><input class="form-control form-control-sm conci-catalog-col-filter" data-conci-catalog-filter="${key}" value="${_conciCatalogEsc(savedFilters[key] || '')}" placeholder="Filtrar ${label}..."></th>`).join('');
+    // Layout visual nuevo: el contenido se mantiene en un solo panel y permite
+    // cambiar entre ambos catálogos sin salir de Manifiestos.
+    modal.innerHTML = `<div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable"><div class="modal-content conci-catalog-modal-content">
+        <div class="modal-header conci-catalog-modal-header text-white"><div><div class="conci-catalog-eyebrow">ADMINISTRACION DE MANIFIESTOS</div><h5 class="modal-title mb-0"><i class="fas ${airline ? 'fa-palette' : 'fa-id-card'} me-2"></i>${title}</h5></div><div class="btn-group btn-group-sm conci-catalog-switcher" role="group"><button type="button" class="btn ${airline ? 'active' : ''}" data-conci-catalog-switch="airline"><i class="fas fa-palette me-1"></i>Aerolíneas</button><button type="button" class="btn ${!airline ? 'active' : ''}" data-conci-catalog-switch="matricula"><i class="fas fa-id-card me-1"></i>Matrículas</button></div><button type="button" class="btn-close btn-close-white ms-2" data-bs-dismiss="modal" aria-label="Cerrar"></button></div>
+        <div class="modal-body conci-catalog-modal-body"><div id="conci-scoped-catalog-feedback" class="d-none"></div><div class="conci-catalog-notice"><i class="fas fa-shield-alt"></i><span>Catalogo exclusivo de Conciliacion/Manifiestos. Los cambios no modifican los catalogos principales.</span></div><div class="row g-2 conci-catalog-stats mb-3"><div class="col-4"><div class="conci-catalog-stat"><i class="fas fa-database"></i><div><strong id="conci-catalog-stat-total">—</strong><span>Total</span></div></div></div><div class="col-4"><div class="conci-catalog-stat"><i class="fas fa-check-circle"></i><div><strong id="conci-catalog-stat-active">—</strong><span>${airline ? 'Activos' : 'Vigentes'}</span></div></div></div><div class="col-4"><div class="conci-catalog-stat"><i class="fas fa-filter"></i><div><strong id="conci-catalog-stat-visible">—</strong><span>Mostrados</span></div></div></div></div><div class="conci-catalog-section-title"><span><i class="fas fa-pen-to-square me-2"></i>${row ? 'Editar registro' : 'Nuevo registro'}</span><button id="conci-catalog-new" type="button" class="btn btn-outline-primary btn-sm"><i class="fas fa-plus me-1"></i>Nuevo</button></div>${form}<div class="conci-catalog-section-title mt-3"><span><i class="fas fa-list me-2"></i>Registros del catalogo</span><div class="input-group input-group-sm conci-catalog-search"><span class="input-group-text"><i class="fas fa-search"></i></span><input id="conci-scoped-catalog-search" class="form-control" placeholder="Buscar por nombre, codigo o matricula..."></div></div><div class="table-responsive conci-catalog-table-wrap"><table class="table table-sm table-hover align-middle mb-0"><thead class="sticky-top"><tr>${airline ? '<th>Nombre</th><th>IATA</th><th>Color</th><th>Tipos</th><th>Estado</th><th class="text-end">Acciones</th>' : '<th>Matrícula</th><th>Aerolínea</th><th>Estatus</th><th>Aeronave</th><th>Pasajeros</th><th class="text-end">Acciones</th>'}</tr></thead><tbody id="conci-scoped-catalog-rows"><tr><td colspan="6" class="text-center text-muted py-4"><i class="fas fa-spinner fa-spin me-2"></i>Cargando catalogo...</td></tr></tbody></table></div></div><div class="modal-footer conci-catalog-modal-footer"><span><i class="fas fa-table me-1"></i>${table}</span><button type="button" class="btn btn-light border" data-bs-dismiss="modal">Cerrar</button></div></div></div>`;
+    const catalogThead = modal.querySelector('.conci-catalog-table-wrap thead');
+    if (catalogThead) catalogThead.innerHTML = `<tr>${filterDefs.map(([, label]) => `<th>${label}</th>`).join('')}<th class="text-end">Acciones</th></tr><tr class="conci-catalog-filter-row">${filterHeader}<th></th></tr>`;
+    modal.querySelectorAll('[data-conci-catalog-switch]').forEach(button => button.addEventListener('click', () => _conciOpenScopedCatalog(button.dataset.conciCatalogSwitch)));
+    modal.querySelectorAll('[data-conci-catalog-filter]').forEach(input => input.addEventListener('input', event => {
+        _conciScopedCatalogColumnFilters[kind][event.target.dataset.conciCatalogFilter] = event.target.value.trim();
+        _conciRenderScopedCatalogRows(kind, modal.querySelector('#conci-scoped-catalog-search')?.value || '');
+    }));
+    modal.querySelector('#conci-catalog-new').addEventListener('click', () => { _conciRenderScopedCatalog(kind); _conciRenderScopedCatalogRows(kind); });
+    modal.querySelector('#conci-scoped-catalog-form').addEventListener('submit', event => _conciSaveScopedCatalog(event, kind));
+    modal.querySelector('#conci-scoped-catalog-search').addEventListener('input', event => _conciRenderScopedCatalogRows(kind, event.target.value));
+    modal.querySelector('#conci-scoped-catalog-rows').addEventListener('click', event => {
+        const details = event.target.closest('[data-conci-aircraft-details]');
+        if (details) {
+            const row = details.closest('tr[data-conci-airline-row]');
+            const current = row?.nextElementSibling;
+            if (current?.classList.contains('conci-aircraft-detail-row')) {
+                current.remove();
+            } else if (row) {
+                const aircraft = _conciScopedAircraftForAirline(
+                    _conciScopedCatalogRows.find(item => String(item.id) === String(row.dataset.conciAirlineRow))?.name || ''
+                );
+                row.insertAdjacentHTML('afterend', _conciScopedAircraftExpandedHtml(aircraft, 7));
+            }
+            return;
+        }
+        const edit = event.target.closest('[data-conci-catalog-edit]');
+        if (edit) {
+            const found = _conciScopedCatalogRows.find(item => String(item.id) === String(edit.dataset.conciCatalogEdit));
+            if (found) { _conciRenderScopedCatalog(kind, found); _conciRenderScopedCatalogRows(kind); }
+            return;
+        }
+        const toggle = event.target.closest('[data-conci-catalog-toggle]');
+        if (toggle) return _conciToggleScopedAirline(toggle.dataset.conciCatalogToggle);
+        const remove = event.target.closest('[data-conci-catalog-delete]');
+        if (remove) return _conciDeleteScopedMatricula(remove.dataset.conciCatalogDelete);
+    });
+    return modal;
+}
+
+async function _conciLoadScopedCatalog(kind) {
+    try {
+        const sb = window.supabaseClient || (window.ensureSupabaseClient && await window.ensureSupabaseClient());
+        if (!sb) throw new Error('Cliente Supabase no disponible.');
+        const table = kind === 'airline' ? 'conciliacion_catalogo_aerolineas' : 'matriculas_manifiestos';
+        const { data, error } = await sb.from(table).select('*').order(kind === 'airline' ? 'name' : 'matricula').limit(2000);
+        if (error) throw error;
+        _conciScopedCatalogRows = data || [];
+        if (kind === 'airline') {
+            const aircraft = await sb.from('matriculas_manifiestos')
+                .select('id, matricula, aerolinea, estatus, tipo_de_aeronave, tipo_de_aeronave_2, mlw_ton, mtow_ton, mzfw_ton, promedio, pasajeros')
+                .order('matricula').limit(5000);
+            if (aircraft.error) throw aircraft.error;
+            _conciScopedAircraftRows = aircraft.data || [];
+        }
+        _conciRenderScopedCatalogRows(kind, document.getElementById('conci-scoped-catalog-search')?.value || '');
+    } catch (error) { _conciCatalogFeedback(`No se pudo cargar el catálogo: ${error.message}`, 'danger'); }
+}
+
+function _conciCatalogSafeColor(value, fallback) {
+    const color = String(value || '').trim();
+    return /^#[0-9a-f]{6}$/i.test(color) ? color : fallback;
+}
+
+function _conciScopedAircraftForAirline(airline) {
+    return (_conciScopedAircraftRows || []).filter(row => _conciAirlinesMatch(row.aerolinea, airline));
+}
+
+function _conciScopedAircraftDetailsHtml(rows, airlineId = '') {
+    if (!rows.length) return '<span class="text-muted small">Sin matrículas asociadas</span>';
+    return `<span class="badge rounded-pill text-bg-primary me-1">${rows.length}</span><button type="button" class="btn btn-link btn-sm p-0 conci-aircraft-details-btn" data-conci-aircraft-details="${airlineId}" title="Ver todos los datos de las matrículas"><i class="fas fa-eye me-1"></i>Ver datos</button>`;
+}
+
+function _conciScopedAircraftExpandedHtml(rows, colspan) {
+    return `<tr class="conci-aircraft-detail-row"><td colspan="${colspan}"><div class="conci-aircraft-detail-box"><div class="fw-semibold small mb-2"><i class="fas fa-plane me-1"></i>Datos completos de aeronaves y matrículas</div><div class="table-responsive"><table class="table table-sm table-bordered mb-0"><thead><tr><th>Matrícula</th><th>Aerolínea</th><th>Estatus</th><th>Aeronave</th><th>MLW</th><th>MTOW</th><th>MZFW</th><th>Promedio</th><th>Pasajeros</th></tr></thead><tbody>${rows.map(row => `<tr><td class="fw-semibold">${_conciCatalogEsc(row.matricula)}</td><td>${_conciCatalogEsc(row.aerolinea)}</td><td>${_conciCatalogEsc(row.estatus)}</td><td>${_conciCatalogEsc([row.tipo_de_aeronave, row.tipo_de_aeronave_2].filter(Boolean).join(' '))}</td><td>${_conciCatalogEsc(row.mlw_ton)}</td><td>${_conciCatalogEsc(row.mtow_ton)}</td><td>${_conciCatalogEsc(row.mzfw_ton)}</td><td>${_conciCatalogEsc(row.promedio)}</td><td>${_conciCatalogEsc(row.pasajeros)}</td></tr>`).join('')}</tbody></table></div></div></td></tr>`;
+}
+
+function _conciRenderScopedCatalogRows(kind, search = '') {
+    const tbody = document.getElementById('conci-scoped-catalog-rows');
+    if (!tbody) return;
+    const airline = kind === 'airline';
+    const filters = _conciScopedCatalogColumnFilters[kind] || {};
+    const term = String(search || '').toLowerCase().trim();
+    const filtered = _conciScopedCatalogRows.filter(row => {
+        const aircraft = airline ? _conciScopedAircraftForAirline(row.name) : [];
+        const values = airline ? {
+            name: row.name, iata: row.iata, color: row.color, types: (row.types || []).join(' '),
+            aircraft: aircraft.map(item => [item.matricula, item.aerolinea, item.tipo_de_aeronave, item.tipo_de_aeronave_2, item.estatus].join(' ')).join(' '),
+            active: row.active === false ? 'INACTIVA' : 'ACTIVA'
+        } : {
+            matricula: row.matricula, aerolinea: row.aerolinea, estatus: row.estatus,
+            tipo_de_aeronave: row.tipo_de_aeronave, tipo_de_aeronave_2: row.tipo_de_aeronave_2,
+            mlw_ton: row.mlw_ton, mtow_ton: row.mtow_ton, mzfw_ton: row.mzfw_ton, promedio: row.promedio, pasajeros: row.pasajeros
+        };
+        const hay = Object.values(values).join(' ').toLowerCase();
+        if (term && !hay.includes(term)) return false;
+        return Object.entries(filters).every(([key, value]) => !value || String(values[key] || '').toLowerCase().includes(String(value).toLowerCase()));
+    });
+    const setStat = (id, value) => { const el = document.getElementById(id); if (el) el.textContent = Number(value || 0).toLocaleString('es-MX'); };
+    setStat('conci-catalog-stat-total', _conciScopedCatalogRows.length);
+    setStat('conci-catalog-stat-active', airline ? _conciScopedCatalogRows.filter(row => row.active !== false).length : _conciScopedCatalogRows.filter(row => String(row.estatus || '').toUpperCase() === 'ACTIVO').length);
+    setStat('conci-catalog-stat-visible', filtered.length);
+    if (!filtered.length) { tbody.innerHTML = `<tr><td colspan="${airline ? 7 : 11}" class="text-center text-muted py-4">No hay registros que coincidan con los filtros.</td></tr>`; return; }
+    tbody.innerHTML = filtered.map(row => {
+        if (airline) {
+            const related = _conciScopedAircraftForAirline(row.name);
+            const bg = _conciCatalogSafeColor(row.color, '#6c757d');
+            const fg = _conciCatalogSafeColor(row.text_color, '#ffffff');
+            return `<tr data-conci-airline-row="${row.id}" class="${row.active === false ? 'table-secondary text-muted' : ''}"><td><span class="conci-catalog-airline-chip" style="background:${bg};color:${fg}">${_conciCatalogEsc(row.name)}</span></td><td>${_conciCatalogEsc(row.iata)}</td><td><span class="conci-catalog-color-dot" style="background:${bg}"></span>${_conciCatalogEsc(row.color)}</td><td class="small">${_conciCatalogEsc((row.types || []).join(', '))}</td><td>${_conciScopedAircraftDetailsHtml(related, row.id)}</td><td><span class="badge ${row.active === false ? 'text-bg-secondary' : 'text-bg-success'}">${row.active === false ? 'INACTIVA' : 'ACTIVA'}</span></td><td class="text-end text-nowrap"><button class="btn btn-outline-primary btn-sm" data-conci-catalog-edit="${row.id}" title="Editar"><i class="fas fa-edit"></i></button> <button class="btn btn-outline-secondary btn-sm" data-conci-catalog-toggle="${row.id}" title="Activar/desactivar"><i class="fas ${row.active === false ? 'fa-toggle-on' : 'fa-toggle-off'}"></i></button></td></tr>`;
+        }
+        const meta = _conciResolveAirlineMeta(row.aerolinea);
+        const bg = _conciCatalogSafeColor(meta?.color, '#6c757d');
+        const fg = _conciCatalogSafeColor(meta?.textColor, '#ffffff');
+        const display = value => _conciCatalogEsc(value ?? '—');
+        return `<tr><td class="fw-semibold">${display(row.matricula)}</td><td><span class="conci-catalog-airline-chip" style="background:${bg};color:${fg}">${display(row.aerolinea)}</span></td><td><span class="badge ${String(row.estatus).toUpperCase() === 'ACTIVO' ? 'text-bg-success' : 'text-bg-warning'}">${display(row.estatus)}</span></td><td>${display(row.tipo_de_aeronave)}</td><td>${display(row.tipo_de_aeronave_2)}</td><td>${display(row.mlw_ton)}</td><td>${display(row.mtow_ton)}</td><td>${display(row.mzfw_ton)}</td><td>${display(row.promedio)}</td><td>${display(row.pasajeros)}</td><td class="text-end text-nowrap"><button class="btn btn-outline-primary btn-sm" data-conci-catalog-edit="${row.id}" title="Editar"><i class="fas fa-edit"></i></button> <button class="btn btn-outline-danger btn-sm" data-conci-catalog-delete="${row.id}" title="Eliminar"><i class="fas fa-trash"></i></button></td></tr>`;
+    }).join('');
+}
+
+async function _conciSaveScopedCatalog(event, kind) {
+    event.preventDefault();
+    const form = event.currentTarget;
+    try {
+        const sb = window.supabaseClient || (window.ensureSupabaseClient && await window.ensureSupabaseClient());
+        if (!sb) throw new Error('Cliente Supabase no disponible.');
+        const value = name => form.elements[name]?.value ?? '';
+        const id = value('id');
+        const airline = kind === 'airline';
+        const table = airline ? 'conciliacion_catalogo_aerolineas' : 'matriculas_manifiestos';
+        const payload = airline ? {
+            name: value('name').trim().toUpperCase(), iata: value('iata').trim().toUpperCase() || null,
+            aliases: value('aliases').split(/[\n,]+/).map(v => v.trim()).filter(Boolean), color: value('color') || '#6c757d', text_color: value('text_color') || '#ffffff',
+            types: [...form.querySelectorAll('[name="conci-catalog-type"]:checked')].map(input => input.value), active: true,
+        } : {
+            matricula: _conciNormalizeMatricula(value('matricula')), aerolinea: value('aerolinea').trim().toUpperCase(), estatus: value('estatus'),
+            tipo_de_aeronave: value('tipo_de_aeronave').trim().toUpperCase() || null, tipo_de_aeronave_2: value('tipo_de_aeronave_2').trim().toUpperCase() || null,
+            mlw_ton: value('mlw_ton') === '' ? null : Number(value('mlw_ton')), mtow_ton: value('mtow_ton') === '' ? null : Number(value('mtow_ton')), mzfw_ton: value('mzfw_ton') === '' ? null : Number(value('mzfw_ton')), promedio: value('promedio') === '' ? null : Number(value('promedio')), pasajeros: Number(value('pasajeros') || 0), updated_at: new Date().toISOString(),
+        };
+        if (!id && !airline) payload.fila_origen = Math.max(1, ..._conciScopedCatalogRows.map(row => Number(row.fila_origen) || 1)) + 1;
+        if (airline && !payload.name) throw new Error('El nombre es obligatorio.');
+        if (!airline && !payload.matricula) throw new Error('La matrícula es obligatoria.');
+        const result = id ? await sb.from(table).update(payload).eq('id', id) : await sb.from(table).insert(payload);
+        if (result.error) throw result.error;
+        if (airline) { _conciAirlineCatalogLoaded = false; _conciRenderCache.clear(); window.dispatchEvent(new CustomEvent('airline-catalog-updated', { detail: { scope: 'conciliacion' } })); }
+        else { _conciMatriculaCatalogLoaded = false; _conciMatriculaCatalogMap = new Map(); window.dispatchEvent(new CustomEvent('matricula-catalog-updated')); }
+        _conciRenderScopedCatalog(kind);
+        await _conciLoadScopedCatalog(kind);
+        _conciCatalogFeedback('Registro guardado correctamente.');
+    } catch (error) { _conciCatalogFeedback(`No se pudo guardar: ${error.message}`, 'danger'); }
+}
+
+async function _conciToggleScopedAirline(id) {
+    try {
+        const row = _conciScopedCatalogRows.find(item => String(item.id) === String(id));
+        const sb = window.supabaseClient || (window.ensureSupabaseClient && await window.ensureSupabaseClient());
+        const { error } = await sb.from('conciliacion_catalogo_aerolineas').update({ active: row?.active === false, updated_at: new Date().toISOString() }).eq('id', id);
+        if (error) throw error;
+        _conciAirlineCatalogLoaded = false; window.dispatchEvent(new CustomEvent('airline-catalog-updated', { detail: { scope: 'conciliacion' } })); await _conciLoadScopedCatalog('airline');
+    } catch (error) { _conciCatalogFeedback(`No se pudo cambiar el estado: ${error.message}`, 'danger'); }
+}
+
+async function _conciDeleteScopedMatricula(id) {
+    if (!confirm('¿Eliminar esta matrícula del catálogo de Manifiestos?')) return;
+    try {
+        const sb = window.supabaseClient || (window.ensureSupabaseClient && await window.ensureSupabaseClient());
+        const { error } = await sb.from('matriculas_manifiestos').delete().eq('id', id);
+        if (error) throw error;
+        _conciMatriculaCatalogLoaded = false; _conciMatriculaCatalogMap = new Map(); window.dispatchEvent(new CustomEvent('matricula-catalog-updated')); await _conciLoadScopedCatalog('matricula');
+    } catch (error) { _conciCatalogFeedback(`No se pudo eliminar: ${error.message}`, 'danger'); }
+}
+
+function _conciOpenScopedCatalog(kind) {
+    if (!_conciCanCurrentUserEdit()) { alert('Solo usuarios autorizados del área de Manifiestos pueden modificar estos catálogos.'); return; }
+    _conciScopedCatalogKind = kind;
+    _conciScopedCatalogRows = [];
+    const modal = _conciRenderScopedCatalog(kind);
+    if (window.bootstrap?.Modal) window.bootstrap.Modal.getOrCreateInstance(modal).show();
+    _conciLoadScopedCatalog(kind);
+}
+
+// Sobrescribe el acceso anterior a Gestión de Datos: Conciliación usa su copia
+// aislada y no permite modificar public.airlines.
+function _conciOpenAirlineColors() { _conciOpenScopedCatalog('airline'); }
+function _conciOpenMatriculaCatalog() { _conciOpenScopedCatalog('matricula'); }
 
 function _conciPrepareValueForDatabase(col, value) {
     if (value === null || value === undefined) return null;
@@ -19889,6 +20588,27 @@ const typeValueMatch = message.match(/invalid input syntax for (?:type\s+)?(?:bi
     return { ok: false, error: { message: 'Error desconocido al guardar.' } };
 }
 
+function _conciAirlinePayloadEntry(payload) {
+    const key = Object.keys(payload || {}).find(k => /aerol[ií]nea|airline/i.test(k));
+    return key ? { key, value: payload[key] } : null;
+}
+
+async function _conciSaveVirtualAirlineOverride(client, tr, value) {
+    const vueloId = String(tr?.dataset?.conciVueloId || '').trim();
+    const direccion = String(tr?.dataset?.conciVueloDireccion || '').trim().toUpperCase();
+    if (!vueloId || !/^(LLEGADA|SALIDA)$/.test(direccion)) {
+        throw new Error('No se pudo identificar el vuelo origen de la fila de Conciliación.');
+    }
+    const { data, error } = await client.rpc('save_conciliacion_vuelo_airline_override', {
+        p_vuelo_id: Number(vueloId),
+        p_direccion: direccion,
+        p_aerolinea: String(value ?? '').trim()
+    });
+    if (error) throw error;
+    _conciAirlineOverrides.set(`${vueloId}|${direccion}`, String(value ?? '').trim());
+    return data;
+}
+
 async function _conciAutoSaveRow(tr) {
     if (!tr || !tr.isConnected || !_conciEditMode || !_conciCanCurrentUserEdit()) return;
     if (tr._conciAutoSavePromise) return tr._conciAutoSavePromise;
@@ -19917,6 +20637,20 @@ async function _conciAutoSaveRow(tr) {
             let client = window.supabaseClient;
             if (!client && window.ensureSupabaseClient) client = await window.ensureSupabaseClient();
             if (!client) throw new Error('No se pudo inicializar el cliente de Supabase.');
+            if (tr.dataset.rowFuente === 'Solo Vuelos') {
+                const airlineEntry = _conciAirlinePayloadEntry(payload);
+                if (!airlineEntry) return;
+                await _conciSaveVirtualAirlineOverride(client, tr, airlineEntry.value);
+                cells.forEach(td => {
+                    const raw = _conciNormalizeEditableCellText(td.dataset.pendingRaw ?? td.dataset.raw ?? td.textContent);
+                    td.dataset.origRaw = raw;
+                    td.removeAttribute('data-dirty');
+                });
+                tr.removeAttribute('data-dirty');
+                tr.classList.remove('table-warning');
+                tr.removeAttribute('title');
+                return;
+            }
             const rowId = String(tr.dataset.rowId || '').trim();
             const result = await _conciWriteRowSafe(client, payload, rowId || null);
             if (!result.ok) {
@@ -19930,6 +20664,7 @@ async function _conciAutoSaveRow(tr) {
             const inserted = Array.isArray(result.data) ? result.data[0] : result.data;
             if (!rowId && inserted?.id !== undefined && inserted?.id !== null) {
                 tr.dataset.rowId = String(inserted.id);
+                tr.dataset.conciSummaryPersisted = '1';
                 tr.removeAttribute('data-conci-new');
                 const action = tr.querySelector('.conci-delete-new-row');
                 if (action) {
@@ -20103,6 +20838,7 @@ async function _conciSaveBulkEdits() {
 
         const updates = [];
         const inserts = [];
+        const virtualAirlineOverrides = [];
 
         // Las filas nuevas se identifican explícitamente: al salir del último
         // editor una fila vacía puede perder la marca dirty aunque ya tenga datos.
@@ -20146,6 +20882,11 @@ async function _conciSaveBulkEdits() {
                 });
             }
             if (Object.keys(changedPayload).length === 0) return;
+            if (tr.dataset.rowFuente === 'Solo Vuelos') {
+                const airlineEntry = _conciAirlinePayloadEntry(changedPayload);
+                if (airlineEntry) virtualAirlineOverrides.push({ tr, value: airlineEntry.value });
+                return;
+            }
             if (rowId) updates.push({ id: rowId, payload: changedPayload });
             else {
                 const hasMeaningfulValue = Object.values(changedPayload)
@@ -20154,12 +20895,20 @@ async function _conciSaveBulkEdits() {
             }
         });
 
-        if (updates.length === 0 && inserts.length === 0) {
+        if (updates.length === 0 && inserts.length === 0 && virtualAirlineOverrides.length === 0) {
             _conciEditMode = false;
             _conciSetTableEditableState(false);
             _conciRefreshEditToolbar();
             return;
         }
+
+        const virtualResults = await _conciRunBatchWrites(
+            virtualAirlineOverrides,
+            30,
+            item => _conciSaveVirtualAirlineOverride(client, item.tr, item.value)
+                .then(() => ({ ok: true }))
+                .catch(error => ({ ok: false, error }))
+        );
 
         const updateResults = await _conciRunBatchWrites(
             updates,
@@ -20172,7 +20921,7 @@ async function _conciSaveBulkEdits() {
             (payload) => _conciWriteRowSafe(client, payload, null)
         );
 
-        const results = [...updateResults, ...insertResults];
+        const results = [...virtualResults, ...updateResults, ...insertResults];
         const okCount = results.filter(r => r && r.ok).length;
         const fail = results.filter(r => !r || !r.ok);
 

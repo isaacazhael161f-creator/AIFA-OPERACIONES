@@ -146,7 +146,8 @@
             getData: () => currentData,
             getHeaders: () => HEADERS,
             getDateFields: () => DATE_FIELDS,
-            getLastImportYear: () => lastImportYear
+            getLastImportYear: () => lastImportYear,
+            clearAllFilters: clearAllCsvFilters
         };
     });
 
@@ -977,21 +978,10 @@
         const strip = document.getElementById('itinerario-summary-strip');
         if (!strip) return;
 
-        if (!data || data.length === 0) {
-            strip.classList.add('d-none');
-            return;
-        }
-
-        const { paxOps, paxBoarded, cargoOps, cargoKg } = computeItinerarioSummary(data);
-        const fmt = n => n.toLocaleString('es-MX');
-
-        const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
-        set('sum-pax-ops', fmt(paxOps));
-        set('sum-pax-boarded', fmt(paxBoarded));
-        set('sum-cargo-ops', fmt(cargoOps));
-        set('sum-cargo-kg', cargoKg > 0 ? fmt(cargoKg) : 'N/D');
-
-        strip.classList.remove('d-none');
+        // El resumen por tarjetas no se muestra en la pestaña Itinerario.
+        // Se conserva el bloque en el HTML para no romper referencias antiguas,
+        // pero permanece oculto y no ocupa espacio.
+        strip.classList.add('d-none');
     }
 
     // ── Indicador de filtros de columna activos ───────────────────────────
@@ -1003,17 +993,23 @@
         const badgeText    = document.getElementById('csv-col-filters-text');
         if (!badge) return;
         if (total > 0) {
-            badge.classList.remove('d-none');
             badge.style.display = 'inline-flex';
-            const label = total === 1 ? '1 filtro activo' : `${total} filtros activos`;
+            badge.disabled = false;
+            badge.classList.add('csv-col-filters-active');
+            const label = total === 1 ? 'Quitar 1 filtro' : `Quitar ${total} filtros`;
             if (badgeText) badgeText.textContent = label;
+            badge.title = `${total === 1 ? 'Hay 1 filtro activo' : `Hay ${total} filtros activos`}. Haz clic para quitarlos.`;
         } else {
-            badge.classList.add('d-none');
-            badge.style.display = '';
+            badge.style.display = 'inline-flex';
+            badge.disabled = true;
+            badge.classList.remove('csv-col-filters-active');
+            if (badgeText) badgeText.textContent = 'Sin filtros';
+            badge.title = 'No hay filtros de columna activos.';
         }
     }
 
     function clearAllCsvFilters() {
+        document.querySelectorAll('.csv-excel-dropdown').forEach(el => el.remove());
         // Clear text filters
         columnFilters = {};
         document.querySelectorAll('#table-ops-flights-csv .csv-filter-row input').forEach(inp => { inp.value = ''; });
@@ -1441,8 +1437,11 @@
             if (!btn) return;
             const isActive = !!csvExcelFilters[field];
             btn.classList.toggle('csv-ef-btn-active', isActive);
-            // Always show funnel icon — blue filled when active, gray outline when not
-            btn.querySelector('i').className = isActive ? 'fas fa-filter' : 'fas fa-filter';
+            th.classList.toggle('csv-filter-header-active', isActive);
+            btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+            btn.title = isActive ? `Quitar filtro de ${field}` : `Filtrar ${field}`;
+            // El embudo activo queda amarillo y cambia a icono de quitar filtro.
+            btn.querySelector('i').className = isActive ? 'fas fa-filter-circle-xmark' : 'fas fa-filter';
         });
     }
 
